@@ -1,8 +1,7 @@
 from sqlalchemy import create_engine, and_
 from sqlalchemy import Table, Column, Integer, String, Boolean, DateTime, Enum, JSON, Float, Text, MetaData
-import sqlalchemy
 from sqlalchemy.sql import text, select, func
-from sqlalchemy import ForeignKey
+from sqlalchemy import ForeignKey, asc, desc, join, between
 
 DATABASE_URL = 'sqlite:///database.db'
 engine = create_engine(DATABASE_URL, echo=True)
@@ -74,6 +73,24 @@ def create_tables():
 
     fkd = ( select(users, addresses).select_from(users.join(addresses, users.c.id == addresses.c.user_id)))
     conn.execute(users.update().values({'company':'Updated company ltd'}).where(users.c.id == 2))
+    conn.execute(addresses.update().values({addresses.c.location: 'UG'}
+    ).where(users.c.id == addresses.c.user_id)
+    )
+    conn.execute(users.delete().where((users.c.age <= 23)).where(users.c.name.startswith('od')))
     res  = conn.execute(fkd).fetchall()
     for i in res:
      print(i)
+
+    # a = users.join(addresses, users.c.id == addresses.c.user_id)
+    # clt = users.select().select_from(a)
+    # b = conn.execute(clt)
+
+    # print(b.fetchall())
+
+    # c = conn.execute( users.select().order_by(asc(users.c.salary)) )
+
+    d = conn.execute( users.select().where(between(users.c.salary, 50000, 120000)) )
+     
+    e = conn.execute(func.count(users.c.id))
+
+    return d
