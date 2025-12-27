@@ -1,8 +1,10 @@
-from fastapi import APIRouter
-from .endpoints import properties, auth
+from fastapi import FastAPI
+from ...models.models import create_tables
 
-api_router = APIRouter()
+app = FastAPI()
 
-# Include routers with appropriate prefixes
-api_router.include_router(auth.router, prefix="/auth", tags=["authentication"])
-api_router.include_router(properties.router, prefix="/properties", tags=["properties"])
+@app.get('/')
+
+async def home():
+    x = create_tables()
+    return {"result":   x}
