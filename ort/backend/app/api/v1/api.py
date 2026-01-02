@@ -2,9 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 
-from database.database import get_db
-from models.models import User, Client, Property, PropertyImage, Listing, Inquiry, Appointment, Transaction, Payment
-from schemas.schemas import (
+from app.database.database import get_db
+from app.models.models import User, Client, Property, PropertyImage, Listing, Inquiry, Appointment, Transaction, Payment
+from app.schemas.schemas import (
     UserCreate, UserResponse,
     ClientCreate, ClientResponse,
     PropertyCreate, PropertyResponse,
