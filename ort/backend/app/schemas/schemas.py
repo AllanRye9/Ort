@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, validator
-from typing import Optional, List
+from typing import Optional
 from datetime import datetime, date
 
 # User schema
@@ -11,7 +11,7 @@ class UserBase(BaseModel):
     phone: Optional[str] = None
 
 class UserCreate(UserBase):
-    role: str = Field(..., regex="^(agent|admin)$")
+    role: str = Field(..., pattern="^(agent|admin)$")
     first_name: str = Field(..., min_length=2, max_length=100)
     last_name: str = Field(..., min_length=2, max_length=100)
     email: str = Field(..., max_length=255)
@@ -29,7 +29,7 @@ class UserResponse(UserBase):
     created_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True  # Changed from orm_mode=True in Pydantic V2
 
 # Client schema
 class ClientBase(BaseModel):
@@ -41,7 +41,7 @@ class ClientBase(BaseModel):
 
 class ClientCreate(ClientBase):
     agent_id: Optional[int] = None
-    client_type: str = Field(..., regex="^(buyer|seller|renter)$")
+    client_type: str = Field(..., pattern="^(buyer|seller|renter)$")
 
     @validator("first_name", "last_name", pre=True)
     def no_blank(cls, value):
@@ -54,7 +54,7 @@ class ClientResponse(ClientBase):
     created_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 # Property schema
 class PropertyBase(BaseModel):
@@ -71,7 +71,7 @@ class PropertyBase(BaseModel):
 class PropertyCreate(PropertyBase):
     agent_id: Optional[int] = None
     owner_id: Optional[int] = None
-    property_type: str = Field(..., regex="^(house|apartment|land|commercial)$")
+    property_type: str = Field(..., pattern="^(house|apartment|land|commercial)$")
     price: float = Field(..., gt=0)
     bedrooms: Optional[int] = Field(None, ge=0)
     bathrooms: Optional[int] = Field(None, ge=0)
@@ -89,7 +89,7 @@ class PropertyResponse(PropertyBase):
     created_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 # Property images
 class PropertyImageBase(BaseModel):
@@ -103,7 +103,7 @@ class PropertyImageResponse(PropertyImageBase):
     id: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 # Listing schema
 class ListingBase(BaseModel):
@@ -114,14 +114,14 @@ class ListingBase(BaseModel):
 
 class ListingCreate(ListingBase):
     property_id: int
-    listing_type: str = Field(..., regex="^(sale|rent)$")
+    listing_type: str = Field(..., pattern="^(sale|rent)$")
     listed_price: float = Field(..., gt=0)
 
 class ListingResponse(ListingBase):
     id: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 # Inquiries schema
 class InquiryBase(BaseModel):
@@ -137,7 +137,7 @@ class InquiryResponse(InquiryBase):
     created_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 # Appointment schema
 class AppointmentBase(BaseModel):
@@ -153,7 +153,7 @@ class AppointmentResponse(AppointmentBase):
     status: str
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 # Transaction schema
 class TransactionBase(BaseModel):
@@ -171,7 +171,7 @@ class TransactionResponse(TransactionBase):
     id: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 # Payments schema
 class PaymentBase(BaseModel):
@@ -187,4 +187,4 @@ class PaymentResponse(PaymentBase):
     payment_date: date
 
     class Config:
-        orm_mode = True
+        from_attributes = True
