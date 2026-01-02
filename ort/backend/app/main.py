@@ -1,6 +1,6 @@
 from fastapi import FastAPI
-from .database.database import engine, Base
-from .api.v1.api import router
+from app.database.database import engine, Base
+from app.api.v1.api import router
 
 app = FastAPI(title="Real Estate Management API", version="1.0.0")
 
