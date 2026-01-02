@@ -11,7 +11,7 @@ class UserBase(BaseModel):
     phone: Optional[str] = None
 
 class UserCreate(UserBase):
-    role: str = Field(..., pattern="^(agent|admin)$")
+    role: str = Field(..., pattern="^(agent|admin|user)$")
     first_name: str = Field(..., min_length=2, max_length=100)
     last_name: str = Field(..., min_length=2, max_length=100)
     email: str = Field(..., max_length=255)
