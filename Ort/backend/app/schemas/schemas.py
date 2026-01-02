@@ -1,72 +1,190 @@
 from pydantic import BaseModel, Field, validator
-from typing import Optional
-import re
-from datetime import datetime
+from typing import Optional, List
+from datetime import datetime, date
 
+# User schema
+class UserBase(BaseModel):
+    role: str
+    first_name: str
+    last_name: str
+    email: str
+    phone: Optional[str] = None
 
-class BookBase(BaseModel):
-    Original_title: str
-    Author: str
-    Language: str
-    Subject: Optional[str] = None
-    Genre: Optional[str] = None
-    Publisher: str
-    Publication_date: str
-    Publication_place: str
-    Pages: Optional[int] = None
-    Description: Optional[str] = None
+class UserCreate(UserBase):
+    role: str = Field(..., regex="^(agent|admin)$")
+    first_name: str = Field(..., min_length=2, max_length=100)
+    last_name: str = Field(..., min_length=2, max_length=100)
+    email: str = Field(..., max_length=255)
+    phone: Optional[str] = Field(None, max_length=20)
+    password: str = Field(..., min_length=8)
 
-
-class BookCreate(BookBase):
-    Original_title: str = Field(..., min_length=2, max_length=255)
-    Author: str = Field(..., min_length=2, max_length=255)
-    Language: str = Field(..., min_length=2, max_length=100)
-    Subject: Optional[str] = Field(None, max_length=255)
-    Genre: Optional[str] = Field(None, max_length=100)
-    Publisher: str = Field(..., max_length=255)
-    Publication_date: str = Field(..., description="Must be DD-MM-YYYY")
-    Publication_place: str = Field(..., max_length=255)
-    Pages: Optional[int] = Field(None, ge=1)  # must be positive if provided
-    Description: Optional[str] = Field(None, max_length=5000)
-
-    # ---------------- Validators ---------------- #
-
-    @validator(
-        "Original_title",
-        "Author",
-        "Language",
-        "Publisher",
-        "Publication_place",
-        pre=True
-    )
-    def no_blank_text(cls, value):
+    @validator("first_name", "last_name", "email", pre=True)
+    def no_blank(cls, value):
         if not value or not value.strip():
-            raise ValueError("Field cannot be blank or spaces only")
+            raise ValueError("Field cannot be blank")
         return value.strip()
 
-    @validator("Publication_date")
-    def validate_date(cls, value):
-        try:
-            datetime.strptime(value, "%d-%m-%Y")
-        except ValueError:
-            raise ValueError("Publication_date must be in DD-MM-YYYY format")
-        return value
-
-    @validator("Language")
-    def validate_language(cls, value):
-        if not re.match(r"^[A-Za-z\s\-]+$", value):
-            raise ValueError("Language must contain only letters")
-        return value
-
-    @validator("Pages")
-    def pages_must_be_positive(cls, value):
-        if value is not None and value <= 0:
-            raise ValueError("Pages must be greater than 0")
-        return value
-
-
-class ResponseBook(BookBase):
+class UserResponse(UserBase):
     id: int
+    created_at: datetime
+
+    class Config:
+        orm_mode = True
+
+# Client schema
+class ClientBase(BaseModel):
+    first_name: str
+    last_name: str
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    client_type: str
+
+class ClientCreate(ClientBase):
+    agent_id: Optional[int] = None
+    client_type: str = Field(..., regex="^(buyer|seller|renter)$")
+
+    @validator("first_name", "last_name", pre=True)
+    def no_blank(cls, value):
+        if not value or not value.strip():
+            raise ValueError("Field cannot be blank")
+        return value.strip()
+
+class ClientResponse(ClientBase):
+    id: int
+    created_at: datetime
+
+    class Config:
+        orm_mode = True
+
+# Property schema
+class PropertyBase(BaseModel):
+    title: str
+    description: Optional[str] = None
+    property_type: str
+    address: str
+    city: Optional[str] = None
+    price: float
+    bedrooms: Optional[int] = None
+    bathrooms: Optional[int] = None
+    area_sqft: Optional[int] = None
+
+class PropertyCreate(PropertyBase):
+    agent_id: Optional[int] = None
+    owner_id: Optional[int] = None
+    property_type: str = Field(..., regex="^(house|apartment|land|commercial)$")
+    price: float = Field(..., gt=0)
+    bedrooms: Optional[int] = Field(None, ge=0)
+    bathrooms: Optional[int] = Field(None, ge=0)
+    area_sqft: Optional[int] = Field(None, gt=0)
+
+    @validator("title", "address", pre=True)
+    def no_blank(cls, value):
+        if not value or not value.strip():
+            raise ValueError("Field cannot be blank")
+        return value.strip()
+
+class PropertyResponse(PropertyBase):
+    id: int
+    status: str
+    created_at: datetime
+
+    class Config:
+        orm_mode = True
+
+# Property images
+class PropertyImageBase(BaseModel):
+    image_url: str
+    is_primary: Optional[bool] = False
+
+class PropertyImageCreate(PropertyImageBase):
+    property_id: int
+
+class PropertyImageResponse(PropertyImageBase):
+    id: int
+
+    class Config:
+        orm_mode = True
+
+# Listing schema
+class ListingBase(BaseModel):
+    listing_type: str
+    listed_price: float
+    listing_date: date
+    expiry_date: Optional[date] = None
+
+class ListingCreate(ListingBase):
+    property_id: int
+    listing_type: str = Field(..., regex="^(sale|rent)$")
+    listed_price: float = Field(..., gt=0)
+
+class ListingResponse(ListingBase):
+    id: int
+
+    class Config:
+        orm_mode = True
+
+# Inquiries schema
+class InquiryBase(BaseModel):
+    message: Optional[str] = None
+
+class InquiryCreate(InquiryBase):
+    property_id: int
+    client_id: Optional[int] = None
+
+class InquiryResponse(InquiryBase):
+    id: int
+    status: str
+    created_at: datetime
+
+    class Config:
+        orm_mode = True
+
+# Appointment schema
+class AppointmentBase(BaseModel):
+    appointment_date: datetime
+
+class AppointmentCreate(AppointmentBase):
+    property_id: int
+    agent_id: int
+    client_id: int
+
+class AppointmentResponse(AppointmentBase):
+    id: int
+    status: str
+
+    class Config:
+        orm_mode = True
+
+# Transaction schema
+class TransactionBase(BaseModel):
+    sale_price: float
+    commission: Optional[float] = None
+    transaction_date: date
+
+class TransactionCreate(TransactionBase):
+    property_id: int
+    agent_id: int
+    buyer_id: int
+    sale_price: float = Field(..., gt=0)
+
+class TransactionResponse(TransactionBase):
+    id: int
+
+    class Config:
+        orm_mode = True
+
+# Payments schema
+class PaymentBase(BaseModel):
+    amount: float
+    payment_method: Optional[str] = None
+
+class PaymentCreate(PaymentBase):
+    transaction_id: int
+    amount: float = Field(..., gt=0)
+
+class PaymentResponse(PaymentBase):
+    id: int
+    payment_date: date
 
     class Config:
         orm_mode = True
