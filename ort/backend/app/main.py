@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .database.database import engine, Base
-from .api import router
+from .api.v1.api import router
 
 app = FastAPI(title="Real Estate Management API", version="1.0.0")
 
