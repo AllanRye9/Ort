@@ -11,7 +11,7 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True)
-    role = Column(Enum("agent", "admin", "user", name="user_roles"), nullable=False)
+    role = Column(Enum("agent", "admin", name="user_roles"), nullable=False)
     first_name = Column(String(100), nullable=False)
     last_name = Column(String(100), nullable=False)
     email = Column(String(255), unique=True, nullable=False)
