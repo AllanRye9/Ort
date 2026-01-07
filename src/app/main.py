@@ -5,7 +5,6 @@ from .api.v1.api import router
 
 app = FastAPI(title="Real Estate Management API", version="1.0.0")
 
-Configure CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
