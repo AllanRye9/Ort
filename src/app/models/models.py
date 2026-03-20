@@ -1,6 +1,6 @@
 from sqlalchemy import (
-    Column, Integer, String, Text, Date, DateTime, 
-    Enum, ForeignKey, Boolean, DECIMAL
+    Column, Integer, String, Text, Date, DateTime,
+    Enum, ForeignKey, Boolean, DECIMAL, Index
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -9,6 +9,9 @@ from ..database.database import Base
 
 class User(Base):
     __tablename__ = "users"
+    __table_args__ = (
+        Index("ix_users_email", "email"),
+    )
 
     id = Column(Integer, primary_key=True)
     role = Column(Enum("agent", "admin", name="user_roles"), nullable=False)
@@ -25,9 +28,12 @@ class User(Base):
 
 class Client(Base):
     __tablename__ = "clients"
+    __table_args__ = (
+        Index("ix_clients_agent_id", "agent_id"),
+    )
 
     id = Column(Integer, primary_key=True)
-    agent_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"))
+    agent_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     first_name = Column(String(100), nullable=False)
     last_name = Column(String(100), nullable=False)
     email = Column(String(255))
@@ -41,10 +47,16 @@ class Client(Base):
 
 class Property(Base):
     __tablename__ = "properties"
+    __table_args__ = (
+        Index("ix_properties_agent_id", "agent_id"),
+        Index("ix_properties_owner_id", "owner_id"),
+        Index("ix_properties_status", "status"),
+        Index("ix_properties_city", "city"),
+    )
 
     id = Column(Integer, primary_key=True)
-    owner_id = Column(Integer, ForeignKey("clients.id", ondelete="SET NULL"))
-    agent_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"))
+    owner_id = Column(Integer, ForeignKey("clients.id", ondelete="SET NULL"), nullable=True)
+    agent_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     title = Column(String(255), nullable=False)
     description = Column(Text)
     property_type = Column(Enum("house", "apartment", "land", "commercial", name="property_types"))
@@ -67,6 +79,9 @@ class Property(Base):
 
 class PropertyImage(Base):
     __tablename__ = "property_images"
+    __table_args__ = (
+        Index("ix_property_images_property_id", "property_id"),
+    )
 
     id = Column(Integer, primary_key=True)
     property_id = Column(Integer, ForeignKey("properties.id", ondelete="CASCADE"))
@@ -78,6 +93,9 @@ class PropertyImage(Base):
 
 class Listing(Base):
     __tablename__ = "listings"
+    __table_args__ = (
+        Index("ix_listings_property_id", "property_id"),
+    )
 
     id = Column(Integer, primary_key=True)
     property_id = Column(Integer, ForeignKey("properties.id", ondelete="CASCADE"))
@@ -91,10 +109,14 @@ class Listing(Base):
 
 class Inquiry(Base):
     __tablename__ = "inquiries"
+    __table_args__ = (
+        Index("ix_inquiries_property_id", "property_id"),
+        Index("ix_inquiries_client_id", "client_id"),
+    )
 
     id = Column(Integer, primary_key=True)
     property_id = Column(Integer, ForeignKey("properties.id", ondelete="CASCADE"))
-    client_id = Column(Integer, ForeignKey("clients.id", ondelete="SET NULL"))
+    client_id = Column(Integer, ForeignKey("clients.id", ondelete="SET NULL"), nullable=True)
     message = Column(Text)
     status = Column(Enum("new", "contacted", "closed", name="inquiry_status"), default="new")
     created_at = Column(DateTime, server_default=func.now())
@@ -105,11 +127,16 @@ class Inquiry(Base):
 
 class Appointment(Base):
     __tablename__ = "appointments"
+    __table_args__ = (
+        Index("ix_appointments_property_id", "property_id"),
+        Index("ix_appointments_agent_id", "agent_id"),
+        Index("ix_appointments_client_id", "client_id"),
+    )
 
     id = Column(Integer, primary_key=True)
     property_id = Column(Integer, ForeignKey("properties.id", ondelete="CASCADE"))
-    agent_id = Column(Integer, ForeignKey("users.id"))
-    client_id = Column(Integer, ForeignKey("clients.id"))
+    agent_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    client_id = Column(Integer, ForeignKey("clients.id", ondelete="SET NULL"), nullable=True)
     appointment_date = Column(DateTime, nullable=False)
     status = Column(Enum("scheduled", "completed", "cancelled", name="appointment_status"), default="scheduled")
 
@@ -120,11 +147,16 @@ class Appointment(Base):
 
 class Transaction(Base):
     __tablename__ = "transactions"
+    __table_args__ = (
+        Index("ix_transactions_property_id", "property_id"),
+        Index("ix_transactions_agent_id", "agent_id"),
+        Index("ix_transactions_buyer_id", "buyer_id"),
+    )
 
     id = Column(Integer, primary_key=True)
-    property_id = Column(Integer, ForeignKey("properties.id"))
-    agent_id = Column(Integer, ForeignKey("users.id"))
-    buyer_id = Column(Integer, ForeignKey("clients.id"))
+    property_id = Column(Integer, ForeignKey("properties.id", ondelete="SET NULL"), nullable=True)
+    agent_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    buyer_id = Column(Integer, ForeignKey("clients.id", ondelete="SET NULL"), nullable=True)
     sale_price = Column(DECIMAL(12, 2), nullable=False)
     commission = Column(DECIMAL(12, 2))
     transaction_date = Column(Date, nullable=False)
@@ -137,6 +169,9 @@ class Transaction(Base):
 
 class Payment(Base):
     __tablename__ = "payments"
+    __table_args__ = (
+        Index("ix_payments_transaction_id", "transaction_id"),
+    )
 
     id = Column(Integer, primary_key=True)
     transaction_id = Column(Integer, ForeignKey("transactions.id", ondelete="CASCADE"))

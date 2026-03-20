@@ -1,29 +1,39 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 from typing import List
 
 from app.database.database import get_db
-from app.models.models import User, Client, Property, PropertyImage, Listing, Inquiry, Appointment, Transaction, Payment
+from app.models.models import (
+    Appointment, Client, Inquiry, Listing, Payment,
+    Property, PropertyImage, Transaction, User,
+)
 from app.schemas.schemas import (
-    UserCreate, UserResponse,
-    ClientCreate, ClientResponse,
-    PropertyCreate, PropertyResponse,
-    PropertyImageCreate, PropertyImageResponse,
-    ListingCreate, ListingResponse,
-    InquiryCreate, InquiryResponse,
     AppointmentCreate, AppointmentResponse,
+    ClientCreate, ClientResponse, ClientUpdate,
+    InquiryCreate, InquiryResponse,
+    ListingCreate, ListingResponse,
+    PaymentCreate, PaymentResponse,
+    PropertyCreate, PropertyImageCreate, PropertyImageResponse,
+    PropertyResponse, PropertyUpdate,
     TransactionCreate, TransactionResponse,
-    PaymentCreate, PaymentResponse
+    UserCreate, UserResponse, UserUpdate,
 )
 
 router = APIRouter()
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 # ========== USER ENDPOINTS ==========
 
 @router.get("/users/", response_model=List[UserResponse])
-def get_users(db: Session = Depends(get_db)):
-    return db.query(User).all()
+def get_users(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
+    db: Session = Depends(get_db),
+):
+    return db.query(User).offset(skip).limit(limit).all()
 
 
 @router.get("/users/{user_id}", response_model=UserResponse)
@@ -36,14 +46,15 @@ def get_user(user_id: int, db: Session = Depends(get_db)):
 
 @router.post("/users/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def create_user(user: UserCreate, db: Session = Depends(get_db)):
-    # In production, hash the password before storing
+    if db.query(User).filter(User.email == user.email).first():
+        raise HTTPException(status_code=409, detail="Email already registered")
     db_user = User(
         role=user.role,
         first_name=user.first_name,
         last_name=user.last_name,
         email=user.email,
         phone=user.phone,
-        password_hash=user.password  # This should be hashed
+        password_hash=pwd_context.hash(user.password),
     )
     db.add(db_user)
     db.commit()
@@ -52,15 +63,17 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
 
 
 @router.put("/users/{user_id}", response_model=UserResponse)
-def update_user(user_id: int, user_update: UserCreate, db: Session = Depends(get_db)):
+def update_user(user_id: int, user_update: UserUpdate, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    
-    # Update user fields
-    for key, value in user_update.dict().items():
+
+    data = user_update.model_dump(exclude_unset=True)
+    if "password" in data:
+        data["password_hash"] = pwd_context.hash(data.pop("password"))
+    for key, value in data.items():
         setattr(user, key, value)
-    
+
     db.commit()
     db.refresh(user)
     return user
@@ -71,7 +84,7 @@ def delete_user(user_id: int, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    
+
     db.delete(user)
     db.commit()
     return {"message": "User deleted successfully"}
@@ -80,8 +93,12 @@ def delete_user(user_id: int, db: Session = Depends(get_db)):
 # ========== CLIENT ENDPOINTS ==========
 
 @router.get("/clients/", response_model=List[ClientResponse])
-def get_clients(db: Session = Depends(get_db)):
-    return db.query(Client).all()
+def get_clients(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
+    db: Session = Depends(get_db),
+):
+    return db.query(Client).offset(skip).limit(limit).all()
 
 
 @router.get("/clients/{client_id}", response_model=ClientResponse)
@@ -94,14 +111,7 @@ def get_client(client_id: int, db: Session = Depends(get_db)):
 
 @router.post("/clients/", response_model=ClientResponse, status_code=status.HTTP_201_CREATED)
 def create_client(client: ClientCreate, db: Session = Depends(get_db)):
-    db_client = Client(
-        first_name=client.first_name,
-        last_name=client.last_name,
-        email=client.email,
-        phone=client.phone,
-        client_type=client.client_type,
-        agent_id=client.agent_id
-    )
+    db_client = Client(**client.model_dump())
     db.add(db_client)
     db.commit()
     db.refresh(db_client)
@@ -109,14 +119,14 @@ def create_client(client: ClientCreate, db: Session = Depends(get_db)):
 
 
 @router.put("/clients/{client_id}", response_model=ClientResponse)
-def update_client(client_id: int, client_update: ClientCreate, db: Session = Depends(get_db)):
+def update_client(client_id: int, client_update: ClientUpdate, db: Session = Depends(get_db)):
     client = db.query(Client).filter(Client.id == client_id).first()
     if not client:
         raise HTTPException(status_code=404, detail="Client not found")
-    
-    for key, value in client_update.dict().items():
+
+    for key, value in client_update.model_dump(exclude_unset=True).items():
         setattr(client, key, value)
-    
+
     db.commit()
     db.refresh(client)
     return client
@@ -127,7 +137,7 @@ def delete_client(client_id: int, db: Session = Depends(get_db)):
     client = db.query(Client).filter(Client.id == client_id).first()
     if not client:
         raise HTTPException(status_code=404, detail="Client not found")
-    
+
     db.delete(client)
     db.commit()
     return {"message": "Client deleted successfully"}
@@ -136,33 +146,25 @@ def delete_client(client_id: int, db: Session = Depends(get_db)):
 # ========== PROPERTY ENDPOINTS ==========
 
 @router.get("/properties/", response_model=List[PropertyResponse])
-def get_properties(db: Session = Depends(get_db)):
-    return db.query(Property).all()
+def get_properties(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
+    db: Session = Depends(get_db),
+):
+    return db.query(Property).offset(skip).limit(limit).all()
 
 
 @router.get("/properties/{property_id}", response_model=PropertyResponse)
 def get_property(property_id: int, db: Session = Depends(get_db)):
-    property = db.query(Property).filter(Property.id == property_id).first()
-    if not property:
+    prop = db.query(Property).filter(Property.id == property_id).first()
+    if not prop:
         raise HTTPException(status_code=404, detail="Property not found")
-    return property
+    return prop
 
 
 @router.post("/properties/", response_model=PropertyResponse, status_code=status.HTTP_201_CREATED)
-def create_property(property: PropertyCreate, db: Session = Depends(get_db)):
-    db_property = Property(
-        title=property.title,
-        description=property.description,
-        property_type=property.property_type,
-        address=property.address,
-        city=property.city,
-        price=property.price,
-        bedrooms=property.bedrooms,
-        bathrooms=property.bathrooms,
-        area_sqft=property.area_sqft,
-        owner_id=property.owner_id,
-        agent_id=property.agent_id
-    )
+def create_property(prop: PropertyCreate, db: Session = Depends(get_db)):
+    db_property = Property(**prop.model_dump())
     db.add(db_property)
     db.commit()
     db.refresh(db_property)
@@ -170,26 +172,26 @@ def create_property(property: PropertyCreate, db: Session = Depends(get_db)):
 
 
 @router.put("/properties/{property_id}", response_model=PropertyResponse)
-def update_property(property_id: int, property_update: PropertyCreate, db: Session = Depends(get_db)):
-    property = db.query(Property).filter(Property.id == property_id).first()
-    if not property:
+def update_property(property_id: int, prop_update: PropertyUpdate, db: Session = Depends(get_db)):
+    prop = db.query(Property).filter(Property.id == property_id).first()
+    if not prop:
         raise HTTPException(status_code=404, detail="Property not found")
-    
-    for key, value in property_update.dict().items():
-        setattr(property, key, value)
-    
+
+    for key, value in prop_update.model_dump(exclude_unset=True).items():
+        setattr(prop, key, value)
+
     db.commit()
-    db.refresh(property)
-    return property
+    db.refresh(prop)
+    return prop
 
 
 @router.delete("/properties/{property_id}", status_code=status.HTTP_200_OK)
 def delete_property(property_id: int, db: Session = Depends(get_db)):
-    property = db.query(Property).filter(Property.id == property_id).first()
-    if not property:
+    prop = db.query(Property).filter(Property.id == property_id).first()
+    if not prop:
         raise HTTPException(status_code=404, detail="Property not found")
-    
-    db.delete(property)
+
+    db.delete(prop)
     db.commit()
     return {"message": "Property deleted successfully"}
 
@@ -197,8 +199,12 @@ def delete_property(property_id: int, db: Session = Depends(get_db)):
 # ========== PROPERTY IMAGE ENDPOINTS ==========
 
 @router.get("/property-images/", response_model=List[PropertyImageResponse])
-def get_property_images(db: Session = Depends(get_db)):
-    return db.query(PropertyImage).all()
+def get_property_images(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
+    db: Session = Depends(get_db),
+):
+    return db.query(PropertyImage).offset(skip).limit(limit).all()
 
 
 @router.get("/property-images/{image_id}", response_model=PropertyImageResponse)
@@ -211,11 +217,7 @@ def get_property_image(image_id: int, db: Session = Depends(get_db)):
 
 @router.post("/property-images/", response_model=PropertyImageResponse, status_code=status.HTTP_201_CREATED)
 def create_property_image(image: PropertyImageCreate, db: Session = Depends(get_db)):
-    db_image = PropertyImage(
-        property_id=image.property_id,
-        image_url=image.image_url,
-        is_primary=image.is_primary
-    )
+    db_image = PropertyImage(**image.model_dump())
     db.add(db_image)
     db.commit()
     db.refresh(db_image)
@@ -227,7 +229,7 @@ def delete_property_image(image_id: int, db: Session = Depends(get_db)):
     image = db.query(PropertyImage).filter(PropertyImage.id == image_id).first()
     if not image:
         raise HTTPException(status_code=404, detail="Property image not found")
-    
+
     db.delete(image)
     db.commit()
     return {"message": "Property image deleted successfully"}
@@ -236,8 +238,12 @@ def delete_property_image(image_id: int, db: Session = Depends(get_db)):
 # ========== LISTING ENDPOINTS ==========
 
 @router.get("/listings/", response_model=List[ListingResponse])
-def get_listings(db: Session = Depends(get_db)):
-    return db.query(Listing).all()
+def get_listings(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
+    db: Session = Depends(get_db),
+):
+    return db.query(Listing).offset(skip).limit(limit).all()
 
 
 @router.get("/listings/{listing_id}", response_model=ListingResponse)
@@ -250,13 +256,7 @@ def get_listing(listing_id: int, db: Session = Depends(get_db)):
 
 @router.post("/listings/", response_model=ListingResponse, status_code=status.HTTP_201_CREATED)
 def create_listing(listing: ListingCreate, db: Session = Depends(get_db)):
-    db_listing = Listing(
-        property_id=listing.property_id,
-        listing_type=listing.listing_type,
-        listed_price=listing.listed_price,
-        listing_date=listing.listing_date,
-        expiry_date=listing.expiry_date
-    )
+    db_listing = Listing(**listing.model_dump())
     db.add(db_listing)
     db.commit()
     db.refresh(db_listing)
@@ -266,8 +266,12 @@ def create_listing(listing: ListingCreate, db: Session = Depends(get_db)):
 # ========== INQUIRY ENDPOINTS ==========
 
 @router.get("/inquiries/", response_model=List[InquiryResponse])
-def get_inquiries(db: Session = Depends(get_db)):
-    return db.query(Inquiry).all()
+def get_inquiries(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
+    db: Session = Depends(get_db),
+):
+    return db.query(Inquiry).offset(skip).limit(limit).all()
 
 
 @router.get("/inquiries/{inquiry_id}", response_model=InquiryResponse)
@@ -280,11 +284,7 @@ def get_inquiry(inquiry_id: int, db: Session = Depends(get_db)):
 
 @router.post("/inquiries/", response_model=InquiryResponse, status_code=status.HTTP_201_CREATED)
 def create_inquiry(inquiry: InquiryCreate, db: Session = Depends(get_db)):
-    db_inquiry = Inquiry(
-        property_id=inquiry.property_id,
-        client_id=inquiry.client_id,
-        message=inquiry.message
-    )
+    db_inquiry = Inquiry(**inquiry.model_dump())
     db.add(db_inquiry)
     db.commit()
     db.refresh(db_inquiry)
@@ -294,8 +294,12 @@ def create_inquiry(inquiry: InquiryCreate, db: Session = Depends(get_db)):
 # ========== APPOINTMENT ENDPOINTS ==========
 
 @router.get("/appointments/", response_model=List[AppointmentResponse])
-def get_appointments(db: Session = Depends(get_db)):
-    return db.query(Appointment).all()
+def get_appointments(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
+    db: Session = Depends(get_db),
+):
+    return db.query(Appointment).offset(skip).limit(limit).all()
 
 
 @router.get("/appointments/{appointment_id}", response_model=AppointmentResponse)
@@ -308,12 +312,7 @@ def get_appointment(appointment_id: int, db: Session = Depends(get_db)):
 
 @router.post("/appointments/", response_model=AppointmentResponse, status_code=status.HTTP_201_CREATED)
 def create_appointment(appointment: AppointmentCreate, db: Session = Depends(get_db)):
-    db_appointment = Appointment(
-        property_id=appointment.property_id,
-        agent_id=appointment.agent_id,
-        client_id=appointment.client_id,
-        appointment_date=appointment.appointment_date
-    )
+    db_appointment = Appointment(**appointment.model_dump())
     db.add(db_appointment)
     db.commit()
     db.refresh(db_appointment)
@@ -323,8 +322,12 @@ def create_appointment(appointment: AppointmentCreate, db: Session = Depends(get
 # ========== TRANSACTION ENDPOINTS ==========
 
 @router.get("/transactions/", response_model=List[TransactionResponse])
-def get_transactions(db: Session = Depends(get_db)):
-    return db.query(Transaction).all()
+def get_transactions(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
+    db: Session = Depends(get_db),
+):
+    return db.query(Transaction).offset(skip).limit(limit).all()
 
 
 @router.get("/transactions/{transaction_id}", response_model=TransactionResponse)
@@ -337,14 +340,7 @@ def get_transaction(transaction_id: int, db: Session = Depends(get_db)):
 
 @router.post("/transactions/", response_model=TransactionResponse, status_code=status.HTTP_201_CREATED)
 def create_transaction(transaction: TransactionCreate, db: Session = Depends(get_db)):
-    db_transaction = Transaction(
-        property_id=transaction.property_id,
-        agent_id=transaction.agent_id,
-        buyer_id=transaction.buyer_id,
-        sale_price=transaction.sale_price,
-        commission=transaction.commission,
-        transaction_date=transaction.transaction_date
-    )
+    db_transaction = Transaction(**transaction.model_dump())
     db.add(db_transaction)
     db.commit()
     db.refresh(db_transaction)
@@ -354,8 +350,12 @@ def create_transaction(transaction: TransactionCreate, db: Session = Depends(get
 # ========== PAYMENT ENDPOINTS ==========
 
 @router.get("/payments/", response_model=List[PaymentResponse])
-def get_payments(db: Session = Depends(get_db)):
-    return db.query(Payment).all()
+def get_payments(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
+    db: Session = Depends(get_db),
+):
+    return db.query(Payment).offset(skip).limit(limit).all()
 
 
 @router.get("/payments/{payment_id}", response_model=PaymentResponse)
@@ -368,11 +368,7 @@ def get_payment(payment_id: int, db: Session = Depends(get_db)):
 
 @router.post("/payments/", response_model=PaymentResponse, status_code=status.HTTP_201_CREATED)
 def create_payment(payment: PaymentCreate, db: Session = Depends(get_db)):
-    db_payment = Payment(
-        transaction_id=payment.transaction_id,
-        amount=payment.amount,
-        payment_method=payment.payment_method
-    )
+    db_payment = Payment(**payment.model_dump())
     db.add(db_payment)
     db.commit()
     db.refresh(db_payment)
