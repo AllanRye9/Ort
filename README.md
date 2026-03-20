@@ -6,7 +6,7 @@ A comprehensive real estate software solution built with **FastAPI** that allows
 
 This application follows a modern microservices architecture with:
 - **FastAPI** - High-performance Python web framework
-- **PostgreSQL with PostGIS** - Spatial database for location-based queries
+- **PostgreSQL with PostGIS** - Spatial database for location-based queries (SQLite for local development)
 - **Redis** - Caching and message broker
 - **Celery** - Asynchronous task processing
 - **Docker** - Containerized deployment
@@ -14,7 +14,7 @@ This application follows a modern microservices architecture with:
 ## 🚀 Features
 
 ### Core Functionality
-- **User Management** - Role-based access control (Agents, Admins)
+- **User Management** - Role-based access control (Agents, Admins) with bcrypt password hashing
 - **Client Management** - Track buyers, sellers, and renters
 - **Property Management** - Comprehensive property listings with images
 - **Listing System** - Manage sale and rental listings
@@ -39,12 +39,13 @@ This application follows a modern microservices architecture with:
 
 ### Backend
 - **FastAPI 0.104.1** - Modern, fast web framework
-- **SQLAlchemy 2.0.23** - ORM for database interactions
-- **Pydantic 2.5.0** - Data validation using Python type annotations
+- **SQLAlchemy 2.0** - ORM with `DeclarativeBase` (non-deprecated API)
+- **Pydantic 2.5.0** - Data validation with `field_validator`, `EmailStr`, and `Decimal` for financial fields
 - **Alembic 1.12.1** - Database migrations
 
 ### Database & Caching
-- **PostgreSQL with PostGIS** - Spatial database capabilities
+- **PostgreSQL with PostGIS** - Spatial database capabilities (production)
+- **SQLite** - Zero-config local development (default when `DATABASE_URL` is not set)
 - **GeoAlchemy2 & Shapely** - Geographic data handling
 - **Redis 5.0.1** - Caching and task queue
 
@@ -54,7 +55,7 @@ This application follows a modern microservices architecture with:
 
 ### Authentication & Security
 - **python-jose** - JWT token handling
-- **passlib with bcrypt** - Password hashing
+- **passlib with bcrypt** - Password hashing (active — passwords are hashed before storage)
 
 ### Development Tools
 - **pytest** - Testing framework
@@ -80,6 +81,7 @@ cd Ort/src
 DATABASE_URL=postgresql://postgres:postgres@db:5432/realestate
 REDIS_URL=redis://redis:6379/0
 SECRET_KEY=your-secret-key-here
+CORS_ORIGINS=https://your-frontend.com,https://admin.your-app.com
 ```
 
 3. Build and run the containers:
@@ -91,6 +93,7 @@ docker-compose up --build
 - **API Documentation**: http://localhost:8000/docs
 - **Alternative Docs**: http://localhost:8000/redoc
 - **API Base URL**: http://localhost:8000/api/v1
+- **Health Check**: http://localhost:8000/health
 
 ### Local Development Setup
 
@@ -109,23 +112,75 @@ alembic upgrade head
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
+> SQLite is used automatically when `DATABASE_URL` is not set, so no database setup is needed for local development.
+
 ## 📚 API Documentation
+
+### Pagination
+
+All list endpoints support `skip` and `limit` query parameters for efficient pagination:
+
+```
+GET /api/v1/users/?skip=0&limit=50
+GET /api/v1/properties/?skip=100&limit=25
+```
+
+- `skip` — number of records to skip (default: `0`)
+- `limit` — maximum records to return (default: `100`, max: `1000`)
 
 ### Available Endpoints
 
 #### Users
-- `GET /api/v1/users/` - List all users
+- `GET /api/v1/users/` - List users (paginated)
 - `GET /api/v1/users/{user_id}` - Get user by ID
-- `POST /api/v1/users/` - Create new user
-- `PUT /api/v1/users/{user_id}` - Update user
+- `POST /api/v1/users/` - Create new user (password is bcrypt-hashed)
+- `PUT /api/v1/users/{user_id}` - Partial update (only provided fields are changed)
 - `DELETE /api/v1/users/{user_id}` - Delete user
 
 #### Clients
-- `GET /api/v1/clients/` - List all clients
+- `GET /api/v1/clients/` - List clients (paginated)
 - `GET /api/v1/clients/{client_id}` - Get client by ID
 - `POST /api/v1/clients/` - Create new client
+- `PUT /api/v1/clients/{client_id}` - Partial update
+- `DELETE /api/v1/clients/{client_id}` - Delete client
 
-*(Similar patterns exist for Properties, Listings, Inquiries, Appointments, Transactions, and Payments)*
+#### Properties
+- `GET /api/v1/properties/` - List properties (paginated)
+- `GET /api/v1/properties/{property_id}` - Get property by ID
+- `POST /api/v1/properties/` - Create new property
+- `PUT /api/v1/properties/{property_id}` - Partial update (including status)
+- `DELETE /api/v1/properties/{property_id}` - Delete property
+
+#### Property Images
+- `GET /api/v1/property-images/` - List property images (paginated)
+- `GET /api/v1/property-images/{image_id}` - Get image by ID
+- `POST /api/v1/property-images/` - Add image to property
+- `DELETE /api/v1/property-images/{image_id}` - Delete image
+
+#### Listings
+- `GET /api/v1/listings/` - List listings (paginated)
+- `GET /api/v1/listings/{listing_id}` - Get listing by ID
+- `POST /api/v1/listings/` - Create listing
+
+#### Inquiries
+- `GET /api/v1/inquiries/` - List inquiries (paginated)
+- `GET /api/v1/inquiries/{inquiry_id}` - Get inquiry by ID
+- `POST /api/v1/inquiries/` - Submit inquiry
+
+#### Appointments
+- `GET /api/v1/appointments/` - List appointments (paginated)
+- `GET /api/v1/appointments/{appointment_id}` - Get appointment by ID
+- `POST /api/v1/appointments/` - Schedule appointment
+
+#### Transactions
+- `GET /api/v1/transactions/` - List transactions (paginated)
+- `GET /api/v1/transactions/{transaction_id}` - Get transaction by ID
+- `POST /api/v1/transactions/` - Record transaction
+
+#### Payments
+- `GET /api/v1/payments/` - List payments (paginated)
+- `GET /api/v1/payments/{payment_id}` - Get payment by ID
+- `POST /api/v1/payments/` - Record payment
 
 Full interactive API documentation is available at `/docs` when the server is running.
 
@@ -140,9 +195,9 @@ Ort/
 │   │   │   └── v1/
 │   │   │       └── api.py       # API route definitions
 │   │   ├── models/
-│   │   │   └── models.py        # SQLAlchemy database models
+│   │   │   └── models.py        # SQLAlchemy database models (with indexes)
 │   │   ├── schemas/
-│   │   │   └── schemas.py       # Pydantic validation schemas
+│   │   │   └── schemas.py       # Pydantic v2 validation schemas
 │   │   └── database/
 │   │       └── database.py      # Database configuration
 │   ├── dockerfile               # Docker image definition
@@ -170,14 +225,13 @@ pytest
 pytest --cov  # With coverage report
 ```
 
-## 🔒 Security Notes
+## 🔒 Security
 
-⚠️ **Important**: The current implementation includes placeholder password hashing. In production:
-- Implement proper password hashing with `passlib`
-- Add JWT authentication middleware
-- Enable HTTPS/TLS
-- Configure proper CORS origins
-- Use environment variables for all secrets
+- **Passwords** are hashed with bcrypt via `passlib` before storage — plain-text passwords are never persisted.
+- **Duplicate email** registration is rejected with HTTP 409.
+- **CORS** origins are configured via the `CORS_ORIGINS` environment variable (comma-separated list). Defaults to `*` when the variable is not set; restrict in production.
+- **JWT authentication** middleware and HTTPS/TLS should be configured for production deployments.
+- Use environment variables for all secrets (`SECRET_KEY`, `DATABASE_URL`, etc.).
 
 ## 📝 Database Schema
 
@@ -191,6 +245,9 @@ pytest --cov  # With coverage report
 - **appointments** - Property viewings
 - **transactions** - Sales/purchases
 - **payments** - Financial transactions
+
+### Indexes
+Performance indexes are defined on all foreign key columns and frequently filtered columns (`status`, `city`, `email`).
 
 ## 🤝 Contributing
 
