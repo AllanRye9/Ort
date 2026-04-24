@@ -20,6 +20,10 @@ class User(Base):
     email = Column(String(255), unique=True, nullable=False)
     phone = Column(String(20))
     password_hash = Column(Text, nullable=False)
+    # Agent-specific fields
+    license_number = Column(String(100), nullable=True)
+    agency_name = Column(String(255), nullable=True)
+    bio = Column(Text, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
 
     properties = relationship("Property", back_populates="agent")

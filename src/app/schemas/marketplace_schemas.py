@@ -45,6 +45,11 @@ class RegisterRequest(BaseModel):
     #   "ngo" | "government" | "enterprise" | "sme"
     org_type: Optional[str] = Field(None, pattern="^(ngo|government|enterprise|sme)$")
 
+    # ---- Agent-specific fields ----
+    license_number: Optional[str] = Field(None, max_length=100)
+    agency_name: Optional[str] = Field(None, max_length=255)
+    bio: Optional[str] = None
+
     @field_validator("first_name", "last_name", mode="before")
     @classmethod
     def no_blank(cls, v: str) -> str:
