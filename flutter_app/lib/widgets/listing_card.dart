@@ -57,7 +57,9 @@ class ListingCard extends StatelessWidget {
                   width: 56,
                   height: 56,
                   decoration: BoxDecoration(
-                    color: iconColor.withOpacity(0.12),
+                    // FIX: withOpacity is deprecated in Flutter 3.27+;
+                    // use withValues(alpha:) instead.
+                    color: iconColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(icon, color: iconColor, size: 28),
@@ -80,6 +82,7 @@ class ListingCard extends StatelessWidget {
                               ),
                             ),
                           ),
+                          const SizedBox(width: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 8, vertical: 2),
@@ -99,8 +102,8 @@ class ListingCard extends StatelessWidget {
                       if (subtitle.isNotEmpty)
                         Text(
                           subtitle,
-                          style:
-                              const TextStyle(color: Colors.grey, fontSize: 13),
+                          style: const TextStyle(
+                              color: Colors.grey, fontSize: 13),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),

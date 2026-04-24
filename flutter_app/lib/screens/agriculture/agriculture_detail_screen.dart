@@ -30,12 +30,15 @@ class AgricultureDetailScreen extends ConsumerWidget {
             children: [
               Container(
                 height: 180,
+                width: double.infinity,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
-                  color: Colors.green.withOpacity(0.1),
+                  // FIX: withOpacity deprecated → withValues(alpha:)
+                  color: Colors.green.withValues(alpha: 0.1),
                 ),
                 child: const Center(
-                    child: Icon(Icons.grass, size: 72, color: Colors.green)),
+                    child:
+                        Icon(Icons.grass, size: 72, color: Colors.green)),
               ),
               const SizedBox(height: 16),
               Text(
@@ -48,17 +51,20 @@ class AgricultureDetailScreen extends ConsumerWidget {
               const SizedBox(height: 8),
               if (a.location != null)
                 Row(children: [
-                  const Icon(Icons.location_on, size: 16, color: Colors.grey),
+                  const Icon(Icons.location_on,
+                      size: 16, color: Colors.grey),
                   const SizedBox(width: 4),
-                  Text(a.location!, style: const TextStyle(color: Colors.grey)),
+                  Text(a.location!,
+                      style: const TextStyle(color: Colors.grey)),
                 ]),
               const SizedBox(height: 12),
               Text(
                 '\$${a.pricePerUnit.toStringAsFixed(2)} / ${a.unit ?? 'unit'}',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      color: Colors.green[700],
-                      fontWeight: FontWeight.bold,
-                    ),
+                style:
+                    Theme.of(context).textTheme.headlineMedium?.copyWith(
+                          color: Colors.green[700],
+                          fontWeight: FontWeight.bold,
+                        ),
               ),
               const SizedBox(height: 16),
               Wrap(
@@ -69,15 +75,17 @@ class AgricultureDetailScreen extends ConsumerWidget {
                   if (a.qualityGrade != null)
                     Chip(label: Text('Grade: ${a.qualityGrade}')),
                   if (a.moq != null)
-                    Chip(label: Text('MOQ: ${a.moq} ${a.unit ?? ''}')),
+                    Chip(
+                        label:
+                            Text('MOQ: ${a.moq} ${a.unit ?? ''}')),
                   if (a.quantityAvailable != null)
                     Chip(
                         label: Text(
                             'Available: ${a.quantityAvailable} ${a.unit ?? ''}')),
                   if (a.isPerishable)
-                    Chip(
-                      label: const Text('Perishable'),
-                      avatar: const Icon(Icons.warning, size: 14),
+                    const Chip(
+                      label: Text('Perishable'),
+                      avatar: Icon(Icons.warning, size: 14),
                     ),
                   if (a.certification != null)
                     Chip(label: Text(a.certification!)),

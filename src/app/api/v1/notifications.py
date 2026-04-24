@@ -35,6 +35,16 @@ def create_notification(payload: NotificationCreate, db: Session = Depends(get_d
     return obj
 
 
+@router.put("/read-all/", status_code=status.HTTP_200_OK)
+def mark_all_read(user_id: int = Query(...), db: Session = Depends(get_db)):
+    db.query(Notification).filter(
+        Notification.user_id == user_id,
+        Notification.is_read.is_(False),
+    ).update({"is_read": True})
+    db.commit()
+    return {"message": "All notifications marked as read"}
+
+
 @router.put("/{notification_id}", response_model=NotificationResponse)
 def update_notification(
     notification_id: int,
@@ -49,13 +59,3 @@ def update_notification(
     db.commit()
     db.refresh(obj)
     return obj
-
-
-@router.put("/read-all/", status_code=status.HTTP_200_OK)
-def mark_all_read(user_id: int = Query(...), db: Session = Depends(get_db)):
-    db.query(Notification).filter(
-        Notification.user_id == user_id,
-        Notification.is_read.is_(False),
-    ).update({"is_read": True})
-    db.commit()
-    return {"message": "All notifications marked as read"}

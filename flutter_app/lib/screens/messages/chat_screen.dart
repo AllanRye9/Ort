@@ -25,17 +25,20 @@ class ChatScreen extends ConsumerStatefulWidget {
 
 class _ChatScreenState extends ConsumerState<ChatScreen> {
   final _controller = TextEditingController();
+  final _scrollController = ScrollController();
   bool _sending = false;
 
   @override
   void dispose() {
     _controller.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
   Future<void> _send() async {
     final text = _controller.text.trim();
-    if (text.isEmpty) return;
+    if (text.isEmpty || _sending) return;
+
     setState(() => _sending = true);
     try {
       final userId = ref.read(authProvider).userId;
@@ -47,7 +50,28 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       });
       _controller.clear();
       ref.invalidate(_messagesProvider(widget.conversationId));
-    } catch (_) {
+
+      // Scroll to the bottom after the list rebuilds
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_scrollController.hasClients) {
+          _scrollController.animateTo(
+            _scrollController.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+          );
+        }
+      });
+    } catch (e) {
+      // FIX: was silently swallowed — now surface the error to the user.
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to send message: ${e.toString()}'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     } finally {
       if (mounted) setState(() => _sending = false);
     }
@@ -75,6 +99,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       child: Text('No messages yet. Say hello!'));
                 }
                 return ListView.builder(
+                  controller: _scrollController,
                   padding: const EdgeInsets.all(12),
                   itemCount: messages.length,
                   itemBuilder: (ctx, i) {
@@ -89,8 +114,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 14, vertical: 10),
                         constraints: BoxConstraints(
-                          maxWidth:
-                              MediaQuery.of(ctx).size.width * 0.7,
+                          maxWidth: MediaQuery.of(ctx).size.width * 0.7,
                         ),
                         decoration: BoxDecoration(
                           color: isMe
@@ -98,11 +122,28 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                               : Colors.grey[200],
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        child: Text(
-                          m.body,
-                          style: TextStyle(
-                            color: isMe ? Colors.white : Colors.black87,
-                          ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              m.body,
+                              style: TextStyle(
+                                color:
+                                    isMe ? Colors.white : Colors.black87,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '${m.sentAt.hour.toString().padLeft(2, '0')}:${m.sentAt.minute.toString().padLeft(2, '0')}',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: isMe
+                                    ? Colors.white70
+                                    : Colors.black38,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     );
@@ -113,7 +154,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           ),
           const Divider(height: 1),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             child: Row(
               children: [
                 Expanded(
@@ -128,6 +170,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       ),
                       isDense: true,
                     ),
+                    textInputAction: TextInputAction.send,
                     onSubmitted: (_) => _send(),
                   ),
                 ),

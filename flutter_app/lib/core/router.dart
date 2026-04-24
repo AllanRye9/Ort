@@ -17,16 +17,66 @@ import '../screens/messages/conversations_screen.dart';
 import '../screens/messages/chat_screen.dart';
 import '../screens/profile/profile_screen.dart';
 
-final routerProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authProvider);
+// ─── Auth-change listenable ──────────────────────────────────────────────────
+//
+// We use a ChangeNotifier driven by Riverpod's ref.listen so that the GoRouter
+// instance is created ONCE and never replaced (no navigation-stack wipe on
+// sign-in/out). GoRouter's refreshListenable calls its redirect callback
+// whenever the notifier fires.
 
-  return GoRouter(
-    initialLocation: authState.isAuthenticated ? '/home' : '/login',
+class _AuthChangeNotifier extends ChangeNotifier {
+  _AuthChangeNotifier(Ref ref) {
+    _sub = ref.listen<AuthState>(authProvider, (prev, next) {
+      if (prev?.isAuthenticated != next.isAuthenticated) {
+        notifyListeners();
+      }
+    });
+  }
+
+  late final ProviderSubscription<AuthState> _sub;
+
+  @override
+  void dispose() {
+    _sub.close();
+    super.dispose();
+  }
+}
+
+final _authChangeNotifierProvider =
+    ChangeNotifierProvider<_AuthChangeNotifier>(
+  (ref) => _AuthChangeNotifier(ref),
+);
+
+// ─── Router provider ─────────────────────────────────────────────────────────
+
+final routerProvider = Provider<GoRouter>((ref) {
+  final notifier = ref.watch(_authChangeNotifierProvider);
+
+  final router = GoRouter(
+    initialLocation: '/login',
+    refreshListenable: notifier,
+    errorBuilder: (context, state) => Scaffold(
+      appBar: AppBar(title: const Text('Page not found')),
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.link_off, size: 64, color: Colors.grey),
+            const SizedBox(height: 16),
+            Text('No route for "${state.uri}"'),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () => context.go('/home'),
+              child: const Text('Go home'),
+            ),
+          ],
+        ),
+      ),
+    ),
     redirect: (context, state) {
-      final isAuthenticated = authState.isAuthenticated;
-      final isAuthRoute =
-          state.matchedLocation == '/login' ||
-          state.matchedLocation == '/register';
+      final isAuthenticated = ref.read(authProvider).isAuthenticated;
+      final loc = state.matchedLocation;
+      final isAuthRoute = loc == '/login' || loc == '/register';
 
       if (!isAuthenticated && !isAuthRoute) return '/login';
       if (isAuthenticated && isAuthRoute) return '/home';
@@ -107,9 +157,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
     ],
   );
+
+  ref.onDispose(router.dispose);
+  return router;
 });
 
-/// Bottom-navigation shell wrapper.
+// ─── Bottom-navigation shell ──────────────────────────────────────────────────
+
 class MainShell extends StatelessWidget {
   const MainShell({super.key, required this.child});
 
