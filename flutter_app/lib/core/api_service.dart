@@ -1,12 +1,21 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 import 'constants.dart';
 
-final secureStorageProvider = Provider<FlutterSecureStorage>(
-  (_) => const FlutterSecureStorage(),
-);
+final secureStorageProvider = Provider<FlutterSecureStorage>((_) {
+  // On web, flutter_secure_storage uses IndexedDB.  Providing explicit
+  // WebOptions avoids naming collisions when multiple apps share the same
+  // browser origin.
+  if (kIsWeb) {
+    return const FlutterSecureStorage(
+      webOptions: WebOptions(dbName: 'ort_marketplace', publicKey: 'ort_key'),
+    );
+  }
+  return const FlutterSecureStorage();
+});
 
 /// Called by the 401 interceptor to clear auth state without a hard import
 /// cycle. Set once from auth_provider.dart after it initialises.
@@ -24,7 +33,15 @@ class ApiService {
         baseUrl: AppConstants.baseUrl,
         connectTimeout: AppConstants.connectTimeout,
         receiveTimeout: AppConstants.receiveTimeout,
-        headers: {'Content-Type': 'application/json'},
+        sendTimeout: AppConstants.connectTimeout,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        // Explicitly follow redirects so that Railway's HTTPS redirect does
+        // not break CORS preflight requests.
+        followRedirects: true,
+        maxRedirects: 3,
       ),
     );
 
