@@ -20,7 +20,31 @@ from app.schemas.schemas import (
     UserCreate, UserResponse, UserUpdate,
 )
 
+# Marketplace module routers
+from app.api.v1 import (
+    auth as auth_router,
+    tenants as tenants_router,
+    agriculture as agriculture_router,
+    manufacturing as manufacturing_router,
+    orders as orders_router,
+    messages as messages_router,
+    rfq as rfq_router,
+    reviews as reviews_router,
+    notifications as notifications_router,
+)
+
 router = APIRouter()
+
+# Register marketplace module routers
+router.include_router(auth_router.router)
+router.include_router(tenants_router.router)
+router.include_router(agriculture_router.router)
+router.include_router(manufacturing_router.router)
+router.include_router(orders_router.router)
+router.include_router(messages_router.router)
+router.include_router(rfq_router.router)
+router.include_router(reviews_router.router)
+router.include_router(notifications_router.router)
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
