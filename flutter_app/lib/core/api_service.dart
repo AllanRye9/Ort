@@ -99,6 +99,13 @@ class ApiService {
     return res.data as Map<String, dynamic>;
   }
 
+  /// Unified registration endpoint – use this instead of [createUser] for all
+  /// new account creation (agent, company, organisation).
+  Future<Map<String, dynamic>> registerUser(Map<String, dynamic> data) async {
+    final res = await _dio.post('/auth/register', data: data);
+    return res.data as Map<String, dynamic>;
+  }
+
   Future<Map<String, dynamic>> getMe() async {
     final res = await _dio.get('/users/me');
     return res.data as Map<String, dynamic>;

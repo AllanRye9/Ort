@@ -91,7 +91,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<bool> register(Map<String, dynamic> userData) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
-      await _api.createUser(userData);
+      await _api.registerUser(userData);
       state = state.copyWith(isLoading: false);
       return true;
     } catch (e) {

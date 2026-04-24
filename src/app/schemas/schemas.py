@@ -16,7 +16,7 @@ class UserBase(BaseModel):
 
 
 class UserCreate(UserBase):
-    role: str = Field(..., pattern="^(agent|admin)$")
+    role: str = Field(..., pattern="^(agent|admin|company|organization)$")
     first_name: str = Field(..., min_length=2, max_length=100)
     last_name: str = Field(..., min_length=2, max_length=100)
     phone: Optional[str] = Field(None, max_length=20)
@@ -31,7 +31,7 @@ class UserCreate(UserBase):
 
 
 class UserUpdate(BaseModel):
-    role: Optional[str] = Field(None, pattern="^(agent|admin)$")
+    role: Optional[str] = Field(None, pattern="^(agent|admin|company|organization)$")
     first_name: Optional[str] = Field(None, min_length=2, max_length=100)
     last_name: Optional[str] = Field(None, min_length=2, max_length=100)
     email: Optional[EmailStr] = None

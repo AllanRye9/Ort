@@ -5,7 +5,7 @@ from decimal import Decimal
 from typing import Any, Dict, List, Optional
 from datetime import datetime, date
 
-from pydantic import BaseModel, Field, EmailStr, field_validator
+from pydantic import BaseModel, Field, EmailStr, field_validator, model_validator
 
 
 # ========== AUTH ==========
@@ -20,6 +20,52 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
     user_id: Optional[int] = None
     role: Optional[str] = None
+
+
+class RegisterRequest(BaseModel):
+    """Unified registration schema for agent, company, and organization accounts."""
+
+    role: str = Field(..., pattern="^(agent|company|organization)$")
+
+    # ---- Personal / contact-person fields (required for all roles) ----
+    first_name: str = Field(..., min_length=2, max_length=100)
+    last_name: str = Field(..., min_length=2, max_length=100)
+    email: EmailStr
+    password: str = Field(..., min_length=8)
+    phone: Optional[str] = Field(None, max_length=30)
+
+    # ---- Company / organisation fields (required when role != agent) ----
+    company_name: Optional[str] = Field(None, max_length=255)
+    registration_number: Optional[str] = Field(None, max_length=100)
+    business_phone: Optional[str] = Field(None, max_length=30)
+    business_email: Optional[EmailStr] = None
+    address: Optional[str] = None
+    country: Optional[str] = Field(None, max_length=100)
+    # Maps to Tenant.tenant_type for organization registrations:
+    #   "ngo" | "government" | "enterprise" | "sme"
+    org_type: Optional[str] = Field(None, pattern="^(ngo|government|enterprise|sme)$")
+
+    @field_validator("first_name", "last_name", mode="before")
+    @classmethod
+    def no_blank(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("Field cannot be blank")
+        return v.strip()
+
+    @model_validator(mode="after")
+    def check_company_org_fields(self) -> "RegisterRequest":
+        if self.role in ("company", "organization") and not self.company_name:
+            raise ValueError("company_name is required for company and organization registration")
+        if self.role == "organization" and not self.org_type:
+            raise ValueError("org_type is required for organization registration (ngo, government, enterprise, sme)")
+        return self
+
+
+class RegisterResponse(BaseModel):
+    user_id: int
+    role: str
+    tenant_id: Optional[int] = None
+    message: str = "Registration successful"
 
 
 # ========== TENANT ==========
