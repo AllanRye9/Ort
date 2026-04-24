@@ -66,7 +66,7 @@ class HomeScreen extends ConsumerWidget {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            _SearchBar(),
+            const _SearchBar(),
             const SizedBox(height: 24),
             _SectionHeader(
               title: 'Properties',
@@ -109,9 +109,9 @@ class HomeScreen extends ConsumerWidget {
 }
 
 class _SearchBar extends StatelessWidget {
+  const _SearchBar({super.key});
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
       onTap: () {},
       child: Container(
         decoration: BoxDecoration(
