@@ -5,10 +5,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from .database.database import engine, Base
 from .api.v1.api import router
 
+# Import marketplace models so their tables are registered with Base
+from .models import marketplace_models  # noqa: F401
+
 app = FastAPI(
-    title="Real Estate Management API",
-    version="1.0.0",
-    description="A comprehensive real estate management API for buying, selling, and renting properties.",
+    title="Unified Commerce Marketplace API",
+    version="2.0.0",
+    description=(
+        "A comprehensive SaaS marketplace API for properties, agriculture, "
+        "and locally manufactured goods."
+    ),
 )
 
 _cors_origins_env = os.getenv("CORS_ORIGINS", "")
