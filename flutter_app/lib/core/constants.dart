@@ -4,7 +4,7 @@ class AppConstants {
   // API
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://localhost:8008/api/v1',
+    defaultValue: 'https://ort.up.railway.app/api/v1',
   );
 
   // Storage keys
