@@ -29,12 +29,14 @@ class PropertyDetailScreen extends ConsumerWidget {
             children: [
               Container(
                 height: 220,
+                width: double.infinity,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
+                  // FIX: withOpacity deprecated → withValues(alpha:)
                   color: Theme.of(context)
                       .colorScheme
                       .primary
-                      .withOpacity(0.1),
+                      .withValues(alpha: 0.1),
                 ),
                 child: Center(
                   child: Icon(
@@ -57,6 +59,7 @@ class PropertyDetailScreen extends ConsumerWidget {
                           ?.copyWith(fontWeight: FontWeight.bold),
                     ),
                   ),
+                  const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 12, vertical: 4),
@@ -77,11 +80,14 @@ class PropertyDetailScreen extends ConsumerWidget {
               const SizedBox(height: 8),
               Row(
                 children: [
-                  const Icon(Icons.location_on, size: 16, color: Colors.grey),
+                  const Icon(Icons.location_on,
+                      size: 16, color: Colors.grey),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
-                      p.city != null ? '${p.city}, ${p.address}' : p.address,
+                      p.city != null
+                          ? '${p.city}, ${p.address}'
+                          : p.address,
                       style: const TextStyle(color: Colors.grey),
                     ),
                   ),
@@ -90,14 +96,16 @@ class PropertyDetailScreen extends ConsumerWidget {
               const SizedBox(height: 16),
               Text(
                 '\$${p.price.toStringAsFixed(0)}',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
+                style:
+                    Theme.of(context).textTheme.headlineMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontWeight: FontWeight.bold,
+                        ),
               ),
               const SizedBox(height: 16),
               Wrap(
                 spacing: 12,
+                runSpacing: 8,
                 children: [
                   if (p.bedrooms != null)
                     _SpecChip(
@@ -120,7 +128,8 @@ class PropertyDetailScreen extends ConsumerWidget {
                 const SizedBox(height: 16),
                 const Text(
                   'Description',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  style:
+                      TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 ),
                 const SizedBox(height: 8),
                 Text(p.description!),

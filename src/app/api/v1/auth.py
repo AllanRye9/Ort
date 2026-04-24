@@ -36,4 +36,4 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
             detail="Invalid email or password",
         )
     token = _create_access_token({"sub": str(user.id), "role": user.role})
-    return TokenResponse(access_token=token)
+    return TokenResponse(access_token=token, user_id=user.id, role=user.role)

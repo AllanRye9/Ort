@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shimmer/shimmer.dart';
 import '../../core/api_service.dart';
 import '../../models/models.dart';
 
 final _propertiesProvider = FutureProvider.autoDispose<List<PropertyModel>>(
   (ref) async {
-    final api = ref.read(apiServiceProvider);
-    final data = await api.getProperties(limit: 20);
+    final data = await ref.read(apiServiceProvider).getProperties(limit: 20);
     return data
         .map((e) => PropertyModel.fromJson(e as Map<String, dynamic>))
         .toList();
@@ -17,8 +17,8 @@ final _propertiesProvider = FutureProvider.autoDispose<List<PropertyModel>>(
 final _agricultureProvider =
     FutureProvider.autoDispose<List<AgricultureListingModel>>(
   (ref) async {
-    final api = ref.read(apiServiceProvider);
-    final data = await api.getAgricultureListings(limit: 6);
+    final data =
+        await ref.read(apiServiceProvider).getAgricultureListings(limit: 6);
     return data
         .map((e) =>
             AgricultureListingModel.fromJson(e as Map<String, dynamic>))
@@ -29,8 +29,8 @@ final _agricultureProvider =
 final _mfgProvider =
     FutureProvider.autoDispose<List<ManufacturingProductModel>>(
   (ref) async {
-    final api = ref.read(apiServiceProvider);
-    final data = await api.getManufacturingProducts(limit: 6);
+    final data =
+        await ref.read(apiServiceProvider).getManufacturingProducts(limit: 6);
     return data
         .map((e) =>
             ManufacturingProductModel.fromJson(e as Map<String, dynamic>))
@@ -74,7 +74,7 @@ class HomeScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 12),
             propertiesAsync.when(
-              loading: () => _HorizontalShimmer(),
+              loading: () => const _HorizontalShimmer(),
               error: (e, _) => _ErrorTile(message: e.toString()),
               data: (items) => _PropertyRow(items: items),
             ),
@@ -85,7 +85,7 @@ class HomeScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 12),
             agricultureAsync.when(
-              loading: () => _HorizontalShimmer(),
+              loading: () => const _HorizontalShimmer(),
               error: (e, _) => _ErrorTile(message: e.toString()),
               data: (items) => _AgriRow(items: items),
             ),
@@ -96,7 +96,7 @@ class HomeScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 12),
             mfgAsync.when(
-              loading: () => _HorizontalShimmer(),
+              loading: () => const _HorizontalShimmer(),
               error: (e, _) => _ErrorTile(message: e.toString()),
               data: (items) => _MfgRow(items: items),
             ),
@@ -108,17 +108,25 @@ class HomeScreen extends ConsumerWidget {
   }
 }
 
+// ─── Search bar ───────────────────────────────────────────────────────────────
+
 class _SearchBar extends StatelessWidget {
-  const _SearchBar({super.key});
+  const _SearchBar();
+
   @override
   Widget build(BuildContext context) {
+    // FIX: was missing `return GestureDetector(` — the original code had
+    // bare `onTap: () {},` and `child:` labels, which compiled as no-op
+    // labeled statements with no return value, causing a null-widget crash.
+    return GestureDetector(
       onTap: () {},
       child: Container(
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(30),
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
           children: [
             const Icon(Icons.search, color: Colors.grey),
@@ -133,6 +141,8 @@ class _SearchBar extends StatelessWidget {
     );
   }
 }
+
+// ─── Section header ───────────────────────────────────────────────────────────
 
 class _SectionHeader extends StatelessWidget {
   const _SectionHeader({required this.title, required this.onSeeAll});
@@ -158,20 +168,30 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
+// ─── Shimmer placeholder ──────────────────────────────────────────────────────
+
 class _HorizontalShimmer extends StatelessWidget {
+  const _HorizontalShimmer();
+
   @override
   Widget build(BuildContext context) {
+    final base = Theme.of(context).colorScheme.surfaceContainerHighest;
+    final highlight = Theme.of(context).colorScheme.surface;
     return SizedBox(
       height: 160,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: 3,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
-        itemBuilder: (_, __) => Container(
-          width: 180,
-          decoration: BoxDecoration(
-            color: Colors.grey[300],
-            borderRadius: BorderRadius.circular(12),
+      child: Shimmer.fromColors(
+        baseColor: base,
+        highlightColor: highlight,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          itemCount: 3,
+          separatorBuilder: (_, __) => const SizedBox(width: 12),
+          itemBuilder: (_, __) => Container(
+            width: 180,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         ),
       ),
@@ -179,27 +199,31 @@ class _HorizontalShimmer extends StatelessWidget {
   }
 }
 
+// ─── Error tile ───────────────────────────────────────────────────────────────
+
 class _ErrorTile extends StatelessWidget {
   const _ErrorTile({required this.message});
+
   final String message;
 
   @override
   Widget build(BuildContext context) => ListTile(
         leading: const Icon(Icons.error_outline, color: Colors.red),
         title: const Text('Failed to load'),
-        subtitle: Text(message, maxLines: 1),
+        subtitle: Text(message, maxLines: 1, overflow: TextOverflow.ellipsis),
       );
 }
 
+// ─── Row widgets ──────────────────────────────────────────────────────────────
+
 class _PropertyRow extends StatelessWidget {
   const _PropertyRow({required this.items});
+
   final List<PropertyModel> items;
 
   @override
   Widget build(BuildContext context) {
-    if (items.isEmpty) {
-      return const Text('No properties listed yet.');
-    }
+    if (items.isEmpty) return const Text('No properties listed yet.');
     return SizedBox(
       height: 180,
       child: ListView.separated(
@@ -228,13 +252,14 @@ class _PropertyRow extends StatelessWidget {
                         p.title,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontWeight: FontWeight.w600),
+                        style:
+                            const TextStyle(fontWeight: FontWeight.w600),
                       ),
                       const Spacer(),
                       Text(
                         p.city ?? p.address,
-                        style:
-                            const TextStyle(color: Colors.grey, fontSize: 12),
+                        style: const TextStyle(
+                            color: Colors.grey, fontSize: 12),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -259,6 +284,7 @@ class _PropertyRow extends StatelessWidget {
 
 class _AgriRow extends StatelessWidget {
   const _AgriRow({required this.items});
+
   final List<AgricultureListingModel> items;
 
   @override
@@ -288,7 +314,8 @@ class _AgriRow extends StatelessWidget {
                         a.title,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontWeight: FontWeight.w600),
+                        style:
+                            const TextStyle(fontWeight: FontWeight.w600),
                       ),
                       const Spacer(),
                       Text(
@@ -313,6 +340,7 @@ class _AgriRow extends StatelessWidget {
 
 class _MfgRow extends StatelessWidget {
   const _MfgRow({required this.items});
+
   final List<ManufacturingProductModel> items;
 
   @override
@@ -336,13 +364,15 @@ class _MfgRow extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.factory, color: Colors.orange, size: 28),
+                      const Icon(Icons.factory,
+                          color: Colors.orange, size: 28),
                       const SizedBox(height: 8),
                       Text(
                         m.title,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontWeight: FontWeight.w600),
+                        style:
+                            const TextStyle(fontWeight: FontWeight.w600),
                       ),
                       const Spacer(),
                       Text(
