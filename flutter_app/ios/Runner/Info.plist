@@ -7,7 +7,7 @@
   <key>CFBundleDevelopmentRegion</key>
   <string>$(DEVELOPMENT_LANGUAGE)</string>
   <key>CFBundleDisplayName</key>
-  <string>Video Downloader</string>
+  <string>Ort Marketplace</string>
   <key>CFBundleExecutable</key>
   <string>$(EXECUTABLE_NAME)</string>
   <key>CFBundleIdentifier</key>
@@ -15,7 +15,7 @@
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
   <key>CFBundleName</key>
-  <string>video_downloader</string>
+  <string>ort_marketplace</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleShortVersionString</key>
@@ -58,8 +58,6 @@
   <array>
     <string>https</string>
     <string>http</string>
-    <string>vlc</string>
-    <string>infuse</string>
   </array>
 
   <!-- iOS 14+ background modes (optional – keep for future push / BG fetch) -->

@@ -13,4 +13,5 @@ __pycache__/
 *.iml
 .env.local
 .env.development.local
-.env.test.local     
+.env.test.local
+flutter_app/android/local.properties     
