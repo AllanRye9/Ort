@@ -7,7 +7,12 @@ import '../../models/models.dart';
 
 final _conversationsProvider =
     FutureProvider.autoDispose<List<ConversationModel>>((ref) async {
-  final userId = ref.read(authProvider).userId ?? 0;
+  // FIX: was using `userId ?? 0` which sends invalid requests when not
+  // authenticated. Guard explicitly; the router redirect should prevent this
+  // screen from ever being shown without a valid userId, but belt-and-suspenders.
+  final userId = ref.read(authProvider).userId;
+  if (userId == null) return const [];
+
   final data = await ref.read(apiServiceProvider).getConversations(userId);
   return data
       .map((e) => ConversationModel.fromJson(e as Map<String, dynamic>))
@@ -23,8 +28,8 @@ class ConversationsScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Messages')),
       floatingActionButton: FloatingActionButton(
-        child: const Icon(Icons.chat),
         onPressed: () {},
+        child: const Icon(Icons.chat),
       ),
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),

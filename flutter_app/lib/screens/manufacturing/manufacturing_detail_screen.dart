@@ -31,13 +31,15 @@ class ManufacturingDetailScreen extends ConsumerWidget {
             children: [
               Container(
                 height: 180,
+                width: double.infinity,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
-                  color: Colors.orange.withOpacity(0.1),
+                  // FIX: withOpacity deprecated → withValues(alpha:)
+                  color: Colors.orange.withValues(alpha: 0.1),
                 ),
                 child: const Center(
-                    child:
-                        Icon(Icons.factory, size: 72, color: Colors.orange)),
+                    child: Icon(Icons.factory,
+                        size: 72, color: Colors.orange)),
               ),
               const SizedBox(height: 16),
               Text(
@@ -50,10 +52,11 @@ class ManufacturingDetailScreen extends ConsumerWidget {
               const SizedBox(height: 8),
               Text(
                 '\$${m.wholesalePrice.toStringAsFixed(2)} / ${m.unit ?? 'unit'}',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      color: Colors.orange[800],
-                      fontWeight: FontWeight.bold,
-                    ),
+                style:
+                    Theme.of(context).textTheme.headlineMedium?.copyWith(
+                          color: Colors.orange[800],
+                          fontWeight: FontWeight.bold,
+                        ),
               ),
               const SizedBox(height: 16),
               Wrap(
@@ -61,17 +64,22 @@ class ManufacturingDetailScreen extends ConsumerWidget {
                 runSpacing: 8,
                 children: [
                   if (m.category != null) Chip(label: Text(m.category!)),
-                  if (m.sku != null) Chip(label: Text('SKU: ${m.sku}')),
+                  if (m.sku != null)
+                    Chip(label: Text('SKU: ${m.sku}')),
                   if (m.moq != null)
-                    Chip(label: Text('MOQ: ${m.moq} ${m.unit ?? ''}')),
+                    Chip(
+                        label:
+                            Text('MOQ: ${m.moq} ${m.unit ?? ''}')),
                   if (m.quantityAvailable != null)
                     Chip(label: Text('Stock: ${m.quantityAvailable}')),
                   if (m.leadTimeDays != null)
-                    Chip(label: Text('Lead time: ${m.leadTimeDays} days')),
-                  if (m.isLocallyMade)
                     Chip(
-                      label: const Text('Locally Made'),
-                      avatar: const Icon(Icons.verified, size: 14),
+                        label: Text(
+                            'Lead time: ${m.leadTimeDays} days')),
+                  if (m.isLocallyMade)
+                    const Chip(
+                      label: Text('Locally Made'),
+                      avatar: Icon(Icons.verified, size: 14),
                     ),
                   if (m.countryOfOrigin != null)
                     Chip(label: Text(m.countryOfOrigin!)),
@@ -85,10 +93,13 @@ class ManufacturingDetailScreen extends ConsumerWidget {
                 const SizedBox(height: 4),
                 Wrap(
                   spacing: 8,
+                  runSpacing: 8,
                   children: m.certifications!
                       .map((c) => Chip(
                             label: Text(c),
-                            backgroundColor: Colors.green.withOpacity(0.1),
+                            // FIX: withOpacity deprecated → withValues(alpha:)
+                            backgroundColor:
+                                Colors.green.withValues(alpha: 0.1),
                           ))
                       .toList(),
                 ),
