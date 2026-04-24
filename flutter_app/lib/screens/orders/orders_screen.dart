@@ -42,7 +42,7 @@ class OrdersScreen extends ConsumerWidget {
                 return Card(
                   child: ListTile(
                     leading: CircleAvatar(
-                      backgroundColor: _statusColor(o.status).withOpacity(0.1),
+                      backgroundColor: _statusColor(o.status).withValues(alpha: 0.1),
                       child:
                           Icon(Icons.shopping_bag, color: _statusColor(o.status)),
                     ),

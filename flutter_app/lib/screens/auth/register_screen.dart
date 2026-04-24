@@ -437,11 +437,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       color: Theme.of(context)
                           .colorScheme
                           .errorContainer
-                          .withOpacity(0.3),
+                          .withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
                         color:
-                            Theme.of(context).colorScheme.error.withOpacity(0.5),
+                            Theme.of(context).colorScheme.error.withValues(alpha: 0.5),
                       ),
                     ),
                     child: Row(
