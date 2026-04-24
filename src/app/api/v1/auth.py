@@ -84,6 +84,9 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
         email=payload.email,
         phone=payload.phone,
         password_hash=pwd_context.hash(payload.password),
+        license_number=payload.license_number,
+        agency_name=payload.agency_name,
+        bio=payload.bio,
     )
     db.add(db_user)
     db.flush()  # populate db_user.id without committing yet
