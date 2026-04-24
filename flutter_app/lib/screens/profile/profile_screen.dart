@@ -17,8 +17,11 @@ class ProfileScreen extends ConsumerWidget {
           Center(
             child: CircleAvatar(
               radius: 48,
-              backgroundColor:
-                  Theme.of(context).colorScheme.primary.withOpacity(0.15),
+              // FIX: withOpacity deprecated → withValues(alpha:)
+              backgroundColor: Theme.of(context)
+                  .colorScheme
+                  .primary
+                  .withValues(alpha: 0.15),
               child: Icon(
                 Icons.person,
                 size: 48,
@@ -29,7 +32,9 @@ class ProfileScreen extends ConsumerWidget {
           const SizedBox(height: 12),
           Center(
             child: Text(
-              auth.userId != null ? 'User #${auth.userId}' : 'Not signed in',
+              auth.userId != null
+                  ? 'User #${auth.userId}'
+                  : 'Not signed in',
               style: Theme.of(context)
                   .textTheme
                   .titleLarge
@@ -50,7 +55,7 @@ class ProfileScreen extends ConsumerWidget {
           ),
           _ProfileTile(
             icon: Icons.business,
-            label: 'My Organization',
+            label: 'My Organisation',
             onTap: () {},
           ),
           _ProfileTile(
@@ -115,8 +120,10 @@ class _ProfileTile extends StatelessWidget {
   Widget build(BuildContext context) => ListTile(
         leading: Icon(icon, color: iconColor),
         title: Text(label,
-            style: labelColor != null ? TextStyle(color: labelColor) : null),
-        trailing: const Icon(Icons.chevron_right, size: 18, color: Colors.grey),
+            style:
+                labelColor != null ? TextStyle(color: labelColor) : null),
+        trailing:
+            const Icon(Icons.chevron_right, size: 18, color: Colors.grey),
         onTap: onTap,
       );
 }

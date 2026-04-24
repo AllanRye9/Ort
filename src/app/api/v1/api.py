@@ -1,5 +1,8 @@
+import os
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from passlib.context import CryptContext
+from jose import jwt, JWTError
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -48,6 +51,30 @@ router.include_router(notifications_router.router)
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+_bearer = HTTPBearer(auto_error=False)
+
+SECRET_KEY = os.getenv("SECRET_KEY", "change-me-in-production")
+ALGORITHM = "HS256"
+
+
+def _get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(_bearer),
+    db: Session = Depends(get_db),
+) -> User:
+    if credentials is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+    try:
+        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    except JWTError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    user = db.query(User).filter(User.id == int(user_id)).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    return user
+
 
 # ========== USER ENDPOINTS ==========
 
@@ -58,6 +85,11 @@ def get_users(
     db: Session = Depends(get_db),
 ):
     return db.query(User).offset(skip).limit(limit).all()
+
+
+@router.get("/users/me", response_model=UserResponse)
+def get_current_user_me(current_user: User = Depends(_get_current_user)):
+    return current_user
 
 
 @router.get("/users/{user_id}", response_model=UserResponse)

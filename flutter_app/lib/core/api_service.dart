@@ -1,11 +1,16 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 import 'constants.dart';
 
 final secureStorageProvider = Provider<FlutterSecureStorage>(
   (_) => const FlutterSecureStorage(),
 );
+
+/// Called by the 401 interceptor to clear auth state without a hard import
+/// cycle. Set once from auth_provider.dart after it initialises.
+void Function()? onUnauthorized;
 
 final apiServiceProvider = Provider<ApiService>((ref) {
   final storage = ref.read(secureStorageProvider);
@@ -23,6 +28,7 @@ class ApiService {
       ),
     );
 
+    // Auth token injection
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
@@ -32,17 +38,37 @@ class ApiService {
           }
           return handler.next(options);
         },
-        onError: (error, handler) {
+        onError: (error, handler) async {
+          if (error.response?.statusCode == 401) {
+            // Clear stored credentials and signal the auth layer
+            await _storage.deleteAll();
+            onUnauthorized?.call();
+          }
           return handler.next(error);
         },
       ),
     );
+
+    // Human-readable logging (debug builds only)
+    assert(() {
+      _dio.interceptors.add(
+        PrettyDioLogger(
+          requestHeader: false,
+          requestBody: true,
+          responseBody: true,
+          error: true,
+          compact: true,
+        ),
+      );
+      return true;
+    }());
   }
 
   final FlutterSecureStorage _storage;
   late final Dio _dio;
 
-  // ---- Auth ----
+  // ─── Auth ────────────────────────────────────────────────────────────────
+
   Future<Map<String, dynamic>> login(String email, String password) async {
     final res = await _dio.post('/auth/login', data: {
       'email': email,
@@ -56,7 +82,13 @@ class ApiService {
     return res.data as Map<String, dynamic>;
   }
 
-  // ---- Properties ----
+  Future<Map<String, dynamic>> getMe() async {
+    final res = await _dio.get('/users/me');
+    return res.data as Map<String, dynamic>;
+  }
+
+  // ─── Properties ─────────────────────────────────────────────────────────
+
   Future<List<dynamic>> getProperties({int skip = 0, int limit = 20}) async {
     final res = await _dio.get('/properties/', queryParameters: {
       'skip': skip,
@@ -70,12 +102,14 @@ class ApiService {
     return res.data as Map<String, dynamic>;
   }
 
-  Future<Map<String, dynamic>> createProperty(Map<String, dynamic> data) async {
+  Future<Map<String, dynamic>> createProperty(
+      Map<String, dynamic> data) async {
     final res = await _dio.post('/properties/', data: data);
     return res.data as Map<String, dynamic>;
   }
 
-  // ---- Agriculture ----
+  // ─── Agriculture ─────────────────────────────────────────────────────────
+
   Future<List<dynamic>> getAgricultureListings({
     int skip = 0,
     int limit = 20,
@@ -104,7 +138,8 @@ class ApiService {
     return res.data as Map<String, dynamic>;
   }
 
-  // ---- Manufacturing ----
+  // ─── Manufacturing ────────────────────────────────────────────────────────
+
   Future<List<dynamic>> getManufacturingProducts({
     int skip = 0,
     int limit = 20,
@@ -133,7 +168,8 @@ class ApiService {
     return res.data as Map<String, dynamic>;
   }
 
-  // ---- Orders ----
+  // ─── Orders ───────────────────────────────────────────────────────────────
+
   Future<List<dynamic>> getOrders({
     int skip = 0,
     int limit = 20,
@@ -167,7 +203,8 @@ class ApiService {
     return res.data as Map<String, dynamic>;
   }
 
-  // ---- Conversations ----
+  // ─── Conversations ────────────────────────────────────────────────────────
+
   Future<List<dynamic>> getConversations(int userId) async {
     final res = await _dio.get('/messages/conversations/',
         queryParameters: {'user_id': userId});
@@ -181,8 +218,8 @@ class ApiService {
   }
 
   Future<List<dynamic>> getMessages(int conversationId) async {
-    final res = await _dio.get('/messages/',
-        queryParameters: {'conversation_id': conversationId});
+    final res = await _dio
+        .get('/messages/', queryParameters: {'conversation_id': conversationId});
     return res.data as List<dynamic>;
   }
 
@@ -191,7 +228,8 @@ class ApiService {
     return res.data as Map<String, dynamic>;
   }
 
-  // ---- RFQ ----
+  // ─── RFQ ─────────────────────────────────────────────────────────────────
+
   Future<List<dynamic>> getRFQs({int? buyerId, int? sellerTenantId}) async {
     final res = await _dio.get('/rfq/', queryParameters: {
       if (buyerId != null) 'buyer_id': buyerId,
@@ -205,7 +243,8 @@ class ApiService {
     return res.data as Map<String, dynamic>;
   }
 
-  // ---- Reviews ----
+  // ─── Reviews ──────────────────────────────────────────────────────────────
+
   Future<List<dynamic>> getReviews({int? tenantId, int? propertyId}) async {
     final res = await _dio.get('/reviews/', queryParameters: {
       if (tenantId != null) 'tenant_id': tenantId,
@@ -219,7 +258,8 @@ class ApiService {
     return res.data as Map<String, dynamic>;
   }
 
-  // ---- Notifications ----
+  // ─── Notifications ────────────────────────────────────────────────────────
+
   Future<List<dynamic>> getNotifications(int userId,
       {bool unreadOnly = false}) async {
     final res = await _dio.get('/notifications/', queryParameters: {
@@ -229,7 +269,8 @@ class ApiService {
     return res.data as List<dynamic>;
   }
 
-  // ---- Tenants ----
+  // ─── Tenants ──────────────────────────────────────────────────────────────
+
   Future<List<dynamic>> getTenants({int skip = 0, int limit = 20}) async {
     final res = await _dio.get('/tenants/', queryParameters: {
       'skip': skip,
