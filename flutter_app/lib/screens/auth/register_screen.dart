@@ -118,6 +118,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   String? _emailValidator(String? v) =>
       v == null || !v.contains('@') ? 'Enter a valid email' : null;
 
+  /// Optional email – only validates format when a value is provided.
+  String? _optionalEmailValidator(String? v) {
+    if (v == null || v.trim().isEmpty) return null;
+    return v.contains('@') ? null : 'Enter a valid email';
+  }
+
   // ── Section builders ───────────────────────────────────────────────────────
 
   Widget _sectionHeader(String title, IconData icon) {
@@ -221,12 +227,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             labelText: 'Business Email (optional)',
             prefixIcon: Icon(Icons.email_outlined),
           ),
-          validator: (v) {
-            if (v != null && v.trim().isNotEmpty && !v.contains('@')) {
-              return 'Enter a valid email';
-            }
-            return null;
-          },
+          validator: _optionalEmailValidator,
         ),
         const SizedBox(height: 16),
         TextFormField(
@@ -284,12 +285,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             labelText: 'Organisation Email (optional)',
             prefixIcon: Icon(Icons.email_outlined),
           ),
-          validator: (v) {
-            if (v != null && v.trim().isNotEmpty && !v.contains('@')) {
-              return 'Enter a valid email';
-            }
-            return null;
-          },
+          validator: _optionalEmailValidator,
         ),
         const SizedBox(height: 16),
         TextFormField(

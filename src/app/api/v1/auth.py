@@ -91,13 +91,15 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
     tenant_id: int | None = None
 
     if payload.role in ("company", "organization"):
+        # Model validator guarantees company_name is set for these roles.
+        assert payload.company_name is not None  # noqa: S101 (enforced by schema)
         # Determine tenant_type
         if payload.role == "company":
             tenant_type = "sme"
         else:
             tenant_type = payload.org_type  # validated by schema
 
-        slug = _make_unique_slug(db, payload.company_name)  # type: ignore[arg-type]
+        slug = _make_unique_slug(db, payload.company_name)
 
         db_tenant = Tenant(
             owner_user_id=db_user.id,
