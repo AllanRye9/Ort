@@ -1,6 +1,217 @@
-# Ort - Real Estate Management API
+# Ort — Unified Commerce Marketplace Platform
 
-A comprehensive real estate software solution built with **FastAPI** that allows individuals, entrepreneurs, and investors to buy, sell, and rent properties seamlessly.
+A comprehensive **SaaS marketplace** for **Properties**, **Agriculture** and **Local Manufacturing** goods, built with **FastAPI** (backend) and **Flutter** (cross-platform frontend).
+
+## 🏗️ Architecture
+
+```
+Ort/
+├── src/                        # FastAPI backend
+│   ├── app/
+│   │   ├── main.py             # FastAPI entry point
+│   │   ├── api/v1/
+│   │   │   ├── api.py          # Root router (imports all sub-routers)
+│   │   │   ├── auth.py         # JWT login
+│   │   │   ├── tenants.py      # Tenant + subscription management
+│   │   │   ├── agriculture.py  # Agriculture commodity listings
+│   │   │   ├── manufacturing.py# Wholesale manufacturing products
+│   │   │   ├── orders.py       # Order management
+│   │   │   ├── messages.py     # Conversations & messaging
+│   │   │   ├── rfq.py          # Request for Quote workflow
+│   │   │   ├── reviews.py      # Ratings & reviews
+│   │   │   └── notifications.py# User notifications
+│   │   ├── models/
+│   │   │   ├── models.py           # Core real-estate models (unchanged)
+│   │   │   └── marketplace_models.py # Extended SaaS marketplace models
+│   │   ├── schemas/
+│   │   │   ├── schemas.py          # Core schemas (unchanged)
+│   │   │   └── marketplace_schemas.py # Extended schemas
+│   │   └── database/database.py
+│   ├── docker-compose.yml
+│   ├── dockerfile
+│   └── requirements.txt
+└── flutter_app/                # Flutter cross-platform frontend
+    ├── pubspec.yaml
+    └── lib/
+        ├── main.dart
+        ├── core/
+        │   ├── constants.dart
+        │   ├── theme.dart
+        │   ├── router.dart
+        │   ├── api_service.dart
+        │   └── auth_provider.dart
+        ├── models/models.dart
+        ├── screens/
+        │   ├── auth/          login_screen, register_screen
+        │   ├── home/          home_screen (dashboard)
+        │   ├── properties/    properties_screen, property_detail_screen
+        │   ├── agriculture/   agriculture_screen, agriculture_detail_screen
+        │   ├── manufacturing/ manufacturing_screen, manufacturing_detail_screen
+        │   ├── orders/        orders_screen, order_detail_screen
+        │   ├── messages/      conversations_screen, chat_screen
+        │   └── profile/       profile_screen
+        └── widgets/
+            └── listing_card.dart
+```
+
+## 🚀 Features
+
+### Backend API (FastAPI)
+
+| Module | Endpoints |
+|---|---|
+| **Auth** | `POST /auth/login` — JWT bearer token |
+| **Users** | Full CRUD with bcrypt password hashing |
+| **Tenants** | Organization onboarding (individual, SME, enterprise, government, NGO) |
+| **Subscriptions** | Plan management (Free / Professional / Enterprise / Government) |
+| **Properties** | Land, residential, commercial listings with geolocation support |
+| **Agriculture** | Commodity listings with MOQ, quality grades, certifications, perishability flags |
+| **Manufacturing** | Wholesale product catalog with tiered pricing, batch tracking, certifications |
+| **Orders** | Full order lifecycle (pending → confirmed → shipped → delivered), with order items |
+| **Messaging** | Conversations and messages with file/voice attachment support |
+| **RFQ** | Request-for-Quote creation and response management |
+| **Reviews** | Star ratings (1-5) with verified-purchase flag |
+| **Notifications** | Per-user notification feed with read/unread tracking |
+
+### Flutter App
+
+- **Login / Register** — JWT-authenticated, role-based
+- **Home Dashboard** — Summarised property, agriculture and manufacturing feeds
+- **Properties Screen** — Full list with card-based UI, status badges
+- **Agriculture Screen** — Commodity listings with MOQ, perishability & certification chips
+- **Manufacturing Screen** — Wholesale catalog with tiered pricing indicators
+- **Orders Screen** — Buyer order history with status badges
+- **Messages Screen** — Conversations list + real-time chat interface
+- **Profile Screen** — Account management, subscription, RFQ access, logout
+
+## 🛠️ Technology Stack
+
+### Backend
+| Layer | Technology |
+|---|---|
+| API framework | FastAPI 0.104 |
+| ORM | SQLAlchemy 2.0 |
+| Validation | Pydantic v2 |
+| Auth | JWT (`python-jose`) + bcrypt (`passlib`) |
+| Database (dev) | SQLite (zero-config) |
+| Database (prod) | PostgreSQL with PostGIS |
+| Cache / Queue | Redis + Celery |
+| Containers | Docker / Docker Compose |
+
+### Flutter App
+| Layer | Package |
+|---|---|
+| State management | flutter_riverpod |
+| Navigation | go_router |
+| HTTP client | dio |
+| Secure storage | flutter_secure_storage |
+| Images | cached_network_image |
+
+## 📦 Running the Backend
+
+```bash
+cd src
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8000
+```
+
+Or with Docker:
+
+```bash
+cd src
+docker-compose up --build
+```
+
+API docs: http://localhost:8000/docs
+
+## 📱 Running the Flutter App
+
+```bash
+cd flutter_app
+flutter pub get
+flutter run
+```
+
+Set the backend URL:
+
+```bash
+flutter run --dart-define=API_BASE_URL=http://localhost:8000/api/v1
+```
+
+## 📚 API Endpoints (v2)
+
+### Authentication
+- `POST /api/v1/auth/login` — returns `access_token`
+
+### Tenants & Subscriptions
+- `GET/POST /api/v1/tenants/`
+- `GET/PUT/DELETE /api/v1/tenants/{id}`
+- `GET/POST /api/v1/subscription-plans/`
+- `GET/POST /api/v1/tenant-subscriptions/`
+
+### Agriculture
+- `GET/POST /api/v1/agriculture/`
+- `GET/PUT/DELETE /api/v1/agriculture/{id}`
+
+### Manufacturing
+- `GET/POST /api/v1/manufacturing/`
+- `GET/PUT/DELETE /api/v1/manufacturing/{id}`
+
+### Orders
+- `GET/POST /api/v1/orders/`
+- `GET/PUT/DELETE /api/v1/orders/{id}`
+
+### Messaging
+- `GET/POST /api/v1/messages/conversations/`
+- `GET /api/v1/messages/?conversation_id={id}`
+- `POST /api/v1/messages/`
+- `PUT /api/v1/messages/{id}/read`
+
+### RFQ
+- `GET/POST /api/v1/rfq/`
+- `GET/PUT /api/v1/rfq/{id}`
+- `GET/POST /api/v1/rfq/{id}/responses`
+
+### Reviews
+- `GET/POST /api/v1/reviews/`
+- `GET/DELETE /api/v1/reviews/{id}`
+
+### Notifications
+- `GET/POST /api/v1/notifications/`
+- `PUT /api/v1/notifications/{id}`
+- `PUT /api/v1/notifications/read-all/`
+
+*(All original real-estate endpoints remain unchanged — see original README sections below.)*
+
+---
+
+## Original Real-Estate Endpoints
+
+- `GET/POST /api/v1/users/`, `GET/PUT/DELETE /api/v1/users/{id}`
+- `GET/POST /api/v1/clients/`, `GET/PUT/DELETE /api/v1/clients/{id}`
+- `GET/POST /api/v1/properties/`, `GET/PUT/DELETE /api/v1/properties/{id}`
+- `GET/POST /api/v1/property-images/`, `GET/DELETE /api/v1/property-images/{id}`
+- `GET/POST /api/v1/listings/`, `GET /api/v1/listings/{id}`
+- `GET/POST /api/v1/inquiries/`, `GET /api/v1/inquiries/{id}`
+- `GET/POST /api/v1/appointments/`, `GET /api/v1/appointments/{id}`
+- `GET/POST /api/v1/transactions/`, `GET /api/v1/transactions/{id}`
+- `GET/POST /api/v1/payments/`, `GET /api/v1/payments/{id}`
+
+## 🔒 Security
+
+- Passwords hashed with bcrypt; plain-text never persisted.
+- JWT tokens signed with `SECRET_KEY` env var.
+- CORS origins configured via `CORS_ORIGINS` env var.
+- RBAC enforced at the model level; tenant isolation via `tenant_id` FK.
+
+## 👤 Author
+
+**AllanRye9**
+
+## 📄 License
+
+MIT
+
 
 ## 🏗️ Architecture
 
