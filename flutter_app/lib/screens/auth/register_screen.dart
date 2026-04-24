@@ -20,6 +20,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _phoneCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
 
+  // ── agent fields ────────────────────────────────────────────────────────────
+  final _licenseNumberCtrl = TextEditingController();
+  final _agencyNameCtrl = TextEditingController();
+  final _bioCtrl = TextEditingController();
+
   // ── company / organisation fields ──────────────────────────────────────────
   final _companyNameCtrl = TextEditingController();
   final _regNumberCtrl = TextEditingController();
@@ -46,6 +51,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     _emailCtrl.dispose();
     _phoneCtrl.dispose();
     _passCtrl.dispose();
+    _licenseNumberCtrl.dispose();
+    _agencyNameCtrl.dispose();
+    _bioCtrl.dispose();
     _companyNameCtrl.dispose();
     _regNumberCtrl.dispose();
     _businessPhoneCtrl.dispose();
@@ -67,7 +75,17 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       if (_phoneCtrl.text.trim().isNotEmpty) 'phone': _phoneCtrl.text.trim(),
     };
 
-    if (_role == 'company') {
+    if (_role == 'agent') {
+      if (_licenseNumberCtrl.text.trim().isNotEmpty) {
+        payload['license_number'] = _licenseNumberCtrl.text.trim();
+      }
+      if (_agencyNameCtrl.text.trim().isNotEmpty) {
+        payload['agency_name'] = _agencyNameCtrl.text.trim();
+      }
+      if (_bioCtrl.text.trim().isNotEmpty) {
+        payload['bio'] = _bioCtrl.text.trim();
+      }
+    } else if (_role == 'company') {
       payload['company_name'] = _companyNameCtrl.text.trim();
       if (_regNumberCtrl.text.trim().isNotEmpty) {
         payload['registration_number'] = _regNumberCtrl.text.trim();
@@ -191,6 +209,36 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         ),
       ];
 
+  /// Extra fields shown only for agent accounts.
+  List<Widget> _agentFields() => [
+        _sectionHeader('Agent Details', Icons.badge_outlined),
+        TextFormField(
+          controller: _agencyNameCtrl,
+          decoration: const InputDecoration(
+            labelText: 'Agency / Brokerage Name (optional)',
+            prefixIcon: Icon(Icons.business_outlined),
+          ),
+        ),
+        const SizedBox(height: 16),
+        TextFormField(
+          controller: _licenseNumberCtrl,
+          decoration: const InputDecoration(
+            labelText: 'License / Registration Number (optional)',
+            prefixIcon: Icon(Icons.numbers_outlined),
+          ),
+        ),
+        const SizedBox(height: 16),
+        TextFormField(
+          controller: _bioCtrl,
+          maxLines: 3,
+          decoration: const InputDecoration(
+            labelText: 'Bio (optional)',
+            prefixIcon: Icon(Icons.info_outline),
+            alignLabelWithHint: true,
+          ),
+        ),
+      ];
+
   /// Extra fields shown only for company accounts.
   List<Widget> _companyFields() => [
         _sectionHeader('Company Details', Icons.business_outlined),
@@ -261,6 +309,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         const SizedBox(height: 16),
         DropdownButtonFormField<String>(
           value: _orgType,
+          isExpanded: true,
           decoration: const InputDecoration(
             labelText: 'Organisation Type *',
             prefixIcon: Icon(Icons.category_outlined),
@@ -335,8 +384,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   ],
                   onChanged: (v) => setState(() {
                     _role = v!;
-                    // Clear company/org fields when switching role to avoid
+                    // Clear role-specific fields when switching role to avoid
                     // stale validators triggering on hidden fields.
+                    _licenseNumberCtrl.clear();
+                    _agencyNameCtrl.clear();
+                    _bioCtrl.clear();
                     _companyNameCtrl.clear();
                     _regNumberCtrl.clear();
                     _businessPhoneCtrl.clear();
@@ -350,6 +402,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 ..._contactFields(),
 
                 // ── Role-specific fields ───────────────────────────────────
+                if (_role == 'agent') ..._agentFields(),
                 if (_role == 'company') ..._companyFields(),
                 if (_role == 'organization') ..._organizationFields(),
 

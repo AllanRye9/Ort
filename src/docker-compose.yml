@@ -2,9 +2,9 @@ services:
   api:
     build: .
     container_name: fastapi_api
-    command: gunicorn -k uvicorn.workers.UvicornWorker app.main:app --bind 0.0.0.0:8000
+    command: gunicorn -k uvicorn.workers.UvicornWorker app.main:app --bind 0.0.0.0:8008
     ports:
-      - "8000:8000"
+      - "8008:8008"
     env_file:
       - .env
     depends_on:
