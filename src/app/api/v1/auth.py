@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
 from passlib.context import CryptContext
 from jose import jwt
+from sqlalchemy.exc import IntegrityError, DataError
 from sqlalchemy.orm import Session
 
 from app.database.database import get_db
@@ -89,7 +90,20 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
         bio=payload.bio,
     )
     db.add(db_user)
-    db.flush()  # populate db_user.id without committing yet
+    try:
+        db.flush()  # populate db_user.id without committing yet
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="An account with this email already exists",
+        )
+    except DataError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid field value: {exc.orig}",
+        )
 
     tenant_id: int | None = None
 
@@ -115,10 +129,24 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
             country=payload.country,
         )
         db.add(db_tenant)
-        db.flush()
+        try:
+            db.flush()
+        except (IntegrityError, DataError) as exc:
+            db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Could not create organisation record: {exc.orig}",
+            )
         tenant_id = db_tenant.id
 
-    db.commit()
+    try:
+        db.commit()
+    except (IntegrityError, DataError) as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Registration failed: {exc.orig}",
+        )
 
     return RegisterResponse(
         user_id=db_user.id,

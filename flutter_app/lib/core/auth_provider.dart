@@ -13,6 +13,7 @@ class AuthState {
     this.role,
     this.isLoading = false,
     this.error,
+    this.isInitialized = false,
   });
 
   final String? token;
@@ -20,6 +21,11 @@ class AuthState {
   final String? role;
   final bool isLoading;
   final String? error;
+
+  /// True once the initial token load from secure storage has completed.
+  /// Used on Flutter Web to avoid a flash of the login screen while the
+  /// async IndexedDB read is in-flight.
+  final bool isInitialized;
 
   bool get isAuthenticated => token != null;
 
@@ -29,6 +35,7 @@ class AuthState {
     String? role,
     bool? isLoading,
     String? error,
+    bool? isInitialized,
     bool clearToken = false,
     bool clearError = false,
   }) =>
@@ -38,6 +45,7 @@ class AuthState {
         role: clearToken ? null : role ?? this.role,
         isLoading: isLoading ?? this.isLoading,
         error: clearError ? null : error ?? this.error,
+        isInitialized: isInitialized ?? this.isInitialized,
       );
 }
 
@@ -62,7 +70,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
         token: token,
         userId: userIdStr != null ? int.tryParse(userIdStr) : null,
         role: role,
+        isInitialized: true,
       );
+    } else {
+      // No saved token – mark as initialized so the router can redirect.
+      state = state.copyWith(isInitialized: true);
     }
   }
 
@@ -116,14 +128,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> logout() async {
     await _storage.deleteAll();
-    state = const AuthState();
+    state = const AuthState(isInitialized: true);
   }
 
   void _handleUnauthorized() {
     // Called by the Dio 401 interceptor. Clear state without touching storage
     // again (already cleared in the interceptor).
     if (state.isAuthenticated) {
-      state = const AuthState();
+      state = const AuthState(isInitialized: true);
     }
   }
 
