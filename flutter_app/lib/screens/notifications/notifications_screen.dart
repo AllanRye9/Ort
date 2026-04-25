@@ -33,7 +33,13 @@ class NotificationsScreen extends ConsumerWidget {
                     .read(apiServiceProvider)
                     .markAllNotificationsRead(userId);
                 ref.invalidate(_notificationsProvider);
-              } catch (_) {}
+              } catch (_) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Could not mark all as read')),
+                  );
+                }
+              }
             },
             child: const Text(
               'Mark all read',
@@ -75,7 +81,14 @@ class NotificationsScreen extends ConsumerWidget {
                           .read(apiServiceProvider)
                           .markNotificationRead(n.id);
                       ref.invalidate(_notificationsProvider);
-                    } catch (_) {}
+                    } catch (_) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text('Could not mark notification as read')),
+                        );
+                      }
+                    }
                   },
                 );
               },
