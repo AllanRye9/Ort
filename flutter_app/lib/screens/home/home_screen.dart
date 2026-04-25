@@ -53,7 +53,7 @@ class HomeScreen extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications_outlined),
-            onPressed: () {},
+            onPressed: () => context.go('/notifications'),
           ),
         ],
       ),
@@ -66,7 +66,7 @@ class HomeScreen extends ConsumerWidget {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            const _SearchBar(),
+            _SearchBar(onTap: () => context.go('/search')),
             const SizedBox(height: 24),
             _SectionHeader(
               title: 'Properties',
@@ -111,15 +111,14 @@ class HomeScreen extends ConsumerWidget {
 // ─── Search bar ───────────────────────────────────────────────────────────────
 
 class _SearchBar extends StatelessWidget {
-  const _SearchBar();
+  const _SearchBar({required this.onTap});
+
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    // FIX: was missing `return GestureDetector(` — the original code had
-    // bare `onTap: () {},` and `child:` labels, which compiled as no-op
-    // labeled statements with no return value, causing a null-widget crash.
     return GestureDetector(
-      onTap: () {},
+      onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surfaceContainerHighest,
@@ -394,3 +393,4 @@ class _MfgRow extends StatelessWidget {
     );
   }
 }
+
