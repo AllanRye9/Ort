@@ -1,13 +1,30 @@
 import logging
 import os
+import sys
+import time
+import traceback
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
 from .database.database import engine, Base, run_schema_migrations
 from .api.v1.api import router
 
 # Import marketplace models so their tables are registered with Base
 from .models import marketplace_models  # noqa: F401
+
+# ---------------------------------------------------------------------------
+# Logging – configure root logger so every module's logger writes to stdout.
+# Gunicorn captures stdout/stderr and forwards them to Railway's log drain,
+# so this is the canonical way to get logs into the Railway dashboard.
+# ---------------------------------------------------------------------------
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    stream=sys.stdout,
+    force=True,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -47,17 +64,105 @@ app.add_middleware(
     max_age=600,
 )
 
-# Create tables – wrap in a try/except so a transient DB issue surfaces
-# as a clear startup log message rather than silent 500 errors.
+
+# ---------------------------------------------------------------------------
+# Request / response logging middleware
+# Logs every incoming request and its outcome (status code + duration).
+# Errors (5xx) are logged at ERROR level so they stand out in Railway logs.
+# ---------------------------------------------------------------------------
+class RequestLoggingMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        start = time.perf_counter()
+        method = request.method
+        path = request.url.path
+        query = request.url.query
+        display_path = f"{path}?{query}" if query else path
+
+        logger.info("→ %s %s (client=%s)", method, display_path, request.client)
+
+        try:
+            response = await call_next(request)
+        except Exception as exc:
+            duration_ms = (time.perf_counter() - start) * 1000
+            logger.error(
+                "✗ %s %s — unhandled exception after %.1f ms: %s",
+                method,
+                display_path,
+                duration_ms,
+                exc,
+                exc_info=True,
+            )
+            raise
+
+        duration_ms = (time.perf_counter() - start) * 1000
+        level = logging.ERROR if response.status_code >= 500 else logging.INFO
+        logger.log(
+            level,
+            "← %s %s %d (%.1f ms)",
+            method,
+            display_path,
+            response.status_code,
+            duration_ms,
+        )
+        return response
+
+
+app.add_middleware(RequestLoggingMiddleware)
+
+
+# ---------------------------------------------------------------------------
+# Global exception handler – catches any exception that escapes route handlers
+# and logs the full traceback before returning a generic 500 response.
+# Without this, Starlette swallows the traceback and Railway only sees a
+# connection-reset, which shows up as "Application failed to respond".
+# ---------------------------------------------------------------------------
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    tb = traceback.format_exc()
+    logger.error(
+        "Unhandled exception on %s %s:\n%s",
+        request.method,
+        request.url.path,
+        tb,
+    )
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error", "type": type(exc).__name__},
+    )
+
+
+# ---------------------------------------------------------------------------
+# Database initialisation
+# Wrapped in try/except so a connection failure or migration error surfaces
+# as a clear log message rather than a silent crash.
+# ---------------------------------------------------------------------------
+logger.info("Initialising database schema…")
 try:
     Base.metadata.create_all(bind=engine)
+    logger.info("create_all() completed successfully")
+except Exception as exc:
+    logger.error(
+        "Failed to create database tables: %s\n%s",
+        exc,
+        traceback.format_exc(),
+    )
+    raise
+
+try:
     run_schema_migrations()
-except Exception as exc:  # pragma: no cover
-    logger.error("Failed to initialise database schema: %s", exc, exc_info=True)
+    logger.info("Schema migrations completed successfully")
+except Exception as exc:
+    logger.error(
+        "Failed to run schema migrations: %s\n%s",
+        exc,
+        traceback.format_exc(),
+    )
     raise
 
 # Include all routes
 app.include_router(router, prefix="/api/v1")
+
+logger.info("Application startup complete — routes registered under /api/v1")
 
 
 @app.get("/")
