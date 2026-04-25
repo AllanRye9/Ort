@@ -70,7 +70,7 @@ class Property(Base):
     bedrooms = Column(Integer)
     bathrooms = Column(Integer)
     area_sqft = Column(Integer)
-    status = Column(Enum("available", "sold", "rented", "pending", name="property_status"), default="available")
+    status = Column(Enum("available", "sold", "rented", "pending", name="property_status"), default="available", server_default="available", nullable=False)
     created_at = Column(DateTime, server_default=func.now())
 
     agent = relationship("User", back_populates="properties")
@@ -122,7 +122,7 @@ class Inquiry(Base):
     property_id = Column(Integer, ForeignKey("properties.id", ondelete="CASCADE"))
     client_id = Column(Integer, ForeignKey("clients.id", ondelete="SET NULL"), nullable=True)
     message = Column(Text)
-    status = Column(Enum("new", "contacted", "closed", name="inquiry_status"), default="new")
+    status = Column(Enum("new", "contacted", "closed", name="inquiry_status"), default="new", server_default="new", nullable=False)
     created_at = Column(DateTime, server_default=func.now())
 
     property = relationship("Property", back_populates="inquiries")
@@ -142,7 +142,7 @@ class Appointment(Base):
     agent_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     client_id = Column(Integer, ForeignKey("clients.id", ondelete="SET NULL"), nullable=True)
     appointment_date = Column(DateTime, nullable=False)
-    status = Column(Enum("scheduled", "completed", "cancelled", name="appointment_status"), default="scheduled")
+    status = Column(Enum("scheduled", "completed", "cancelled", name="appointment_status"), default="scheduled", server_default="scheduled", nullable=False)
 
     property = relationship("Property", back_populates="appointments")
     agent = relationship("User")
