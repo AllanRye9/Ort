@@ -293,6 +293,14 @@ class ApiService {
     return res.data as List<dynamic>;
   }
 
+  Future<void> markNotificationRead(int notificationId) async {
+    await _dio.put('/notifications/$notificationId', data: {'is_read': true});
+  }
+
+  Future<void> markAllNotificationsRead(int userId) async {
+    await _dio.put('/notifications/read-all/', queryParameters: {'user_id': userId});
+  }
+
   // ─── Tenants ──────────────────────────────────────────────────────────────
 
   Future<List<dynamic>> getTenants({int skip = 0, int limit = 20}) async {
@@ -311,5 +319,13 @@ class ApiService {
   Future<List<dynamic>> getSubscriptionPlans() async {
     final res = await _dio.get('/subscription-plans/');
     return res.data as List<dynamic>;
+  }
+
+  // ─── User update ──────────────────────────────────────────────────────────
+
+  Future<Map<String, dynamic>> updateUser(
+      int userId, Map<String, dynamic> data) async {
+    final res = await _dio.put('/users/$userId', data: data);
+    return res.data as Map<String, dynamic>;
   }
 }
