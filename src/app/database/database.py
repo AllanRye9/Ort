@@ -51,14 +51,28 @@ def run_schema_migrations() -> None:
     """Add columns that exist in SQLAlchemy models but may be absent from an
     already-created database.  Uses SQLAlchemy's inspector so it works with
     both SQLite and PostgreSQL."""
+    import re
+    _IDENT_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
     inspector = inspect(engine)
     existing_tables = set(inspector.get_table_names())
 
     with engine.begin() as conn:
         for table, column, col_type in _MIGRATIONS:
+            # Guard against unexpected names (all values come from the
+            # hardcoded _MIGRATIONS constant, but validate defensively).
+            if not (_IDENT_RE.match(table) and _IDENT_RE.match(column)):
+                logger.error(
+                    "Schema migration skipped – unsafe identifier: %s.%s", table, column
+                )
+                continue
             if table not in existing_tables:
                 continue
-            existing_cols = {c["name"] for c in inspector.get_columns(table)}
+            # Re-fetch column list inside the transaction so we always see
+            # the current state of the schema.
+            existing_cols = {
+                c["name"] for c in inspect(conn).get_columns(table)
+            }
             if column not in existing_cols:
                 try:
                     conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}"))
