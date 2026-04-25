@@ -104,12 +104,22 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="One or more field values are invalid (e.g. too long)",
         )
+    except Exception:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Registration failed due to a server error. Please try again.",
+        )
 
     tenant_id: int | None = None
 
     if payload.role in ("company", "organization"):
         # Model validator guarantees company_name is set for these roles.
-        assert payload.company_name is not None  # noqa: S101 (enforced by schema)
+        if not payload.company_name:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="company_name is required for company and organization registration",
+            )
         # Determine tenant_type
         if payload.role == "company":
             tenant_type = "sme"
@@ -137,6 +147,12 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Could not create the organisation record. Check the provided details.",
             )
+        except Exception:
+            db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Registration failed due to a server error. Please try again.",
+            )
         tenant_id = db_tenant.id
 
     try:
@@ -146,6 +162,12 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Registration failed. Please check the provided information and try again.",
+        )
+    except Exception:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Registration failed due to a server error. Please try again.",
         )
 
     return RegisterResponse(

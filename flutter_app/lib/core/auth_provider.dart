@@ -143,6 +143,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   String _extractError(Object e) {
     if (e is DioException) {
+      final statusCode = e.response?.statusCode;
       final data = e.response?.data;
       if (data is Map) {
         // FastAPI-style: {"detail": "..."} or {"detail": [{"msg": "..."}]}
@@ -152,6 +153,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
           final first = detail.first;
           if (first is Map) return first['msg']?.toString() ?? detail.toString();
         }
+      }
+      // 5xx server errors – show a friendly message instead of the raw Dio text
+      if (statusCode != null && statusCode >= 500) {
+        return 'A server error occurred. Please try again in a moment.';
       }
       if (e.type == DioExceptionType.connectionTimeout ||
           e.type == DioExceptionType.receiveTimeout) {
