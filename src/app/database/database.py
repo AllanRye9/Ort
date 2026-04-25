@@ -1,5 +1,6 @@
 import logging
 import os
+import traceback
 
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
@@ -16,9 +17,36 @@ if SQLALCHEMY_DATABASE_URL.startswith("postgres://"):
         "postgres://", "postgresql://", 1
     )
 
+# Log which database backend is in use (mask credentials for safety).
+_db_scheme = SQLALCHEMY_DATABASE_URL.split("://")[0]
+logger.info("Database backend: %s", _db_scheme)
+
 connect_args = {"check_same_thread": False} if SQLALCHEMY_DATABASE_URL.startswith("sqlite") else {}
 
-engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args=connect_args)
+# ---------------------------------------------------------------------------
+# Engine creation
+# SQLAlchemy is lazy – it does not open a real connection until the first
+# query, so create_engine() itself rarely fails.  We immediately verify the
+# connection with a lightweight SELECT 1 so that a misconfigured DATABASE_URL
+# is caught at startup (and logged) rather than silently at request time.
+# ---------------------------------------------------------------------------
+try:
+    engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args=connect_args)
+    # Eagerly verify the connection so DATABASE_URL problems surface at startup.
+    with engine.connect() as _probe:
+        _probe.execute(text("SELECT 1"))
+    logger.info("Database connection verified successfully")
+except Exception as exc:
+    logger.error(
+        "Failed to connect to the database (%s): %s\n%s",
+        _db_scheme,
+        exc,
+        traceback.format_exc(),
+    )
+    # Re-raise so Gunicorn/Uvicorn logs the failure and the worker exits
+    # cleanly instead of hanging on the first request.
+    raise
+
 local_session = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
