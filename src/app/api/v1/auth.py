@@ -98,11 +98,11 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
             status_code=status.HTTP_409_CONFLICT,
             detail="An account with this email already exists",
         )
-    except DataError as exc:
+    except DataError:
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid field value: {exc.orig}",
+            detail="One or more field values are invalid (e.g. too long)",
         )
 
     tenant_id: int | None = None
@@ -131,21 +131,21 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
         db.add(db_tenant)
         try:
             db.flush()
-        except (IntegrityError, DataError) as exc:
+        except (IntegrityError, DataError):
             db.rollback()
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Could not create organisation record: {exc.orig}",
+                detail="Could not create the organisation record. Check the provided details.",
             )
         tenant_id = db_tenant.id
 
     try:
         db.commit()
-    except (IntegrityError, DataError) as exc:
+    except (IntegrityError, DataError):
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Registration failed: {exc.orig}",
+            detail="Registration failed. Please check the provided information and try again.",
         )
 
     return RegisterResponse(
