@@ -1,0 +1,178 @@
+name: CI – Tests & Server Health Check
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Job 1: Run the full pytest test suite
+  # ---------------------------------------------------------------------------
+  test:
+    name: Pytest (SQLite)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    defaults:
+      run:
+        working-directory: src
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: src/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run tests with coverage
+        env:
+          DATABASE_URL: "sqlite:///./test_ort.db"
+          SECRET_KEY: "ci-test-secret-key"
+        run: |
+          python -m pytest tests/ -v \
+            --tb=short \
+            --cov=app \
+            --cov-report=term-missing \
+            --cov-report=xml
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: src/coverage.xml
+
+  # ---------------------------------------------------------------------------
+  # Job 2: Start the server and verify it responds correctly
+  # ---------------------------------------------------------------------------
+  server-health:
+    name: Server Health Check
+    runs-on: ubuntu-latest
+    needs: test   # only run if tests pass
+    permissions:
+      contents: read
+
+    defaults:
+      run:
+        working-directory: src
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: src/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Start the server in the background
+        env:
+          DATABASE_URL: "sqlite:///./health_check.db"
+          SECRET_KEY: "ci-health-secret-key"
+        run: |
+          uvicorn app.main:app --host 0.0.0.0 --port 8000 &
+          echo "SERVER_PID=$!" >> $GITHUB_ENV
+
+      - name: Wait for server to be ready
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8000/health > /dev/null 2>&1; then
+              echo "Server is up after ${i} seconds"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Server failed to start in 30 seconds" >&2
+          exit 1
+
+      - name: Health endpoint returns ok
+        run: |
+          RESPONSE=$(curl -sf http://localhost:8000/health)
+          echo "Health response: $RESPONSE"
+          echo "$RESPONSE" | python -c "
+          import sys, json
+          data = json.load(sys.stdin)
+          assert data.get('status') == 'ok', f'Unexpected health response: {data}'
+          print('Health check passed')
+          "
+
+      - name: Root endpoint returns welcome message
+        run: |
+          RESPONSE=$(curl -sf http://localhost:8000/)
+          echo "Root response: $RESPONSE"
+          echo "$RESPONSE" | python -c "
+          import sys, json
+          data = json.load(sys.stdin)
+          assert 'message' in data, f'Missing message in root response: {data}'
+          print('Root endpoint check passed')
+          "
+
+      - name: OpenAPI docs endpoint is accessible
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/docs)
+          echo "Docs status code: $STATUS"
+          [ "$STATUS" = "200" ] || { echo "Docs endpoint returned $STATUS"; exit 1; }
+
+      - name: API v1 users endpoint responds
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/api/v1/users/)
+          echo "Users endpoint status: $STATUS"
+          [ "$STATUS" = "200" ] || { echo "Users endpoint returned $STATUS"; exit 1; }
+
+      - name: API v1 tenants endpoint responds
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/api/v1/tenants/)
+          echo "Tenants endpoint status: $STATUS"
+          [ "$STATUS" = "200" ] || { echo "Tenants endpoint returned $STATUS"; exit 1; }
+
+      - name: Register + Login flow works end-to-end
+        run: |
+          REGISTER=$(curl -sf -X POST http://localhost:8000/api/v1/auth/register \
+            -H "Content-Type: application/json" \
+            -d '{
+              "role": "agent",
+              "first_name": "CI",
+              "last_name": "Bot",
+              "email": "ci.bot@health.check",
+              "password": "CIHealthPass1!"
+            }')
+          echo "Register response: $REGISTER"
+          echo "$REGISTER" | python -c "
+          import sys, json
+          data = json.load(sys.stdin)
+          assert data.get('role') == 'agent', f'Unexpected register response: {data}'
+          print('Register check passed')
+          "
+
+          LOGIN=$(curl -sf -X POST http://localhost:8000/api/v1/auth/login \
+            -H "Content-Type: application/json" \
+            -d '{
+              "email": "ci.bot@health.check",
+              "password": "CIHealthPass1!"
+            }')
+          echo "Login response: $LOGIN"
+          echo "$LOGIN" | python -c "
+          import sys, json
+          data = json.load(sys.stdin)
+          assert 'access_token' in data, f'No access_token in login response: {data}'
+          print('Login check passed')
+          "
+
+      - name: Stop the server
+        if: always()
+        run: kill $SERVER_PID || true

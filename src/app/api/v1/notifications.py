@@ -35,6 +35,14 @@ def create_notification(payload: NotificationCreate, db: Session = Depends(get_d
     return obj
 
 
+@router.get("/{notification_id}", response_model=NotificationResponse)
+def get_notification(notification_id: int, db: Session = Depends(get_db)):
+    obj = db.query(Notification).filter(Notification.id == notification_id).first()
+    if not obj:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    return obj
+
+
 @router.put("/read-all/", status_code=status.HTTP_200_OK)
 def mark_all_read(user_id: int = Query(...), db: Session = Depends(get_db)):
     db.query(Notification).filter(
