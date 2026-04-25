@@ -7,9 +7,13 @@ from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 logger = logging.getLogger(__name__)
 
-SQLALCHEMY_DATABASE_URL = os.getenv(
-    "DATABASE_URL", "postgresql://postgres:postgres@localhost/realestate"
-)
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
+if not SQLALCHEMY_DATABASE_URL:
+    raise RuntimeError(
+        "DATABASE_URL environment variable is not set. "
+        "Please configure a PostgreSQL connection string, e.g. "
+        "postgresql://user:password@host/dbname"
+    )
 
 # Railway (and Heroku) provide "postgres://" URLs; SQLAlchemy 2.x requires
 # the "postgresql://" scheme.  Normalise here so the app works transparently.
