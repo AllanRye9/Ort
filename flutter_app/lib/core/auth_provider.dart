@@ -89,6 +89,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
       }
       if (role != null) {
         await _storage.write(key: AppConstants.roleKey, value: role);
+      } else {
+        await _storage.delete(key: AppConstants.roleKey);
       }
 
       state =

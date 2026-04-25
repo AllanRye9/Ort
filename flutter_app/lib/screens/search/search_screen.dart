@@ -28,10 +28,13 @@ class _MfgResult extends _SearchResult {
 
 // ─── Search provider ──────────────────────────────────────────────────────────
 
+/// The query only updates when the user explicitly submits (Enter / search
+/// button), preventing a network round-trip on every keystroke.
 final _searchQueryProvider = StateProvider<String>((ref) => '');
 
 final _searchResultsProvider =
     FutureProvider.autoDispose<List<_SearchResult>>((ref) async {
+  // Only watch the submitted query so we don't fetch on every keystroke.
   final query = ref.watch(_searchQueryProvider).trim().toLowerCase();
   if (query.isEmpty) return const [];
 
@@ -92,9 +95,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     super.dispose();
   }
 
+  void _submit() {
+    final text = _ctrl.text.trim();
+    ref.read(_searchQueryProvider.notifier).state = text;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final query = ref.watch(_searchQueryProvider);
+    final submittedQuery = ref.watch(_searchQueryProvider);
     final resultsAsync = ref.watch(_searchResultsProvider);
 
     return Scaffold(
@@ -110,28 +118,36 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             border: InputBorder.none,
             prefixIcon: Icon(Icons.search,
                 color: Colors.white.withValues(alpha: 0.7)),
-            suffixIcon: query.isNotEmpty
+            suffixIcon: _ctrl.text.isNotEmpty
                 ? IconButton(
                     icon: const Icon(Icons.clear, color: Colors.white),
                     onPressed: () {
                       _ctrl.clear();
                       ref.read(_searchQueryProvider.notifier).state = '';
+                      setState(() {});
                     },
                   )
                 : null,
           ),
-          onChanged: (v) =>
-              ref.read(_searchQueryProvider.notifier).state = v,
+          onChanged: (_) => setState(() {}),
+          onSubmitted: (_) => _submit(),
+          textInputAction: TextInputAction.search,
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.search, color: Colors.white),
+            onPressed: _submit,
+          ),
+        ],
       ),
-      body: query.isEmpty
+      body: submittedQuery.isEmpty
           ? const Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.search, size: 64, color: Colors.grey),
                   SizedBox(height: 16),
-                  Text('Start typing to search…',
+                  Text('Type a search term and press Enter…',
                       style: TextStyle(color: Colors.grey)),
                 ],
               ),
@@ -149,7 +165,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         const Icon(Icons.search_off,
                             size: 64, color: Colors.grey),
                         const SizedBox(height: 16),
-                        Text('No results for "$query"',
+                        Text('No results for "$submittedQuery"',
                             style: const TextStyle(color: Colors.grey)),
                       ],
                     ),
