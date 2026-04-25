@@ -71,6 +71,14 @@ _ALTER_COLUMN_MIGRATIONS: list[tuple[str, str, str]] = [
     ("users", "phone", "VARCHAR(30)"),
 ]
 
+# Enum values to add to existing PostgreSQL enum types.
+# Each entry is (enum_type_name, value_to_add).
+# Uses "ADD VALUE IF NOT EXISTS" so it is safe to run on any database state.
+_ENUM_VALUE_MIGRATIONS: list[tuple[str, str]] = [
+    ("user_roles", "company"),
+    ("user_roles", "organization"),
+]
+
 
 def run_schema_migrations() -> None:
     """Add columns that exist in SQLAlchemy models but may be absent from an
@@ -78,7 +86,12 @@ def run_schema_migrations() -> None:
     both SQLite and PostgreSQL.
 
     Also backfills NULL values in status/type/currency columns so that
-    response-model serialisation never fails with a validation error."""
+    response-model serialisation never fails with a validation error.
+
+    All DDL/DML runs under AUTOCOMMIT so that a failure in one step never
+    leaves a PostgreSQL transaction in the ABORTED state and never prevents
+    subsequent migration steps from executing.
+    """
     import re
     _IDENT_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
     # Allowlist for col_type: only well-known SQL base types plus an optional
@@ -92,10 +105,20 @@ def run_schema_migrations() -> None:
         re.IGNORECASE,
     )
 
-    inspector = inspect(engine)
-    existing_tables = set(inspector.get_table_names())
+    # Run every migration statement under AUTOCOMMIT.  This guarantees that:
+    # 1. A failed DDL statement does not abort subsequent statements.
+    # 2. ALTER TYPE … ADD VALUE works on PostgreSQL < 12 (which disallows
+    #    that command inside an explicit transaction).
+    # SQL DDL identifiers (table/column/type names) cannot be bound as query
+    # parameters; they must be interpolated.  Safety is ensured by the
+    # _IDENT_RE and _COL_TYPE_RE checks below which confirm all values match
+    # strict allow-list patterns (all sourced from the hardcoded migration
+    # constants, never from user input).
+    ac_engine = engine.execution_options(isolation_level="AUTOCOMMIT")
 
-    with engine.begin() as conn:
+    with ac_engine.connect() as conn:
+        existing_tables = set(inspect(conn).get_table_names())
+
         for table, column, col_type in _MIGRATIONS:
             # Guard against unexpected names (all values come from the
             # hardcoded _MIGRATIONS constant, but validate defensively).
@@ -112,19 +135,10 @@ def run_schema_migrations() -> None:
                 continue
             if table not in existing_tables:
                 continue
-            # Re-fetch column list inside the transaction so we always see
-            # the current state of the schema.
-            existing_cols = {
-                c["name"] for c in inspect(conn).get_columns(table)
-            }
+            # Re-fetch column list so we always see the current schema state.
+            existing_cols = {c["name"] for c in inspect(conn).get_columns(table)}
             if column not in existing_cols:
                 try:
-                    # SQL DDL identifiers (table/column names) cannot be bound
-                    # as query parameters; they must be interpolated.  Safety
-                    # is ensured by the _IDENT_RE and _COL_TYPE_RE checks above
-                    # which confirm all three values match strict allow-list
-                    # patterns (all sourced from the hardcoded _MIGRATIONS
-                    # constant, never from user input).
                     conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}"))
                     logger.info("Schema migration: added column %s.%s", table, column)
                 except Exception as exc:  # pragma: no cover
@@ -158,7 +172,7 @@ def run_schema_migrations() -> None:
     # Widen column types on PostgreSQL for existing databases.
     # SQLite ignores VARCHAR length so this step is unnecessary there.
     if not SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
-        with engine.begin() as conn:
+        with ac_engine.connect() as conn:
             for table, column, col_type in _ALTER_COLUMN_MIGRATIONS:
                 if not (_IDENT_RE.match(table) and _IDENT_RE.match(column)):
                     logger.error(
@@ -173,4 +187,34 @@ def run_schema_migrations() -> None:
                 except Exception as exc:  # pragma: no cover
                     logger.warning(
                         "Schema migration warning for alter %s.%s: %s", table, column, exc
+                    )
+
+    # Add missing values to PostgreSQL enum types.
+    # Existing databases created before 'company'/'organization' were added to
+    # the user_roles enum need this step; fresh databases created by
+    # create_all() already include all values so this is a safe no-op there.
+    if not SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
+        with ac_engine.connect() as conn:
+            for enum_name, enum_value in _ENUM_VALUE_MIGRATIONS:
+                if not (_IDENT_RE.match(enum_name) and _IDENT_RE.match(enum_value)):
+                    logger.error(
+                        "Enum migration skipped – unsafe identifier: %s / %s",
+                        enum_name, enum_value,
+                    )
+                    continue
+                try:
+                    conn.execute(
+                        text(
+                            f"ALTER TYPE {enum_name}"
+                            f" ADD VALUE IF NOT EXISTS '{enum_value}'"
+                        )
+                    )
+                    logger.info(
+                        "Enum migration: ensured value '%s' exists in type %s",
+                        enum_value, enum_name,
+                    )
+                except Exception as exc:  # pragma: no cover
+                    logger.warning(
+                        "Enum migration warning for %s / %s: %s",
+                        enum_name, enum_value, exc,
                     )
