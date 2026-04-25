@@ -1,4 +1,5 @@
 """JWT Authentication router."""
+import logging
 import os
 import re
 from datetime import datetime, timedelta
@@ -22,6 +23,8 @@ from app.schemas.marketplace_schemas import (
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+logger = logging.getLogger(__name__)
 
 SECRET_KEY = os.getenv("SECRET_KEY", "change-me-in-production")
 ALGORITHM = "HS256"
@@ -106,12 +109,11 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
         )
     except Exception:
         db.rollback()
+        logger.exception("Unexpected error during user flush for %s", payload.email)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Registration failed due to a server error. Please try again.",
         )
-
-    tenant_id: int | None = None
 
     if payload.role in ("company", "organization"):
         # Model validator guarantees company_name is set for these roles.
@@ -149,11 +151,11 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
             )
         except Exception:
             db.rollback()
+            logger.exception("Unexpected error during tenant flush for %s", payload.email)
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Registration failed due to a server error. Please try again.",
             )
-        tenant_id = db_tenant.id
 
     try:
         db.commit()
@@ -165,6 +167,7 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
         )
     except Exception:
         db.rollback()
+        logger.exception("Unexpected error during commit for %s", payload.email)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Registration failed due to a server error. Please try again.",
