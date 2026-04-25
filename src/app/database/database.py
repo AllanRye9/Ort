@@ -81,13 +81,15 @@ def run_schema_migrations() -> None:
     response-model serialisation never fails with a validation error."""
     import re
     _IDENT_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
-    # Allowlist for col_type: only well-known SQL type tokens plus an optional
-    # DEFAULT clause whose value is a single-quoted ASCII string.
+    # Allowlist for col_type: only well-known SQL base types plus an optional
+    # DEFAULT clause whose value is a single-quoted alphanumeric string.
     # All values come from the hardcoded _MIGRATIONS constant, but we validate
     # defensively so that an accidental edit cannot produce an injection.
     _COL_TYPE_RE = re.compile(
-        r"^[A-Za-z0-9_()\s,]+"               # base type, e.g. "VARCHAR(50)"
-        r"(?:\s+DEFAULT\s+'[A-Za-z0-9_]+')?$" # optional DEFAULT clause
+        r"^(?:VARCHAR|TEXT|INTEGER|DECIMAL|FLOAT|BOOLEAN|DATE|DATETIME)"
+        r"(?:\s*\(\s*\d+(?:\s*,\s*\d+)?\s*\))?"   # optional (len) or (p,s)
+        r"(?:\s+DEFAULT\s+'[A-Za-z0-9_]+')?$",      # optional DEFAULT clause
+        re.IGNORECASE,
     )
 
     inspector = inspect(engine)
@@ -117,6 +119,12 @@ def run_schema_migrations() -> None:
             }
             if column not in existing_cols:
                 try:
+                    # SQL DDL identifiers (table/column names) cannot be bound
+                    # as query parameters; they must be interpolated.  Safety
+                    # is ensured by the _IDENT_RE and _COL_TYPE_RE checks above
+                    # which confirm all three values match strict allow-list
+                    # patterns (all sourced from the hardcoded _MIGRATIONS
+                    # constant, never from user input).
                     conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}"))
                     logger.info("Schema migration: added column %s.%s", table, column)
                 except Exception as exc:  # pragma: no cover
