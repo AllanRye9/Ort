@@ -115,6 +115,7 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
             detail="Registration failed due to a server error. Please try again.",
         )
 
+    db_tenant = None
     if payload.role in ("company", "organization"):
         # Model validator guarantees company_name is set for these roles.
         if not payload.company_name:
@@ -176,6 +177,6 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
     return RegisterResponse(
         user_id=db_user.id,
         role=db_user.role,
-        tenant_id=tenant_id,
+        tenant_id=db_tenant.id if db_tenant else None,
         message="Registration successful",
     )
