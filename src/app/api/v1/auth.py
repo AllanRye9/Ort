@@ -1,4 +1,5 @@
 """JWT Authentication router."""
+import logging
 import os
 import re
 from datetime import datetime, timedelta
@@ -22,6 +23,8 @@ from app.schemas.marketplace_schemas import (
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+logger = logging.getLogger(__name__)
 
 SECRET_KEY = os.getenv("SECRET_KEY", "change-me-in-production")
 ALGORITHM = "HS256"
@@ -104,12 +107,21 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="One or more field values are invalid (e.g. too long)",
         )
-
-    tenant_id: int | None = None
+    except Exception:
+        db.rollback()
+        logger.exception("Unexpected error during user flush for %s", payload.email)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Registration failed due to a server error. Please try again.",
+        )
 
     if payload.role in ("company", "organization"):
         # Model validator guarantees company_name is set for these roles.
-        assert payload.company_name is not None  # noqa: S101 (enforced by schema)
+        if not payload.company_name:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="company_name is required for company and organization registration",
+            )
         # Determine tenant_type
         if payload.role == "company":
             tenant_type = "sme"
@@ -137,7 +149,13 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Could not create the organisation record. Check the provided details.",
             )
-        tenant_id = db_tenant.id
+        except Exception:
+            db.rollback()
+            logger.exception("Unexpected error during tenant flush for %s", payload.email)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Registration failed due to a server error. Please try again.",
+            )
 
     try:
         db.commit()
@@ -146,6 +164,13 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Registration failed. Please check the provided information and try again.",
+        )
+    except Exception:
+        db.rollback()
+        logger.exception("Unexpected error during commit for %s", payload.email)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Registration failed due to a server error. Please try again.",
         )
 
     return RegisterResponse(
