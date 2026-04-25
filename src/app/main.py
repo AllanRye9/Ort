@@ -1,3 +1,4 @@
+import logging
 import os
 
 from fastapi import FastAPI
@@ -7,6 +8,8 @@ from .api.v1.api import router
 
 # Import marketplace models so their tables are registered with Base
 from .models import marketplace_models  # noqa: F401
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="Unified Commerce Marketplace API",
@@ -44,8 +47,13 @@ app.add_middleware(
     max_age=600,
 )
 
-# Create tables
-Base.metadata.create_all(bind=engine)
+# Create tables – wrap in a try/except so a transient DB issue surfaces
+# as a clear startup log message rather than silent 500 errors.
+try:
+    Base.metadata.create_all(bind=engine)
+except Exception as exc:  # pragma: no cover
+    logger.error("Failed to create database tables: %s", exc, exc_info=True)
+    raise
 
 # Include all routes
 app.include_router(router, prefix="/api/v1")

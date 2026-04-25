@@ -10,12 +10,14 @@ class AuthState {
   const AuthState({
     this.token,
     this.userId,
+    this.role,
     this.isLoading = false,
     this.error,
   });
 
   final String? token;
   final int? userId;
+  final String? role;
   final bool isLoading;
   final String? error;
 
@@ -24,6 +26,7 @@ class AuthState {
   AuthState copyWith({
     String? token,
     int? userId,
+    String? role,
     bool? isLoading,
     String? error,
     bool clearToken = false,
@@ -32,6 +35,7 @@ class AuthState {
       AuthState(
         token: clearToken ? null : token ?? this.token,
         userId: clearToken ? null : userId ?? this.userId,
+        role: clearToken ? null : role ?? this.role,
         isLoading: isLoading ?? this.isLoading,
         error: clearError ? null : error ?? this.error,
       );
@@ -52,10 +56,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> _loadToken() async {
     final token = await _storage.read(key: AppConstants.tokenKey);
     final userIdStr = await _storage.read(key: AppConstants.userIdKey);
+    final role = await _storage.read(key: AppConstants.roleKey);
     if (token != null) {
       state = state.copyWith(
         token: token,
         userId: userIdStr != null ? int.tryParse(userIdStr) : null,
+        role: role,
       );
     }
   }
@@ -74,13 +80,19 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final int? userId =
           rawUserId != null ? int.tryParse(rawUserId.toString()) : null;
 
+      final String? role = data['role'] as String?;
+
       await _storage.write(key: AppConstants.tokenKey, value: token);
       if (userId != null) {
         await _storage.write(
             key: AppConstants.userIdKey, value: userId.toString());
       }
+      if (role != null) {
+        await _storage.write(key: AppConstants.roleKey, value: role);
+      }
 
-      state = state.copyWith(token: token, userId: userId, isLoading: false);
+      state =
+          state.copyWith(token: token, userId: userId, role: role, isLoading: false);
       return true;
     } catch (e) {
       state = state.copyWith(isLoading: false, error: _extractError(e));

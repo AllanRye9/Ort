@@ -16,6 +16,8 @@ import '../screens/orders/order_detail_screen.dart';
 import '../screens/messages/conversations_screen.dart';
 import '../screens/messages/chat_screen.dart';
 import '../screens/profile/profile_screen.dart';
+import '../screens/notifications/notifications_screen.dart';
+import '../screens/search/search_screen.dart';
 
 // ─── Auth-change listenable ──────────────────────────────────────────────────
 //
@@ -85,10 +87,13 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
       GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),
+      // Full-screen routes (no bottom nav)
+      GoRoute(path: '/search', builder: (_, __) => const SearchScreen()),
       ShellRoute(
         builder: (context, state, child) => MainShell(child: child),
         routes: [
           GoRoute(path: '/home', builder: (_, __) => const HomeScreen()),
+          GoRoute(path: '/notifications', builder: (_, __) => const NotificationsScreen()),
           GoRoute(
             path: '/properties',
             builder: (_, __) => const PropertiesScreen(),
