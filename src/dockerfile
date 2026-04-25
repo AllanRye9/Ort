@@ -33,4 +33,4 @@ COPY . .
 EXPOSE 8008
 
 # ---- Start FastAPI ----
-CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "app.main:app", "--bind", "0.0.0.0:8008"]
+CMD sh -c "gunicorn -k uvicorn.workers.UvicornWorker app.main:app --bind 0.0.0.0:${PORT:-8008}"
