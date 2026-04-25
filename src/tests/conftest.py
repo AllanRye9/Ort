@@ -1,6 +1,6 @@
 """
 Shared pytest fixtures for the FastAPI test suite.
-Uses a temporary SQLite database so tests are fully isolated
+Uses a temporary PostgreSQL database so tests are fully isolated
 from any production or development database.
 """
 import os
@@ -9,8 +9,12 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-# Point to a temp SQLite database before importing anything that touches DATABASE_URL
-os.environ.setdefault("DATABASE_URL", "sqlite:///./test_ort.db")
+# Point to a test PostgreSQL database before importing anything that touches DATABASE_URL
+TEST_DATABASE_URL = os.getenv(
+    "TEST_DATABASE_URL",
+    os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost/test_ort"),
+)
+os.environ.setdefault("DATABASE_URL", TEST_DATABASE_URL)
 os.environ.setdefault("SECRET_KEY", "test-secret-key-for-ci")
 
 from app.database.database import Base, get_db  # noqa: E402
@@ -18,9 +22,9 @@ from app.models import models  # noqa: E402, F401 – register tables with Base
 from app.models import marketplace_models  # noqa: E402, F401
 from app.main import app  # noqa: E402
 
-TEST_DB_URL = "sqlite:///./test_ort.db"
+TEST_DB_URL = os.environ["DATABASE_URL"]
 
-test_engine = create_engine(TEST_DB_URL, connect_args={"check_same_thread": False})
+test_engine = create_engine(TEST_DB_URL)
 TestingSession = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
 
 
@@ -30,9 +34,6 @@ def create_tables():
     Base.metadata.create_all(bind=test_engine)
     yield
     Base.metadata.drop_all(bind=test_engine)
-    # Remove the test DB file
-    if os.path.exists("test_ort.db"):
-        os.remove("test_ort.db")
 
 
 @pytest.fixture()
