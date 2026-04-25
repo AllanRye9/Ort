@@ -10,6 +10,7 @@ class AppConstants {
   // Storage keys
   static const String tokenKey = 'auth_token';
   static const String userIdKey = 'user_id';
+  static const String roleKey = 'user_role';
   static const String tenantIdKey = 'tenant_id';
 
   // Pagination
