@@ -18,7 +18,7 @@ class User(Base):
     first_name = Column(String(100), nullable=False)
     last_name = Column(String(100), nullable=False)
     email = Column(String(255), unique=True, nullable=False)
-    phone = Column(String(20))
+    phone = Column(String(30))
     password_hash = Column(Text, nullable=False)
     # Agent-specific fields
     license_number = Column(String(100), nullable=True)

@@ -46,6 +46,12 @@ _MIGRATIONS: list[tuple[str, str, str]] = [
     ("users", "bio",            "TEXT"),
 ]
 
+# Columns whose type needs widening on existing databases.
+# Skipped on SQLite (which ignores VARCHAR length constraints anyway).
+_ALTER_COLUMN_MIGRATIONS: list[tuple[str, str, str]] = [
+    ("users", "phone", "VARCHAR(30)"),
+]
+
 
 def run_schema_migrations() -> None:
     """Add columns that exist in SQLAlchemy models but may be absent from an
@@ -80,4 +86,24 @@ def run_schema_migrations() -> None:
                 except Exception as exc:  # pragma: no cover
                     logger.warning(
                         "Schema migration warning for %s.%s: %s", table, column, exc
+                    )
+
+    # Widen column types on PostgreSQL for existing databases.
+    # SQLite ignores VARCHAR length so this step is unnecessary there.
+    if not SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
+        with engine.begin() as conn:
+            for table, column, col_type in _ALTER_COLUMN_MIGRATIONS:
+                if not (_IDENT_RE.match(table) and _IDENT_RE.match(column)):
+                    logger.error(
+                        "ALTER migration skipped – unsafe identifier: %s.%s", table, column
+                    )
+                    continue
+                try:
+                    conn.execute(
+                        text(f"ALTER TABLE {table} ALTER COLUMN {column} TYPE {col_type}")
+                    )
+                    logger.info("Schema migration: widened column %s.%s to %s", table, column, col_type)
+                except Exception as exc:  # pragma: no cover
+                    logger.warning(
+                        "Schema migration warning for alter %s.%s: %s", table, column, exc
                     )

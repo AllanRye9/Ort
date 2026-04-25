@@ -48,6 +48,9 @@ class UserUpdate(BaseModel):
 
 class UserResponse(UserBase):
     id: int
+    license_number: Optional[str] = None
+    agency_name: Optional[str] = None
+    bio: Optional[str] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}

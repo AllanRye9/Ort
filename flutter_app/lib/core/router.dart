@@ -29,7 +29,8 @@ import '../screens/search/search_screen.dart';
 class _AuthChangeNotifier extends ChangeNotifier {
   _AuthChangeNotifier(Ref ref) {
     _sub = ref.listen<AuthState>(authProvider, (prev, next) {
-      if (prev?.isAuthenticated != next.isAuthenticated) {
+      if (prev?.isAuthenticated != next.isAuthenticated ||
+          prev?.isInitialized != next.isInitialized) {
         notifyListeners();
       }
     });
@@ -55,7 +56,7 @@ final routerProvider = Provider<GoRouter>((ref) {
   final notifier = ref.watch(_authChangeNotifierProvider);
 
   final router = GoRouter(
-    initialLocation: '/login',
+    initialLocation: '/',
     refreshListenable: notifier,
     errorBuilder: (context, state) => Scaffold(
       appBar: AppBar(title: const Text('Page not found')),
@@ -76,15 +77,34 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
     ),
     redirect: (context, state) {
-      final isAuthenticated = ref.read(authProvider).isAuthenticated;
+      final authState = ref.read(authProvider);
+
+      // Wait for the initial token load to finish before redirecting.
+      // This prevents a flash of the login screen on Flutter Web where
+      // the IndexedDB read is async and slower than on native platforms.
+      if (!authState.isInitialized) return null;
+
+      final isAuthenticated = authState.isAuthenticated;
       final loc = state.matchedLocation;
       final isAuthRoute = loc == '/login' || loc == '/register';
+
+      // Redirect away from the loading splash once initialized.
+      if (loc == '/') {
+        return isAuthenticated ? '/home' : '/login';
+      }
 
       if (!isAuthenticated && !isAuthRoute) return '/login';
       if (isAuthenticated && isAuthRoute) return '/home';
       return null;
     },
     routes: [
+      // Loading / splash route shown while initial auth state is determined.
+      GoRoute(
+        path: '/',
+        builder: (_, __) => const Scaffold(
+          body: Center(child: CircularProgressIndicator()),
+        ),
+      ),
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
       GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),
       // Full-screen routes (no bottom nav)
