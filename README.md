@@ -197,12 +197,37 @@ flutter run --dart-define=API_BASE_URL=http://localhost:8000/api/v1
 - `GET/POST /api/v1/transactions/`, `GET /api/v1/transactions/{id}`
 - `GET/POST /api/v1/payments/`, `GET /api/v1/payments/{id}`
 
-## 🔒 Security
+## 🔧 Environment Variables
 
-- Passwords hashed with bcrypt; plain-text never persisted.
-- JWT tokens signed with `SECRET_KEY` env var.
-- CORS origins configured via `CORS_ORIGINS` env var.
-- RBAC enforced at the model level; tenant isolation via `tenant_id` FK.
+All runtime configuration is driven by environment variables.  Create a
+`.env` file in the `src/` directory (or set the variables in your deployment
+platform — e.g. Railway) before starting the application.
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `DATABASE_URL` | No | `sqlite:///./real_estate.db` | Full database connection URL.  Use `postgresql://user:pass@host:5432/dbname` for production.  Railway provides a `postgres://` URL; the app normalises it automatically. |
+| `SECRET_KEY` | **Yes** (prod) | `change-me-in-production` | Secret used to sign JWT tokens.  **Must** be changed before deploying to production. |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | No | `60` | JWT token lifetime in minutes. |
+| `CORS_ORIGINS` | No | `*` | Comma-separated list of allowed CORS origins (e.g. `https://your-app.com,https://admin.your-app.com`).  Defaults to `*` (all origins) if not set. |
+| `PORT` | No | `8008` | Port the server binds to.  Set automatically by Railway; the `dockerfile` CMD reads `${PORT:-8008}`. |
+
+### Flutter / Dart-define variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `API_BASE_URL` | `https://ort.up.railway.app/api/v1` | Backend API base URL used by the Flutter app.  Pass via `--dart-define=API_BASE_URL=<url>` at build/run time. |
+
+### Minimal `.env` for local development with PostgreSQL
+
+```env
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/ort
+SECRET_KEY=my-local-dev-secret
+```
+
+> SQLite is used automatically when `DATABASE_URL` is not set, so **no
+> database setup is needed for local development**.
+
+
 
 ## 👤 Author
 

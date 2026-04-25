@@ -117,14 +117,14 @@ class PropertyModel {
         id: j['id'] as int,
         title: j['title'] as String,
         description: j['description'] as String?,
-        propertyType: j['property_type'] as String,
+        propertyType: (j['property_type'] as String?) ?? 'house',
         address: j['address'] as String,
         city: j['city'] as String?,
         price: double.parse(j['price'].toString()),
         bedrooms: j['bedrooms'] as int?,
         bathrooms: j['bathrooms'] as int?,
         areaSqft: j['area_sqft'] as int?,
-        status: j['status'] as String,
+        status: (j['status'] as String?) ?? 'available',
         createdAt: DateTime.parse(j['created_at'] as String),
       );
 }
@@ -193,7 +193,7 @@ class AgricultureListingModel {
         isPerishable: j['is_perishable'] as bool? ?? false,
         images: (j['images'] as List<dynamic>?)?.cast<String>(),
         storageConditions: j['storage_conditions'] as String?,
-        status: j['status'] as String,
+        status: (j['status'] as String?) ?? 'available',
         createdAt: DateTime.parse(j['created_at'] as String),
       );
 }
@@ -258,7 +258,7 @@ class ManufacturingProductModel {
         leadTimeDays: j['lead_time_days'] as int?,
         isLocallyMade: j['is_locally_made'] as bool? ?? true,
         countryOfOrigin: j['country_of_origin'] as String?,
-        status: j['status'] as String,
+        status: (j['status'] as String?) ?? 'available',
         createdAt: DateTime.parse(j['created_at'] as String),
       );
 }
@@ -299,12 +299,12 @@ class OrderModel {
         orderNumber: j['order_number'] as String,
         buyerUserId: j['buyer_user_id'] as int?,
         sellerTenantId: j['seller_tenant_id'] as int?,
-        status: j['status'] as String,
+        status: (j['status'] as String?) ?? 'pending',
         totalAmount: j['total_amount'] != null
             ? double.parse(j['total_amount'].toString())
             : null,
         currency: j['currency'] as String? ?? 'USD',
-        paymentStatus: j['payment_status'] as String,
+        paymentStatus: (j['payment_status'] as String?) ?? 'unpaid',
         paymentMethod: j['payment_method'] as String?,
         deliveryAddress: j['delivery_address'] as String?,
         notes: j['notes'] as String?,
@@ -404,7 +404,7 @@ class MessageModel {
         senderId: j['sender_id'] as int?,
         body: j['body'] as String,
         attachmentUrl: j['attachment_url'] as String?,
-        messageType: j['message_type'] as String,
+        messageType: (j['message_type'] as String?) ?? 'text',
         isRead: j['is_read'] as bool? ?? false,
         sentAt: DateTime.parse(j['sent_at'] as String),
       );

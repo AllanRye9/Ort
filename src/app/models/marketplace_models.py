@@ -84,8 +84,15 @@ class TenantSubscription(Base):
     status = Column(
         Enum("active", "cancelled", "past_due", "trialing", name="subscription_status"),
         default="active",
+        server_default="active",
+        nullable=False,
     )
-    billing_cycle = Column(Enum("monthly", "annual", name="billing_cycles"), default="monthly")
+    billing_cycle = Column(
+        Enum("monthly", "annual", name="billing_cycles"),
+        default="monthly",
+        server_default="monthly",
+        nullable=False,
+    )
     start_date = Column(Date, nullable=False)
     end_date = Column(Date)
     created_at = Column(DateTime, server_default=func.now())
@@ -130,6 +137,8 @@ class AgricultureListing(Base):
     status = Column(
         Enum("available", "sold_out", "reserved", "expired", name="agri_listing_status"),
         default="available",
+        server_default="available",
+        nullable=False,
     )
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
@@ -172,6 +181,8 @@ class ManufacturingProduct(Base):
     status = Column(
         Enum("available", "out_of_stock", "discontinued", name="mfg_product_status"),
         default="available",
+        server_default="available",
+        nullable=False,
     )
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
@@ -203,12 +214,16 @@ class Order(Base):
             name="order_status",
         ),
         default="pending",
+        server_default="pending",
+        nullable=False,
     )
     total_amount = Column(DECIMAL(14, 2))
-    currency = Column(String(10), default="USD")
+    currency = Column(String(10), default="USD", server_default="USD", nullable=False)
     payment_status = Column(
         Enum("unpaid", "partial", "paid", "refunded", name="order_payment_status"),
         default="unpaid",
+        server_default="unpaid",
+        nullable=False,
     )
     payment_method = Column(String(50))
     delivery_address = Column(Text)
@@ -288,6 +303,8 @@ class Message(Base):
     message_type = Column(
         Enum("text", "file", "voice", name="message_types"),
         default="text",
+        server_default="text",
+        nullable=False,
     )
     is_read = Column(Boolean, default=False)
     sent_at = Column(DateTime, server_default=func.now())
@@ -317,11 +334,13 @@ class RFQ(Base):
     quantity = Column(Float)
     unit = Column(String(30))
     target_price = Column(DECIMAL(12, 2))
-    currency = Column(String(10), default="USD")
+    currency = Column(String(10), default="USD", server_default="USD", nullable=False)
     deadline = Column(Date)
     status = Column(
         Enum("open", "quoted", "accepted", "rejected", "expired", name="rfq_status"),
         default="open",
+        server_default="open",
+        nullable=False,
     )
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
@@ -342,12 +361,14 @@ class RFQResponse(Base):
     rfq_id = Column(Integer, ForeignKey("rfqs.id", ondelete="CASCADE"))
     responder_tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="SET NULL"), nullable=True)
     quoted_price = Column(DECIMAL(12, 2), nullable=False)
-    currency = Column(String(10), default="USD")
+    currency = Column(String(10), default="USD", server_default="USD", nullable=False)
     notes = Column(Text)
     valid_until = Column(Date)
     status = Column(
         Enum("pending", "accepted", "rejected", name="rfq_response_status"),
         default="pending",
+        server_default="pending",
+        nullable=False,
     )
     created_at = Column(DateTime, server_default=func.now())
 
