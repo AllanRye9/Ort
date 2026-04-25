@@ -3,7 +3,7 @@ import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .database.database import engine, Base
+from .database.database import engine, Base, run_schema_migrations
 from .api.v1.api import router
 
 # Import marketplace models so their tables are registered with Base
@@ -51,8 +51,9 @@ app.add_middleware(
 # as a clear startup log message rather than silent 500 errors.
 try:
     Base.metadata.create_all(bind=engine)
+    run_schema_migrations()
 except Exception as exc:  # pragma: no cover
-    logger.error("Failed to create database tables: %s", exc, exc_info=True)
+    logger.error("Failed to initialise database schema: %s", exc, exc_info=True)
     raise
 
 # Include all routes
