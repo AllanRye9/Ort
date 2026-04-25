@@ -7,11 +7,12 @@ from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 logger = logging.getLogger(__name__)
 
-SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./real_estate.db")
+SQLALCHEMY_DATABASE_URL = os.getenv(
+    "DATABASE_URL", "postgresql://postgres:postgres@localhost/realestate"
+)
 
 # Railway (and Heroku) provide "postgres://" URLs; SQLAlchemy 2.x requires
-# the "postgresql://" scheme.  Normalise here so the app works transparently
-# on both local SQLite and production PostgreSQL.
+# the "postgresql://" scheme.  Normalise here so the app works transparently.
 if SQLALCHEMY_DATABASE_URL.startswith("postgres://"):
     SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace(
         "postgres://", "postgresql://", 1
@@ -21,8 +22,6 @@ if SQLALCHEMY_DATABASE_URL.startswith("postgres://"):
 _db_scheme = SQLALCHEMY_DATABASE_URL.split("://")[0]
 logger.info("Database backend: %s", _db_scheme)
 
-connect_args = {"check_same_thread": False} if SQLALCHEMY_DATABASE_URL.startswith("sqlite") else {}
-
 # ---------------------------------------------------------------------------
 # Engine creation
 # SQLAlchemy is lazy – it does not open a real connection until the first
@@ -31,7 +30,7 @@ connect_args = {"check_same_thread": False} if SQLALCHEMY_DATABASE_URL.startswit
 # is caught at startup (and logged) rather than silently at request time.
 # ---------------------------------------------------------------------------
 try:
-    engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args=connect_args)
+    engine = create_engine(SQLALCHEMY_DATABASE_URL)
     # Eagerly verify the connection so DATABASE_URL problems surface at startup.
     with engine.connect() as _probe:
         _probe.execute(text("SELECT 1"))
@@ -66,7 +65,7 @@ def get_db():
 # Idempotent schema migrations
 # Each entry is (table_name, column_name, sql_type).
 # The function adds the column only when it is absent – safe to run on every
-# startup against both SQLite (dev) and PostgreSQL (prod).
+# startup against an existing PostgreSQL database.
 # sql_type may include DEFAULT so that existing rows receive the default value
 # when the column is first added.
 # ---------------------------------------------------------------------------
@@ -94,7 +93,6 @@ _MIGRATIONS: list[tuple[str, str, str]] = [
 ]
 
 # Columns whose type needs widening on existing databases.
-# Skipped on SQLite (which ignores VARCHAR length constraints anyway).
 _ALTER_COLUMN_MIGRATIONS: list[tuple[str, str, str]] = [
     ("users", "phone", "VARCHAR(30)"),
 ]
@@ -110,8 +108,8 @@ _ENUM_VALUE_MIGRATIONS: list[tuple[str, str]] = [
 
 def run_schema_migrations() -> None:
     """Add columns that exist in SQLAlchemy models but may be absent from an
-    already-created database.  Uses SQLAlchemy's inspector so it works with
-    both SQLite and PostgreSQL.
+    already-created PostgreSQL database.  Uses SQLAlchemy's inspector to
+    detect missing columns.
 
     Also backfills NULL values in status/type/currency columns so that
     response-model serialisation never fails with a validation error.
@@ -197,52 +195,49 @@ def run_schema_migrations() -> None:
                             "Backfill migration warning for %s.%s: %s", table, column, exc
                         )
 
-    # Widen column types on PostgreSQL for existing databases.
-    # SQLite ignores VARCHAR length so this step is unnecessary there.
-    if not SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
-        with ac_engine.connect() as conn:
-            for table, column, col_type in _ALTER_COLUMN_MIGRATIONS:
-                if not (_IDENT_RE.match(table) and _IDENT_RE.match(column)):
-                    logger.error(
-                        "ALTER migration skipped – unsafe identifier: %s.%s", table, column
-                    )
-                    continue
-                try:
-                    conn.execute(
-                        text(f"ALTER TABLE {table} ALTER COLUMN {column} TYPE {col_type}")
-                    )
-                    logger.info("Schema migration: widened column %s.%s to %s", table, column, col_type)
-                except Exception as exc:  # pragma: no cover
-                    logger.warning(
-                        "Schema migration warning for alter %s.%s: %s", table, column, exc
-                    )
+    # Widen column types on existing PostgreSQL databases.
+    with ac_engine.connect() as conn:
+        for table, column, col_type in _ALTER_COLUMN_MIGRATIONS:
+            if not (_IDENT_RE.match(table) and _IDENT_RE.match(column)):
+                logger.error(
+                    "ALTER migration skipped – unsafe identifier: %s.%s", table, column
+                )
+                continue
+            try:
+                conn.execute(
+                    text(f"ALTER TABLE {table} ALTER COLUMN {column} TYPE {col_type}")
+                )
+                logger.info("Schema migration: widened column %s.%s to %s", table, column, col_type)
+            except Exception as exc:  # pragma: no cover
+                logger.warning(
+                    "Schema migration warning for alter %s.%s: %s", table, column, exc
+                )
 
     # Add missing values to PostgreSQL enum types.
     # Existing databases created before 'company'/'organization' were added to
     # the user_roles enum need this step; fresh databases created by
     # create_all() already include all values so this is a safe no-op there.
-    if not SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
-        with ac_engine.connect() as conn:
-            for enum_name, enum_value in _ENUM_VALUE_MIGRATIONS:
-                if not (_IDENT_RE.match(enum_name) and _IDENT_RE.match(enum_value)):
-                    logger.error(
-                        "Enum migration skipped – unsafe identifier: %s / %s",
-                        enum_name, enum_value,
+    with ac_engine.connect() as conn:
+        for enum_name, enum_value in _ENUM_VALUE_MIGRATIONS:
+            if not (_IDENT_RE.match(enum_name) and _IDENT_RE.match(enum_value)):
+                logger.error(
+                    "Enum migration skipped – unsafe identifier: %s / %s",
+                    enum_name, enum_value,
+                )
+                continue
+            try:
+                conn.execute(
+                    text(
+                        f"ALTER TYPE {enum_name}"
+                        f" ADD VALUE IF NOT EXISTS '{enum_value}'"
                     )
-                    continue
-                try:
-                    conn.execute(
-                        text(
-                            f"ALTER TYPE {enum_name}"
-                            f" ADD VALUE IF NOT EXISTS '{enum_value}'"
-                        )
-                    )
-                    logger.info(
-                        "Enum migration: ensured value '%s' exists in type %s",
-                        enum_value, enum_name,
-                    )
-                except Exception as exc:  # pragma: no cover
-                    logger.warning(
-                        "Enum migration warning for %s / %s: %s",
-                        enum_name, enum_value, exc,
-                    )
+                )
+                logger.info(
+                    "Enum migration: ensured value '%s' exists in type %s",
+                    enum_value, enum_name,
+                )
+            except Exception as exc:  # pragma: no cover
+                logger.warning(
+                    "Enum migration warning for %s / %s: %s",
+                    enum_name, enum_value, exc,
+                )
