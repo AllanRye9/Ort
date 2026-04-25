@@ -117,7 +117,7 @@ class PropertyModel {
         id: j['id'] as int,
         title: j['title'] as String,
         description: j['description'] as String?,
-        propertyType: (j['property_type'] as String?) ?? 'house',
+        propertyType: (j['property_type'] as String?) ?? 'house',  // 'house' is a valid property_types enum value
         address: j['address'] as String,
         city: j['city'] as String?,
         price: double.parse(j['price'].toString()),
