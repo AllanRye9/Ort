@@ -81,6 +81,14 @@ def run_schema_migrations() -> None:
     response-model serialisation never fails with a validation error."""
     import re
     _IDENT_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+    # Allowlist for col_type: only well-known SQL type tokens plus an optional
+    # DEFAULT clause whose value is a single-quoted ASCII string.
+    # All values come from the hardcoded _MIGRATIONS constant, but we validate
+    # defensively so that an accidental edit cannot produce an injection.
+    _COL_TYPE_RE = re.compile(
+        r"^[A-Za-z0-9_()\s,]+"               # base type, e.g. "VARCHAR(50)"
+        r"(?:\s+DEFAULT\s+'[A-Za-z0-9_]+')?$" # optional DEFAULT clause
+    )
 
     inspector = inspect(engine)
     existing_tables = set(inspector.get_table_names())
@@ -92,6 +100,12 @@ def run_schema_migrations() -> None:
             if not (_IDENT_RE.match(table) and _IDENT_RE.match(column)):
                 logger.error(
                     "Schema migration skipped – unsafe identifier: %s.%s", table, column
+                )
+                continue
+            if not _COL_TYPE_RE.match(col_type.strip()):
+                logger.error(
+                    "Schema migration skipped – unsafe col_type for %s.%s: %s",
+                    table, column, col_type,
                 )
                 continue
             if table not in existing_tables:
@@ -115,15 +129,18 @@ def run_schema_migrations() -> None:
                 # never receives None for a required string field.
                 # Extract default from col_type string, e.g.
                 # "VARCHAR(50) DEFAULT 'available'" → 'available'
+                # Both table/column are already validated by _IDENT_RE above.
+                # default_val is bound as a query parameter to prevent injection.
                 _default_match = re.search(r"DEFAULT\s+'([^']+)'", col_type, re.IGNORECASE)
                 if _default_match:
                     default_val = _default_match.group(1)
                     try:
                         conn.execute(
                             text(
-                                f"UPDATE {table} SET {column} = '{default_val}'"
+                                f"UPDATE {table} SET {column} = :dv"
                                 f" WHERE {column} IS NULL"
-                            )
+                            ),
+                            {"dv": default_val},
                         )
                     except Exception as exc:  # pragma: no cover
                         logger.warning(
