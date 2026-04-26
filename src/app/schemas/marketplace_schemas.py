@@ -31,7 +31,7 @@ class RegisterRequest(BaseModel):
     first_name: str = Field(..., min_length=2, max_length=100)
     last_name: str = Field(..., min_length=2, max_length=100)
     email: EmailStr
-    password: str = Field(..., min_length=8, max_length=72)
+    password: str = Field(..., min_length=8)
     phone: Optional[str] = Field(None, max_length=30)
 
     # ---- Company / organisation fields (required when role != agent) ----
@@ -49,6 +49,17 @@ class RegisterRequest(BaseModel):
     license_number: Optional[str] = Field(None, max_length=100)
     agency_name: Optional[str] = Field(None, max_length=255)
     bio: Optional[str] = None
+
+    @field_validator("password", mode="after")
+    @classmethod
+    def password_max_bytes(cls, v: str) -> str:
+        if len(v.encode("utf-8")) > 72:
+            raise ValueError(
+                "Password must not exceed 72 bytes when encoded as UTF-8. "
+                "Passwords containing multi-byte characters (e.g. emoji or accented letters) "
+                "may reach this limit before 72 characters."
+            )
+        return v
 
     @field_validator("first_name", "last_name", mode="before")
     @classmethod
