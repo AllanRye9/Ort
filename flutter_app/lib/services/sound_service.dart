@@ -87,8 +87,8 @@ class SoundService {
   Future<void> _playSfx(String name) async {
     try {
       await _sfxPlayer.play(AssetSource('sounds/$name.mp3'));
-    } catch (_) {
-      // Asset not bundled – ignore
+    } catch (e) {
+      debugPrint('SFX playback error ($name): $e');
     }
   }
 
@@ -96,8 +96,8 @@ class SoundService {
     try {
       await _ambientPlayer.setReleaseMode(ReleaseMode.loop);
       await _ambientPlayer.play(AssetSource('sounds/ambient.mp3'));
-    } catch (_) {
-      // Asset not bundled – ignore
+    } catch (e) {
+      debugPrint('Ambient playback error: $e');
     }
   }
 

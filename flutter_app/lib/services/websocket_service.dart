@@ -26,7 +26,9 @@ class WebSocketService {
           try {
             final msg = jsonDecode(data as String) as Map<String, dynamic>;
             _controller?.add(msg);
-          } catch (_) {}
+          } catch (e) {
+            debugPrint('WS message decode error: $e');
+          }
         },
         onDone: () => _controller?.close(),
         onError: (e) => debugPrint('WS error: $e'),
@@ -47,7 +49,9 @@ class WebSocketService {
           try {
             final msg = jsonDecode(data as String) as Map<String, dynamic>;
             _controller?.add(msg);
-          } catch (_) {}
+          } catch (e) {
+            debugPrint('WS message decode error: $e');
+          }
         },
         onDone: () => _controller?.close(),
         onError: (e) => debugPrint('WS error: $e'),

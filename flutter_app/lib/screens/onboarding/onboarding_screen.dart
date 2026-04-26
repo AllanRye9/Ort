@@ -84,7 +84,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             step: _steps.length,
             completed: true,
           );
-    } catch (_) {
+    } catch (e) {
+      debugPrint('Onboarding update failed: $e');
       // Best-effort – proceed to home even if the call fails
     }
     if (mounted) context.go('/home');
