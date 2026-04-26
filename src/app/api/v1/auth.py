@@ -80,14 +80,9 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
             detail="An account with this email already exists",
         )
 
-    # Create the user record
-    try:
-        password_hash = pwd_context.hash(payload.password)
-    except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Password is too long. Maximum 72 bytes allowed.",
-        )
+    # Create the user record; bcrypt silently uses the first 72 bytes of the
+    # password, which is its inherent design limit.
+    password_hash = pwd_context.hash(payload.password)
 
     db_user = User(
         role=payload.role,
