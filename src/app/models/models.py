@@ -14,7 +14,7 @@ class User(Base):
     )
 
     id = Column(Integer, primary_key=True)
-    role = Column(Enum("agent", "admin", "company", "organization", name="user_roles"), nullable=False)
+    role = Column(Enum("user", "agent", "admin", "company", "organization", name="user_roles"), nullable=False)
     first_name = Column(String(100), nullable=False)
     last_name = Column(String(100), nullable=False)
     email = Column(String(255), unique=True, nullable=False)
@@ -24,6 +24,7 @@ class User(Base):
     license_number = Column(String(100), nullable=True)
     agency_name = Column(String(255), nullable=True)
     bio = Column(Text, nullable=True)
+    avatar_url = Column(Text, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
 
     properties = relationship("Property", back_populates="agent")

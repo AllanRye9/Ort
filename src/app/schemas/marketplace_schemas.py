@@ -23,9 +23,9 @@ class TokenResponse(BaseModel):
 
 
 class RegisterRequest(BaseModel):
-    """Unified registration schema for agent, company, and organization accounts."""
+    """Unified registration schema for user, agent, company, and organization accounts."""
 
-    role: str = Field(..., pattern="^(agent|company|organization)$")
+    role: str = Field(..., pattern="^(user|agent|company|organization)$")
 
     # ---- Personal / contact-person fields (required for all roles) ----
     first_name: str = Field(..., min_length=2, max_length=100)
