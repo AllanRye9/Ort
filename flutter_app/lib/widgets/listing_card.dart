@@ -1,7 +1,10 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:shimmer/shimmer.dart';
 
 /// A generic listing card used across property, agriculture and manufacturing
-/// list screens.
+/// list screens.  Supports an optional [imageUrl] that renders as a hero image
+/// at the top of the card; when absent a gradient placeholder is shown.
 class ListingCard extends StatelessWidget {
   const ListingCard({
     super.key,
@@ -13,6 +16,7 @@ class ListingCard extends StatelessWidget {
     required this.status,
     required this.price,
     this.extras = const [],
+    this.imageUrl,
     required this.onTap,
   });
 
@@ -24,142 +28,230 @@ class ListingCard extends StatelessWidget {
   final String status;
   final String price;
   final List<String> extras;
+  final String? imageUrl;
   final VoidCallback onTap;
 
   Color _statusColor(String s) {
     switch (s) {
       case 'available':
-        return Colors.green;
+        return const Color(0xFF2E7D32);
       case 'sold':
       case 'sold_out':
       case 'out_of_stock':
       case 'discontinued':
-        return Colors.red;
+        return Colors.red[700]!;
       case 'reserved':
       case 'pending':
-        return Colors.orange;
+        return Colors.orange[700]!;
       default:
-        return Colors.grey;
+        return Colors.grey[600]!;
     }
   }
 
   @override
-  Widget build(BuildContext context) => Card(
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    // FIX: withOpacity is deprecated in Flutter 3.27+;
-                    // use withValues(alpha:) instead.
-                    color: iconColor.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(10),
+  Widget build(BuildContext context) {
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Hero image / placeholder ───────────────────────────────────
+            _HeroImage(
+              imageUrl: imageUrl,
+              icon: icon,
+              iconColor: iconColor,
+              status: status,
+              statusColor: _statusColor(status),
+            ),
+
+            // ── Text content ───────────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
                   ),
-                  child: Icon(icon, color: iconColor, size: 28),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              title,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 15,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: _statusColor(status),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              status.toUpperCase(),
-                              style: const TextStyle(
-                                  color: Colors.white, fontSize: 10),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      if (subtitle.isNotEmpty)
-                        Text(
-                          subtitle,
-                          style: const TextStyle(
-                              color: Colors.grey, fontSize: 13),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .primaryContainer,
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              tag,
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onPrimaryContainer,
-                              ),
-                            ),
-                          ),
-                          const Spacer(),
-                          Text(
-                            price,
+                  if (subtitle.isNotEmpty) ...[
+                    const SizedBox(height: 3),
+                    Row(
+                      children: [
+                        Icon(Icons.location_on_outlined,
+                            size: 12, color: Colors.grey[500]),
+                        const SizedBox(width: 2),
+                        Expanded(
+                          child: Text(
+                            subtitle,
                             style: TextStyle(
-                              color: Theme.of(context).colorScheme.primary,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
+                                color: Colors.grey[600], fontSize: 12),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                        ],
-                      ),
-                      if (extras.isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        Wrap(
-                          spacing: 8,
-                          children: extras
-                              .map(
-                                (e) => Text(
-                                  e,
-                                  style: const TextStyle(
-                                      color: Colors.grey, fontSize: 11),
-                                ),
-                              )
-                              .toList(),
                         ),
                       ],
+                    ),
+                  ],
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      _TagChip(label: tag, color: iconColor),
+                      const Spacer(),
+                      Text(
+                        price,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
                     ],
                   ),
-                ),
-              ],
+                  if (extras.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Wrap(
+                      spacing: 8,
+                      children: extras
+                          .map(
+                            (e) => Text(
+                              e,
+                              style: TextStyle(
+                                  color: Colors.grey[500], fontSize: 11),
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  ],
+                ],
+              ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Hero image ───────────────────────────────────────────────────────────────
+
+class _HeroImage extends StatelessWidget {
+  const _HeroImage({
+    required this.imageUrl,
+    required this.icon,
+    required this.iconColor,
+    required this.status,
+    required this.statusColor,
+  });
+
+  final String? imageUrl;
+  final IconData icon;
+  final Color iconColor;
+  final String status;
+  final Color statusColor;
+
+  @override
+  Widget build(BuildContext context) {
+    const height = 140.0;
+
+    final badge = Positioned(
+      top: 8,
+      right: 8,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: statusColor,
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Text(
+          status.toUpperCase(),
+          style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w700),
+        ),
+      ),
+    );
+
+    if (imageUrl != null && imageUrl!.isNotEmpty) {
+      return Stack(
+        children: [
+          CachedNetworkImage(
+            imageUrl: imageUrl!,
+            height: height,
+            width: double.infinity,
+            fit: BoxFit.cover,
+            placeholder: (_, __) => Shimmer.fromColors(
+              baseColor: Colors.grey[200]!,
+              highlightColor: Colors.grey[100]!,
+              child: Container(height: height, color: Colors.white),
+            ),
+            errorWidget: (_, __, ___) => _Placeholder(
+              height: height,
+              icon: icon,
+              iconColor: iconColor,
+            ),
+          ),
+          badge,
+        ],
+      );
+    }
+
+    return Stack(
+      children: [
+        _Placeholder(height: height, icon: icon, iconColor: iconColor),
+        badge,
+      ],
+    );
+  }
+}
+
+class _Placeholder extends StatelessWidget {
+  const _Placeholder({
+    required this.height,
+    required this.icon,
+    required this.iconColor,
+  });
+
+  final double height;
+  final IconData icon;
+  final Color iconColor;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        height: height,
+        width: double.infinity,
+        color: iconColor.withValues(alpha: 0.08),
+        child: Center(
+          child: Icon(icon, size: height * 0.3, color: iconColor.withValues(alpha: 0.4)),
+        ),
+      );
+}
+
+// ─── Tag chip ─────────────────────────────────────────────────────────────────
+
+class _TagChip extends StatelessWidget {
+  const _TagChip({required this.label, required this.color});
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w600,
+            color: color,
           ),
         ),
       );

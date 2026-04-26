@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:http_parser/http_parser.dart' show MediaType;
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 import 'constants.dart';
 
@@ -124,6 +125,22 @@ class ApiService {
   Future<Map<String, dynamic>> getProperty(int id) async {
     final res = await _dio.get('/properties/$id');
     return res.data as Map<String, dynamic>;
+  }
+
+  /// Returns a list of image URLs for a property by fetching its images.
+  Future<List<String>> getPropertyImageUrls(int propertyId) async {
+    try {
+      final res = await _dio.get(
+        '/property-images/',
+        queryParameters: {'property_id': propertyId},
+      );
+      final list = res.data as List<dynamic>;
+      return list
+          .map((e) => (e as Map<String, dynamic>)['image_url'] as String)
+          .toList();
+    } catch (_) {
+      return const [];
+    }
   }
 
   Future<Map<String, dynamic>> createProperty(
@@ -327,5 +344,32 @@ class ApiService {
       int userId, Map<String, dynamic> data) async {
     final res = await _dio.put('/users/$userId', data: data);
     return res.data as Map<String, dynamic>;
+  }
+
+  // ─── Image upload ─────────────────────────────────────────────────────────
+
+  /// Upload an image file and return its public URL.
+  /// [bytes] – raw image bytes
+  /// [filename] – original filename (e.g. "photo.jpg")
+  /// [mimeType] – MIME type (e.g. "image/jpeg")
+  Future<String> uploadImage({
+    required List<int> bytes,
+    required String filename,
+    required String mimeType,
+  }) async {
+    final formData = FormData.fromMap({
+      'file': MultipartFile.fromBytes(
+        bytes,
+        filename: filename,
+        contentType: MediaType.parse(mimeType),
+      ),
+    });
+    final res = await _dio.post(
+      '/upload/image',
+      data: formData,
+      options: Options(contentType: 'multipart/form-data'),
+    );
+    final data = res.data as Map<String, dynamic>;
+    return data['url'] as String;
   }
 }

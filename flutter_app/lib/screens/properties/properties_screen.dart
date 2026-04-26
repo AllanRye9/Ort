@@ -24,25 +24,47 @@ class PropertiesScreen extends ConsumerWidget {
       floatingActionButton: FloatingActionButton.extended(
         icon: const Icon(Icons.add),
         label: const Text('List Property'),
-        onPressed: () {},
+        onPressed: () => context.go('/properties/create'),
       ),
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Error: $e')),
         data: (items) {
           if (items.isEmpty) {
-            return const Center(child: Text('No properties listed yet.'));
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.apartment_outlined,
+                      size: 64, color: Colors.grey[300]),
+                  const SizedBox(height: 16),
+                  Text('No properties listed yet.',
+                      style: TextStyle(color: Colors.grey[500])),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add First Listing'),
+                    onPressed: () => context.go('/properties/create'),
+                  ),
+                ],
+              ),
+            );
           }
           return RefreshIndicator(
             onRefresh: () async => ref.invalidate(_propertiesListProvider),
-            child: ListView.separated(
+            child: GridView.builder(
               padding: const EdgeInsets.all(16),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                childAspectRatio: 0.72,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+              ),
               itemCount: items.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
               itemBuilder: (ctx, i) {
                 final p = items[i];
                 return ListingCard(
-                  icon: Icons.home,
+                  icon: Icons.apartment_rounded,
                   iconColor: Theme.of(ctx).colorScheme.primary,
                   title: p.title,
                   subtitle: p.city ?? p.address,

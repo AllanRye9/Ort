@@ -7,10 +7,13 @@ import '../screens/auth/register_screen.dart';
 import '../screens/home/home_screen.dart';
 import '../screens/properties/properties_screen.dart';
 import '../screens/properties/property_detail_screen.dart';
+import '../screens/properties/property_create_screen.dart';
 import '../screens/agriculture/agriculture_screen.dart';
 import '../screens/agriculture/agriculture_detail_screen.dart';
+import '../screens/agriculture/agriculture_create_screen.dart';
 import '../screens/manufacturing/manufacturing_screen.dart';
 import '../screens/manufacturing/manufacturing_detail_screen.dart';
+import '../screens/manufacturing/manufacturing_create_screen.dart';
 import '../screens/orders/orders_screen.dart';
 import '../screens/orders/order_detail_screen.dart';
 import '../screens/messages/conversations_screen.dart';
@@ -119,6 +122,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (_, __) => const PropertiesScreen(),
             routes: [
               GoRoute(
+                path: 'create',
+                builder: (_, __) => const PropertyCreateScreen(),
+              ),
+              GoRoute(
                 path: ':id',
                 builder: (_, state) => PropertyDetailScreen(
                   id: int.parse(state.pathParameters['id']!),
@@ -131,6 +138,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (_, __) => const AgricultureScreen(),
             routes: [
               GoRoute(
+                path: 'create',
+                builder: (_, __) => const AgricultureCreateScreen(),
+              ),
+              GoRoute(
                 path: ':id',
                 builder: (_, state) => AgricultureDetailScreen(
                   id: int.parse(state.pathParameters['id']!),
@@ -142,6 +153,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/manufacturing',
             builder: (_, __) => const ManufacturingScreen(),
             routes: [
+              GoRoute(
+                path: 'create',
+                builder: (_, __) => const ManufacturingCreateScreen(),
+              ),
               GoRoute(
                 path: ':id',
                 builder: (_, state) => ManufacturingDetailScreen(
@@ -195,13 +210,13 @@ class MainShell extends StatelessWidget {
   final Widget child;
 
   static const _tabs = [
-    ('/home', Icons.home_outlined, Icons.home, 'Home'),
-    ('/properties', Icons.apartment_outlined, Icons.apartment, 'Properties'),
-    ('/agriculture', Icons.grass_outlined, Icons.grass, 'Agri'),
-    ('/manufacturing', Icons.factory_outlined, Icons.factory, 'Mfg'),
-    ('/orders', Icons.shopping_bag_outlined, Icons.shopping_bag, 'Orders'),
-    ('/messages', Icons.chat_outlined, Icons.chat, 'Messages'),
-    ('/profile', Icons.person_outlined, Icons.person, 'Profile'),
+    ('/home', Icons.home_outlined, Icons.home_rounded, 'Home'),
+    ('/properties', Icons.apartment_outlined, Icons.apartment_rounded, 'Properties'),
+    ('/agriculture', Icons.grass_outlined, Icons.grass_rounded, 'Agri'),
+    ('/manufacturing', Icons.precision_manufacturing_outlined,
+        Icons.precision_manufacturing_rounded, 'Mfg'),
+    ('/messages', Icons.chat_bubble_outline, Icons.chat_bubble_rounded, 'Messages'),
+    ('/profile', Icons.person_outline_rounded, Icons.person_rounded, 'Profile'),
   ];
 
   int _currentIndex(BuildContext context) {
