@@ -19,4 +19,8 @@ class AppConstants {
   // Timeouts
   static const Duration connectTimeout = Duration(seconds: 15);
   static const Duration receiveTimeout = Duration(seconds: 30);
+
+  // Image upload
+  static const int maxImageSizeMb = 10;
+  static const List<String> allowedImageExtensions = ['jpg', 'jpeg', 'png', 'webp'];
 }

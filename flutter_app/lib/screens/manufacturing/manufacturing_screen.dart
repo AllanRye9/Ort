@@ -26,26 +26,53 @@ class ManufacturingScreen extends ConsumerWidget {
       floatingActionButton: FloatingActionButton.extended(
         icon: const Icon(Icons.add),
         label: const Text('Add Product'),
-        onPressed: () {},
+        onPressed: () => context.go('/manufacturing/create'),
       ),
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Error: $e')),
         data: (items) {
           if (items.isEmpty) {
-            return const Center(child: Text('No products listed yet.'));
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.precision_manufacturing_outlined,
+                      size: 64, color: Colors.grey[300]),
+                  const SizedBox(height: 16),
+                  Text('No products listed yet.',
+                      style: TextStyle(color: Colors.grey[500])),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add First Product'),
+                    onPressed: () => context.go('/manufacturing/create'),
+                  ),
+                ],
+              ),
+            );
           }
           return RefreshIndicator(
             onRefresh: () async => ref.invalidate(_mfgListProvider),
-            child: ListView.separated(
+            child: GridView.builder(
               padding: const EdgeInsets.all(16),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                childAspectRatio: 0.7,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+              ),
               itemCount: items.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
               itemBuilder: (ctx, i) {
                 final m = items[i];
+                final imgUrl =
+                    (m.images != null && m.images!.isNotEmpty)
+                        ? m.images!.first
+                        : null;
                 return ListingCard(
-                  icon: Icons.factory,
-                  iconColor: Colors.orange,
+                  icon: Icons.precision_manufacturing_rounded,
+                  iconColor: const Color(0xFFE65100),
+                  imageUrl: imgUrl,
                   title: m.title,
                   subtitle:
                       m.category ?? (m.isLocallyMade ? 'Locally Made' : ''),
