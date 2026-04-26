@@ -116,15 +116,12 @@ async def upload_image(
     else:
         # Stub mode – S3 is not configured.  Save the file to disk so that
         # the /static/listings/ URL we return actually resolves.
-        static_dir = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))),
-            "static",
-        )
-        save_path = os.path.join(static_dir, object_key)
-        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        from pathlib import Path
+        static_dir = Path(__file__).parents[4] / "static"
+        save_path = static_dir / object_key
+        save_path.parent.mkdir(parents=True, exist_ok=True)
         try:
-            with open(save_path, "wb") as f:
-                f.write(contents)
+            save_path.write_bytes(contents)
         except OSError as exc:
             logger.error("Failed to save image to disk: %s", exc)
             raise HTTPException(

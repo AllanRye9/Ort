@@ -171,9 +171,11 @@ logger.info("Application startup complete — routes registered under /api/v1")
 # <repo-root>/static/listings/ and returns /static/listings/<uuid>.ext URLs.
 # Mount this AFTER the API router so API routes take precedence.
 # ---------------------------------------------------------------------------
-_STATIC_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "static")
-os.makedirs(os.path.join(_STATIC_DIR, "listings"), exist_ok=True)
-app.mount("/static", StaticFiles(directory=_STATIC_DIR), name="static")
+from pathlib import Path as _Path
+_STATIC_DIR = _Path(__file__).parents[2] / "static"
+_STATIC_DIR.mkdir(parents=True, exist_ok=True)
+(_STATIC_DIR / "listings").mkdir(exist_ok=True)
+app.mount("/static", StaticFiles(directory=str(_STATIC_DIR)), name="static")
 
 
 @app.get("/")
