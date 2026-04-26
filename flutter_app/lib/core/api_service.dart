@@ -112,6 +112,11 @@ class ApiService {
     return res.data as Map<String, dynamic>;
   }
 
+  Future<Map<String, dynamic>> updateMe(Map<String, dynamic> data) async {
+    final res = await _dio.patch('/users/me', data: data);
+    return res.data as Map<String, dynamic>;
+  }
+
   // ─── Properties ─────────────────────────────────────────────────────────
 
   Future<List<dynamic>> getProperties({int skip = 0, int limit = 20}) async {
@@ -347,6 +352,29 @@ class ApiService {
   }
 
   // ─── Image upload ─────────────────────────────────────────────────────────
+
+  /// Upload multiple image files and return their public URLs.
+  Future<List<String>> uploadMultipleImages(
+      List<({List<int> bytes, String filename, String mimeType})> files) async {
+    final formData = FormData.fromMap({
+      'files': files
+          .map(
+            (f) => MultipartFile.fromBytes(
+              f.bytes,
+              filename: f.filename,
+              contentType: MediaType.parse(f.mimeType),
+            ),
+          )
+          .toList(),
+    });
+    final res = await _dio.post(
+      '/upload/images',
+      data: formData,
+      options: Options(contentType: 'multipart/form-data'),
+    );
+    final data = res.data as Map<String, dynamic>;
+    return (data['urls'] as List<dynamic>).cast<String>();
+  }
 
   /// Upload an image file and return its public URL.
   /// [bytes] – raw image bytes
