@@ -107,6 +107,10 @@ _ALTER_COLUMN_MIGRATIONS: list[tuple[str, str, str]] = [
 _ENUM_VALUE_MIGRATIONS: list[tuple[str, str]] = [
     ("user_roles", "company"),
     ("user_roles", "organization"),
+    ("property_types", "villa"),
+    ("property_types", "office"),
+    ("property_types", "warehouse"),
+    ("property_types", "other"),
 ]
 
 
