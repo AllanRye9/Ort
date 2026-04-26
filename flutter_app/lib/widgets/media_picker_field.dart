@@ -53,8 +53,18 @@ class _MediaPickerFieldState extends ConsumerState<MediaPickerField> {
     );
     if (picked.isEmpty || !mounted) return;
 
-    // Limit to remaining slots
+    // Limit to remaining slots, inform user if excess were dropped
     final toUpload = picked.take(_remaining).toList();
+    if (picked.length > _remaining && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              'Only $_remaining image${_remaining == 1 ? '' : 's'} can be added. '
+              'The first $_remaining were selected.'),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
 
     // Add placeholder slots
     final startIdx = _urls.length;
@@ -65,7 +75,9 @@ class _MediaPickerFieldState extends ConsumerState<MediaPickerField> {
       }
     });
 
-    // Upload concurrently
+    // Upload concurrently; track failed indices to remove after all complete
+    final failedIndices = <int>[];
+
     await Future.wait(
       List.generate(toUpload.length, (i) async {
         final file = toUpload[i];
@@ -84,21 +96,29 @@ class _MediaPickerFieldState extends ConsumerState<MediaPickerField> {
               _urls[startIdx + i] = url;
               _uploading[startIdx + i] = false;
             });
-            _notifyChange();
           }
         } catch (e) {
-          if (mounted) {
-            setState(() {
-              _urls.removeAt(startIdx + i);
-              _uploading.removeAt(startIdx + i);
-            });
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Upload failed: $e')),
-            );
-          }
+          // Mark as failed – will be removed after all futures finish
+          failedIndices.add(startIdx + i);
         }
       }),
     );
+
+    // Remove all failed slots in reverse order to keep indices valid
+    if (failedIndices.isNotEmpty && mounted) {
+      setState(() {
+        for (final idx in failedIndices.reversed) {
+          _urls.removeAt(idx);
+          _uploading.removeAt(idx);
+        }
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text(
+                '${failedIndices.length} upload${failedIndices.length == 1 ? '' : 's'} failed.')),
+      );
+    }
+    _notifyChange();
   }
 
   Future<void> _pickSingle(ImageSource source) async {
