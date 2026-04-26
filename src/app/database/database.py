@@ -95,6 +95,9 @@ _MIGRATIONS: list[tuple[str, str, str]] = [
     ("rfq_responses",        "currency",       "VARCHAR(10)  DEFAULT 'USD'"),
     ("tenant_subscriptions", "status",         "VARCHAR(50)  DEFAULT 'active'"),
     ("tenant_subscriptions", "billing_cycle",  "VARCHAR(50)  DEFAULT 'monthly'"),
+    ("admin_logs",       "detail",         "TEXT"),
+    ("support_tickets",  "status",         "VARCHAR(50)  DEFAULT 'open'"),
+    ("support_tickets",  "resolution",     "TEXT"),
 ]
 
 # Columns whose type needs widening on existing databases.
