@@ -87,7 +87,7 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
         last_name=payload.last_name.strip(),
         email=payload.email,
         phone=payload.phone,
-        password_hash=pwd_context.hash(payload.password[:72]),
+        password_hash=pwd_context.hash(payload.password.encode("utf-8")[:72].decode("utf-8", errors="ignore")),
         license_number=payload.license_number,
         agency_name=payload.agency_name,
         bio=payload.bio,
