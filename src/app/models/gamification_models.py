@@ -4,7 +4,7 @@ GDPR consents.
 """
 from sqlalchemy import (
     Column, Integer, String, Text, Date, DateTime,
-    Boolean, ForeignKey, Index, JSON, Float, ARRAY,
+    Boolean, ForeignKey, Index, JSON, Float,
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
