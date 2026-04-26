@@ -1,24 +1,28 @@
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import '../core/api_service.dart';
 
-/// A form field that lets the user pick images from the gallery / camera,
-/// uploads them via the API and exposes the resulting public URLs.
+/// A form field that lets the user pick one or multiple images from the
+/// gallery / camera, uploads them via the API and exposes the resulting
+/// public URLs.
+///
+/// Set [allowMultiple] to true to enable multi-select from the gallery.
 class MediaPickerField extends ConsumerStatefulWidget {
   const MediaPickerField({
     super.key,
     required this.onUrlsChanged,
     this.initialUrls = const [],
-    this.maxImages = 5,
+    this.maxImages = 10,
     this.label = 'Photos',
+    this.allowMultiple = true,
   });
 
   final ValueChanged<List<String>> onUrlsChanged;
   final List<String> initialUrls;
   final int maxImages;
   final String label;
+  final bool allowMultiple;
 
   @override
   ConsumerState<MediaPickerField> createState() => _MediaPickerFieldState();
@@ -33,12 +37,91 @@ class _MediaPickerFieldState extends ConsumerState<MediaPickerField> {
   void initState() {
     super.initState();
     _urls.addAll(widget.initialUrls);
+    _uploading.addAll(List.filled(widget.initialUrls.length, false));
   }
 
-  bool get _canAddMore => _urls.length + _uploadingCount < widget.maxImages;
   int get _uploadingCount => _uploading.where((v) => v).length;
+  int get _remaining => widget.maxImages - _urls.length - _uploadingCount;
+  bool get _canAddMore => _remaining > 0;
 
-  Future<void> _pickImage(ImageSource source) async {
+  Future<void> _pickMultiple() async {
+    if (!_canAddMore) return;
+    final picked = await _picker.pickMultiImage(
+      imageQuality: 85,
+      maxWidth: 1920,
+      maxHeight: 1920,
+    );
+    if (picked.isEmpty || !mounted) return;
+
+    // Limit to remaining slots, inform user if excess were dropped
+    final toUpload = picked.take(_remaining).toList();
+    if (picked.length > _remaining && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              'Only $_remaining image${_remaining == 1 ? '' : 's'} can be added. '
+              'The first $_remaining were selected.'),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+
+    // Add placeholder slots
+    final startIdx = _urls.length;
+    setState(() {
+      for (int i = 0; i < toUpload.length; i++) {
+        _urls.add('');
+        _uploading.add(true);
+      }
+    });
+
+    // Upload concurrently; track failed indices to remove after all complete
+    final failedIndices = <int>[];
+
+    await Future.wait(
+      List.generate(toUpload.length, (i) async {
+        final file = toUpload[i];
+        try {
+          final bytes = await file.readAsBytes();
+          final filename = file.name;
+          final ext = filename.split('.').last.toLowerCase();
+          final mimeType = ext == 'png' ? 'image/png' : 'image/jpeg';
+          final url = await ref.read(apiServiceProvider).uploadImage(
+                bytes: bytes,
+                filename: filename,
+                mimeType: mimeType,
+              );
+          if (mounted) {
+            setState(() {
+              _urls[startIdx + i] = url;
+              _uploading[startIdx + i] = false;
+            });
+          }
+        } catch (e) {
+          // Mark as failed – will be removed after all futures finish
+          failedIndices.add(startIdx + i);
+        }
+      }),
+    );
+
+    // Remove all failed slots in reverse order to keep indices valid
+    if (failedIndices.isNotEmpty && mounted) {
+      setState(() {
+        for (final idx in failedIndices.reversed) {
+          _urls.removeAt(idx);
+          _uploading.removeAt(idx);
+        }
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text(
+                '${failedIndices.length} upload${failedIndices.length == 1 ? '' : 's'} failed.')),
+      );
+    }
+    _notifyChange();
+  }
+
+  Future<void> _pickSingle(ImageSource source) async {
     if (!_canAddMore) return;
     final file = await _picker.pickImage(
       source: source,
@@ -70,7 +153,7 @@ class _MediaPickerFieldState extends ConsumerState<MediaPickerField> {
           _urls[idx] = url;
           _uploading[idx] = false;
         });
-        widget.onUrlsChanged(List.unmodifiable(_urls.where((u) => u.isNotEmpty)));
+        _notifyChange();
       }
     } catch (e) {
       if (mounted) {
@@ -85,12 +168,17 @@ class _MediaPickerFieldState extends ConsumerState<MediaPickerField> {
     }
   }
 
+  void _notifyChange() {
+    widget.onUrlsChanged(
+        List.unmodifiable(_urls.where((u) => u.isNotEmpty)));
+  }
+
   void _remove(int index) {
     setState(() {
       _urls.removeAt(index);
       _uploading.removeAt(index);
     });
-    widget.onUrlsChanged(List.unmodifiable(_urls.where((u) => u.isNotEmpty)));
+    _notifyChange();
   }
 
   void _showSourcePicker() {
@@ -119,12 +207,22 @@ class _MediaPickerFieldState extends ConsumerState<MediaPickerField> {
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 16),
+              if (widget.allowMultiple)
+                ListTile(
+                  leading: const Icon(Icons.photo_library_outlined),
+                  title: const Text('Choose multiple from gallery'),
+                  subtitle: Text('Up to $_remaining more'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _pickMultiple();
+                  },
+                ),
               ListTile(
-                leading: const Icon(Icons.photo_library_outlined),
-                title: const Text('Choose from gallery'),
+                leading: const Icon(Icons.photo_outlined),
+                title: const Text('Choose one from gallery'),
                 onTap: () {
                   Navigator.pop(context);
-                  _pickImage(ImageSource.gallery);
+                  _pickSingle(ImageSource.gallery);
                 },
               ),
               ListTile(
@@ -132,7 +230,7 @@ class _MediaPickerFieldState extends ConsumerState<MediaPickerField> {
                 title: const Text('Take a photo'),
                 onTap: () {
                   Navigator.pop(context);
-                  _pickImage(ImageSource.camera);
+                  _pickSingle(ImageSource.camera);
                 },
               ),
             ],
@@ -158,7 +256,7 @@ class _MediaPickerFieldState extends ConsumerState<MediaPickerField> {
             ),
             const SizedBox(width: 6),
             Text(
-              '(${_urls.length}/${widget.maxImages})',
+              '(${_urls.where((u) => u.isNotEmpty).length}/${widget.maxImages})',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Colors.grey[500],
                   ),
@@ -238,7 +336,10 @@ class _MediaPickerFieldState extends ConsumerState<MediaPickerField> {
                           .withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
-                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.4),
+                        color: Theme.of(context)
+                            .colorScheme
+                            .primary
+                            .withValues(alpha: 0.4),
                         style: BorderStyle.solid,
                       ),
                     ),
@@ -252,7 +353,7 @@ class _MediaPickerFieldState extends ConsumerState<MediaPickerField> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Add photo',
+                          widget.allowMultiple ? 'Add photos' : 'Add photo',
                           style: TextStyle(
                             fontSize: 11,
                             color: Theme.of(context).colorScheme.primary,

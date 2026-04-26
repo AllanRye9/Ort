@@ -1,11 +1,11 @@
 """
 Image upload endpoint.
 
-Accepts a multipart/form-data POST with a single ``file`` field.
-When AWS credentials are configured via environment variables the file is
-uploaded to the configured S3-compatible bucket and the public URL is returned.
-When credentials are absent (local / test environment) the endpoint returns a
-stub URL so that the rest of the API still works.
+Accepts a multipart/form-data POST with a single ``file`` field or multiple
+``files`` fields.  When AWS credentials are configured via environment
+variables the file is uploaded to the configured S3-compatible bucket and the
+public URL is returned.  When credentials are absent (local / test environment)
+the endpoint returns a stub URL so that the rest of the API still works.
 
 Environment variables
 ---------------------
@@ -19,9 +19,11 @@ S3_PUBLIC_BASE_URL  Public base URL to prefix uploaded keys with
 """
 
 import io
+import asyncio
 import logging
 import os
 import uuid
+from typing import List
 
 from fastapi import APIRouter, HTTPException, UploadFile, File, status
 
@@ -62,11 +64,8 @@ def _get_s3_client():
         return None
 
 
-@router.post("/image", status_code=status.HTTP_200_OK)
-async def upload_image(
-    file: UploadFile = File(...),
-):
-    """Upload an image file and return its public URL."""
+async def _process_upload(file: UploadFile) -> dict:
+    """Validate, upload and return ``{"url": ...}`` for a single file."""
     # Content-type validation
     if file.content_type not in _ALLOWED_CONTENT_TYPES:
         raise HTTPException(
@@ -133,3 +132,30 @@ async def upload_image(
         )
         base_url = os.getenv("APP_BASE_URL", "https://ort.up.railway.app")
         return {"url": f"{base_url}/static/{object_key}"}
+
+
+@router.post("/image", status_code=status.HTTP_200_OK)
+async def upload_image(
+    file: UploadFile = File(...),
+):
+    """Upload a single image file and return its public URL."""
+    return await _process_upload(file)
+
+
+@router.post("/images", status_code=status.HTTP_200_OK)
+async def upload_images(
+    files: List[UploadFile] = File(...),
+):
+    """Upload multiple image files (up to 20) and return their public URLs."""
+    if not files:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No files provided.",
+        )
+    if len(files) > 20:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Maximum 20 files per request.",
+        )
+    results = await asyncio.gather(*[_process_upload(f) for f in files])
+    return {"urls": [r["url"] for r in results]}

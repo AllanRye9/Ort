@@ -16,7 +16,7 @@ class UserBase(BaseModel):
 
 
 class UserCreate(UserBase):
-    role: str = Field(..., pattern="^(agent|admin|company|organization)$")
+    role: str = Field(..., pattern="^(user|agent|admin|company|organization)$")
     first_name: str = Field(..., min_length=2, max_length=100)
     last_name: str = Field(..., min_length=2, max_length=100)
     phone: Optional[str] = Field(None, max_length=20)
@@ -31,12 +31,14 @@ class UserCreate(UserBase):
 
 
 class UserUpdate(BaseModel):
-    role: Optional[str] = Field(None, pattern="^(agent|admin|company|organization)$")
+    role: Optional[str] = Field(None, pattern="^(user|agent|admin|company|organization)$")
     first_name: Optional[str] = Field(None, min_length=2, max_length=100)
     last_name: Optional[str] = Field(None, min_length=2, max_length=100)
     email: Optional[EmailStr] = None
     phone: Optional[str] = Field(None, max_length=20)
     password: Optional[str] = Field(None, min_length=8, max_length=128)
+    bio: Optional[str] = None
+    avatar_url: Optional[str] = None
 
     @field_validator("first_name", "last_name", mode="before")
     @classmethod
@@ -51,6 +53,7 @@ class UserResponse(UserBase):
     license_number: Optional[str] = None
     agency_name: Optional[str] = None
     bio: Optional[str] = None
+    avatar_url: Optional[str] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -159,6 +162,13 @@ class PropertyResponse(PropertyBase):
     id: int
     status: str
     created_at: datetime
+    image_urls: List[str] = []
+
+    @classmethod
+    def from_orm_with_images(cls, prop) -> "PropertyResponse":
+        obj = cls.model_validate(prop)
+        obj.image_urls = [img.image_url for img in (prop.images or [])]
+        return obj
 
     model_config = {"from_attributes": True}
 

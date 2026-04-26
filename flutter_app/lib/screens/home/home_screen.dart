@@ -41,15 +41,95 @@ final _mfgProvider =
   },
 );
 
-class HomeScreen extends ConsumerWidget {
+// ─── Role-specific quick actions ──────────────────────────────────────────────
+
+const _agentQuickActions = [
+  _QuickAction(Icons.add_business_outlined, 'New Listing', '/properties/create', Color(0xFF1B5E20)),
+  _QuickAction(Icons.people_outline, 'My Clients', '/properties', Color(0xFF1565C0)),
+  _QuickAction(Icons.bar_chart_outlined, 'Analytics', '/orders', Color(0xFF6A1B9A)),
+  _QuickAction(Icons.star_border_outlined, 'Reviews', '/profile', Color(0xFFE65100)),
+];
+
+const _companyQuickActions = [
+  _QuickAction(Icons.storefront_outlined, 'My Products', '/manufacturing', Color(0xFFE65100)),
+  _QuickAction(Icons.request_quote_outlined, 'RFQs', '/orders', Color(0xFF1565C0)),
+  _QuickAction(Icons.people_outline, 'Customers', '/messages', Color(0xFF2E7D32)),
+  _QuickAction(Icons.analytics_outlined, 'Dashboard', '/orders', Color(0xFF6A1B9A)),
+];
+
+const _organizationQuickActions = [
+  _QuickAction(Icons.grass_outlined, 'My Listings', '/agriculture', Color(0xFF2E7D32)),
+  _QuickAction(Icons.handshake_outlined, 'Partnerships', '/messages', Color(0xFF1565C0)),
+  _QuickAction(Icons.campaign_outlined, 'Campaigns', '/notifications', Color(0xFFE65100)),
+  _QuickAction(Icons.analytics_outlined, 'Reports', '/orders', Color(0xFF6A1B9A)),
+];
+
+const _userQuickActions = [
+  _QuickAction(Icons.apartment_outlined, 'Properties', '/properties', Color(0xFF1B5E20)),
+  _QuickAction(Icons.grass_outlined, 'Agriculture', '/agriculture', Color(0xFF2E7D32)),
+  _QuickAction(Icons.precision_manufacturing_outlined, 'Products', '/manufacturing', Color(0xFFE65100)),
+  _QuickAction(Icons.shopping_bag_outlined, 'My Orders', '/orders', Color(0xFF1565C0)),
+];
+
+class _QuickAction {
+  const _QuickAction(this.icon, this.label, this.route, this.color);
+  final IconData icon;
+  final String label;
+  final String route;
+  final Color color;
+}
+
+// ─── Home screen ─────────────────────────────────────────────────────────────
+
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _fadeCtrl;
+  late final Animation<double> _fadeAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _fadeCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    )..forward();
+    _fadeAnim = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeIn);
+  }
+
+  @override
+  void dispose() {
+    _fadeCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final propertiesAsync = ref.watch(_propertiesProvider);
     final agricultureAsync = ref.watch(_agricultureProvider);
     final mfgAsync = ref.watch(_mfgProvider);
     final auth = ref.watch(authProvider);
+    final role = auth.role ?? 'user';
+
+    final quickActions = switch (role) {
+      'agent' => _agentQuickActions,
+      'company' => _companyQuickActions,
+      'organization' => _organizationQuickActions,
+      _ => _userQuickActions,
+    };
+
+    final roleLabel = switch (role) {
+      'agent' => 'Agent Dashboard',
+      'company' => 'Company Dashboard',
+      'organization' => 'Organisation Dashboard',
+      _ => 'Find properties,\nagriculture & goods',
+    };
 
     return Scaffold(
       body: RefreshIndicator(
@@ -58,7 +138,9 @@ class HomeScreen extends ConsumerWidget {
           ref.invalidate(_agricultureProvider);
           ref.invalidate(_mfgProvider);
         },
-        child: CustomScrollView(
+        child: FadeTransition(
+          opacity: _fadeAnim,
+          child: CustomScrollView(
           slivers: [
             // ── Hero app bar ────────────────────────────────────────────────
             SliverAppBar(
@@ -70,6 +152,7 @@ class HomeScreen extends ConsumerWidget {
                 collapseMode: CollapseMode.pin,
                 background: _HeroBanner(
                   greeting: auth.userId != null ? 'Welcome back!' : 'Welcome!',
+                  subtitle: roleLabel,
                   onNotifications: () => context.go('/notifications'),
                 ),
               ),
@@ -93,7 +176,7 @@ class HomeScreen extends ConsumerWidget {
               ),
             ),
 
-            // ── Category grid ───────────────────────────────────────────────
+            // ── Role-specific quick actions ──────────────────────────────────
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -101,13 +184,13 @@ class HomeScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Explore',
+                      role == 'user' ? 'Explore' : 'Quick Actions',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
                     ),
                     const SizedBox(height: 12),
-                    _CategoryGrid(),
+                    _QuickActionsGrid(actions: quickActions),
                     const SizedBox(height: 24),
                   ],
                 ),
@@ -177,6 +260,7 @@ class HomeScreen extends ConsumerWidget {
               ),
             ),
           ],
+          ),
         ),
       ),
     );
@@ -186,8 +270,13 @@ class HomeScreen extends ConsumerWidget {
 // ─── Hero banner ──────────────────────────────────────────────────────────────
 
 class _HeroBanner extends StatelessWidget {
-  const _HeroBanner({required this.greeting, required this.onNotifications});
+  const _HeroBanner({
+    required this.greeting,
+    required this.subtitle,
+    required this.onNotifications,
+  });
   final String greeting;
+  final String subtitle;
   final VoidCallback onNotifications;
 
   @override
@@ -213,9 +302,9 @@ class _HeroBanner extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 4),
-            const Text(
-              'Find properties,\nagriculture & goods',
-              style: TextStyle(
+            Text(
+              subtitle,
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
@@ -269,20 +358,12 @@ class _SearchBar extends StatelessWidget {
 
 // ─── Category grid ────────────────────────────────────────────────────────────
 
-class _CategoryGrid extends StatelessWidget {
+class _QuickActionsGrid extends StatelessWidget {
+  const _QuickActionsGrid({required this.actions});
+  final List<_QuickAction> actions;
+
   @override
   Widget build(BuildContext context) {
-    const categories = [
-      _Category(Icons.apartment_rounded, 'Properties', '/properties',
-          Color(0xFF1B5E20)),
-      _Category(
-          Icons.grass_rounded, 'Agriculture', '/agriculture', Color(0xFF2E7D32)),
-      _Category(Icons.precision_manufacturing_rounded, 'Manufacturing',
-          '/manufacturing', Color(0xFFE65100)),
-      _Category(Icons.shopping_bag_rounded, 'My Orders', '/orders',
-          Color(0xFF1565C0)),
-    ];
-
     return GridView.count(
       crossAxisCount: 4,
       shrinkWrap: true,
@@ -290,28 +371,18 @@ class _CategoryGrid extends StatelessWidget {
       mainAxisSpacing: 4,
       crossAxisSpacing: 4,
       childAspectRatio: 0.85,
-      children: categories
-          .map((c) => _CategoryTile(category: c))
-          .toList(),
+      children: actions.map((a) => _QuickActionTile(action: a)).toList(),
     );
   }
 }
 
-class _Category {
-  const _Category(this.icon, this.label, this.route, this.color);
-  final IconData icon;
-  final String label;
-  final String route;
-  final Color color;
-}
-
-class _CategoryTile extends StatelessWidget {
-  const _CategoryTile({required this.category});
-  final _Category category;
+class _QuickActionTile extends StatelessWidget {
+  const _QuickActionTile({required this.action});
+  final _QuickAction action;
 
   @override
   Widget build(BuildContext context) => GestureDetector(
-        onTap: () => context.go(category.route),
+        onTap: () => context.go(action.route),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -319,14 +390,14 @@ class _CategoryTile extends StatelessWidget {
               width: 52,
               height: 52,
               decoration: BoxDecoration(
-                color: category.color.withValues(alpha: 0.1),
+                color: action.color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: Icon(category.icon, color: category.color, size: 26),
+              child: Icon(action.icon, color: action.color, size: 26),
             ),
             const SizedBox(height: 6),
             Text(
-              category.label,
+              action.label,
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
               maxLines: 2,
@@ -432,10 +503,11 @@ class _PropertyRow extends StatelessWidget {
         separatorBuilder: (_, __) => const SizedBox(width: 12),
         itemBuilder: (ctx, i) {
           final p = items[i];
+          final imgUrl = p.imageUrls.isNotEmpty ? p.imageUrls.first : null;
           return GestureDetector(
             onTap: () => ctx.go('/properties/${p.id}'),
             child: _FeaturedCard(
-              imageUrl: null,
+              imageUrl: imgUrl,
               icon: Icons.apartment_rounded,
               iconColor: AppTheme.primary,
               title: p.title,
