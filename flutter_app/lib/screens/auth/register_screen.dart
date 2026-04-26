@@ -133,6 +133,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   String? _requiredValidator(String? v) =>
       v == null || v.trim().isEmpty ? 'Required' : null;
 
+  String? _nameValidator(String? v) {
+    if (v == null || v.trim().isEmpty) return 'Required';
+    if (v.trim().length < 2) return 'Min 2 characters';
+    if (v.trim().length > 100) return 'Max 100 characters';
+    return null;
+  }
+
   String? _emailValidator(String? v) =>
       v == null || !v.contains('@') ? 'Enter a valid email' : null;
 
@@ -175,7 +182,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 controller: _firstNameCtrl,
                 decoration:
                     const InputDecoration(labelText: 'First Name'),
-                validator: _requiredValidator,
+                maxLength: 100,
+                validator: _nameValidator,
               ),
             ),
             const SizedBox(width: 12),
@@ -183,7 +191,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               child: TextFormField(
                 controller: _lastNameCtrl,
                 decoration: const InputDecoration(labelText: 'Last Name'),
-                validator: _requiredValidator,
+                maxLength: 100,
+                validator: _nameValidator,
               ),
             ),
           ],
@@ -202,6 +211,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         TextFormField(
           controller: _phoneCtrl,
           keyboardType: TextInputType.phone,
+          maxLength: 30,
           decoration: const InputDecoration(
             labelText: 'Phone (optional)',
             prefixIcon: Icon(Icons.phone_outlined),
@@ -214,6 +224,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         _sectionHeader('Agent Details', Icons.badge_outlined),
         TextFormField(
           controller: _agencyNameCtrl,
+          maxLength: 255,
           decoration: const InputDecoration(
             labelText: 'Agency / Brokerage Name (optional)',
             prefixIcon: Icon(Icons.business_outlined),
@@ -222,6 +233,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         const SizedBox(height: 16),
         TextFormField(
           controller: _licenseNumberCtrl,
+          maxLength: 100,
           decoration: const InputDecoration(
             labelText: 'License / Registration Number (optional)',
             prefixIcon: Icon(Icons.numbers_outlined),
@@ -244,6 +256,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         _sectionHeader('Company Details', Icons.business_outlined),
         TextFormField(
           controller: _companyNameCtrl,
+          maxLength: 255,
           decoration: const InputDecoration(
             labelText: 'Company Name *',
             prefixIcon: Icon(Icons.business),
@@ -253,6 +266,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         const SizedBox(height: 16),
         TextFormField(
           controller: _regNumberCtrl,
+          maxLength: 100,
           decoration: const InputDecoration(
             labelText: 'Business Registration Number (optional)',
             prefixIcon: Icon(Icons.numbers_outlined),
@@ -262,6 +276,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         TextFormField(
           controller: _businessPhoneCtrl,
           keyboardType: TextInputType.phone,
+          maxLength: 30,
           decoration: const InputDecoration(
             labelText: 'Business Phone (optional)',
             prefixIcon: Icon(Icons.phone_outlined),
@@ -288,6 +303,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         const SizedBox(height: 16),
         TextFormField(
           controller: _countryCtrl,
+          maxLength: 100,
           decoration: const InputDecoration(
             labelText: 'Country (optional)',
             prefixIcon: Icon(Icons.flag_outlined),
@@ -300,6 +316,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         _sectionHeader('Organisation Details', Icons.groups_outlined),
         TextFormField(
           controller: _companyNameCtrl,
+          maxLength: 255,
           decoration: const InputDecoration(
             labelText: 'Organisation Name *',
             prefixIcon: Icon(Icons.groups),
@@ -321,6 +338,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         TextFormField(
           controller: _businessPhoneCtrl,
           keyboardType: TextInputType.phone,
+          maxLength: 30,
           decoration: const InputDecoration(
             labelText: 'Organisation Phone (optional)',
             prefixIcon: Icon(Icons.phone_outlined),
@@ -347,6 +365,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         const SizedBox(height: 16),
         TextFormField(
           controller: _countryCtrl,
+          maxLength: 100,
           decoration: const InputDecoration(
             labelText: 'Country (optional)',
             prefixIcon: Icon(Icons.flag_outlined),
@@ -411,6 +430,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 TextFormField(
                   controller: _passCtrl,
                   obscureText: _obscurePassword,
+                  maxLength: 72,
                   decoration: InputDecoration(
                     labelText: 'Password',
                     prefixIcon: const Icon(Icons.lock_outlined),
@@ -424,8 +444,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           () => _obscurePassword = !_obscurePassword),
                     ),
                   ),
-                  validator: (v) =>
-                      v == null || v.length < 8 ? 'Min 8 characters' : null,
+                  validator: (v) {
+                    if (v == null || v.length < 8) return 'Min 8 characters';
+                    if (v.length > 72) return 'Max 72 characters';
+                    return null;
+                  },
                 ),
 
                 // ── Error banner ───────────────────────────────────────────
