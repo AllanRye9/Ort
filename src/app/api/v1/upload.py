@@ -114,11 +114,25 @@ async def upload_image(
                 detail="Image upload failed. Please try again.",
             ) from exc
     else:
-        # Stub mode – S3 is not configured.  Return a placeholder URL so that
-        # the rest of the listing creation API still works during development.
+        # Stub mode – S3 is not configured.  Save the file to disk so that
+        # the /static/listings/ URL we return actually resolves.
+        static_dir = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))),
+            "static",
+        )
+        save_path = os.path.join(static_dir, object_key)
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        try:
+            with open(save_path, "wb") as f:
+                f.write(contents)
+        except OSError as exc:
+            logger.error("Failed to save image to disk: %s", exc)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Image upload failed. Please try again.",
+            ) from exc
         logger.warning(
-            "S3 not configured (AWS_ACCESS_KEY_ID / S3_BUCKET_NAME missing) – "
-            "returning stub URL for %s", object_key
+            "S3 not configured – saved image locally at %s", save_path
         )
         base_url = os.getenv("APP_BASE_URL", "https://ort.up.railway.app")
         return {"url": f"{base_url}/static/{object_key}"}

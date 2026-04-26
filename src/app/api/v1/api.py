@@ -227,8 +227,13 @@ def get_property(property_id: int, db: Session = Depends(get_db)):
 
 @router.post("/properties/", response_model=PropertyResponse, status_code=status.HTTP_201_CREATED)
 def create_property(prop: PropertyCreate, db: Session = Depends(get_db)):
-    db_property = Property(**prop.model_dump())
+    prop_data = prop.model_dump(exclude={"images"})
+    db_property = Property(**prop_data)
     db.add(db_property)
+    db.flush()  # assign id before creating images
+    if prop.images:
+        for idx, url in enumerate(prop.images):
+            db.add(PropertyImage(property_id=db_property.id, image_url=url, is_primary=(idx == 0)))
     db.commit()
     db.refresh(db_property)
     return db_property

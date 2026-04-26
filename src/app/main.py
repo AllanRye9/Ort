@@ -7,6 +7,7 @@ import traceback
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 from .database.database import engine, Base, run_schema_migrations
 from .api.v1.api import router
@@ -163,6 +164,16 @@ except Exception as exc:
 app.include_router(router, prefix="/api/v1")
 
 logger.info("Application startup complete — routes registered under /api/v1")
+
+# ---------------------------------------------------------------------------
+# Static file serving for locally-stored uploads (stub / no-S3 mode).
+# When S3 is not configured the upload endpoint saves images to
+# <repo-root>/static/listings/ and returns /static/listings/<uuid>.ext URLs.
+# Mount this AFTER the API router so API routes take precedence.
+# ---------------------------------------------------------------------------
+_STATIC_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "static")
+os.makedirs(os.path.join(_STATIC_DIR, "listings"), exist_ok=True)
+app.mount("/static", StaticFiles(directory=_STATIC_DIR), name="static")
 
 
 @app.get("/")
