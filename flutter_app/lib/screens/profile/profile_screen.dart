@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../core/api_service.dart';
 import '../../core/auth_provider.dart';
+import '../../core/theme.dart';
 import '../../models/models.dart';
 
 final _meProvider = FutureProvider.autoDispose<UserModel>((ref) async {
@@ -12,7 +13,7 @@ final _meProvider = FutureProvider.autoDispose<UserModel>((ref) async {
   return UserModel.fromJson(data);
 });
 
-// ─── Profile completion score ─────────────────────────────────────────────────
+// ─── Profile completion score (max 8) ─────────────────────────────────────────
 
 int _completionScore(UserModel u) {
   int score = 0;
@@ -22,7 +23,30 @@ int _completionScore(UserModel u) {
   if (u.phone != null && u.phone!.isNotEmpty) score++;
   if (u.bio != null && u.bio!.isNotEmpty) score++;
   if (u.avatarUrl != null && u.avatarUrl!.isNotEmpty) score++;
-  return score; // max 6
+  if (u.licenseNumber != null && u.licenseNumber!.isNotEmpty) score++;
+  if (u.agencyName != null && u.agencyName!.isNotEmpty) score++;
+  return score; // max 8
+}
+
+const int _maxScore = 8;
+const int _xpPerPoint = 125;
+
+// ─── XP levels ────────────────────────────────────────────────────────────────
+
+String _levelLabel(int score) {
+  if (score >= 8) return '🏆 Legend';
+  if (score >= 6) return '⭐ Pro';
+  if (score >= 4) return '🔥 Rising';
+  if (score >= 2) return '🌱 Starter';
+  return '👤 Newbie';
+}
+
+Color _levelColor(int score) {
+  if (score >= 8) return const Color(0xFFFFD700);
+  if (score >= 6) return AppTheme.primary;
+  if (score >= 4) return Colors.orange;
+  if (score >= 2) return Colors.blue;
+  return Colors.grey;
 }
 
 // ─── Main screen ──────────────────────────────────────────────────────────────
@@ -44,6 +68,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   final _lastNameCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _bioCtrl = TextEditingController();
+  final _licenseCtrl = TextEditingController();
+  final _agencyCtrl = TextEditingController();
   bool _saving = false;
 
   @override
@@ -62,6 +88,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     _lastNameCtrl.dispose();
     _phoneCtrl.dispose();
     _bioCtrl.dispose();
+    _licenseCtrl.dispose();
+    _agencyCtrl.dispose();
     super.dispose();
   }
 
@@ -70,6 +98,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     _lastNameCtrl.text = u.lastName;
     _phoneCtrl.text = u.phone ?? '';
     _bioCtrl.text = u.bio ?? '';
+    _licenseCtrl.text = u.licenseNumber ?? '';
+    _agencyCtrl.text = u.agencyName ?? '';
   }
 
   Future<void> _saveProfile() async {
@@ -78,6 +108,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
       'last_name': _lastNameCtrl.text.trim(),
       if (_phoneCtrl.text.trim().isNotEmpty) 'phone': _phoneCtrl.text.trim(),
       'bio': _bioCtrl.text.trim(),
+      if (_licenseCtrl.text.trim().isNotEmpty)
+        'license_number': _licenseCtrl.text.trim(),
+      if (_agencyCtrl.text.trim().isNotEmpty)
+        'agency_name': _agencyCtrl.text.trim(),
     };
     setState(() => _saving = true);
     try {
@@ -89,7 +123,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
           _editMode = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile updated!')),
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 8),
+                Text('Profile updated! +$_xpPerPoint XP 🎉'),
+              ],
+            ),
+            backgroundColor: AppTheme.primary,
+            behavior: SnackBarBehavior.floating,
+          ),
         );
       }
     } catch (e) {
@@ -130,7 +174,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
       if (mounted) {
         setState(() => _saving = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Avatar updated!')),
+          const SnackBar(content: Text('Avatar updated! 📸')),
         );
       }
     } catch (e) {
@@ -188,6 +232,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                   lastNameCtrl: _lastNameCtrl,
                   phoneCtrl: _phoneCtrl,
                   bioCtrl: _bioCtrl,
+                  licenseCtrl: _licenseCtrl,
+                  agencyCtrl: _agencyCtrl,
                   saving: _saving,
                   onSave: _saveProfile,
                 )
@@ -221,133 +267,57 @@ class _ReadView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final score = _completionScore(user);
-    final pct = score / 6.0;
+    final pct = score / _maxScore;
 
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.zero,
       children: [
-        // ── Avatar ─────────────────────────────────────────────────────────
-        Center(
-          child: Stack(
+        // ── Gradient header ─────────────────────────────────────────────────
+        _ProfileHeader(user: user, saving: saving, onUploadAvatar: onUploadAvatar),
+
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              CircleAvatar(
-                radius: 52,
-                backgroundColor: Theme.of(context)
-                    .colorScheme
-                    .primary
-                    .withValues(alpha: 0.15),
-                child: user.avatarUrl != null && user.avatarUrl!.isNotEmpty
-                    ? ClipOval(
-                        child: CachedNetworkImage(
-                          imageUrl: user.avatarUrl!,
-                          width: 104,
-                          height: 104,
-                          fit: BoxFit.cover,
-                        ),
-                      )
-                    : Text(
-                        '${user.firstName[0]}${user.lastName[0]}'.toUpperCase(),
-                        style: TextStyle(
-                          fontSize: 34,
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                      ),
+              // ── XP / Level card ────────────────────────────────────────────
+              _XpLevelCard(score: score, pct: pct),
+              const SizedBox(height: 16),
+
+              // ── Info tiles ─────────────────────────────────────────────────
+              _InfoSection(user: user),
+              const SizedBox(height: 16),
+
+              const Divider(),
+
+              // ── Role-specific tiles ────────────────────────────────────────
+              ..._roleTiles(context, user.role),
+
+              const Divider(),
+              _ProfileTile(
+                icon: Icons.settings,
+                label: 'Settings',
+                onTap: () {},
               ),
-              Positioned(
-                bottom: 0,
-                right: 0,
-                child: GestureDetector(
-                  onTap: saving ? null : onUploadAvatar,
-                  child: Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
-                    ),
-                    child: saving
-                        ? const Padding(
-                            padding: EdgeInsets.all(6),
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white),
-                          )
-                        : const Icon(Icons.camera_alt,
-                            size: 16, color: Colors.white),
-                  ),
+              _ProfileTile(
+                icon: Icons.help_outline,
+                label: 'Help & Support',
+                onTap: () {},
+              ),
+              const Divider(),
+              Consumer(
+                builder: (ctx, ref, _) => _ProfileTile(
+                  icon: Icons.logout,
+                  label: 'Sign Out',
+                  iconColor: Colors.red,
+                  labelColor: Colors.red,
+                  onTap: () async {
+                    await ref.read(authProvider.notifier).logout();
+                    if (ctx.mounted) ctx.go('/login');
+                  },
                 ),
               ),
             ],
-          ),
-        ),
-        const SizedBox(height: 12),
-
-        // ── Name & role ────────────────────────────────────────────────────
-        Text(
-          user.fullName,
-          textAlign: TextAlign.center,
-          style: Theme.of(context)
-              .textTheme
-              .titleLarge
-              ?.copyWith(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          user.email,
-          textAlign: TextAlign.center,
-          style: Theme.of(context)
-              .textTheme
-              .bodyMedium
-              ?.copyWith(color: Colors.grey),
-        ),
-        const SizedBox(height: 8),
-        Center(child: _RoleBadge(role: user.role)),
-
-        if (user.bio != null && user.bio!.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          Text(
-            user.bio!,
-            textAlign: TextAlign.center,
-            style: Theme.of(context)
-                .textTheme
-                .bodyMedium
-                ?.copyWith(color: Colors.grey[700]),
-          ),
-        ],
-
-        // ── Profile completeness ───────────────────────────────────────────
-        const SizedBox(height: 20),
-        _ProfileCompletenessCard(score: score, pct: pct),
-
-        const SizedBox(height: 20),
-        const Divider(),
-
-        // ── Role-specific tiles ────────────────────────────────────────────
-        ..._roleTiles(context, user.role),
-
-        const Divider(),
-        _ProfileTile(
-          icon: Icons.settings,
-          label: 'Settings',
-          onTap: () {},
-        ),
-        _ProfileTile(
-          icon: Icons.help_outline,
-          label: 'Help & Support',
-          onTap: () {},
-        ),
-        const Divider(),
-        Consumer(
-          builder: (ctx, ref, _) => _ProfileTile(
-            icon: Icons.logout,
-            label: 'Sign Out',
-            iconColor: Colors.red,
-            labelColor: Colors.red,
-            onTap: () async {
-              await ref.read(authProvider.notifier).logout();
-              if (ctx.mounted) ctx.go('/login');
-            },
           ),
         ),
       ],
@@ -452,35 +422,158 @@ class _ReadView extends StatelessWidget {
   }
 }
 
-// ─── Profile completeness card ────────────────────────────────────────────────
+// ─── Gradient header with avatar ─────────────────────────────────────────────
 
-class _ProfileCompletenessCard extends StatelessWidget {
-  const _ProfileCompletenessCard({required this.score, required this.pct});
+class _ProfileHeader extends StatelessWidget {
+  const _ProfileHeader({
+    required this.user,
+    required this.saving,
+    required this.onUploadAvatar,
+  });
+
+  final UserModel user;
+  final bool saving;
+  final VoidCallback onUploadAvatar;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppTheme.primary, Color(0xFF388E3C)],
+        ),
+      ),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
+      child: Column(
+        children: [
+          // Avatar
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              Container(
+                width: 108,
+                height: 108,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 3),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.25),
+                      blurRadius: 12,
+                    ),
+                  ],
+                ),
+                child: ClipOval(
+                  child: user.avatarUrl != null && user.avatarUrl!.isNotEmpty
+                      ? CachedNetworkImage(
+                          imageUrl: user.avatarUrl!,
+                          fit: BoxFit.cover,
+                        )
+                      : Container(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          child: Center(
+                            child: Text(
+                              '${user.firstName[0]}${user.lastName[0]}'
+                                  .toUpperCase(),
+                              style: const TextStyle(
+                                fontSize: 34,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                ),
+              ),
+              Positioned(
+                bottom: 0,
+                right: 0,
+                child: GestureDetector(
+                  onTap: saving ? null : onUploadAvatar,
+                  child: Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: AppTheme.secondary,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                    ),
+                    child: saving
+                        ? const Padding(
+                            padding: EdgeInsets.all(6),
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Icon(Icons.camera_alt,
+                            size: 16, color: Colors.white),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Text(
+            user.fullName,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            user.email,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.8),
+              fontSize: 13,
+            ),
+          ),
+          const SizedBox(height: 10),
+          _RoleBadge(role: user.role),
+          if (user.bio != null && user.bio!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text(
+              user.bio!,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.9),
+                fontSize: 13,
+                height: 1.4,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+// ─── XP level card ────────────────────────────────────────────────────────────
+
+class _XpLevelCard extends StatelessWidget {
+  const _XpLevelCard({required this.score, required this.pct});
   final int score;
   final double pct;
 
   @override
   Widget build(BuildContext context) {
-    final color = pct >= 0.8
-        ? Colors.green[700]!
-        : pct >= 0.5
-            ? Colors.orange[700]!
-            : Colors.red[600]!;
-
-    final label = pct >= 1.0
-        ? '🏆 Profile complete!'
-        : pct >= 0.8
-            ? '✨ Almost there!'
-            : pct >= 0.5
-                ? '📈 Keep going!'
-                : '🚀 Get started!';
+    final color = _levelColor(score);
+    final label = _levelLabel(score);
+    final xp = score * _xpPerPoint;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.07),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
+        gradient: LinearGradient(
+          colors: [
+            color.withValues(alpha: 0.08),
+            color.withValues(alpha: 0.03),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -488,61 +581,144 @@ class _ProfileCompletenessCard extends StatelessWidget {
           Row(
             children: [
               Text(
-                'Profile Strength',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
+                label,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: color,
+                ),
               ),
               const Spacer(),
-              Text(
-                '$score/6 · ${(pct * 100).round()}%',
-                style: TextStyle(
-                    color: color,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '$xp XP',
+                  style: TextStyle(
+                      color: color,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13),
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           ClipRRect(
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(6),
             child: TweenAnimationBuilder<double>(
               tween: Tween<double>(begin: 0, end: pct),
-              duration: const Duration(milliseconds: 800),
-              curve: Curves.easeOut,
+              duration: const Duration(milliseconds: 900),
+              curve: Curves.easeOutCubic,
               builder: (_, v, __) => LinearProgressIndicator(
                 value: v,
-                minHeight: 8,
-                backgroundColor: color.withValues(alpha: 0.15),
+                minHeight: 10,
+                backgroundColor: color.withValues(alpha: 0.12),
                 valueColor: AlwaysStoppedAnimation<Color>(color),
               ),
             ),
           ),
           const SizedBox(height: 8),
-          Text(
-            label,
-            style: TextStyle(
-                fontSize: 12, color: color, fontWeight: FontWeight.w500),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Profile $score/$_maxScore complete',
+                style:
+                    TextStyle(fontSize: 12, color: Colors.grey[600]),
+              ),
+              if (pct < 1.0)
+                Text(
+                  _nextTip(score),
+                  style: TextStyle(
+                      fontSize: 11,
+                      color: color,
+                      fontWeight: FontWeight.w500),
+                ),
+            ],
           ),
-          if (pct < 1.0) ...[
-            const SizedBox(height: 4),
-            Text(
-              _missingHint(score),
-              style: TextStyle(fontSize: 11, color: Colors.grey[600]),
-            ),
-          ],
         ],
       ),
     );
   }
 
-  String _missingHint(int score) {
-    final hints = <String>[];
-    // simple hints based on score
-    if (score < 4) hints.add('Add phone number');
-    if (score < 5) hints.add('Add a bio');
-    if (score < 6) hints.add('Upload a profile photo');
-    return hints.isNotEmpty ? 'Tip: ${hints.first}' : '';
+  String _nextTip(int score) {
+    if (score < 4) return '+ Add phone';
+    if (score < 5) return '+ Add bio';
+    if (score < 6) return '+ Add photo';
+    if (score < 7) return '+ Add license';
+    if (score < 8) return '+ Add agency';
+    return '';
+  }
+}
+
+// ─── Info section ─────────────────────────────────────────────────────────────
+
+class _InfoSection extends StatelessWidget {
+  const _InfoSection({required this.user});
+  final UserModel user;
+
+  @override
+  Widget build(BuildContext context) {
+    final items = <(IconData, String, String)>[
+      if (user.phone != null && user.phone!.isNotEmpty)
+        (Icons.phone_outlined, 'Phone', user.phone!),
+      if (user.licenseNumber != null && user.licenseNumber!.isNotEmpty)
+        (Icons.badge_outlined, 'License', user.licenseNumber!),
+      if (user.agencyName != null && user.agencyName!.isNotEmpty)
+        (Icons.business_outlined, 'Agency / Company', user.agencyName!),
+    ];
+
+    if (items.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE0E0E0)),
+      ),
+      child: Column(
+        children: items.asMap().entries.map((e) {
+          final (icon, label, value) = e.value;
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16, vertical: 12),
+                child: Row(
+                  children: [
+                    Icon(icon,
+                        size: 18,
+                        color: AppTheme.primary.withValues(alpha: 0.7)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(label,
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey[500])),
+                          Text(value,
+                              style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (e.key < items.length - 1)
+                const Divider(height: 1, indent: 46),
+            ],
+          );
+        }).toList(),
+      ),
+    );
   }
 }
 
@@ -555,6 +731,8 @@ class _EditView extends StatelessWidget {
     required this.lastNameCtrl,
     required this.phoneCtrl,
     required this.bioCtrl,
+    required this.licenseCtrl,
+    required this.agencyCtrl,
     required this.saving,
     required this.onSave,
   });
@@ -564,6 +742,8 @@ class _EditView extends StatelessWidget {
   final TextEditingController lastNameCtrl;
   final TextEditingController phoneCtrl;
   final TextEditingController bioCtrl;
+  final TextEditingController licenseCtrl;
+  final TextEditingController agencyCtrl;
   final bool saving;
   final VoidCallback onSave;
 
@@ -574,6 +754,8 @@ class _EditView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          _sectionLabel('Basic Info'),
+          const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
@@ -595,7 +777,7 @@ class _EditView extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           TextFormField(
             controller: phoneCtrl,
             keyboardType: TextInputType.phone,
@@ -605,7 +787,7 @@ class _EditView extends StatelessWidget {
               prefixIcon: Icon(Icons.phone_outlined),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           TextFormField(
             controller: bioCtrl,
             maxLines: 4,
@@ -616,22 +798,52 @@ class _EditView extends StatelessWidget {
               alignLabelWithHint: true,
             ),
           ),
-          const SizedBox(height: 24),
-          ElevatedButton(
+          const SizedBox(height: 20),
+          _sectionLabel('Professional Info'),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: licenseCtrl,
+            maxLength: 100,
+            decoration: const InputDecoration(
+              labelText: 'License / Registration Number (optional)',
+              prefixIcon: Icon(Icons.badge_outlined),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: agencyCtrl,
+            maxLength: 150,
+            decoration: const InputDecoration(
+              labelText: 'Agency / Company Name (optional)',
+              prefixIcon: Icon(Icons.business_outlined),
+            ),
+          ),
+          const SizedBox(height: 28),
+          ElevatedButton.icon(
             onPressed: saving ? null : onSave,
-            child: saving
+            icon: saving
                 ? const SizedBox(
-                    height: 20,
-                    width: 20,
+                    height: 18,
+                    width: 18,
                     child: CircularProgressIndicator(
                         strokeWidth: 2, color: Colors.white),
                   )
-                : const Text('Save Changes'),
+                : const Icon(Icons.save_outlined, size: 18),
+            label: Text(saving ? 'Saving…' : 'Save Changes'),
           ),
         ],
       ),
     );
   }
+
+  Widget _sectionLabel(String text) => Text(
+        text,
+        style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: AppTheme.primary,
+            letterSpacing: 0.5),
+      );
 }
 
 // ─── Shared widgets ───────────────────────────────────────────────────────────
@@ -659,18 +871,20 @@ class _RoleBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
         padding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
         decoration: BoxDecoration(
-          color: _color().withValues(alpha: 0.15),
+          color: Colors.white.withValues(alpha: 0.2),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: _color().withValues(alpha: 0.4)),
+          border: Border.all(
+              color: Colors.white.withValues(alpha: 0.5), width: 1),
         ),
         child: Text(
           role.toUpperCase(),
-          style: TextStyle(
-            color: _color(),
-            fontWeight: FontWeight.w600,
-            fontSize: 12,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+            fontSize: 11,
+            letterSpacing: 1,
           ),
         ),
       );
