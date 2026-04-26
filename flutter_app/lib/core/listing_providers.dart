@@ -39,7 +39,7 @@ final homeMfgProvider = FutureProvider<List<ManufacturingProductModel>>(
 );
 
 /// Call this after creating any listing to ensure the home feed is refreshed.
-void invalidateHomeProviders(Ref ref) {
+void invalidateHomeProviders(WidgetRef ref) {
   ref.invalidate(homePropertiesProvider);
   ref.invalidate(homeAgricultureProvider);
   ref.invalidate(homeMfgProvider);
