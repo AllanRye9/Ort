@@ -26,6 +26,8 @@ class User(Base):
     bio = Column(Text, nullable=True)
     avatar_url = Column(Text, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
+    onboarding_step = Column(Integer, default=0, server_default="0", nullable=False)
+    onboarding_completed = Column(Boolean, default=False, server_default="false", nullable=False)
 
     properties = relationship("Property", back_populates="agent")
     clients = relationship("Client", back_populates="agent")

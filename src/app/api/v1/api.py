@@ -35,6 +35,13 @@ from app.api.v1 import (
     reviews as reviews_router,
     notifications as notifications_router,
     upload as upload_router,
+    websocket as websocket_router,
+    dashboard as dashboard_router,
+    feed as feed_router,
+    gamification as gamification_router,
+    admin as admin_router,
+    gdpr as gdpr_router,
+    sso as sso_router,
 )
 
 router = APIRouter()
@@ -51,6 +58,13 @@ router.include_router(rfq_router.router)
 router.include_router(reviews_router.router)
 router.include_router(notifications_router.router)
 router.include_router(upload_router.router)
+router.include_router(websocket_router.router)
+router.include_router(dashboard_router.router)
+router.include_router(feed_router.router)
+router.include_router(gamification_router.router)
+router.include_router(admin_router.router)
+router.include_router(gdpr_router.router)
+router.include_router(sso_router.router)
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 

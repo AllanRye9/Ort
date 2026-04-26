@@ -154,7 +154,6 @@ async def _process_upload(file: UploadFile) -> dict:
                 public_base = f"https://{bucket}.s3.amazonaws.com"
             url = f"{public_base}/{object_key}"
             logger.info("Uploaded image to S3 key: %s", object_key)
-            return {"url": url}
         except Exception as exc:
             logger.error("S3 upload failed: %s", exc)
             raise HTTPException(
@@ -180,7 +179,27 @@ async def _process_upload(file: UploadFile) -> dict:
             "S3 not configured – saved image locally at %s", save_path
         )
         base_url = os.getenv("APP_BASE_URL", "https://ort.up.railway.app")
-        return {"url": f"{base_url}/static/{object_key}"}
+        url = f"{base_url}/static/{object_key}"
+
+    # Create image record and enqueue moderation task
+    try:
+        from app.database.database import local_session
+        from app.models.gamification_models import ImageRecord
+        db = local_session()
+        try:
+            rec = ImageRecord(url=url, moderation_status="pending")
+            db.add(rec)
+            db.commit()
+            image_id = rec.id
+        finally:
+            db.close()
+
+        from app.tasks.media import moderate_image
+        moderate_image.delay(image_id, url)
+    except Exception as _exc:
+        logger.warning("Could not enqueue image moderation: %s", _exc)
+
+    return {"url": url}
 
 
 @router.post("/image", status_code=status.HTTP_200_OK)
