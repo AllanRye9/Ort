@@ -121,18 +121,17 @@ def engagement_stats(
     day_ago = now - timedelta(days=1)
     month_ago = now - timedelta(days=30)
 
-    dau = db.query(User).filter(User.created_at >= day_ago).count()
-    mau = db.query(User).filter(User.created_at >= month_ago).count()
+    new_users_day = db.query(User).filter(User.created_at >= day_ago).count()
+    new_users_month = db.query(User).filter(User.created_at >= month_ago).count()
     uploads_today = db.query(ImageRecord).filter(ImageRecord.created_at >= day_ago).count()
     messages_today = db.query(Message).filter(Message.sent_at >= day_ago).count()
-    new_users_today = db.query(User).filter(User.created_at >= day_ago).count()
 
     return EngagementStats(
-        dau=dau,
-        mau=mau,
+        dau=new_users_day,
+        mau=new_users_month,
         uploads_today=uploads_today,
         messages_today=messages_today,
-        new_users_today=new_users_today,
+        new_users_today=new_users_day,
     )
 
 

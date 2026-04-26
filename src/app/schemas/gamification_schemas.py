@@ -103,11 +103,14 @@ class ChurnRiskUser(BaseModel):
     last_active: Optional[datetime] = None
     days_inactive: int
 
-
 # ========== GDPR ==========
 
+VALID_CONSENT_TYPES = {"privacy_policy", "marketing", "analytics"}
+_CONSENT_PATTERN = "^(" + "|".join(sorted(VALID_CONSENT_TYPES)) + ")$"
+
+
 class ConsentCreate(BaseModel):
-    consent_type: str = Field(..., pattern="^(privacy_policy|marketing|analytics)$")
+    consent_type: str = Field(..., pattern=_CONSENT_PATTERN)
     version: str
 
 

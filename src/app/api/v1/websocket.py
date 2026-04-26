@@ -30,7 +30,7 @@ class ConnectionManager:
         logger.info("WS disconnected user_id=%s", user_id)
 
     async def send_to_user(self, user_id: int, message: dict):
-        for ws in list(self._user_connections.get(user_id, set())):
+        for ws in set(self._user_connections.get(user_id, set())):
             try:
                 await ws.send_json(message)
             except Exception:
@@ -48,7 +48,7 @@ class ConnectionManager:
             self._room_connections.pop(room_id, None)
 
     async def broadcast_room(self, room_id: str, message: dict, exclude: WebSocket = None):
-        for ws in list(self._room_connections.get(room_id, set())):
+        for ws in set(self._room_connections.get(room_id, set())):
             if ws is exclude:
                 continue
             try:
