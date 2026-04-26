@@ -3,43 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shimmer/shimmer.dart';
-import '../../core/api_service.dart';
 import '../../core/auth_provider.dart';
+import '../../core/listing_providers.dart';
 import '../../core/theme.dart';
 import '../../models/models.dart';
-
-final _propertiesProvider = FutureProvider.autoDispose<List<PropertyModel>>(
-  (ref) async {
-    final data = await ref.read(apiServiceProvider).getProperties(limit: 20);
-    return data
-        .map((e) => PropertyModel.fromJson(e as Map<String, dynamic>))
-        .toList();
-  },
-);
-
-final _agricultureProvider =
-    FutureProvider.autoDispose<List<AgricultureListingModel>>(
-  (ref) async {
-    final data =
-        await ref.read(apiServiceProvider).getAgricultureListings(limit: 6);
-    return data
-        .map((e) =>
-            AgricultureListingModel.fromJson(e as Map<String, dynamic>))
-        .toList();
-  },
-);
-
-final _mfgProvider =
-    FutureProvider.autoDispose<List<ManufacturingProductModel>>(
-  (ref) async {
-    final data =
-        await ref.read(apiServiceProvider).getManufacturingProducts(limit: 6);
-    return data
-        .map((e) =>
-            ManufacturingProductModel.fromJson(e as Map<String, dynamic>))
-        .toList();
-  },
-);
 
 // ─── Role-specific quick actions ──────────────────────────────────────────────
 
@@ -111,9 +78,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   @override
   Widget build(BuildContext context) {
-    final propertiesAsync = ref.watch(_propertiesProvider);
-    final agricultureAsync = ref.watch(_agricultureProvider);
-    final mfgAsync = ref.watch(_mfgProvider);
+    final propertiesAsync = ref.watch(homePropertiesProvider);
+    final agricultureAsync = ref.watch(homeAgricultureProvider);
+    final mfgAsync = ref.watch(homeMfgProvider);
     final auth = ref.watch(authProvider);
     final role = auth.role ?? 'user';
 
@@ -134,9 +101,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     return Scaffold(
       body: RefreshIndicator(
         onRefresh: () async {
-          ref.invalidate(_propertiesProvider);
-          ref.invalidate(_agricultureProvider);
-          ref.invalidate(_mfgProvider);
+          ref.invalidate(homePropertiesProvider);
+          ref.invalidate(homeAgricultureProvider);
+          ref.invalidate(homeMfgProvider);
         },
         child: FadeTransition(
           opacity: _fadeAnim,
@@ -153,7 +120,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 background: _HeroBanner(
                   greeting: auth.userId != null ? 'Welcome back!' : 'Welcome!',
                   subtitle: roleLabel,
-                  onNotifications: () => context.go('/notifications'),
+                  role: role,
                 ),
               ),
               actions: [
@@ -269,15 +236,54 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
 // ─── Hero banner ──────────────────────────────────────────────────────────────
 
-class _HeroBanner extends StatelessWidget {
+class _HeroBanner extends StatefulWidget {
   const _HeroBanner({
     required this.greeting,
     required this.subtitle,
-    required this.onNotifications,
+    required this.role,
   });
   final String greeting;
   final String subtitle;
-  final VoidCallback onNotifications;
+  final String role;
+
+  @override
+  State<_HeroBanner> createState() => _HeroBannerState();
+}
+
+class _HeroBannerState extends State<_HeroBanner>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulseCtrl;
+  late final Animation<double> _pulseAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
+    _pulseAnim =
+        CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut);
+  }
+
+  @override
+  void dispose() {
+    _pulseCtrl.dispose();
+    super.dispose();
+  }
+
+  IconData get _roleIcon {
+    switch (widget.role) {
+      case 'agent':
+        return Icons.real_estate_agent;
+      case 'company':
+        return Icons.business;
+      case 'organization':
+        return Icons.account_balance;
+      default:
+        return Icons.storefront_rounded;
+    }
+  }
 
   @override
   Widget build(BuildContext context) => Container(
@@ -290,25 +296,51 @@ class _HeroBanner extends StatelessWidget {
         ),
         padding:
             const EdgeInsets.only(left: 20, right: 20, top: 60, bottom: 20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.end,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            Text(
-              greeting,
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 14,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Text(
+                    widget.greeting,
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    widget.subtitle,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      height: 1.2,
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                height: 1.2,
+            // Pulsing icon badge
+            AnimatedBuilder(
+              animation: _pulseAnim,
+              builder: (_, child) => Transform.scale(
+                scale: 0.92 + 0.08 * _pulseAnim.value,
+                child: child,
+              ),
+              child: Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.4), width: 2),
+                ),
+                child: Icon(_roleIcon, color: Colors.white, size: 28),
               ),
             ),
           ],
@@ -356,7 +388,7 @@ class _SearchBar extends StatelessWidget {
       );
 }
 
-// ─── Category grid ────────────────────────────────────────────────────────────
+// ─── Quick-actions grid ───────────────────────────────────────────────────────
 
 class _QuickActionsGrid extends StatelessWidget {
   const _QuickActionsGrid({required this.actions});
@@ -371,40 +403,140 @@ class _QuickActionsGrid extends StatelessWidget {
       mainAxisSpacing: 4,
       crossAxisSpacing: 4,
       childAspectRatio: 0.85,
-      children: actions.map((a) => _QuickActionTile(action: a)).toList(),
+      children: List.generate(
+        actions.length,
+        (i) => _AnimatedEntry(
+          delay: Duration(milliseconds: 80 * i),
+          child: _QuickActionTile(action: actions[i]),
+        ),
+      ),
     );
   }
 }
 
-class _QuickActionTile extends StatelessWidget {
+class _QuickActionTile extends StatefulWidget {
   const _QuickActionTile({required this.action});
   final _QuickAction action;
 
   @override
+  State<_QuickActionTile> createState() => _QuickActionTileState();
+}
+
+class _QuickActionTileState extends State<_QuickActionTile>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _scaleCtrl;
+  late final Animation<double> _scaleAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _scaleCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 120),
+      lowerBound: 0.0,
+      upperBound: 0.08,
+    );
+    _scaleAnim = Tween<double>(begin: 1.0, end: 0.92).animate(
+      CurvedAnimation(parent: _scaleCtrl, curve: Curves.easeIn),
+    );
+  }
+
+  @override
+  void dispose() {
+    _scaleCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) => GestureDetector(
-        onTap: () => context.go(action.route),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                color: action.color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(16),
+        onTapDown: (_) => _scaleCtrl.forward(),
+        onTapUp: (_) async {
+          await _scaleCtrl.reverse();
+          if (mounted) context.go(widget.action.route);
+        },
+        onTapCancel: () => _scaleCtrl.reverse(),
+        child: AnimatedBuilder(
+          animation: _scaleAnim,
+          builder: (_, child) =>
+              Transform.scale(scale: _scaleAnim.value, child: child),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: widget.action.color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: widget.action.color.withValues(alpha: 0.18),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Icon(widget.action.icon,
+                    color: widget.action.color, size: 26),
               ),
-              child: Icon(action.icon, color: action.color, size: 26),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              action.label,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
+              const SizedBox(height: 6),
+              Text(
+                widget.action.label,
+                textAlign: TextAlign.center,
+                style:
+                    const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
         ),
+      );
+}
+
+// ─── Animated entry wrapper ───────────────────────────────────────────────────
+
+class _AnimatedEntry extends StatefulWidget {
+  const _AnimatedEntry({required this.child, required this.delay});
+  final Widget child;
+  final Duration delay;
+
+  @override
+  State<_AnimatedEntry> createState() => _AnimatedEntryState();
+}
+
+class _AnimatedEntryState extends State<_AnimatedEntry>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _opacity;
+  late final Animation<Offset> _slide;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 350));
+    _opacity = CurvedAnimation(parent: _ctrl, curve: Curves.easeOut);
+    _slide = Tween<Offset>(
+      begin: const Offset(0, 0.25),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
+
+    Future.delayed(widget.delay, () {
+      if (mounted) _ctrl.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => FadeTransition(
+        opacity: _opacity,
+        child: SlideTransition(position: _slide, child: widget.child),
       );
 }
 
@@ -441,7 +573,7 @@ class _HorizontalShimmer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SizedBox(
-        height: 210,
+        height: 220,
         child: ListView.separated(
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -481,6 +613,9 @@ class _ErrorTile extends StatelessWidget {
 
 // ─── Row widgets ──────────────────────────────────────────────────────────────
 
+bool _isNew(DateTime createdAt) =>
+    DateTime.now().difference(createdAt).inHours < 24;
+
 class _PropertyRow extends StatelessWidget {
   const _PropertyRow({required this.items});
   final List<PropertyModel> items;
@@ -504,16 +639,20 @@ class _PropertyRow extends StatelessWidget {
         itemBuilder: (ctx, i) {
           final p = items[i];
           final imgUrl = p.imageUrls.isNotEmpty ? p.imageUrls.first : null;
-          return GestureDetector(
-            onTap: () => ctx.go('/properties/${p.id}'),
-            child: _FeaturedCard(
-              imageUrl: imgUrl,
-              icon: Icons.apartment_rounded,
-              iconColor: AppTheme.primary,
-              title: p.title,
-              subtitle: p.city ?? p.address,
-              price: '\$${p.price.toStringAsFixed(0)}',
-              badge: p.propertyType,
+          return _AnimatedEntry(
+            delay: Duration(milliseconds: 60 * i),
+            child: GestureDetector(
+              onTap: () => ctx.go('/properties/${p.id}'),
+              child: _FeaturedCard(
+                imageUrl: imgUrl,
+                icon: Icons.apartment_rounded,
+                iconColor: AppTheme.primary,
+                title: p.title,
+                subtitle: p.city ?? p.address,
+                price: '\$${p.price.toStringAsFixed(0)}',
+                badge: p.propertyType,
+                isNew: _isNew(p.createdAt),
+              ),
             ),
           );
         },
@@ -546,16 +685,20 @@ class _AgriRow extends StatelessWidget {
           final a = items[i];
           final imgUrl =
               (a.images != null && a.images!.isNotEmpty) ? a.images!.first : null;
-          return GestureDetector(
-            onTap: () => ctx.go('/agriculture/${a.id}'),
-            child: _FeaturedCard(
-              imageUrl: imgUrl,
-              icon: Icons.grass_rounded,
-              iconColor: const Color(0xFF388E3C),
-              title: a.title,
-              subtitle: a.location ?? a.category ?? '',
-              price: '\$${a.pricePerUnit.toStringAsFixed(2)}/${a.unit ?? 'unit'}',
-              badge: a.category,
+          return _AnimatedEntry(
+            delay: Duration(milliseconds: 60 * i),
+            child: GestureDetector(
+              onTap: () => ctx.go('/agriculture/${a.id}'),
+              child: _FeaturedCard(
+                imageUrl: imgUrl,
+                icon: Icons.grass_rounded,
+                iconColor: const Color(0xFF388E3C),
+                title: a.title,
+                subtitle: a.location ?? a.category ?? '',
+                price: '\$${a.pricePerUnit.toStringAsFixed(2)}/${a.unit ?? 'unit'}',
+                badge: a.category,
+                isNew: _isNew(a.createdAt),
+              ),
             ),
           );
         },
@@ -588,16 +731,20 @@ class _MfgRow extends StatelessWidget {
           final m = items[i];
           final imgUrl =
               (m.images != null && m.images!.isNotEmpty) ? m.images!.first : null;
-          return GestureDetector(
-            onTap: () => ctx.go('/manufacturing/${m.id}'),
-            child: _FeaturedCard(
-              imageUrl: imgUrl,
-              icon: Icons.precision_manufacturing_rounded,
-              iconColor: AppTheme.secondary,
-              title: m.title,
-              subtitle: m.category ?? (m.isLocallyMade ? 'Locally Made' : ''),
-              price: '\$${m.wholesalePrice.toStringAsFixed(2)}/${m.unit ?? 'unit'}',
-              badge: m.category,
+          return _AnimatedEntry(
+            delay: Duration(milliseconds: 60 * i),
+            child: GestureDetector(
+              onTap: () => ctx.go('/manufacturing/${m.id}'),
+              child: _FeaturedCard(
+                imageUrl: imgUrl,
+                icon: Icons.precision_manufacturing_rounded,
+                iconColor: AppTheme.secondary,
+                title: m.title,
+                subtitle: m.category ?? (m.isLocallyMade ? 'Locally Made' : ''),
+                price: '\$${m.wholesalePrice.toStringAsFixed(2)}/${m.unit ?? 'unit'}',
+                badge: m.category,
+                isNew: _isNew(m.createdAt),
+              ),
             ),
           );
         },
@@ -617,6 +764,7 @@ class _FeaturedCard extends StatelessWidget {
     required this.subtitle,
     required this.price,
     this.badge,
+    this.isNew = false,
   });
 
   final String? imageUrl;
@@ -626,6 +774,7 @@ class _FeaturedCard extends StatelessWidget {
   final String subtitle;
   final String price;
   final String? badge;
+  final bool isNew;
 
   @override
   Widget build(BuildContext context) {
@@ -637,24 +786,56 @@ class _FeaturedCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Image / placeholder
-            SizedBox(
-              height: 120,
-              width: double.infinity,
-              child: imageUrl != null
-                  ? CachedNetworkImage(
-                      imageUrl: imageUrl!,
-                      fit: BoxFit.cover,
-                      placeholder: (_, __) => Shimmer.fromColors(
-                        baseColor: Colors.grey[200]!,
-                        highlightColor: Colors.grey[100]!,
-                        child: Container(color: Colors.white),
+            Stack(
+              children: [
+                SizedBox(
+                  height: 120,
+                  width: double.infinity,
+                  child: imageUrl != null
+                      ? CachedNetworkImage(
+                          imageUrl: imageUrl!,
+                          fit: BoxFit.cover,
+                          placeholder: (_, __) => Shimmer.fromColors(
+                            baseColor: Colors.grey[200]!,
+                            highlightColor: Colors.grey[100]!,
+                            child: Container(color: Colors.white),
+                          ),
+                          errorWidget: (_, __, ___) => _PlaceholderBox(
+                            icon: icon,
+                            iconColor: iconColor,
+                          ),
+                        )
+                      : _PlaceholderBox(icon: icon, iconColor: iconColor),
+                ),
+                // "NEW" badge for listings uploaded within the last 24 hours
+                if (isNew)
+                  Positioned(
+                    top: 8,
+                    left: 8,
+                    child: _NewBadge(),
+                  ),
+                // Category badge
+                if (badge != null && badge!.isNotEmpty)
+                  Positioned(
+                    bottom: 6,
+                    right: 6,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 7, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: Colors.black54,
+                        borderRadius: BorderRadius.circular(6),
                       ),
-                      errorWidget: (_, __, ___) => _PlaceholderBox(
-                        icon: icon,
-                        iconColor: iconColor,
+                      child: Text(
+                        badge!,
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w600),
                       ),
-                    )
-                  : _PlaceholderBox(icon: icon, iconColor: iconColor),
+                    ),
+                  ),
+              ],
             ),
             Padding(
               padding: const EdgeInsets.all(10),
@@ -695,6 +876,64 @@ class _FeaturedCard extends StatelessWidget {
       ),
     );
   }
+}
+
+// ─── NEW badge ────────────────────────────────────────────────────────────────
+
+class _NewBadge extends StatefulWidget {
+  @override
+  State<_NewBadge> createState() => _NewBadgeState();
+}
+
+class _NewBadgeState extends State<_NewBadge>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 900))
+      ..repeat(reverse: true);
+    _scale = Tween<double>(begin: 1.0, end: 1.1)
+        .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+        animation: _scale,
+        builder: (_, child) => Transform.scale(scale: _scale.value, child: child),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFFFF6B35), Color(0xFFFFD700)],
+            ),
+            borderRadius: BorderRadius.circular(6),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.orange.withValues(alpha: 0.5),
+                blurRadius: 4,
+              ),
+            ],
+          ),
+          child: const Text(
+            '✨ NEW',
+            style: TextStyle(
+                color: Colors.white,
+                fontSize: 9,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.5),
+          ),
+        ),
+      );
 }
 
 class _PlaceholderBox extends StatelessWidget {

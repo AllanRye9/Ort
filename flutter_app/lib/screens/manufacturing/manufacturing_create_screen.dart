@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/api_service.dart';
+import '../../core/listing_providers.dart';
 import '../../widgets/media_picker_field.dart';
 
 class ManufacturingCreateScreen extends ConsumerStatefulWidget {
@@ -92,6 +93,7 @@ class _ManufacturingCreateScreenState
       };
 
       await ref.read(apiServiceProvider).createManufacturingProduct(payload);
+      invalidateHomeProviders(ref);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
