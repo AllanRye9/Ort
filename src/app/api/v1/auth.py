@@ -81,13 +81,21 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
         )
 
     # Create the user record
+    try:
+        password_hash = pwd_context.hash(payload.password)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password is too long. Maximum 72 bytes allowed.",
+        )
+
     db_user = User(
         role=payload.role,
         first_name=payload.first_name.strip(),
         last_name=payload.last_name.strip(),
         email=payload.email,
         phone=payload.phone,
-        password_hash=pwd_context.hash(payload.password.encode("utf-8")[:72].decode("utf-8", errors="ignore")),
+        password_hash=password_hash,
         license_number=payload.license_number,
         agency_name=payload.agency_name,
         bio=payload.bio,
