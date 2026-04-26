@@ -22,10 +22,8 @@ import io
 import logging
 import os
 import uuid
-from typing import Optional
 
-from fastapi import APIRouter, HTTPException, UploadFile, File, Depends, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import APIRouter, HTTPException, UploadFile, File, status
 
 logger = logging.getLogger(__name__)
 
@@ -39,8 +37,6 @@ _ALLOWED_CONTENT_TYPES = {
     "image/gif",
 }
 _MAX_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB
-
-security = HTTPBearer(auto_error=False)
 
 
 def _get_s3_client():
@@ -69,7 +65,6 @@ def _get_s3_client():
 @router.post("/image", status_code=status.HTTP_200_OK)
 async def upload_image(
     file: UploadFile = File(...),
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
 ):
     """Upload an image file and return its public URL."""
     # Content-type validation
@@ -119,9 +114,11 @@ async def upload_image(
                 detail="Image upload failed. Please try again.",
             ) from exc
     else:
-        # Stub mode – return a placeholder URL so the UI can still be tested
-        logger.info(
-            "S3 not configured – returning stub URL for key %s", object_key
+        # Stub mode – S3 is not configured.  Return a placeholder URL so that
+        # the rest of the listing creation API still works during development.
+        logger.warning(
+            "S3 not configured (AWS_ACCESS_KEY_ID / S3_BUCKET_NAME missing) – "
+            "returning stub URL for %s", object_key
         )
         base_url = os.getenv("APP_BASE_URL", "https://ort.up.railway.app")
         return {"url": f"{base_url}/static/{object_key}"}

@@ -127,6 +127,22 @@ class ApiService {
     return res.data as Map<String, dynamic>;
   }
 
+  /// Returns a list of image URLs for a property by fetching its images.
+  Future<List<String>> getPropertyImageUrls(int propertyId) async {
+    try {
+      final res = await _dio.get(
+        '/property-images/',
+        queryParameters: {'property_id': propertyId},
+      );
+      final list = res.data as List<dynamic>;
+      return list
+          .map((e) => (e as Map<String, dynamic>)['image_url'] as String)
+          .toList();
+    } catch (_) {
+      return const [];
+    }
+  }
+
   Future<Map<String, dynamic>> createProperty(
       Map<String, dynamic> data) async {
     final res = await _dio.post('/properties/', data: data);

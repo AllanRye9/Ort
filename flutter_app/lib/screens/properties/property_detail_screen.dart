@@ -11,6 +11,12 @@ final _propertyDetailProvider =
   return PropertyModel.fromJson(data);
 });
 
+final _propertyImagesProvider =
+    FutureProvider.autoDispose.family<List<String>, int>((ref, id) async {
+  return ref.read(apiServiceProvider).getPropertyImageUrls(id);
+});
+
+
 class PropertyDetailScreen extends ConsumerWidget {
   const PropertyDetailScreen({super.key, required this.id});
 
@@ -19,6 +25,7 @@ class PropertyDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(_propertyDetailProvider(id));
+    final imagesAsync = ref.watch(_propertyImagesProvider(id));
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
@@ -41,7 +48,10 @@ class PropertyDetailScreen extends ConsumerWidget {
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Error: $e')),
-        data: (p) => _PropertyDetailBody(property: p),
+        data: (p) => _PropertyDetailBody(
+          property: p,
+          imageUrls: imagesAsync.valueOrNull ?? const [],
+        ),
       ),
       bottomNavigationBar: async.maybeWhen(
         data: (p) => _BottomBar(property: p),
@@ -52,8 +62,9 @@ class PropertyDetailScreen extends ConsumerWidget {
 }
 
 class _PropertyDetailBody extends StatelessWidget {
-  const _PropertyDetailBody({required this.property});
+  const _PropertyDetailBody({required this.property, required this.imageUrls});
   final PropertyModel property;
+  final List<String> imageUrls;
 
   @override
   Widget build(BuildContext context) {
@@ -64,7 +75,7 @@ class _PropertyDetailBody extends StatelessWidget {
         children: [
           // ── Image gallery ────────────────────────────────────────────────
           ImageGallery(
-            imageUrls: const [],
+            imageUrls: imageUrls.isEmpty ? null : imageUrls,
             height: 280,
             placeholderIcon: Icons.apartment_rounded,
             placeholderColor:
