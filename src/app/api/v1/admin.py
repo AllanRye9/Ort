@@ -372,7 +372,7 @@ def admin_list_manufacturing(
         "products": [
             {
                 "id": i.id,
-                "name": i.title,  # ManufacturingProduct uses `title` column
+                "title": i.title,
                 "category": i.category,
                 "status": i.status,
                 "tenant_id": i.tenant_id,
@@ -437,7 +437,7 @@ def admin_bulk_delete_images(
             db.delete(image)
             deleted += 1
     db.commit()
-    _log_action(db, admin, "bulk_delete_images", "image", None, f"deleted {deleted} images")
+    _log_action(db, admin, "bulk_delete_images", "image", None, f"deleted {deleted} of {len(image_ids)} images: {image_ids}")
     return {"message": f"Deleted {deleted} images"}
 
 
@@ -668,7 +668,11 @@ def _get_any_user(
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
-    user = db.query(User).filter(User.id == int(user_id)).first()
+    try:
+        user_id = int(user_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     return user
