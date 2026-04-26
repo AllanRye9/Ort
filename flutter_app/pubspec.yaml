@@ -54,6 +54,21 @@ dependencies:
   # Notifications
   flutter_local_notifications: ^17.1.2
 
+  # Audio
+  audioplayers: ^6.0.0
+
+  # Connectivity
+  connectivity_plus: ^6.0.3
+
+  # Charts
+  fl_chart: ^0.68.0
+
+  # WebSocket
+  web_socket_channel: ^3.0.1
+
+  # Photo view (lightbox)
+  photo_view: ^0.14.0
+
   # Icons
   cupertino_icons: ^1.0.6
 

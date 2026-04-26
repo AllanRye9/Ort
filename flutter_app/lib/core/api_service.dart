@@ -400,4 +400,67 @@ class ApiService {
     final data = res.data as Map<String, dynamic>;
     return data['url'] as String;
   }
+
+  // ─── Feed ──────────────────────────────────────────────────────────────────
+
+  Future<Map<String, dynamic>> getFeed({String? after, int limit = 20}) async {
+    final res = await _dio.get('/feed/', queryParameters: {
+      if (after != null) 'after': after,
+      'limit': limit,
+    });
+    return res.data as Map<String, dynamic>;
+  }
+
+  // ─── Dashboard ────────────────────────────────────────────────────────────
+
+  Future<Map<String, dynamic>> getDashboard({required String role}) async {
+    final res = await _dio.get('/dashboard/$role');
+    return res.data as Map<String, dynamic>;
+  }
+
+  // ─── Gamification ─────────────────────────────────────────────────────────
+
+  Future<Map<String, dynamic>> getMyXP() async {
+    final res = await _dio.get('/gamification/xp/me');
+    return res.data as Map<String, dynamic>;
+  }
+
+  Future<List<dynamic>> getTodayChallenges() async {
+    final res = await _dio.get('/gamification/challenges/today');
+    return res.data as List<dynamic>;
+  }
+
+  Future<Map<String, dynamic>> getLeaderboard({String scope = 'global'}) async {
+    final res = await _dio.get('/gamification/leaderboard',
+        queryParameters: {'scope': scope});
+    return res.data as Map<String, dynamic>;
+  }
+
+  Future<List<dynamic>> getMyBadges() async {
+    final res = await _dio.get('/gamification/badges/me');
+    return res.data as List<dynamic>;
+  }
+
+  // ─── Onboarding ───────────────────────────────────────────────────────────
+
+  Future<Map<String, dynamic>> updateOnboarding({
+    required int step,
+    bool completed = false,
+  }) async {
+    final res = await _dio.patch(
+      '/me/onboarding',
+      queryParameters: {'step': step, 'completed': completed},
+    );
+    return res.data as Map<String, dynamic>;
+  }
+
+  // ─── GDPR ─────────────────────────────────────────────────────────────────
+
+  Future<void> exportMyData() async {
+    await _dio.get('/me/data-export');
+  }
+
+  Future<void> deleteMyAccount() async {
+    await _dio.delete('/me/account');
+  }
 }

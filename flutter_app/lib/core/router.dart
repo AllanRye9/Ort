@@ -21,6 +21,13 @@ import '../screens/messages/chat_screen.dart';
 import '../screens/profile/profile_screen.dart';
 import '../screens/notifications/notifications_screen.dart';
 import '../screens/search/search_screen.dart';
+import '../screens/feed/feed_screen.dart';
+import '../screens/dashboard/dashboard_screen.dart';
+import '../screens/gamification/challenges_screen.dart';
+import '../screens/gamification/leaderboard_screen.dart';
+import '../screens/onboarding/onboarding_screen.dart';
+import '../screens/settings/settings_screen.dart';
+import '../screens/privacy/privacy_screen.dart';
 
 // ─── Auth-change listenable ──────────────────────────────────────────────────
 //
@@ -110,6 +117,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
       GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),
+      GoRoute(
+        path: '/onboarding',
+        builder: (_, state) => OnboardingScreen(
+          role: state.uri.queryParameters['role'] ?? 'user',
+        ),
+      ),
+      GoRoute(path: '/privacy', builder: (_, __) => const PrivacyScreen()),
       // Full-screen routes (no bottom nav)
       GoRoute(path: '/search', builder: (_, __) => const SearchScreen()),
       ShellRoute(
@@ -193,6 +207,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/profile',
             builder: (_, __) => const ProfileScreen(),
           ),
+          GoRoute(path: '/feed', builder: (_, __) => const FeedScreen()),
+          GoRoute(path: '/dashboard', builder: (_, __) => const DashboardScreen()),
+          GoRoute(path: '/challenges', builder: (_, __) => const ChallengesScreen()),
+          GoRoute(path: '/leaderboard', builder: (_, __) => const LeaderboardScreen()),
+          GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
         ],
       ),
     ],
@@ -216,6 +235,8 @@ class MainShell extends StatelessWidget {
     ('/manufacturing', Icons.precision_manufacturing_outlined,
         Icons.precision_manufacturing_rounded, 'Mfg'),
     ('/messages', Icons.chat_bubble_outline, Icons.chat_bubble_rounded, 'Messages'),
+    ('/feed', Icons.dynamic_feed_outlined, Icons.dynamic_feed_rounded, 'Feed'),
+    ('/dashboard', Icons.dashboard_outlined, Icons.dashboard_rounded, 'Dashboard'),
     ('/profile', Icons.person_outline_rounded, Icons.person_rounded, 'Profile'),
   ];
 
