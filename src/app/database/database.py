@@ -77,6 +77,7 @@ _MIGRATIONS: list[tuple[str, str, str]] = [
     ("users", "license_number", "VARCHAR(100)"),
     ("users", "agency_name",    "VARCHAR(255)"),
     ("users", "bio",            "TEXT"),
+    ("users", "avatar_url",     "TEXT"),
     # Core real-estate table status columns – backfill if somehow absent
     ("properties",          "status",         "VARCHAR(50)  DEFAULT 'available'"),
     ("inquiries",           "status",         "VARCHAR(50)  DEFAULT 'new'"),
@@ -105,6 +106,7 @@ _ALTER_COLUMN_MIGRATIONS: list[tuple[str, str, str]] = [
 # Each entry is (enum_type_name, value_to_add).
 # Uses "ADD VALUE IF NOT EXISTS" so it is safe to run on any database state.
 _ENUM_VALUE_MIGRATIONS: list[tuple[str, str]] = [
+    ("user_roles", "user"),
     ("user_roles", "company"),
     ("user_roles", "organization"),
     ("property_types", "villa"),

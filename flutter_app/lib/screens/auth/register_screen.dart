@@ -33,7 +33,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _addressCtrl = TextEditingController();
   final _countryCtrl = TextEditingController();
 
-  String _role = 'agent';
+  String _role = 'user';
   String _orgType = 'ngo';
   bool _obscurePassword = true;
 
@@ -396,6 +396,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     prefixIcon: Icon(Icons.badge_outlined),
                   ),
                   items: const [
+                    DropdownMenuItem(value: 'user', child: Text('Regular User (Buyer)')),
                     DropdownMenuItem(value: 'agent', child: Text('Agent')),
                     DropdownMenuItem(value: 'company', child: Text('Company')),
                     DropdownMenuItem(

@@ -99,6 +99,23 @@ def get_current_user_me(current_user: User = Depends(_get_current_user)):
     return current_user
 
 
+@router.patch("/users/me", response_model=UserResponse)
+def update_current_user_me(
+    user_update: UserUpdate,
+    current_user: User = Depends(_get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Allow the authenticated user to update their own profile."""
+    data = user_update.model_dump(exclude_unset=True)
+    if "password" in data:
+        data["password_hash"] = pwd_context.hash(data.pop("password")[:72])
+    for key, value in data.items():
+        setattr(current_user, key, value)
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
+
 @router.get("/users/{user_id}", response_model=UserResponse)
 def get_user(user_id: int, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
@@ -214,7 +231,8 @@ def get_properties(
     limit: int = Query(100, ge=1, le=1000),
     db: Session = Depends(get_db),
 ):
-    return db.query(Property).offset(skip).limit(limit).all()
+    props = db.query(Property).offset(skip).limit(limit).all()
+    return [PropertyResponse.from_orm_with_images(p) for p in props]
 
 
 @router.get("/properties/{property_id}", response_model=PropertyResponse)
@@ -222,7 +240,7 @@ def get_property(property_id: int, db: Session = Depends(get_db)):
     prop = db.query(Property).filter(Property.id == property_id).first()
     if not prop:
         raise HTTPException(status_code=404, detail="Property not found")
-    return prop
+    return PropertyResponse.from_orm_with_images(prop)
 
 
 @router.post("/properties/", response_model=PropertyResponse, status_code=status.HTTP_201_CREATED)
@@ -236,7 +254,7 @@ def create_property(prop: PropertyCreate, db: Session = Depends(get_db)):
             db.add(PropertyImage(property_id=db_property.id, image_url=url, is_primary=(idx == 0)))
     db.commit()
     db.refresh(db_property)
-    return db_property
+    return PropertyResponse.from_orm_with_images(db_property)
 
 
 @router.put("/properties/{property_id}", response_model=PropertyResponse)

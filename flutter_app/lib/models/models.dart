@@ -9,6 +9,10 @@ class UserModel {
     required this.lastName,
     required this.email,
     this.phone,
+    this.bio,
+    this.avatarUrl,
+    this.licenseNumber,
+    this.agencyName,
     required this.createdAt,
   });
 
@@ -18,6 +22,10 @@ class UserModel {
   final String lastName;
   final String email;
   final String? phone;
+  final String? bio;
+  final String? avatarUrl;
+  final String? licenseNumber;
+  final String? agencyName;
   final DateTime createdAt;
 
   String get fullName => '$firstName $lastName';
@@ -29,6 +37,10 @@ class UserModel {
         lastName: j['last_name'] as String,
         email: j['email'] as String,
         phone: j['phone'] as String?,
+        bio: j['bio'] as String?,
+        avatarUrl: j['avatar_url'] as String?,
+        licenseNumber: j['license_number'] as String?,
+        agencyName: j['agency_name'] as String?,
         createdAt: DateTime.parse(j['created_at'] as String),
       );
 }
@@ -98,6 +110,7 @@ class PropertyModel {
     this.areaSqft,
     required this.status,
     required this.createdAt,
+    this.imageUrls = const [],
   });
 
   final int id;
@@ -112,6 +125,7 @@ class PropertyModel {
   final int? areaSqft;
   final String status;
   final DateTime createdAt;
+  final List<String> imageUrls;
 
   factory PropertyModel.fromJson(Map<String, dynamic> j) => PropertyModel(
         id: j['id'] as int,
@@ -126,6 +140,7 @@ class PropertyModel {
         areaSqft: j['area_sqft'] as int?,
         status: (j['status'] as String?) ?? 'available',
         createdAt: DateTime.parse(j['created_at'] as String),
+        imageUrls: (j['image_urls'] as List<dynamic>?)?.cast<String>() ?? const [],
       );
 }
 
