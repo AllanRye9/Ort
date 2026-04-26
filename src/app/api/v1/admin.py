@@ -59,6 +59,7 @@ def _get_admin_user(
 
 
 def _log_action(db: Session, admin: User, action: str, target_type: str = None, target_id: int = None, detail: str = None):
+    """Add an audit log entry to the current session (does not commit)."""
     log = AdminLog(
         admin_id=admin.id,
         action=action,
@@ -67,14 +68,12 @@ def _log_action(db: Session, admin: User, action: str, target_type: str = None, 
         detail=detail,
     )
     db.add(log)
-    db.commit()
 
 
 # ─── Schemas ──────────────────────────────────────────────────────────────────
 
 class UserAdminUpdate(BaseModel):
     role: Optional[str] = None
-    is_suspended: Optional[bool] = None
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     phone: Optional[str] = None
@@ -219,13 +218,11 @@ def admin_update_user(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     data = payload.model_dump(exclude_unset=True)
-    # Remove is_suspended (not a DB column; handle separately as needed)
-    data.pop("is_suspended", None)
     for k, v in data.items():
         setattr(user, k, v)
+    _log_action(db, admin, "update_user", "user", user_id, str(data))
     db.commit()
     db.refresh(user)
-    _log_action(db, admin, "update_user", "user", user_id, str(data))
     return {"message": "User updated", "user_id": user_id}
 
 
@@ -241,8 +238,8 @@ def admin_delete_user(
     if user.id == admin.id:
         raise HTTPException(status_code=400, detail="Cannot delete your own admin account")
     db.delete(user)
-    db.commit()
     _log_action(db, admin, "delete_user", "user", user_id)
+    db.commit()
     return {"message": "User deleted"}
 
 
@@ -289,8 +286,8 @@ def admin_update_property_status(
     if not prop:
         raise HTTPException(status_code=404, detail="Property not found")
     prop.status = new_status
-    db.commit()
     _log_action(db, admin, "update_property_status", "property", property_id, new_status)
+    db.commit()
     return {"message": "Property status updated", "status": new_status}
 
 
@@ -304,8 +301,8 @@ def admin_delete_property(
     if not prop:
         raise HTTPException(status_code=404, detail="Property not found")
     db.delete(prop)
-    db.commit()
     _log_action(db, admin, "delete_property", "property", property_id)
+    db.commit()
     return {"message": "Property deleted"}
 
 
@@ -349,8 +346,8 @@ def admin_update_agriculture_status(
     if not listing:
         raise HTTPException(status_code=404, detail="Agriculture listing not found")
     listing.status = new_status
-    db.commit()
     _log_action(db, admin, "update_agriculture_status", "agriculture", listing_id, new_status)
+    db.commit()
     return {"message": "Status updated", "status": new_status}
 
 
@@ -394,8 +391,8 @@ def admin_update_manufacturing_status(
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
     product.status = new_status
-    db.commit()
     _log_action(db, admin, "update_manufacturing_status", "manufacturing", product_id, new_status)
+    db.commit()
     return {"message": "Status updated", "status": new_status}
 
 
@@ -430,14 +427,9 @@ def admin_bulk_delete_images(
     admin: User = Depends(_get_admin_user),
     db: Session = Depends(get_db),
 ):
-    deleted = 0
-    for image_id in image_ids:
-        image = db.query(PropertyImage).filter(PropertyImage.id == image_id).first()
-        if image:
-            db.delete(image)
-            deleted += 1
+    deleted = db.query(PropertyImage).filter(PropertyImage.id.in_(image_ids)).delete(synchronize_session=False)
+    _log_action(db, admin, "bulk_delete_images", "image", None, f"deleted {deleted} of {len(image_ids)} images")
     db.commit()
-    _log_action(db, admin, "bulk_delete_images", "image", None, f"deleted {deleted} of {len(image_ids)} images: {image_ids}")
     return {"message": f"Deleted {deleted} images"}
 
 
@@ -451,8 +443,8 @@ def admin_delete_image(
     if not image:
         raise HTTPException(status_code=404, detail="Image not found")
     db.delete(image)
-    db.commit()
     _log_action(db, admin, "delete_image", "image", image_id)
+    db.commit()
     return {"message": "Image deleted"}
 
 
@@ -465,23 +457,22 @@ def admin_broadcast_notification(
     db: Session = Depends(get_db),
 ):
     """Send a broadcast notification to all users (or filtered by role)."""
-    q = db.query(User)
+    q = db.query(User.id)
     if payload.target_role:
         q = q.filter(User.role == payload.target_role)
-    users = q.all()
-    count = 0
-    for user in users:
-        notif = Notification(
-            user_id=user.id,
+    user_ids = [row[0] for row in q.all()]
+    db.bulk_save_objects([
+        Notification(
+            user_id=uid,
             title=payload.title,
             body=payload.body,
             notification_type="broadcast",
         )
-        db.add(notif)
-        count += 1
+        for uid in user_ids
+    ])
+    _log_action(db, admin, "broadcast_notification", None, None, f"Sent to {len(user_ids)} users: {payload.title}")
     db.commit()
-    _log_action(db, admin, "broadcast_notification", None, None, f"Sent to {count} users: {payload.title}")
-    return {"message": f"Notification sent to {count} users"}
+    return {"message": f"Notification sent to {len(user_ids)} users"}
 
 
 # ─── Reports & Analytics ──────────────────────────────────────────────────────
@@ -641,9 +632,9 @@ def admin_update_ticket(
     data = payload.model_dump(exclude_unset=True)
     for k, v in data.items():
         setattr(ticket, k, v)
+    _log_action(db, admin, "update_ticket", "ticket", ticket_id, str(data))
     db.commit()
     db.refresh(ticket)
-    _log_action(db, admin, "update_ticket", "ticket", ticket_id, str(data))
     return {"message": "Ticket updated"}
 
 
