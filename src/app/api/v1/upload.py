@@ -2,20 +2,27 @@
 Image upload endpoint.
 
 Accepts a multipart/form-data POST with a single ``file`` field or multiple
-``files`` fields.  When AWS credentials are configured via environment
+``files`` fields.  When storage credentials are configured via environment
 variables the file is uploaded to the configured S3-compatible bucket and the
 public URL is returned.  When credentials are absent (local / test environment)
 the endpoint returns a stub URL so that the rest of the API still works.
 
-Environment variables
----------------------
+Primary environment variables (ORT Media storage)
+--------------------------------------------------
+ORT_MEDIAA_API      S3-compatible endpoint URL (e.g. https://s3.example.com)
+ORT_MEDIAA_KEY      Access key / API token for the storage service
+ORT_MEDIAA_NAME     Bucket / container name
+ORT_MEDIAA_SECRET   Secret key (optional; defaults to ORT_MEDIAA_KEY)
+S3_PUBLIC_BASE_URL  Public base URL to prefix uploaded keys with
+
+Legacy fallback environment variables
+--------------------------------------
 AWS_ACCESS_KEY_ID
 AWS_SECRET_ACCESS_KEY
 AWS_REGION          (default: us-east-1)
-S3_BUCKET_NAME      Name of the bucket to upload to
-S3_ENDPOINT_URL     Optional – set for S3-compatible services (e.g. Cloudflare R2)
-S3_PUBLIC_BASE_URL  Public base URL to prefix uploaded keys with
-                    (e.g. https://pub-xxx.r2.dev or https://bucket.s3.amazonaws.com)
+S3_BUCKET_NAME
+S3_ENDPOINT_URL
+S3_PUBLIC_BASE_URL
 """
 
 import io
@@ -41,27 +48,72 @@ _ALLOWED_CONTENT_TYPES = {
 _MAX_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB
 
 
-def _get_s3_client():
-    """Return a boto3 S3 client when credentials are configured, else None."""
+def _get_s3_config():
+    """Return (key_id, secret, endpoint_url, bucket, public_base) from env vars.
+
+    Checks ORT_MEDIAA_* vars first, then falls back to legacy AWS_* / S3_* vars.
+    Returns None if essential credentials are not available.
+    """
+    # ── Primary: ORT_MEDIAA_* ────────────────────────────────────────────────
+    ort_key = os.getenv("ORT_MEDIAA_KEY")
+    ort_name = os.getenv("ORT_MEDIAA_NAME")
+    ort_api = os.getenv("ORT_MEDIAA_API")
+
+    if ort_key and ort_name:
+        secret = os.getenv("ORT_MEDIAA_SECRET", ort_key)
+        public_base = os.getenv("S3_PUBLIC_BASE_URL", "").rstrip("/")
+        if not public_base and ort_api:
+            public_base = f"{ort_api.rstrip('/')}/{ort_name}"
+        return {
+            "key_id": ort_key,
+            "secret": secret,
+            "endpoint_url": ort_api,
+            "bucket": ort_name,
+            "public_base": public_base,
+            "region": os.getenv("AWS_REGION", "us-east-1"),
+        }
+
+    # ── Legacy: AWS_* / S3_* ─────────────────────────────────────────────────
     key_id = os.getenv("AWS_ACCESS_KEY_ID")
     secret = os.getenv("AWS_SECRET_ACCESS_KEY")
-    if not key_id or not secret:
-        return None
+    bucket = os.getenv("S3_BUCKET_NAME")
+
+    if key_id and secret and bucket:
+        public_base = os.getenv("S3_PUBLIC_BASE_URL", "").rstrip("/")
+        if not public_base:
+            region = os.getenv("AWS_REGION", "us-east-1")
+            public_base = f"https://{bucket}.s3.{region}.amazonaws.com"
+        return {
+            "key_id": key_id,
+            "secret": secret,
+            "endpoint_url": os.getenv("S3_ENDPOINT_URL"),
+            "bucket": bucket,
+            "public_base": public_base,
+            "region": os.getenv("AWS_REGION", "us-east-1"),
+        }
+
+    return None
+
+
+def _get_s3_client():
+    """Return a boto3 S3 client when credentials are configured, else None."""
+    cfg = _get_s3_config()
+    if not cfg:
+        return None, None, None
     try:
         import boto3
 
         kwargs = {
-            "aws_access_key_id": key_id,
-            "aws_secret_access_key": secret,
-            "region_name": os.getenv("AWS_REGION", "us-east-1"),
+            "aws_access_key_id": cfg["key_id"],
+            "aws_secret_access_key": cfg["secret"],
+            "region_name": cfg["region"],
         }
-        endpoint_url = os.getenv("S3_ENDPOINT_URL")
-        if endpoint_url:
-            kwargs["endpoint_url"] = endpoint_url
-        return boto3.client("s3", **kwargs)
+        if cfg["endpoint_url"]:
+            kwargs["endpoint_url"] = cfg["endpoint_url"]
+        return boto3.client("s3", **kwargs), cfg["bucket"], cfg["public_base"]
     except ImportError:
         logger.warning("boto3 not installed – image upload will use stub mode")
-        return None
+        return None, None, None
 
 
 async def _process_upload(file: UploadFile) -> dict:
@@ -88,8 +140,7 @@ async def _process_upload(file: UploadFile) -> dict:
 
     object_key = f"listings/{uuid.uuid4()}.{ext}"
 
-    s3 = _get_s3_client()
-    bucket = os.getenv("S3_BUCKET_NAME")
+    s3, bucket, public_base = _get_s3_client()
 
     if s3 and bucket:
         try:
@@ -99,12 +150,10 @@ async def _process_upload(file: UploadFile) -> dict:
                 object_key,
                 ExtraArgs={"ContentType": file.content_type, "ACL": "public-read"},
             )
-            public_base = os.getenv("S3_PUBLIC_BASE_URL", "").rstrip("/")
             if not public_base:
-                region = os.getenv("AWS_REGION", "us-east-1")
-                public_base = f"https://{bucket}.s3.{region}.amazonaws.com"
+                public_base = f"https://{bucket}.s3.amazonaws.com"
             url = f"{public_base}/{object_key}"
-            logger.info("Uploaded image to S3: %s", url)
+            logger.info("Uploaded image to S3 key: %s", object_key)
             return {"url": url}
         except Exception as exc:
             logger.error("S3 upload failed: %s", exc)
