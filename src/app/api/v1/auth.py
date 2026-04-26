@@ -54,7 +54,14 @@ def _make_unique_slug(db: Session, base: str) -> str:
 @router.post("/login", response_model=TokenResponse)
 def login(payload: LoginRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == payload.email).first()
-    if not user or not pwd_context.verify(payload.password, user.password_hash):
+    try:
+        password_matches = user and pwd_context.verify(payload.password, user.password_hash)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password is too long. Maximum 72 bytes allowed.",
+        )
+    if not password_matches:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password",
@@ -80,9 +87,15 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
             detail="An account with this email already exists",
         )
 
-    # Create the user record; bcrypt silently uses the first 72 bytes of the
-    # password, which is its inherent design limit.
-    password_hash = pwd_context.hash(payload.password)
+    # Create the user record. bcrypt raises ValueError if the password exceeds
+    # 72 bytes; catch it here so the caller gets a 400 instead of a 500.
+    try:
+        password_hash = pwd_context.hash(payload.password)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password is too long. Maximum 72 bytes allowed.",
+        )
 
     db_user = User(
         role=payload.role,
