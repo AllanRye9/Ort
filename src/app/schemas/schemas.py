@@ -1,5 +1,5 @@
 from decimal import Decimal
-from typing import Optional
+from typing import List, Optional
 from datetime import datetime, date
 
 from pydantic import BaseModel, Field, EmailStr, field_validator
@@ -118,11 +118,12 @@ class PropertyBase(BaseModel):
 class PropertyCreate(PropertyBase):
     agent_id: Optional[int] = None
     owner_id: Optional[int] = None
-    property_type: str = Field(..., pattern="^(house|apartment|land|commercial)$")
+    property_type: str = Field(..., pattern="^(house|apartment|land|commercial|villa|office|warehouse|other)$")
     price: Decimal = Field(..., gt=0)
     bedrooms: Optional[int] = Field(None, ge=0)
     bathrooms: Optional[int] = Field(None, ge=0)
     area_sqft: Optional[int] = Field(None, gt=0)
+    images: Optional[List[str]] = None
 
     @field_validator("title", "address", mode="before")
     @classmethod
@@ -137,7 +138,7 @@ class PropertyUpdate(BaseModel):
     owner_id: Optional[int] = None
     title: Optional[str] = Field(None, min_length=1, max_length=255)
     description: Optional[str] = None
-    property_type: Optional[str] = Field(None, pattern="^(house|apartment|land|commercial)$")
+    property_type: Optional[str] = Field(None, pattern="^(house|apartment|land|commercial|villa|office|warehouse|other)$")
     address: Optional[str] = None
     city: Optional[str] = None
     price: Optional[Decimal] = Field(None, gt=0)

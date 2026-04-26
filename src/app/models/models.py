@@ -63,7 +63,7 @@ class Property(Base):
     agent_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     title = Column(String(255), nullable=False)
     description = Column(Text)
-    property_type = Column(Enum("house", "apartment", "land", "commercial", name="property_types"))
+    property_type = Column(Enum("house", "apartment", "land", "commercial", "villa", "office", "warehouse", "other", name="property_types"))
     address = Column(Text, nullable=False)
     city = Column(String(100))
     price = Column(DECIMAL(12, 2), nullable=False)
