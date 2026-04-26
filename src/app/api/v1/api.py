@@ -35,6 +35,7 @@ from app.api.v1 import (
     reviews as reviews_router,
     notifications as notifications_router,
     upload as upload_router,
+    admin as admin_module,
 )
 
 router = APIRouter()
@@ -51,6 +52,8 @@ router.include_router(rfq_router.router)
 router.include_router(reviews_router.router)
 router.include_router(notifications_router.router)
 router.include_router(upload_router.router)
+router.include_router(admin_module.router)
+router.include_router(admin_module.user_tickets_router)
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 

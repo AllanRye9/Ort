@@ -425,3 +425,40 @@ class Notification(Base):
     created_at = Column(DateTime, server_default=func.now())
 
     user = relationship("User", foreign_keys=[user_id])
+
+
+# ---------------------------------------------------------------------------
+# Admin / Support
+# ---------------------------------------------------------------------------
+
+class AdminLog(Base):
+    __tablename__ = "admin_logs"
+    __table_args__ = (
+        Index("ix_admin_logs_admin_id", "admin_id"),
+    )
+    id = Column(Integer, primary_key=True)
+    admin_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    action = Column(String(100), nullable=False)
+    target_type = Column(String(50))   # e.g. "user", "property", "ticket"
+    target_id = Column(Integer)
+    detail = Column(Text)
+    created_at = Column(DateTime, server_default=func.now())
+    admin = relationship("User", foreign_keys=[admin_id])
+
+class SupportTicket(Base):
+    __tablename__ = "support_tickets"
+    __table_args__ = (
+        Index("ix_support_tickets_user_id", "user_id"),
+        Index("ix_support_tickets_status", "status"),
+    )
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    assigned_to = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    subject = Column(String(255), nullable=False)
+    body = Column(Text, nullable=False)
+    status = Column(String(50), default="open", server_default="open", nullable=False)
+    resolution = Column(Text)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    user = relationship("User", foreign_keys=[user_id])
+    assignee = relationship("User", foreign_keys=[assigned_to])
