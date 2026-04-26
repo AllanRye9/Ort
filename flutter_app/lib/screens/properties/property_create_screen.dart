@@ -69,6 +69,7 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
           'bathrooms': int.parse(_bathroomsCtrl.text.trim()),
         if (_areaCtrl.text.trim().isNotEmpty)
           'area_sqft': int.parse(_areaCtrl.text.trim()),
+        if (_imageUrls.isNotEmpty) 'images': _imageUrls,
       };
 
       await ref.read(apiServiceProvider).createProperty(payload);

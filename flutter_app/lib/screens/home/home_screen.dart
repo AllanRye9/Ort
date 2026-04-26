@@ -69,7 +69,7 @@ class HomeScreen extends ConsumerWidget {
               flexibleSpace: FlexibleSpaceBar(
                 collapseMode: CollapseMode.pin,
                 background: _HeroBanner(
-                  userName: auth.userId != null ? 'Welcome back!' : 'Welcome!',
+                  greeting: auth.userId != null ? 'Welcome back!' : 'Welcome!',
                   onNotifications: () => context.go('/notifications'),
                 ),
               ),
@@ -186,8 +186,8 @@ class HomeScreen extends ConsumerWidget {
 // ─── Hero banner ──────────────────────────────────────────────────────────────
 
 class _HeroBanner extends StatelessWidget {
-  const _HeroBanner({required this.userName, required this.onNotifications});
-  final String userName;
+  const _HeroBanner({required this.greeting, required this.onNotifications});
+  final String greeting;
   final VoidCallback onNotifications;
 
   @override
@@ -206,7 +206,7 @@ class _HeroBanner extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             Text(
-              userName,
+              greeting,
               style: const TextStyle(
                 color: Colors.white70,
                 fontSize: 14,
