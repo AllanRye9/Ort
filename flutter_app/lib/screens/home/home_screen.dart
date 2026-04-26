@@ -1,8 +1,11 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shimmer/shimmer.dart';
 import '../../core/api_service.dart';
+import '../../core/auth_provider.dart';
+import '../../core/theme.dart';
 import '../../models/models.dart';
 
 final _propertiesProvider = FutureProvider.autoDispose<List<PropertyModel>>(
@@ -46,125 +49,318 @@ class HomeScreen extends ConsumerWidget {
     final propertiesAsync = ref.watch(_propertiesProvider);
     final agricultureAsync = ref.watch(_agricultureProvider);
     final mfgAsync = ref.watch(_mfgProvider);
+    final auth = ref.watch(authProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Ort Marketplace'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            onPressed: () => context.go('/notifications'),
-          ),
-        ],
-      ),
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(_propertiesProvider);
           ref.invalidate(_agricultureProvider);
           ref.invalidate(_mfgProvider);
         },
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            _SearchBar(onTap: () => context.go('/search')),
-            const SizedBox(height: 24),
-            _SectionHeader(
-              title: 'Properties',
-              onSeeAll: () => context.go('/properties'),
+        child: CustomScrollView(
+          slivers: [
+            // ── Hero app bar ────────────────────────────────────────────────
+            SliverAppBar(
+              expandedHeight: 160,
+              floating: false,
+              pinned: true,
+              backgroundColor: AppTheme.primary,
+              flexibleSpace: FlexibleSpaceBar(
+                collapseMode: CollapseMode.pin,
+                background: _HeroBanner(
+                  userName: auth.userId != null ? 'Welcome back!' : 'Welcome!',
+                  onNotifications: () => context.go('/notifications'),
+                ),
+              ),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.notifications_outlined,
+                      color: Colors.white),
+                  onPressed: () => context.go('/notifications'),
+                ),
+              ],
+              title: const Text('Ort Marketplace',
+                  style: TextStyle(color: Colors.white, fontSize: 17)),
             ),
-            const SizedBox(height: 12),
-            propertiesAsync.when(
-              loading: () => const _HorizontalShimmer(),
-              error: (e, _) => _ErrorTile(message: e.toString()),
-              data: (items) => _PropertyRow(items: items),
+
+            // ── Search bar ──────────────────────────────────────────────────
+            SliverToBoxAdapter(
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: _SearchBar(onTap: () => context.go('/search')),
+              ),
             ),
-            const SizedBox(height: 24),
-            _SectionHeader(
-              title: 'Agriculture',
-              onSeeAll: () => context.go('/agriculture'),
+
+            // ── Category grid ───────────────────────────────────────────────
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Explore',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                    const SizedBox(height: 12),
+                    _CategoryGrid(),
+                    const SizedBox(height: 24),
+                  ],
+                ),
+              ),
             ),
-            const SizedBox(height: 12),
-            agricultureAsync.when(
-              loading: () => const _HorizontalShimmer(),
-              error: (e, _) => _ErrorTile(message: e.toString()),
-              data: (items) => _AgriRow(items: items),
+
+            // ── Featured Properties ─────────────────────────────────────────
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: _SectionHeader(
+                  title: 'Properties',
+                  onSeeAll: () => context.go('/properties'),
+                ),
+              ),
             ),
-            const SizedBox(height: 24),
-            _SectionHeader(
-              title: 'Manufacturing',
-              onSeeAll: () => context.go('/manufacturing'),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 24),
+                child: propertiesAsync.when(
+                  loading: () => const _HorizontalShimmer(),
+                  error: (e, _) => _ErrorTile(message: e.toString()),
+                  data: (items) => _PropertyRow(items: items),
+                ),
+              ),
             ),
-            const SizedBox(height: 12),
-            mfgAsync.when(
-              loading: () => const _HorizontalShimmer(),
-              error: (e, _) => _ErrorTile(message: e.toString()),
-              data: (items) => _MfgRow(items: items),
+
+            // ── Agriculture ─────────────────────────────────────────────────
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: _SectionHeader(
+                  title: 'Agriculture',
+                  onSeeAll: () => context.go('/agriculture'),
+                ),
+              ),
             ),
-            const SizedBox(height: 24),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 24),
+                child: agricultureAsync.when(
+                  loading: () => const _HorizontalShimmer(),
+                  error: (e, _) => _ErrorTile(message: e.toString()),
+                  data: (items) => _AgriRow(items: items),
+                ),
+              ),
+            ),
+
+            // ── Manufacturing ───────────────────────────────────────────────
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: _SectionHeader(
+                  title: 'Manufacturing',
+                  onSeeAll: () => context.go('/manufacturing'),
+                ),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 32),
+                child: mfgAsync.when(
+                  loading: () => const _HorizontalShimmer(),
+                  error: (e, _) => _ErrorTile(message: e.toString()),
+                  data: (items) => _MfgRow(items: items),
+                ),
+              ),
+            ),
           ],
         ),
       ),
     );
   }
+}
+
+// ─── Hero banner ──────────────────────────────────────────────────────────────
+
+class _HeroBanner extends StatelessWidget {
+  const _HeroBanner({required this.userName, required this.onNotifications});
+  final String userName;
+  final VoidCallback onNotifications;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [AppTheme.primary, Color(0xFF388E3C)],
+          ),
+        ),
+        padding:
+            const EdgeInsets.only(left: 20, right: 20, top: 60, bottom: 20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            Text(
+              userName,
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Find properties,\nagriculture & goods',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                height: 1.2,
+              ),
+            ),
+          ],
+        ),
+      );
 }
 
 // ─── Search bar ───────────────────────────────────────────────────────────────
 
 class _SearchBar extends StatelessWidget {
   const _SearchBar({required this.onTap});
-
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(30),
+  Widget build(BuildContext context) => GestureDetector(
+        onTap: onTap,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 12,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              Icon(Icons.search,
+                  color: Theme.of(context).colorScheme.primary, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Search properties, agriculture, goods…',
+                  style: TextStyle(color: Colors.grey[500], fontSize: 14),
+                ),
+              ),
+              Icon(Icons.tune, color: Colors.grey[400], size: 18),
+            ],
+          ),
         ),
-        padding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
+      );
+}
+
+// ─── Category grid ────────────────────────────────────────────────────────────
+
+class _CategoryGrid extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    const categories = [
+      _Category(Icons.apartment_rounded, 'Properties', '/properties',
+          Color(0xFF1B5E20)),
+      _Category(
+          Icons.grass_rounded, 'Agriculture', '/agriculture', Color(0xFF2E7D32)),
+      _Category(Icons.precision_manufacturing_rounded, 'Manufacturing',
+          '/manufacturing', Color(0xFFE65100)),
+      _Category(Icons.shopping_bag_rounded, 'My Orders', '/orders',
+          Color(0xFF1565C0)),
+    ];
+
+    return GridView.count(
+      crossAxisCount: 4,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      mainAxisSpacing: 4,
+      crossAxisSpacing: 4,
+      childAspectRatio: 0.85,
+      children: categories
+          .map((c) => _CategoryTile(category: c))
+          .toList(),
+    );
+  }
+}
+
+class _Category {
+  const _Category(this.icon, this.label, this.route, this.color);
+  final IconData icon;
+  final String label;
+  final String route;
+  final Color color;
+}
+
+class _CategoryTile extends StatelessWidget {
+  const _CategoryTile({required this.category});
+  final _Category category;
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+        onTap: () => context.go(category.route),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.search, color: Colors.grey),
-            const SizedBox(width: 8),
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: category.color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Icon(category.icon, color: category.color, size: 26),
+            ),
+            const SizedBox(height: 6),
             Text(
-              'Search properties, agri, goods…',
-              style: TextStyle(color: Colors.grey[600]),
+              category.label,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
-      ),
-    );
-  }
+      );
 }
 
 // ─── Section header ───────────────────────────────────────────────────────────
 
 class _SectionHeader extends StatelessWidget {
   const _SectionHeader({required this.title, required this.onSeeAll});
-
   final String title;
   final VoidCallback onSeeAll;
 
   @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          title,
-          style: Theme.of(context)
-              .textTheme
-              .titleMedium
-              ?.copyWith(fontWeight: FontWeight.bold),
-        ),
-        TextButton(onPressed: onSeeAll, child: const Text('See all')),
-      ],
-    );
-  }
+  Widget build(BuildContext context) => Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            title,
+            style: Theme.of(context)
+                .textTheme
+                .titleMedium
+                ?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          TextButton(
+            onPressed: onSeeAll,
+            child: const Text('See all'),
+          ),
+        ],
+      );
 }
 
 // ─── Shimmer placeholder ──────────────────────────────────────────────────────
@@ -173,43 +369,42 @@ class _HorizontalShimmer extends StatelessWidget {
   const _HorizontalShimmer();
 
   @override
-  Widget build(BuildContext context) {
-    final base = Theme.of(context).colorScheme.surfaceContainerHighest;
-    final highlight = Theme.of(context).colorScheme.surface;
-    return SizedBox(
-      height: 160,
-      child: Shimmer.fromColors(
-        baseColor: base,
-        highlightColor: highlight,
+  Widget build(BuildContext context) => SizedBox(
+        height: 210,
         child: ListView.separated(
           scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
           itemCount: 3,
           separatorBuilder: (_, __) => const SizedBox(width: 12),
-          itemBuilder: (_, __) => Container(
-            width: 180,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
+          itemBuilder: (_, __) => Shimmer.fromColors(
+            baseColor: Colors.grey[200]!,
+            highlightColor: Colors.grey[100]!,
+            child: Container(
+              width: 180,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+              ),
             ),
           ),
         ),
-      ),
-    );
-  }
+      );
 }
 
 // ─── Error tile ───────────────────────────────────────────────────────────────
 
 class _ErrorTile extends StatelessWidget {
   const _ErrorTile({required this.message});
-
   final String message;
 
   @override
-  Widget build(BuildContext context) => ListTile(
-        leading: const Icon(Icons.error_outline, color: Colors.red),
-        title: const Text('Failed to load'),
-        subtitle: Text(message, maxLines: 1, overflow: TextOverflow.ellipsis),
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: ListTile(
+          leading: const Icon(Icons.error_outline, color: Colors.red),
+          title: const Text('Failed to load'),
+          subtitle: Text(message, maxLines: 1, overflow: TextOverflow.ellipsis),
+        ),
       );
 }
 
@@ -217,62 +412,36 @@ class _ErrorTile extends StatelessWidget {
 
 class _PropertyRow extends StatelessWidget {
   const _PropertyRow({required this.items});
-
   final List<PropertyModel> items;
 
   @override
   Widget build(BuildContext context) {
-    if (items.isEmpty) return const Text('No properties listed yet.');
+    if (items.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 16),
+        child: Text('No properties listed yet.',
+            style: TextStyle(color: Colors.grey)),
+      );
+    }
     return SizedBox(
-      height: 180,
+      height: 220,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         itemCount: items.length,
         separatorBuilder: (_, __) => const SizedBox(width: 12),
         itemBuilder: (ctx, i) {
           final p = items[i];
           return GestureDetector(
             onTap: () => ctx.go('/properties/${p.id}'),
-            child: SizedBox(
-              width: 200,
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(
-                        Icons.home,
-                        color: Theme.of(ctx).colorScheme.primary,
-                        size: 32,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        p.title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style:
-                            const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      const Spacer(),
-                      Text(
-                        p.city ?? p.address,
-                        style: const TextStyle(
-                            color: Colors.grey, fontSize: 12),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      Text(
-                        '\$${p.price.toStringAsFixed(0)}',
-                        style: TextStyle(
-                          color: Theme.of(ctx).colorScheme.primary,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+            child: _FeaturedCard(
+              imageUrl: null,
+              icon: Icons.apartment_rounded,
+              iconColor: AppTheme.primary,
+              title: p.title,
+              subtitle: p.city ?? p.address,
+              price: '\$${p.price.toStringAsFixed(0)}',
+              badge: p.propertyType,
             ),
           );
         },
@@ -283,52 +452,38 @@ class _PropertyRow extends StatelessWidget {
 
 class _AgriRow extends StatelessWidget {
   const _AgriRow({required this.items});
-
   final List<AgricultureListingModel> items;
 
   @override
   Widget build(BuildContext context) {
-    if (items.isEmpty) return const Text('No agriculture listings yet.');
+    if (items.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 16),
+        child: Text('No agriculture listings yet.',
+            style: TextStyle(color: Colors.grey)),
+      );
+    }
     return SizedBox(
-      height: 160,
+      height: 220,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         itemCount: items.length,
         separatorBuilder: (_, __) => const SizedBox(width: 12),
         itemBuilder: (ctx, i) {
           final a = items[i];
+          final imgUrl =
+              (a.images != null && a.images!.isNotEmpty) ? a.images!.first : null;
           return GestureDetector(
             onTap: () => ctx.go('/agriculture/${a.id}'),
-            child: SizedBox(
-              width: 180,
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Icon(Icons.grass, color: Colors.green, size: 28),
-                      const SizedBox(height: 8),
-                      Text(
-                        a.title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style:
-                            const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      const Spacer(),
-                      Text(
-                        '\$${a.pricePerUnit.toStringAsFixed(2)}/${a.unit ?? 'unit'}',
-                        style: TextStyle(
-                          color: Theme.of(ctx).colorScheme.primary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+            child: _FeaturedCard(
+              imageUrl: imgUrl,
+              icon: Icons.grass_rounded,
+              iconColor: const Color(0xFF388E3C),
+              title: a.title,
+              subtitle: a.location ?? a.category ?? '',
+              price: '\$${a.pricePerUnit.toStringAsFixed(2)}/${a.unit ?? 'unit'}',
+              badge: a.category,
             ),
           );
         },
@@ -339,58 +494,148 @@ class _AgriRow extends StatelessWidget {
 
 class _MfgRow extends StatelessWidget {
   const _MfgRow({required this.items});
-
   final List<ManufacturingProductModel> items;
 
   @override
   Widget build(BuildContext context) {
-    if (items.isEmpty) return const Text('No manufacturing products yet.');
+    if (items.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 16),
+        child: Text('No manufacturing products yet.',
+            style: TextStyle(color: Colors.grey)),
+      );
+    }
     return SizedBox(
-      height: 160,
+      height: 220,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         itemCount: items.length,
         separatorBuilder: (_, __) => const SizedBox(width: 12),
         itemBuilder: (ctx, i) {
           final m = items[i];
+          final imgUrl =
+              (m.images != null && m.images!.isNotEmpty) ? m.images!.first : null;
           return GestureDetector(
             onTap: () => ctx.go('/manufacturing/${m.id}'),
-            child: SizedBox(
-              width: 180,
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Icon(Icons.factory,
-                          color: Colors.orange, size: 28),
-                      const SizedBox(height: 8),
-                      Text(
-                        m.title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style:
-                            const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      const Spacer(),
-                      Text(
-                        '\$${m.wholesalePrice.toStringAsFixed(2)}/${m.unit ?? 'unit'}',
-                        style: TextStyle(
-                          color: Theme.of(ctx).colorScheme.secondary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+            child: _FeaturedCard(
+              imageUrl: imgUrl,
+              icon: Icons.precision_manufacturing_rounded,
+              iconColor: AppTheme.secondary,
+              title: m.title,
+              subtitle: m.category ?? (m.isLocallyMade ? 'Locally Made' : ''),
+              price: '\$${m.wholesalePrice.toStringAsFixed(2)}/${m.unit ?? 'unit'}',
+              badge: m.category,
             ),
           );
         },
       ),
     );
   }
+}
+
+// ─── Featured card ────────────────────────────────────────────────────────────
+
+class _FeaturedCard extends StatelessWidget {
+  const _FeaturedCard({
+    required this.imageUrl,
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    required this.subtitle,
+    required this.price,
+    this.badge,
+  });
+
+  final String? imageUrl;
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String subtitle;
+  final String price;
+  final String? badge;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 175,
+      child: Card(
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Image / placeholder
+            SizedBox(
+              height: 120,
+              width: double.infinity,
+              child: imageUrl != null
+                  ? CachedNetworkImage(
+                      imageUrl: imageUrl!,
+                      fit: BoxFit.cover,
+                      placeholder: (_, __) => Shimmer.fromColors(
+                        baseColor: Colors.grey[200]!,
+                        highlightColor: Colors.grey[100]!,
+                        child: Container(color: Colors.white),
+                      ),
+                      errorWidget: (_, __, ___) => _PlaceholderBox(
+                        icon: icon,
+                        iconColor: iconColor,
+                      ),
+                    )
+                  : _PlaceholderBox(icon: icon, iconColor: iconColor),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w600, fontSize: 12, height: 1.3),
+                  ),
+                  if (subtitle.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style:
+                          TextStyle(color: Colors.grey[500], fontSize: 10),
+                    ),
+                  ],
+                  const SizedBox(height: 6),
+                  Text(
+                    price,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PlaceholderBox extends StatelessWidget {
+  const _PlaceholderBox({required this.icon, required this.iconColor});
+  final IconData icon;
+  final Color iconColor;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        color: iconColor.withValues(alpha: 0.07),
+        child: Center(
+          child: Icon(icon, size: 36, color: iconColor.withValues(alpha: 0.35)),
+        ),
+      );
 }
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api_service.dart';
 import '../../models/models.dart';
+import '../../widgets/image_gallery.dart';
 
 final _agriDetailProvider =
     FutureProvider.autoDispose.family<AgricultureListingModel, int>(
@@ -19,113 +20,170 @@ class AgricultureDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(_agriDetailProvider(id));
     return Scaffold(
-      appBar: AppBar(title: const Text('Commodity Detail')),
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        foregroundColor: Colors.white,
+        title: const Text('Commodity Detail'),
+        leading: IconButton(
+          icon: Container(
+            decoration: const BoxDecoration(
+              color: Colors.black26,
+              shape: BoxShape.circle,
+            ),
+            padding: const EdgeInsets.all(4),
+            child: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
+          ),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Error: $e')),
         data: (a) => SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                height: 180,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  // FIX: withOpacity deprecated → withValues(alpha:)
-                  color: Colors.green.withValues(alpha: 0.1),
-                ),
-                child: const Center(
-                    child:
-                        Icon(Icons.grass, size: 72, color: Colors.green)),
+              ImageGallery(
+                imageUrls: a.images,
+                height: 260,
+                placeholderIcon: Icons.grass_rounded,
+                placeholderColor: const Color(0xFFC8E6C9),
               ),
-              const SizedBox(height: 16),
-              Text(
-                a.title,
-                style: Theme.of(context)
-                    .textTheme
-                    .headlineSmall
-                    ?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              if (a.location != null)
-                Row(children: [
-                  const Icon(Icons.location_on,
-                      size: 16, color: Colors.grey),
-                  const SizedBox(width: 4),
-                  Text(a.location!,
-                      style: const TextStyle(color: Colors.grey)),
-                ]),
-              const SizedBox(height: 12),
-              Text(
-                '\$${a.pricePerUnit.toStringAsFixed(2)} / ${a.unit ?? 'unit'}',
-                style:
-                    Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          color: Colors.green[700],
-                          fontWeight: FontWeight.bold,
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            a.title,
+                            style: Theme.of(context)
+                                .textTheme
+                                .headlineSmall
+                                ?.copyWith(fontWeight: FontWeight.bold),
+                          ),
                         ),
-              ),
-              const SizedBox(height: 16),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  if (a.category != null) Chip(label: Text(a.category!)),
-                  if (a.qualityGrade != null)
-                    Chip(label: Text('Grade: ${a.qualityGrade}')),
-                  if (a.moq != null)
-                    Chip(
-                        label:
-                            Text('MOQ: ${a.moq} ${a.unit ?? ''}')),
-                  if (a.quantityAvailable != null)
-                    Chip(
-                        label: Text(
-                            'Available: ${a.quantityAvailable} ${a.unit ?? ''}')),
-                  if (a.isPerishable)
-                    const Chip(
-                      label: Text('Perishable'),
-                      avatar: Icon(Icons.warning, size: 14),
+                        const SizedBox(width: 8),
+                        _StatusBadge(
+                            status: a.status,
+                            color: const Color(0xFF2E7D32)),
+                      ],
                     ),
-                  if (a.certification != null)
-                    Chip(label: Text(a.certification!)),
-                ],
+                    if (a.location != null) ...[
+                      const SizedBox(height: 6),
+                      Row(children: [
+                        Icon(Icons.location_on_outlined,
+                            size: 16,
+                            color: const Color(0xFF388E3C)),
+                        const SizedBox(width: 4),
+                        Text(a.location!,
+                            style: TextStyle(
+                                color: Colors.grey[600], fontSize: 14)),
+                      ]),
+                    ],
+                    const SizedBox(height: 12),
+                    Text(
+                      '\$${a.pricePerUnit.toStringAsFixed(2)} / ${a.unit ?? 'unit'}',
+                      style:
+                          Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                color: const Color(0xFF2E7D32),
+                                fontWeight: FontWeight.bold,
+                              ),
+                    ),
+                    const SizedBox(height: 16),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        if (a.category != null)
+                          _InfoChip(label: a.category!),
+                        if (a.qualityGrade != null)
+                          _InfoChip(label: 'Grade: ${a.qualityGrade}'),
+                        if (a.moq != null)
+                          _InfoChip(
+                              label:
+                                  'MOQ: ${a.moq} ${a.unit ?? ''}'),
+                        if (a.quantityAvailable != null)
+                          _InfoChip(
+                              label:
+                                  'Available: ${a.quantityAvailable} ${a.unit ?? ''}'),
+                        if (a.isPerishable)
+                          _InfoChip(
+                              label: '⚠ Perishable',
+                              bgColor: Colors.orange.withValues(alpha: 0.1),
+                              textColor: Colors.orange[700]!),
+                        if (a.certification != null)
+                          _InfoChip(label: '✓ ${a.certification}'),
+                      ],
+                    ),
+                    if (a.storageConditions != null) ...[
+                      const SizedBox(height: 16),
+                      const Divider(),
+                      const SizedBox(height: 12),
+                      Text('Storage Conditions',
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleSmall
+                              ?.copyWith(fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 6),
+                      Text(a.storageConditions!,
+                          style: TextStyle(
+                              color: Colors.grey[700], height: 1.5)),
+                    ],
+                    if (a.description != null) ...[
+                      const SizedBox(height: 16),
+                      const Divider(),
+                      const SizedBox(height: 12),
+                      Text('Description',
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleSmall
+                              ?.copyWith(fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 6),
+                      Text(a.description!,
+                          style: TextStyle(
+                              color: Colors.grey[700], height: 1.5)),
+                    ],
+                    const SizedBox(height: 100),
+                  ],
+                ),
               ),
-              if (a.storageConditions != null) ...[
-                const SizedBox(height: 16),
-                const Text('Storage Conditions',
-                    style: TextStyle(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 4),
-                Text(a.storageConditions!),
-              ],
-              if (a.description != null) ...[
-                const SizedBox(height: 16),
-                const Text('Description',
-                    style: TextStyle(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 4),
-                Text(a.description!),
-              ],
-              const SizedBox(height: 80),
             ],
           ),
         ),
       ),
       bottomNavigationBar: async.maybeWhen(
-        data: (_) => Padding(
-          padding: const EdgeInsets.all(16),
+        data: (_) => Container(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.07),
+                blurRadius: 12,
+                offset: const Offset(0, -2),
+              ),
+            ],
+          ),
           child: Row(
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  icon: const Icon(Icons.request_quote),
+                  icon: const Icon(Icons.request_quote_outlined),
                   label: const Text('Request Quote'),
                   onPressed: () {},
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
+                flex: 2,
                 child: ElevatedButton.icon(
-                  icon: const Icon(Icons.shopping_cart),
+                  icon: const Icon(Icons.shopping_cart_outlined),
                   label: const Text('Order Now'),
                   onPressed: () {},
                 ),
@@ -137,4 +195,62 @@ class AgricultureDetailScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+class _StatusBadge extends StatelessWidget {
+  const _StatusBadge({required this.status, required this.color});
+  final String status;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding:
+            const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
+        ),
+        child: Text(
+          status.toUpperCase(),
+          style: TextStyle(
+              color: color,
+              fontSize: 11,
+              fontWeight: FontWeight.w700),
+        ),
+      );
+}
+
+class _InfoChip extends StatelessWidget {
+  const _InfoChip({
+    required this.label,
+    this.bgColor,
+    this.textColor,
+  });
+  final String label;
+  final Color? bgColor;
+  final Color? textColor;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding:
+            const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: bgColor ??
+              Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+              color: Theme.of(context)
+                  .colorScheme
+                  .outlineVariant),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: textColor ??
+                Theme.of(context).colorScheme.onSurface,
+          ),
+        ),
+      );
 }

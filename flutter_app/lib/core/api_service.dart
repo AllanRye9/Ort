@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:http_parser/http_parser.dart' show MediaType;
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 import 'constants.dart';
 
@@ -327,5 +328,32 @@ class ApiService {
       int userId, Map<String, dynamic> data) async {
     final res = await _dio.put('/users/$userId', data: data);
     return res.data as Map<String, dynamic>;
+  }
+
+  // ─── Image upload ─────────────────────────────────────────────────────────
+
+  /// Upload an image file and return its public URL.
+  /// [bytes] – raw image bytes
+  /// [filename] – original filename (e.g. "photo.jpg")
+  /// [mimeType] – MIME type (e.g. "image/jpeg")
+  Future<String> uploadImage({
+    required List<int> bytes,
+    required String filename,
+    required String mimeType,
+  }) async {
+    final formData = FormData.fromMap({
+      'file': MultipartFile.fromBytes(
+        bytes,
+        filename: filename,
+        contentType: MediaType.parse(mimeType),
+      ),
+    });
+    final res = await _dio.post(
+      '/upload/image',
+      data: formData,
+      options: Options(contentType: 'multipart/form-data'),
+    );
+    final data = res.data as Map<String, dynamic>;
+    return data['url'] as String;
   }
 }
