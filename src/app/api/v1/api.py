@@ -114,7 +114,7 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
         last_name=user.last_name,
         email=user.email,
         phone=user.phone,
-        password_hash=pwd_context.hash(user.password),
+        password_hash=pwd_context.hash(user.password[:72]),
     )
     db.add(db_user)
     db.commit()
@@ -130,7 +130,7 @@ def update_user(user_id: int, user_update: UserUpdate, db: Session = Depends(get
 
     data = user_update.model_dump(exclude_unset=True)
     if "password" in data:
-        data["password_hash"] = pwd_context.hash(data.pop("password"))
+        data["password_hash"] = pwd_context.hash(data.pop("password")[:72])
     for key, value in data.items():
         setattr(user, key, value)
 
