@@ -20,7 +20,7 @@ class UserCreate(UserBase):
     first_name: str = Field(..., min_length=2, max_length=100)
     last_name: str = Field(..., min_length=2, max_length=100)
     phone: Optional[str] = Field(None, max_length=20)
-    password: str = Field(..., min_length=8, max_length=72)
+    password: str = Field(..., min_length=8, max_length=128)
 
     @field_validator("first_name", "last_name", mode="before")
     @classmethod
@@ -36,7 +36,7 @@ class UserUpdate(BaseModel):
     last_name: Optional[str] = Field(None, min_length=2, max_length=100)
     email: Optional[EmailStr] = None
     phone: Optional[str] = Field(None, max_length=20)
-    password: Optional[str] = Field(None, min_length=8, max_length=72)
+    password: Optional[str] = Field(None, min_length=8, max_length=128)
 
     @field_validator("first_name", "last_name", mode="before")
     @classmethod
