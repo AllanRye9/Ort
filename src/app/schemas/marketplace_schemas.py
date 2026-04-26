@@ -50,6 +50,13 @@ class RegisterRequest(BaseModel):
     agency_name: Optional[str] = Field(None, max_length=255)
     bio: Optional[str] = None
 
+    @field_validator("password", mode="after")
+    @classmethod
+    def password_max_bytes(cls, v: str) -> str:
+        if len(v.encode("utf-8")) > 72:
+            raise ValueError("Password is too long. Maximum 72 bytes allowed.")
+        return v
+
     @field_validator("first_name", "last_name", mode="before")
     @classmethod
     def no_blank(cls, v: str) -> str:
