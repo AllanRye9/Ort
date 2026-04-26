@@ -98,10 +98,37 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
                 if (auth.error != null) ...[
                   const SizedBox(height: 12),
-                  Text(
-                    auth.error!,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .errorContainer
+                          .withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .error
+                            .withValues(alpha: 0.5),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.error_outline,
+                            color: Theme.of(context).colorScheme.error,
+                            size: 18),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            auth.error!,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.error,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
