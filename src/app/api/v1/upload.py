@@ -153,7 +153,7 @@ async def _process_upload(file: UploadFile) -> dict:
             if not public_base:
                 public_base = f"https://{bucket}.s3.amazonaws.com"
             url = f"{public_base}/{object_key}"
-            logger.info("Uploaded image to S3: %s", url)
+            logger.info("Uploaded image to S3 key: %s", object_key)
             return {"url": url}
         except Exception as exc:
             logger.error("S3 upload failed: %s", exc)

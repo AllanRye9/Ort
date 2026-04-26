@@ -812,7 +812,7 @@ class _FeaturedCard extends StatelessWidget {
                   Positioned(
                     top: 8,
                     left: 8,
-                    child: _NewBadge(),
+                    child: const _NewBadge(),
                   ),
                 // Category badge
                 if (badge != null && badge!.isNotEmpty)
@@ -881,6 +881,8 @@ class _FeaturedCard extends StatelessWidget {
 // ─── NEW badge ────────────────────────────────────────────────────────────────
 
 class _NewBadge extends StatefulWidget {
+  const _NewBadge();
+
   @override
   State<_NewBadge> createState() => _NewBadgeState();
 }

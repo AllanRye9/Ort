@@ -29,6 +29,7 @@ int _completionScore(UserModel u) {
 }
 
 const int _maxScore = 8;
+const int _xpPerPoint = 125;
 
 // ─── XP levels ────────────────────────────────────────────────────────────────
 
@@ -123,11 +124,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Row(
+            content: Row(
               children: [
-                Icon(Icons.check_circle, color: Colors.white),
-                SizedBox(width: 8),
-                Text('Profile updated! +XP 🎉'),
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 8),
+                Text('Profile updated! +$_xpPerPoint XP 🎉'),
               ],
             ),
             backgroundColor: AppTheme.primary,
@@ -560,7 +561,7 @@ class _XpLevelCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = _levelColor(score);
     final label = _levelLabel(score);
-    final xp = score * 125;
+    final xp = score * _xpPerPoint;
 
     return Container(
       padding: const EdgeInsets.all(16),
