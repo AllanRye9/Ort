@@ -10,9 +10,9 @@ from app.schemas.marketplace_schemas import (
     MessageCreate, MessageResponse,
 )
 
-# Separate routers so conversations live at /api/v1/conversations/
-# and messages live at /api/v1/messages/
-conversations_router = APIRouter(prefix="/conversations", tags=["conversations"])
+# conversations live at /api/v1/messages/conversations/
+# messages live at /api/v1/messages/
+conversations_router = APIRouter(prefix="/messages/conversations", tags=["conversations"])
 router = APIRouter(prefix="/messages", tags=["messages"])
 
 
