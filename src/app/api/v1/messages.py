@@ -10,12 +10,15 @@ from app.schemas.marketplace_schemas import (
     MessageCreate, MessageResponse,
 )
 
+# Separate routers so conversations live at /api/v1/conversations/
+# and messages live at /api/v1/messages/
+conversations_router = APIRouter(prefix="/conversations", tags=["conversations"])
 router = APIRouter(prefix="/messages", tags=["messages"])
 
 
 # ---- Conversations ----
 
-@router.get("/conversations/", response_model=List[ConversationResponse])
+@conversations_router.get("/", response_model=List[ConversationResponse])
 def list_conversations(
     user_id: Optional[int] = Query(None),
     skip: int = Query(0, ge=0),
@@ -30,7 +33,7 @@ def list_conversations(
     return q.offset(skip).limit(limit).all()
 
 
-@router.get("/conversations/{conversation_id}", response_model=ConversationResponse)
+@conversations_router.get("/{conversation_id}", response_model=ConversationResponse)
 def get_conversation(conversation_id: int, db: Session = Depends(get_db)):
     obj = db.query(Conversation).filter(Conversation.id == conversation_id).first()
     if not obj:
@@ -38,7 +41,7 @@ def get_conversation(conversation_id: int, db: Session = Depends(get_db)):
     return obj
 
 
-@router.post("/conversations/", response_model=ConversationResponse, status_code=status.HTTP_201_CREATED)
+@conversations_router.post("/", response_model=ConversationResponse, status_code=status.HTTP_201_CREATED)
 def create_conversation(payload: ConversationCreate, db: Session = Depends(get_db)):
     obj = Conversation(**payload.model_dump())
     db.add(obj)
