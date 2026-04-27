@@ -1,4 +1,5 @@
 """JWT Authentication router."""
+import hmac
 import logging
 import os
 import re
@@ -57,30 +58,35 @@ def _make_unique_slug(db: Session, base: str) -> str:
 @router.post("/login", response_model=TokenResponse)
 def login(payload: LoginRequest, db: Session = Depends(get_db)):
     # ── ENV-var admin bypass ───────────────────────────────────────────────────
-    # When ADMIN_USER and ADMIN_PASSWORD are configured, the matching credentials
-    # are accepted and an admin user is auto-created / role-updated in the DB.
-    if _ADMIN_USER and _ADMIN_PASSWORD:
-        if payload.email == _ADMIN_USER and payload.password == _ADMIN_PASSWORD:
-            admin_user = db.query(User).filter(User.email == _ADMIN_USER).first()
-            if admin_user is None:
-                # First-time setup: create the admin user record.
-                admin_user = User(
-                    role="admin",
-                    first_name="Admin",
-                    last_name="User",
-                    email=_ADMIN_USER,
-                    password_hash=pwd_context.hash(_ADMIN_PASSWORD),
-                )
-                db.add(admin_user)
-                db.commit()
-                db.refresh(admin_user)
-                logger.info("Admin user created from ADMIN_USER env var")
-            elif admin_user.role != "admin":
-                admin_user.role = "admin"
-                db.commit()
-                db.refresh(admin_user)
-            token = _create_access_token({"sub": str(admin_user.id), "role": "admin"})
-            return TokenResponse(access_token=token, user_id=admin_user.id, role="admin")
+    # When ADMIN_USER and ADMIN_PASSWORD are configured, credentials matching
+    # those env vars bypass the normal DB lookup and ensure an admin user exists.
+    # hmac.compare_digest is used to prevent timing-based credential leaks.
+    if (
+        _ADMIN_USER
+        and _ADMIN_PASSWORD
+        and hmac.compare_digest(payload.email, _ADMIN_USER)
+        and hmac.compare_digest(payload.password, _ADMIN_PASSWORD)
+    ):
+        admin_user = db.query(User).filter(User.email == _ADMIN_USER).first()
+        if admin_user is None:
+            # First-time setup: create the admin user record.
+            admin_user = User(
+                role="admin",
+                first_name="Admin",
+                last_name="User",
+                email=_ADMIN_USER,
+                password_hash=pwd_context.hash(_ADMIN_PASSWORD),
+            )
+            db.add(admin_user)
+            db.commit()
+            db.refresh(admin_user)
+            logger.info("Admin user created from ADMIN_USER env var")
+        elif admin_user.role != "admin":
+            admin_user.role = "admin"
+            db.commit()
+            db.refresh(admin_user)
+        token = _create_access_token({"sub": str(admin_user.id), "role": "admin"})
+        return TokenResponse(access_token=token, user_id=admin_user.id, role="admin")
 
     user = db.query(User).filter(User.email == payload.email).first()
     try:
