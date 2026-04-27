@@ -882,3 +882,4 @@ def create_challenge(
     db.refresh(ch)
     return {"id": ch.id, "description": ch.description}
 
+
