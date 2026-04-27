@@ -327,14 +327,7 @@ class _ReadView extends StatelessWidget {
   List<Widget> _roleTiles(BuildContext context, String role) {
     switch (role) {
       case 'admin':
-        return [
-          _ProfileTile(
-            icon: Icons.admin_panel_settings_rounded,
-            label: 'Admin Panel',
-            iconColor: const Color(0xFF1B5E20),
-            onTap: () => context.go('/admin'),
-          ),
-        ];
+        return [];  // Admin panel is at /const on the backend server.
       case 'agent':
         return [
           _ProfileTile(

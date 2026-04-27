@@ -11,6 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 from .database.database import engine, Base, run_schema_migrations
 from .api.v1.api import router
+from .api.v1.const_admin import router as const_admin_router
 
 # Import marketplace models so their tables are registered with Base
 from .models import marketplace_models  # noqa: F401
@@ -162,6 +163,9 @@ except Exception as exc:
 
 # Include all routes
 app.include_router(router, prefix="/api/v1")
+
+# Backend admin console served at /const (no /api/v1 prefix)
+app.include_router(const_admin_router)
 
 logger.info("Application startup complete — routes registered under /api/v1")
 
