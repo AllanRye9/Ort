@@ -68,21 +68,33 @@ class AgricultureScreen extends ConsumerWidget {
                     (a.images != null && a.images!.isNotEmpty)
                         ? a.images!.first
                         : null;
-                return ListingCard(
-                  icon: Icons.grass_rounded,
-                  iconColor: const Color(0xFF388E3C),
-                  imageUrl: imgUrl,
-                  title: a.title,
-                  subtitle: a.location ?? a.commodityType ?? '',
-                  tag: a.category ?? 'Agriculture',
-                  status: a.status,
-                  price: '\$${a.pricePerUnit.toStringAsFixed(2)}/${a.unit ?? 'unit'}',
-                  extras: [
-                    if (a.qualityGrade != null) a.qualityGrade!,
-                    if (a.moq != null) 'MOQ: ${a.moq}',
-                    if (a.isPerishable) '⚠ Perishable',
-                  ],
-                  onTap: () => ctx.go('/agriculture/${a.id}'),
+                return TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0.0, end: 1.0),
+                  duration: Duration(milliseconds: 300 + i * 60),
+                  curve: Curves.easeOut,
+                  builder: (context, value, child) => Opacity(
+                    opacity: value,
+                    child: Transform.translate(
+                      offset: Offset(0, 16 * (1 - value)),
+                      child: child,
+                    ),
+                  ),
+                  child: ListingCard(
+                    icon: Icons.grass_rounded,
+                    iconColor: const Color(0xFF388E3C),
+                    imageUrl: imgUrl,
+                    title: a.title,
+                    subtitle: a.location ?? a.commodityType ?? '',
+                    tag: a.category ?? 'Agriculture',
+                    status: a.status,
+                    price: '\$${a.pricePerUnit.toStringAsFixed(2)}/${a.unit ?? 'unit'}',
+                    extras: [
+                      if (a.qualityGrade != null) a.qualityGrade!,
+                      if (a.moq != null) 'MOQ: ${a.moq}',
+                      if (a.isPerishable) '⚠ Perishable',
+                    ],
+                    onTap: () => ctx.go('/agriculture/${a.id}'),
+                  ),
                 );
               },
             ),
