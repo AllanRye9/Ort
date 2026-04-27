@@ -613,9 +613,6 @@ class _ErrorTile extends StatelessWidget {
 
 // ─── Row widgets ──────────────────────────────────────────────────────────────
 
-bool _isNew(DateTime createdAt) =>
-    DateTime.now().difference(createdAt).inHours < 24;
-
 class _PropertyRow extends StatelessWidget {
   const _PropertyRow({required this.items});
   final List<PropertyModel> items;
@@ -651,7 +648,6 @@ class _PropertyRow extends StatelessWidget {
                 subtitle: p.city ?? p.address,
                 price: '\$${p.price.toStringAsFixed(0)}',
                 badge: p.propertyType,
-                isNew: _isNew(p.createdAt),
               ),
             ),
           );
@@ -697,7 +693,6 @@ class _AgriRow extends StatelessWidget {
                 subtitle: a.location ?? a.category ?? '',
                 price: '\$${a.pricePerUnit.toStringAsFixed(2)}/${a.unit ?? 'unit'}',
                 badge: a.category,
-                isNew: _isNew(a.createdAt),
               ),
             ),
           );
@@ -743,7 +738,6 @@ class _MfgRow extends StatelessWidget {
                 subtitle: m.category ?? (m.isLocallyMade ? 'Locally Made' : ''),
                 price: '\$${m.wholesalePrice.toStringAsFixed(2)}/${m.unit ?? 'unit'}',
                 badge: m.category,
-                isNew: _isNew(m.createdAt),
               ),
             ),
           );
@@ -764,7 +758,6 @@ class _FeaturedCard extends StatelessWidget {
     required this.subtitle,
     required this.price,
     this.badge,
-    this.isNew = false,
   });
 
   final String? imageUrl;
@@ -774,7 +767,6 @@ class _FeaturedCard extends StatelessWidget {
   final String subtitle;
   final String price;
   final String? badge;
-  final bool isNew;
 
   @override
   Widget build(BuildContext context) {
@@ -807,13 +799,6 @@ class _FeaturedCard extends StatelessWidget {
                         )
                       : _PlaceholderBox(icon: icon, iconColor: iconColor),
                 ),
-                // "NEW" badge for listings uploaded within the last 24 hours
-                if (isNew)
-                  Positioned(
-                    top: 8,
-                    left: 8,
-                    child: const _NewBadge(),
-                  ),
                 // Category badge
                 if (badge != null && badge!.isNotEmpty)
                   Positioned(
@@ -876,66 +861,6 @@ class _FeaturedCard extends StatelessWidget {
       ),
     );
   }
-}
-
-// ─── NEW badge ────────────────────────────────────────────────────────────────
-
-class _NewBadge extends StatefulWidget {
-  const _NewBadge();
-
-  @override
-  State<_NewBadge> createState() => _NewBadgeState();
-}
-
-class _NewBadgeState extends State<_NewBadge>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl;
-  late final Animation<double> _scale;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 900))
-      ..repeat(reverse: true);
-    _scale = Tween<double>(begin: 1.0, end: 1.1)
-        .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => AnimatedBuilder(
-        animation: _scale,
-        builder: (_, child) => Transform.scale(scale: _scale.value, child: child),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFFFF6B35), Color(0xFFFFD700)],
-            ),
-            borderRadius: BorderRadius.circular(6),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.orange.withValues(alpha: 0.5),
-                blurRadius: 4,
-              ),
-            ],
-          ),
-          child: const Text(
-            '✨ NEW',
-            style: TextStyle(
-                color: Colors.white,
-                fontSize: 9,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.5),
-          ),
-        ),
-      );
 }
 
 class _PlaceholderBox extends StatelessWidget {

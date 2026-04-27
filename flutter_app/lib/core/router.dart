@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'auth_provider.dart';
@@ -205,10 +206,17 @@ final routerProvider = Provider<GoRouter>((ref) {
 
 // ─── Bottom-navigation shell ──────────────────────────────────────────────────
 
-class MainShell extends StatelessWidget {
+class MainShell extends StatefulWidget {
   const MainShell({super.key, required this.child});
 
   final Widget child;
+
+  @override
+  State<MainShell> createState() => _MainShellState();
+}
+
+class _MainShellState extends State<MainShell> {
+  DateTime? _lastBackPress;
 
   static const _tabs = [
     ('/home', Icons.home_outlined, Icons.home_rounded, 'Home'),
@@ -228,23 +236,58 @@ class MainShell extends StatelessWidget {
     return 0;
   }
 
+  Future<bool> _onWillPop(BuildContext context) async {
+    final router = GoRouter.of(context);
+    // If the router can go back (e.g., we're on a sub-page), go back.
+    if (router.canPop()) {
+      router.pop();
+      return false;
+    }
+    // On the root/home level: require a second tap within 2 seconds to exit.
+    final now = DateTime.now();
+    if (_lastBackPress == null ||
+        now.difference(_lastBackPress!) > const Duration(seconds: 2)) {
+      _lastBackPress = now;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Press back again to exit'),
+          duration: Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return false;
+    }
+    return true;
+  }
+
   @override
   Widget build(BuildContext context) {
     final index = _currentIndex(context);
-    return Scaffold(
-      body: child,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: index,
-        onDestinationSelected: (i) => context.go(_tabs[i].$1),
-        destinations: _tabs
-            .map(
-              (t) => NavigationDestination(
-                icon: Icon(t.$2),
-                selectedIcon: Icon(t.$3),
-                label: t.$4,
-              ),
-            )
-            .toList(),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        final shouldExit = await _onWillPop(context);
+        if (shouldExit && context.mounted) {
+          // Signal the platform to close the app.
+          await SystemNavigator.pop();
+        }
+      },
+      child: Scaffold(
+        body: widget.child,
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: index,
+          onDestinationSelected: (i) => context.go(_tabs[i].$1),
+          destinations: _tabs
+              .map(
+                (t) => NavigationDestination(
+                  icon: Icon(t.$2),
+                  selectedIcon: Icon(t.$3),
+                  label: t.$4,
+                ),
+              )
+              .toList(),
+        ),
       ),
     );
   }
