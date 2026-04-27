@@ -32,7 +32,48 @@ _HTML = r"""<!DOCTYPE html>
   .tab-btn{padding:0.5rem 1.25rem;border-radius:0.5rem;font-size:0.875rem;font-weight:500;cursor:pointer;border:1px solid #d1d5db;background:#fff;color:#374151;transition:all .15s}
   .tab-btn.active{background:#15803d;color:#fff;border-color:#15803d}
   #orgTypeRow{display:none}
+  /* ── Mobile sidebar ─────────────────────────────────────────────────────── */
+  @media(max-width:767px){
+    #sidebar{position:fixed;top:0;left:0;bottom:0;z-index:30;width:16rem;transform:translateX(-100%);transition:transform .3s ease}
+    #sidebar.sidebar-open{transform:translateX(0)}
+    #sidebarOverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:20}
+    #sidebarOverlay.show{display:block}
+  }
+  @media(min-width:768px){#sidebar{position:relative!important;transform:none!important}}
+  /* ── Dark theme ─────────────────────────────────────────────────────────── */
+  html.theme-dark body{background:#111827!important;color:#f9fafb!important}
+  html.theme-dark aside{background:#030712!important}
+  html.theme-dark .border-green-800{border-color:#1f2937!important}
+  html.theme-dark header.bg-white,html.theme-dark .bg-white{background:#1f2937!important}
+  html.theme-dark .bg-gray-50{background:#111827!important}
+  html.theme-dark .text-gray-800{color:#f9fafb!important}
+  html.theme-dark .text-gray-700{color:#e5e7eb!important}
+  html.theme-dark .text-gray-600{color:#d1d5db!important}
+  html.theme-dark .text-gray-500{color:#9ca3af!important}
+  html.theme-dark .text-gray-400{color:#6b7280!important}
+  html.theme-dark .border-b,html.theme-dark .border-gray-300{border-color:#374151!important}
+  html.theme-dark input,html.theme-dark select,html.theme-dark textarea{background:#374151!important;color:#f9fafb!important;border-color:#4b5563!important}
+  html.theme-dark thead tr{background:#374151!important}
+  html.theme-dark tbody tr:hover{background:#374151!important}
+  html.theme-dark #themeMenu{background:#1f2937!important;border-color:#374151!important}
+  html.theme-dark #themeMenu button:hover{background:#374151!important}
+  html.theme-dark .tab-btn{background:#374151!important;color:#e5e7eb!important;border-color:#4b5563!important}
+  html.theme-dark .tab-btn.active{background:#15803d!important;color:#fff!important;border-color:#15803d!important}
+  /* ── Ocean theme ────────────────────────────────────────────────────────── */
+  html.theme-ocean body{background:#eff6ff!important}
+  html.theme-ocean aside{background:#1e3a8a!important}
+  html.theme-ocean .border-green-800{border-color:#1d4ed8!important}
+  html.theme-ocean .bg-green-600{background:#2563eb!important}
+  html.theme-ocean .text-green-400{color:#93c5fd!important}
+  html.theme-ocean .text-green-700{color:#1d4ed8!important}
+  html.theme-ocean .bg-green-700{background:#1d4ed8!important}
+  html.theme-ocean .border-green-200{border-color:#bfdbfe!important}
+  html.theme-ocean .sidebar-link:hover,.sidebar-link.active{background:#1d4ed8!important}
+  html.theme-ocean .bg-green-50{background:#eff6ff!important}
 </style>
+<script>
+(function(){var t=localStorage.getItem('ort_medi_theme')||'white';if(t!=='white')document.documentElement.classList.add('theme-'+t);})();
+</script>
 </head>
 <body class="bg-gray-50 text-gray-800">
 
@@ -168,10 +209,11 @@ _HTML = r"""<!DOCTYPE html>
 </div>
 
 <!-- ═══ MAIN LAYOUT ══════════════════════════════════════════════════════════ -->
+<div id="sidebarOverlay" onclick="toggleSidebar()"></div>
 <div id="app" class="hidden min-h-screen flex">
 
   <!-- Sidebar -->
-  <aside class="w-64 bg-green-900 text-white flex flex-col shrink-0">
+  <aside id="sidebar" class="w-64 bg-green-900 text-white flex flex-col shrink-0">
     <div class="px-5 py-5 border-b border-green-800">
       <div class="flex items-center gap-3">
         <div class="w-9 h-9 rounded-full bg-green-600 flex items-center justify-center shrink-0">
@@ -216,11 +258,33 @@ _HTML = r"""<!DOCTYPE html>
   <!-- Main Content -->
   <main class="flex-1 overflow-y-auto">
     <header class="bg-white border-b px-6 py-3 flex items-center justify-between sticky top-0 z-10 shadow-sm">
-      <h2 id="pageTitle" class="text-lg font-semibold text-gray-800">Postings</h2>
-      <button onclick="refreshCurrent()"
-        class="text-green-700 hover:text-green-900 text-xs font-medium border border-green-200 hover:border-green-400 px-3 py-1.5 rounded-lg transition-colors">
-        ↻ Refresh
-      </button>
+      <div class="flex items-center gap-3">
+        <button onclick="toggleSidebar()"
+          class="md:hidden p-1.5 rounded-lg text-gray-600 hover:bg-gray-100" aria-label="Menu">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+          </svg>
+        </button>
+        <h2 id="pageTitle" class="text-lg font-semibold text-gray-800">Postings</h2>
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="refreshCurrent()"
+          class="text-green-700 hover:text-green-900 text-xs font-medium border border-green-200 hover:border-green-400 px-3 py-1.5 rounded-lg transition-colors">
+          ↻ Refresh
+        </button>
+        <div class="relative" id="themeDropdown">
+          <button onclick="toggleThemeMenu()"
+            class="text-xs font-medium border border-gray-200 hover:border-gray-400 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
+            title="Change theme">
+            🎨 Theme
+          </button>
+          <div id="themeMenu" class="hidden absolute right-0 top-9 bg-white border border-gray-200 rounded-lg shadow-lg z-50 w-32 py-1">
+            <button onclick="setTheme('white')" class="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2 text-gray-700">☀️ White</button>
+            <button onclick="setTheme('dark')"  class="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2 text-gray-700">🌙 Dark</button>
+            <button onclick="setTheme('ocean')" class="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2 text-gray-700">🌊 Ocean</button>
+          </div>
+        </div>
+      </div>
     </header>
 
     <div id="toast" class="hidden fixed top-4 right-4 z-50 px-4 py-3 rounded-xl shadow-lg text-white text-sm font-medium max-w-xs"></div>
@@ -402,7 +466,7 @@ document.getElementById('registerForm').addEventListener('submit', async e => {
 // ── Auth helpers ───────────────────────────────────────────────────────────
 async function fetchMe() {
   try {
-    const r = await fetch(`${API}/auth/me`, { headers: authHeaders() });
+    const r = await fetch(`${API}/users/me`, { headers: authHeaders() });
     if (!r.ok) { token = ''; localStorage.removeItem('medi_token'); return false; }
     currentUser = await r.json();
     return true;
@@ -427,6 +491,7 @@ const sections = ['postings', 'analytics', 'profile'];
 const titles = { postings: 'Postings', analytics: 'Analytics', profile: 'Profile' };
 
 function showSection(name) {
+  closeSidebar();
   sections.forEach(s => {
     document.getElementById(`sec-${s}`).classList.toggle('hidden', s !== name);
     const btn = document.getElementById(`nav${s.charAt(0).toUpperCase()+s.slice(1)}`);
@@ -565,10 +630,37 @@ function esc(s) {
 function showToast(msg, isError=false) {
   const t = document.getElementById('toast');
   t.textContent = msg;
-  t.className = `fixed top-4 right-4 z-50 px-4 py-3 rounded-xl shadow-lg text-white text-sm font-medium max-w-xs ${isError?'bg-red-600':'bg-green-700'}`;
+  t.style.backgroundColor = isError ? '#dc2626' : '#15803d';
+  t.className = 'fixed top-4 right-4 z-50 px-4 py-3 rounded-xl shadow-lg text-white text-sm font-medium max-w-xs';
   t.classList.remove('hidden');
   setTimeout(() => t.classList.add('hidden'), 3000);
 }
+
+// ── Mobile sidebar ─────────────────────────────────────────────────────────
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('sidebar-open');
+  document.getElementById('sidebarOverlay').classList.toggle('show');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('sidebar-open');
+  document.getElementById('sidebarOverlay').classList.remove('show');
+}
+
+// ── Theme switcher ─────────────────────────────────────────────────────────
+function setTheme(t) {
+  const cl = document.documentElement.classList;
+  cl.remove('theme-white','theme-dark','theme-ocean');
+  if (t !== 'white') cl.add('theme-'+t);
+  localStorage.setItem('ort_medi_theme', t);
+  document.getElementById('themeMenu').classList.add('hidden');
+}
+function toggleThemeMenu() {
+  document.getElementById('themeMenu').classList.toggle('hidden');
+}
+document.addEventListener('click', function(e) {
+  const dd = document.getElementById('themeDropdown');
+  if (dd && !dd.contains(e.target)) document.getElementById('themeMenu').classList.add('hidden');
+});
 </script>
 </body>
 </html>"""

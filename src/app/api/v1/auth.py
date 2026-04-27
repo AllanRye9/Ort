@@ -31,8 +31,8 @@ SECRET_KEY = os.getenv("SECRET_KEY", "change-me-in-production")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
 
-_ADMIN_USER = os.getenv("ADMIN_USER")
-_ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
+_ADMIN_USER = (os.getenv("ADMIN_USER") or "").strip() or None
+_ADMIN_PASSWORD = (os.getenv("ADMIN_PASSWORD") or "").strip() or None
 
 
 def _create_access_token(data: dict) -> str:
@@ -64,7 +64,7 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
     if (
         _ADMIN_USER
         and _ADMIN_PASSWORD
-        and hmac.compare_digest(payload.email, _ADMIN_USER)
+        and hmac.compare_digest(payload.email.lower(), _ADMIN_USER.lower())
         and hmac.compare_digest(payload.password, _ADMIN_PASSWORD)
     ):
         admin_user = db.query(User).filter(User.email == _ADMIN_USER).first()

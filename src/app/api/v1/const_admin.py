@@ -29,7 +29,38 @@ _HTML = r"""<!DOCTYPE html>
   .sidebar-link:hover{background-color:#15803d;color:#fff}
   .badge{display:inline-block;padding:0.125rem 0.5rem;border-radius:9999px;font-size:0.75rem;font-weight:600}
   #toast{transition:opacity .3s}
+  /* ── Dark theme ─────────────────────────────────────────────────────────── */
+  html.theme-dark body{background:#111827!important;color:#f9fafb!important}
+  html.theme-dark aside{background:#030712!important}
+  html.theme-dark .border-green-800{border-color:#1f2937!important}
+  html.theme-dark header.bg-white,html.theme-dark .bg-white{background:#1f2937!important}
+  html.theme-dark .bg-gray-50{background:#111827!important}
+  html.theme-dark .text-gray-800{color:#f9fafb!important}
+  html.theme-dark .text-gray-700{color:#e5e7eb!important}
+  html.theme-dark .text-gray-600{color:#d1d5db!important}
+  html.theme-dark .text-gray-500{color:#9ca3af!important}
+  html.theme-dark .text-gray-400{color:#6b7280!important}
+  html.theme-dark .border-b,html.theme-dark .border-gray-300{border-color:#374151!important}
+  html.theme-dark input,html.theme-dark select,html.theme-dark textarea{background:#374151!important;color:#f9fafb!important;border-color:#4b5563!important}
+  html.theme-dark thead tr{background:#374151!important}
+  html.theme-dark tbody tr:hover{background:#374151!important}
+  html.theme-dark #themeMenu{background:#1f2937!important;border-color:#374151!important}
+  html.theme-dark #themeMenu button:hover{background:#374151!important}
+  /* ── Ocean theme ────────────────────────────────────────────────────────── */
+  html.theme-ocean body{background:#eff6ff!important}
+  html.theme-ocean aside{background:#1e3a8a!important}
+  html.theme-ocean .border-green-800{border-color:#1d4ed8!important}
+  html.theme-ocean .bg-green-600{background:#2563eb!important}
+  html.theme-ocean .text-green-400{color:#93c5fd!important}
+  html.theme-ocean .text-green-700{color:#1d4ed8!important}
+  html.theme-ocean .bg-green-700{background:#1d4ed8!important}
+  html.theme-ocean .border-green-200{border-color:#bfdbfe!important}
+  html.theme-ocean .sidebar-link:hover{background:#1d4ed8!important}
+  html.theme-ocean .bg-green-50{background:#eff6ff!important}
 </style>
+<script>
+(function(){var t=localStorage.getItem('ort_admin_theme')||'white';if(t!=='white')document.documentElement.classList.add('theme-'+t);})();
+</script>
 </head>
 <body class="bg-gray-50 text-gray-800">
 
@@ -145,6 +176,18 @@ _HTML = r"""<!DOCTYPE html>
           class="text-green-700 hover:text-green-900 text-xs font-medium border border-green-200 hover:border-green-400 px-3 py-1.5 rounded-lg transition-colors">
           ↻ Refresh
         </button>
+        <div class="relative" id="themeDropdown">
+          <button onclick="toggleThemeMenu()"
+            class="text-xs font-medium border border-gray-200 hover:border-gray-400 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
+            title="Change theme">
+            🎨 Theme
+          </button>
+          <div id="themeMenu" class="hidden absolute right-0 top-9 bg-white border border-gray-200 rounded-lg shadow-lg z-50 w-32 py-1">
+            <button onclick="setTheme('white')" class="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2 text-gray-700">☀️ White</button>
+            <button onclick="setTheme('dark')"  class="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2 text-gray-700">🌙 Dark</button>
+            <button onclick="setTheme('ocean')" class="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center gap-2 text-gray-700">🌊 Ocean</button>
+          </div>
+        </div>
       </div>
     </header>
 
@@ -894,6 +937,22 @@ function renderPager(elId, total, offset, limit, sectionKey) {
     document.getElementById(elId+'-next').onclick = () => _pagerCbs[sectionKey](offset+limit);
   }
 }
+
+// ── Theme switcher ─────────────────────────────────────────────────────────
+function setTheme(t) {
+  const cl = document.documentElement.classList;
+  cl.remove('theme-white','theme-dark','theme-ocean');
+  if (t !== 'white') cl.add('theme-'+t);
+  localStorage.setItem('ort_admin_theme', t);
+  document.getElementById('themeMenu').classList.add('hidden');
+}
+function toggleThemeMenu() {
+  document.getElementById('themeMenu').classList.toggle('hidden');
+}
+document.addEventListener('click', function(e) {
+  const dd = document.getElementById('themeDropdown');
+  if (dd && !dd.contains(e.target)) document.getElementById('themeMenu').classList.add('hidden');
+});
 </script>
 </body>
 </html>"""

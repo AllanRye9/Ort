@@ -464,3 +464,39 @@ class NotificationModel {
         createdAt: DateTime.parse(j['created_at'] as String),
       );
 }
+
+class ReviewModel {
+  const ReviewModel({
+    required this.id,
+    this.reviewerId,
+    this.reviewedAgentId,
+    this.reviewedTenantId,
+    required this.rating,
+    this.title,
+    this.body,
+    required this.isVerifiedPurchase,
+    required this.createdAt,
+  });
+
+  final int id;
+  final int? reviewerId;
+  final int? reviewedAgentId;
+  final int? reviewedTenantId;
+  final int rating;
+  final String? title;
+  final String? body;
+  final bool isVerifiedPurchase;
+  final DateTime createdAt;
+
+  factory ReviewModel.fromJson(Map<String, dynamic> j) => ReviewModel(
+        id: j['id'] as int,
+        reviewerId: j['reviewer_id'] as int?,
+        reviewedAgentId: j['reviewed_agent_id'] as int?,
+        reviewedTenantId: j['reviewed_tenant_id'] as int?,
+        rating: j['rating'] as int,
+        title: j['title'] as String?,
+        body: j['body'] as String?,
+        isVerifiedPurchase: j['is_verified_purchase'] as bool? ?? false,
+        createdAt: DateTime.parse(j['created_at'] as String),
+      );
+}

@@ -16,6 +16,7 @@ def list_reviews(
     limit: int = Query(100, ge=1, le=1000),
     tenant_id: Optional[int] = Query(None),
     property_id: Optional[int] = Query(None),
+    agent_id: Optional[int] = Query(None),
     db: Session = Depends(get_db),
 ):
     q = db.query(Review)
@@ -23,7 +24,9 @@ def list_reviews(
         q = q.filter(Review.reviewed_tenant_id == tenant_id)
     if property_id:
         q = q.filter(Review.property_id == property_id)
-    return q.offset(skip).limit(limit).all()
+    if agent_id:
+        q = q.filter(Review.reviewed_agent_id == agent_id)
+    return q.order_by(Review.created_at.desc()).offset(skip).limit(limit).all()
 
 
 @router.get("/{review_id}", response_model=ReviewResponse)

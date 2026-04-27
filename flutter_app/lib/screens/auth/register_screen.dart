@@ -234,7 +234,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
                       ),
                       items: const [
                         DropdownMenuItem(
-                            value: 'user', child: Text('Regular User (Buyer)')),
+                            value: 'user', child: Text('User')),
                         DropdownMenuItem(value: 'agent', child: Text('Agent')),
                       ],
                       onChanged: (v) => setState(() {
