@@ -34,7 +34,9 @@ class _AgricultureDetailScreenState extends ConsumerState<AgricultureDetailScree
   Future<void> _loadSavedState() async {
     try {
       final api = ref.read(apiServiceProvider);
-      final saved = await api.checkSaved('agriculture', widget.id);
+      final userId = ref.read(authProvider).userId;
+      if (userId == null) return;
+      final saved = await api.checkSaved(userId: userId, itemType: 'agriculture', itemId: widget.id);
       if (mounted) setState(() => _isSaved = saved);
     } catch (_) {}
   }
@@ -45,10 +47,11 @@ class _AgricultureDetailScreenState extends ConsumerState<AgricultureDetailScree
     try {
       final api = ref.read(apiServiceProvider);
       final userId = ref.read(authProvider).userId;
+      if (userId == null) return;
       if (_isSaved) {
-        await api.unsaveItem('agriculture', widget.id);
+        await api.unsaveItem(userId: userId, itemType: 'agriculture', itemId: widget.id);
       } else {
-        await api.saveItem({'user_id': userId, 'item_type': 'agriculture', 'item_id': widget.id});
+        await api.saveItem(userId: userId, itemType: 'agriculture', itemId: widget.id);
       }
       if (mounted) setState(() => _isSaved = !_isSaved);
     } catch (e) {

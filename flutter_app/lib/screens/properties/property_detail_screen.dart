@@ -40,7 +40,9 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
   Future<void> _loadSavedState() async {
     try {
       final api = ref.read(apiServiceProvider);
-      final saved = await api.checkSaved('property', widget.id);
+      final userId = ref.read(authProvider).userId;
+      if (userId == null) return;
+      final saved = await api.checkSaved(userId: userId, itemType: 'property', itemId: widget.id);
       if (mounted) setState(() => _isSaved = saved);
     } catch (_) {}
   }
@@ -51,10 +53,11 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     try {
       final api = ref.read(apiServiceProvider);
       final userId = ref.read(authProvider).userId;
+      if (userId == null) return;
       if (_isSaved) {
-        await api.unsaveItem('property', widget.id);
+        await api.unsaveItem(userId: userId, itemType: 'property', itemId: widget.id);
       } else {
-        await api.saveItem({'user_id': userId, 'item_type': 'property', 'item_id': widget.id});
+        await api.saveItem(userId: userId, itemType: 'property', itemId: widget.id);
       }
       if (mounted) setState(() => _isSaved = !_isSaved);
     } catch (e) {

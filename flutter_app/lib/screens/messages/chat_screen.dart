@@ -105,9 +105,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   itemBuilder: (ctx, i) {
                     final m = messages[i];
                     final isMe = m.senderId == currentUserId;
-                    final initial = (m.senderId.toString().isNotEmpty)
-                        ? m.senderId.toString()[0].toUpperCase()
-                        : '?';
+                    final senderStr = m.senderId?.toString() ?? '';
+                    final initial = senderStr.isNotEmpty ? senderStr[0].toUpperCase() : '?';
                     return Padding(
                       padding: const EdgeInsets.symmetric(vertical: 4),
                       child: Row(
