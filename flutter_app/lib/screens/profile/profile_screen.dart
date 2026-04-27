@@ -433,7 +433,13 @@ class _ReadView extends StatelessWidget {
           ),
         ];
       default:
-        return [
+        return _userDefaultTiles(context);
+    }
+  }
+
+  // Shared tiles used by 'user' role and unknown/future roles.
+  List<Widget> _userDefaultTiles(BuildContext context) {
+    return [
           _ProfileTile(
             icon: Icons.shopping_bag,
             label: 'My Orders',
@@ -445,7 +451,6 @@ class _ReadView extends StatelessWidget {
             onTap: () => _showComingSoon(context, 'My Reviews'),
           ),
         ];
-    }
   }
 
   void _showComingSoon(BuildContext context, String feature) {
