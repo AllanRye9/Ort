@@ -297,12 +297,12 @@ class _ReadView extends StatelessWidget {
               _ProfileTile(
                 icon: Icons.settings,
                 label: 'Settings',
-                onTap: () {},
+                onTap: () => _showComingSoon(context, 'Settings'),
               ),
               _ProfileTile(
                 icon: Icons.help_outline,
                 label: 'Help & Support',
-                onTap: () {},
+                onTap: () => _showHelpDialog(context),
               ),
               const Divider(),
               Consumer(
@@ -345,7 +345,7 @@ class _ReadView extends StatelessWidget {
           _ProfileTile(
             icon: Icons.people,
             label: 'My Clients',
-            onTap: () {},
+            onTap: () => _showComingSoon(context, 'My Clients'),
           ),
           _ProfileTile(
             icon: Icons.shopping_bag,
@@ -355,7 +355,7 @@ class _ReadView extends StatelessWidget {
           _ProfileTile(
             icon: Icons.star_border,
             label: 'My Reviews',
-            onTap: () {},
+            onTap: () => _showComingSoon(context, 'My Reviews'),
           ),
         ];
       case 'company':
@@ -368,7 +368,7 @@ class _ReadView extends StatelessWidget {
           _ProfileTile(
             icon: Icons.request_quote,
             label: 'My RFQs',
-            onTap: () {},
+            onTap: () => _showComingSoon(context, 'My RFQs'),
           ),
           _ProfileTile(
             icon: Icons.shopping_bag,
@@ -378,12 +378,12 @@ class _ReadView extends StatelessWidget {
           _ProfileTile(
             icon: Icons.business,
             label: 'My Organisation',
-            onTap: () {},
+            onTap: () => _showComingSoon(context, 'My Organisation'),
           ),
           _ProfileTile(
             icon: Icons.subscriptions,
             label: 'Subscription',
-            onTap: () {},
+            onTap: () => _showComingSoon(context, 'Subscription'),
           ),
         ];
       case 'organization':
@@ -396,26 +396,44 @@ class _ReadView extends StatelessWidget {
           _ProfileTile(
             icon: Icons.business,
             label: 'My Organisation',
-            onTap: () {},
+            onTap: () => _showComingSoon(context, 'My Organisation'),
           ),
           _ProfileTile(
             icon: Icons.request_quote,
             label: 'My RFQs',
-            onTap: () {},
+            onTap: () => _showComingSoon(context, 'My RFQs'),
           ),
           _ProfileTile(
             icon: Icons.subscriptions,
             label: 'Subscription',
-            onTap: () {},
+            onTap: () => _showComingSoon(context, 'Subscription'),
+          ),
+        ];
+      case 'user':
+        return [
+          _ProfileTile(
+            icon: Icons.shopping_bag,
+            label: 'My Orders',
+            onTap: () => context.go('/orders'),
+          ),
+          _ProfileTile(
+            icon: Icons.request_quote,
+            label: 'My RFQs',
+            onTap: () => _showComingSoon(context, 'My RFQs'),
+          ),
+          _ProfileTile(
+            icon: Icons.star_border,
+            label: 'My Reviews',
+            onTap: () => _showComingSoon(context, 'My Reviews'),
+          ),
+          _ProfileTile(
+            icon: Icons.chat_bubble_outline,
+            label: 'My Messages',
+            onTap: () => context.go('/messages'),
           ),
         ];
       default:
         return [
-          _ProfileTile(
-            icon: Icons.apartment,
-            label: 'My Listings',
-            onTap: () => context.go('/properties'),
-          ),
           _ProfileTile(
             icon: Icons.shopping_bag,
             label: 'My Orders',
@@ -424,10 +442,58 @@ class _ReadView extends StatelessWidget {
           _ProfileTile(
             icon: Icons.star_border,
             label: 'My Reviews',
-            onTap: () {},
+            onTap: () => _showComingSoon(context, 'My Reviews'),
           ),
         ];
     }
+  }
+
+  void _showComingSoon(BuildContext context, String feature) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$feature – coming soon!'),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void _showHelpDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Help & Support'),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Need help? Contact us:'),
+            SizedBox(height: 12),
+            Row(
+              children: [
+                Icon(Icons.email_outlined, size: 18, color: Colors.grey),
+                SizedBox(width: 8),
+                Text('support@ort.app'),
+              ],
+            ),
+            SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(Icons.language_outlined, size: 18, color: Colors.grey),
+                SizedBox(width: 8),
+                Text('ort.up.railway.app'),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
   }
 }
 

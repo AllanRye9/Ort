@@ -75,7 +75,7 @@ class ManufacturingScreen extends ConsumerWidget {
                   imageUrl: imgUrl,
                   title: m.title,
                   subtitle:
-                      m.category ?? (m.isLocallyMade ? 'Locally Made' : ''),
+                      m.location ?? m.category ?? (m.isLocallyMade ? 'Locally Made' : ''),
                   tag: m.category ?? 'Manufacturing',
                   status: m.status,
                   price:
