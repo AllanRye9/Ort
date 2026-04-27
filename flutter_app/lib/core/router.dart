@@ -101,7 +101,8 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // Redirect away from the loading splash once initialized.
       if (loc == '/') {
-        return isAuthenticated ? '/home' : '/login';
+        if (!isAuthenticated) return '/login';
+        return authState.role == 'admin' ? '/admin' : '/home';
       }
 
       if (!isAuthenticated && !isAuthRoute) return '/login';

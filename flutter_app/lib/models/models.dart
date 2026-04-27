@@ -147,7 +147,7 @@ class PropertyModel {
 class AgricultureListingModel {
   const AgricultureListingModel({
     required this.id,
-    required this.tenantId,
+    this.tenantId,
     required this.title,
     this.description,
     this.category,
@@ -168,7 +168,7 @@ class AgricultureListingModel {
   });
 
   final int id;
-  final int tenantId;
+  final int? tenantId;
   final String title;
   final String? description;
   final String? category;
@@ -190,7 +190,7 @@ class AgricultureListingModel {
   factory AgricultureListingModel.fromJson(Map<String, dynamic> j) =>
       AgricultureListingModel(
         id: j['id'] as int,
-        tenantId: j['tenant_id'] as int,
+        tenantId: j['tenant_id'] as int?,
         title: j['title'] as String,
         description: j['description'] as String?,
         category: j['category'] as String?,
@@ -216,7 +216,7 @@ class AgricultureListingModel {
 class ManufacturingProductModel {
   const ManufacturingProductModel({
     required this.id,
-    required this.tenantId,
+    this.tenantId,
     required this.title,
     this.description,
     this.category,
@@ -231,12 +231,13 @@ class ManufacturingProductModel {
     this.leadTimeDays,
     this.isLocallyMade = true,
     this.countryOfOrigin,
+    this.location,
     required this.status,
     required this.createdAt,
   });
 
   final int id;
-  final int tenantId;
+  final int? tenantId;
   final String title;
   final String? description;
   final String? category;
@@ -251,13 +252,14 @@ class ManufacturingProductModel {
   final int? leadTimeDays;
   final bool isLocallyMade;
   final String? countryOfOrigin;
+  final String? location;
   final String status;
   final DateTime createdAt;
 
   factory ManufacturingProductModel.fromJson(Map<String, dynamic> j) =>
       ManufacturingProductModel(
         id: j['id'] as int,
-        tenantId: j['tenant_id'] as int,
+        tenantId: j['tenant_id'] as int?,
         title: j['title'] as String,
         description: j['description'] as String?,
         category: j['category'] as String?,
@@ -273,6 +275,7 @@ class ManufacturingProductModel {
         leadTimeDays: j['lead_time_days'] as int?,
         isLocallyMade: j['is_locally_made'] as bool? ?? true,
         countryOfOrigin: j['country_of_origin'] as String?,
+        location: j['location'] as String?,
         status: (j['status'] as String?) ?? 'available',
         createdAt: DateTime.parse(j['created_at'] as String),
       );

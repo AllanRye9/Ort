@@ -206,7 +206,7 @@ class AgricultureListingBase(BaseModel):
 
 
 class AgricultureListingCreate(AgricultureListingBase):
-    tenant_id: int
+    tenant_id: Optional[int] = None
     price_per_unit: Decimal = Field(..., gt=0)
 
     @field_validator("title", mode="before")
@@ -242,7 +242,7 @@ class AgricultureListingUpdate(BaseModel):
 
 class AgricultureListingResponse(AgricultureListingBase):
     id: int
-    tenant_id: int
+    tenant_id: Optional[int] = None
     status: str
     created_at: datetime
 
@@ -269,10 +269,11 @@ class ManufacturingProductBase(BaseModel):
     lead_time_days: Optional[int] = None
     is_locally_made: Optional[bool] = True
     country_of_origin: Optional[str] = None
+    location: Optional[str] = None
 
 
 class ManufacturingProductCreate(ManufacturingProductBase):
-    tenant_id: int
+    tenant_id: Optional[int] = None
     wholesale_price: Decimal = Field(..., gt=0)
 
     @field_validator("title", mode="before")
@@ -301,12 +302,13 @@ class ManufacturingProductUpdate(BaseModel):
     lead_time_days: Optional[int] = None
     is_locally_made: Optional[bool] = None
     country_of_origin: Optional[str] = None
+    location: Optional[str] = None
     status: Optional[str] = Field(None, pattern="^(available|out_of_stock|discontinued)$")
 
 
 class ManufacturingProductResponse(ManufacturingProductBase):
     id: int
-    tenant_id: int
+    tenant_id: Optional[int] = None
     status: str
     created_at: datetime
 
