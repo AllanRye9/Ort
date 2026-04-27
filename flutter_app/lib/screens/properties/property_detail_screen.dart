@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/api_service.dart';
+import '../../core/auth_provider.dart';
 import '../../models/models.dart';
 import '../../widgets/image_gallery.dart';
 
@@ -17,15 +18,60 @@ final _propertyImagesProvider =
 });
 
 
-class PropertyDetailScreen extends ConsumerWidget {
+class PropertyDetailScreen extends ConsumerStatefulWidget {
   const PropertyDetailScreen({super.key, required this.id});
 
   final int id;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final async = ref.watch(_propertyDetailProvider(id));
-    final imagesAsync = ref.watch(_propertyImagesProvider(id));
+  ConsumerState<PropertyDetailScreen> createState() => _PropertyDetailScreenState();
+}
+
+class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
+  bool _isSaved = false;
+  bool _saveBusy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedState();
+  }
+
+  Future<void> _loadSavedState() async {
+    try {
+      final api = ref.read(apiServiceProvider);
+      final saved = await api.checkSaved('property', widget.id);
+      if (mounted) setState(() => _isSaved = saved);
+    } catch (_) {}
+  }
+
+  Future<void> _toggleSave() async {
+    if (_saveBusy) return;
+    setState(() => _saveBusy = true);
+    try {
+      final api = ref.read(apiServiceProvider);
+      final userId = ref.read(authProvider).userId;
+      if (_isSaved) {
+        await api.unsaveItem('property', widget.id);
+      } else {
+        await api.saveItem({'user_id': userId, 'item_type': 'property', 'item_id': widget.id});
+      }
+      if (mounted) setState(() => _isSaved = !_isSaved);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), behavior: SnackBarBehavior.floating),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _saveBusy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final async = ref.watch(_propertyDetailProvider(widget.id));
+    final imagesAsync = ref.watch(_propertyImagesProvider(widget.id));
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
@@ -44,6 +90,33 @@ class PropertyDetailScreen extends ConsumerWidget {
           ),
           onPressed: () => context.pop(),
         ),
+        actions: [
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            decoration: const BoxDecoration(
+              color: Colors.black26,
+              shape: BoxShape.circle,
+            ),
+            child: _saveBusy
+                ? const Padding(
+                    padding: EdgeInsets.all(8),
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
+                    ),
+                  )
+                : IconButton(
+                    icon: Icon(
+                      _isSaved ? Icons.bookmark : Icons.bookmark_border,
+                      color: Colors.white,
+                    ),
+                    onPressed: _toggleSave,
+                    tooltip: _isSaved ? 'Unsave' : 'Save',
+                  ),
+          ),
+        ],
       ),
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),

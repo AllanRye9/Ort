@@ -41,6 +41,21 @@ def get_review(review_id: int, db: Session = Depends(get_db)):
 def create_review(payload: ReviewCreate, db: Session = Depends(get_db)):
     obj = Review(**payload.model_dump())
     db.add(obj)
+    db.flush()
+
+    # Notify the reviewed agent
+    if payload.reviewed_agent_id:
+        from app.models.marketplace_models import Notification
+        notif = Notification(
+            user_id=payload.reviewed_agent_id,
+            title="New Review",
+            body=f"You received a {payload.rating}-star review.",
+            notification_type="review",
+            reference_id=obj.id,
+            reference_type="review",
+        )
+        db.add(notif)
+
     db.commit()
     db.refresh(obj)
     return obj
