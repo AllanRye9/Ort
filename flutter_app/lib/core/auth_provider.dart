@@ -62,18 +62,24 @@ class AuthNotifier extends StateNotifier<AuthState> {
   final FlutterSecureStorage _storage;
 
   Future<void> _loadToken() async {
-    final token = await _storage.read(key: AppConstants.tokenKey);
-    final userIdStr = await _storage.read(key: AppConstants.userIdKey);
-    final role = await _storage.read(key: AppConstants.roleKey);
-    if (token != null) {
-      state = state.copyWith(
-        token: token,
-        userId: userIdStr != null ? int.tryParse(userIdStr) : null,
-        role: role,
-        isInitialized: true,
-      );
-    } else {
-      // No saved token – mark as initialized so the router can redirect.
+    try {
+      final token = await _storage.read(key: AppConstants.tokenKey);
+      final userIdStr = await _storage.read(key: AppConstants.userIdKey);
+      final role = await _storage.read(key: AppConstants.roleKey);
+      if (token != null) {
+        state = state.copyWith(
+          token: token,
+          userId: userIdStr != null ? int.tryParse(userIdStr) : null,
+          role: role,
+          isInitialized: true,
+        );
+      } else {
+        // No saved token – mark as initialized so the router can redirect.
+        state = state.copyWith(isInitialized: true);
+      }
+    } catch (_) {
+      // Storage unavailable (e.g. private browsing or blocked IndexedDB on
+      // Flutter Web). Treat the user as logged-out and let the router proceed.
       state = state.copyWith(isInitialized: true);
     }
   }
