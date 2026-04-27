@@ -99,6 +99,7 @@ _MIGRATIONS: list[tuple[str, str, str]] = [
     ("support_tickets",  "status",         "VARCHAR(50)  DEFAULT 'open'"),
     ("support_tickets",  "resolution",     "TEXT"),
     ("manufacturing_products", "location", "VARCHAR(255)"),
+    ("reviews",          "reviewed_agent_id", "INTEGER"),
 ]
 
 # Columns whose type needs widening on existing databases.

@@ -386,11 +386,13 @@ class Review(Base):
     __table_args__ = (
         Index("ix_reviews_reviewer_id", "reviewer_id"),
         Index("ix_reviews_tenant_id", "reviewed_tenant_id"),
+        Index("ix_reviews_agent_id", "reviewed_agent_id"),
     )
 
     id = Column(Integer, primary_key=True)
     reviewer_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     reviewed_tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=True)
+    reviewed_agent_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True)
     # optional context
     order_id = Column(Integer, ForeignKey("orders.id", ondelete="SET NULL"), nullable=True)
     property_id = Column(Integer, ForeignKey("properties.id", ondelete="SET NULL"), nullable=True)
@@ -402,6 +404,7 @@ class Review(Base):
 
     reviewer = relationship("User", foreign_keys=[reviewer_id])
     reviewed_tenant = relationship("Tenant")
+    reviewed_agent = relationship("User", foreign_keys=[reviewed_agent_id])
 
 
 # ---------------------------------------------------------------------------

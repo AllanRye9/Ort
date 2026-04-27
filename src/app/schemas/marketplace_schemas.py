@@ -506,6 +506,7 @@ class RFQResponseResponse(BaseModel):
 class ReviewCreate(BaseModel):
     reviewer_id: Optional[int] = None
     reviewed_tenant_id: Optional[int] = None
+    reviewed_agent_id: Optional[int] = None
     order_id: Optional[int] = None
     property_id: Optional[int] = None
     rating: int = Field(..., ge=1, le=5)
@@ -518,6 +519,7 @@ class ReviewResponse(BaseModel):
     id: int
     reviewer_id: Optional[int] = None
     reviewed_tenant_id: Optional[int] = None
+    reviewed_agent_id: Optional[int] = None
     order_id: Optional[int] = None
     property_id: Optional[int] = None
     rating: int

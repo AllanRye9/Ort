@@ -291,10 +291,11 @@ class ApiService {
 
   // ─── Reviews ──────────────────────────────────────────────────────────────
 
-  Future<List<dynamic>> getReviews({int? tenantId, int? propertyId}) async {
+  Future<List<dynamic>> getReviews({int? tenantId, int? propertyId, int? agentId}) async {
     final res = await _dio.get('/reviews/', queryParameters: {
       if (tenantId != null) 'tenant_id': tenantId,
       if (propertyId != null) 'property_id': propertyId,
+      if (agentId != null) 'agent_id': agentId,
     });
     return res.data as List<dynamic>;
   }
@@ -302,6 +303,24 @@ class ApiService {
   Future<Map<String, dynamic>> createReview(Map<String, dynamic> data) async {
     final res = await _dio.post('/reviews/', data: data);
     return res.data as Map<String, dynamic>;
+  }
+
+  Future<List<dynamic>> getAgentReviews(int agentId) async {
+    return getReviews(agentId: agentId);
+  }
+
+  Future<Map<String, dynamic>> createAgentReview({
+    required int agentId,
+    required int rating,
+    String? title,
+    String? body,
+  }) async {
+    return createReview({
+      'reviewed_agent_id': agentId,
+      'rating': rating,
+      if (title != null && title.isNotEmpty) 'title': title,
+      if (body != null && body.isNotEmpty) 'body': body,
+    });
   }
 
   // ─── Notifications ────────────────────────────────────────────────────────
