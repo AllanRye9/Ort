@@ -15,6 +15,14 @@ ORT_MEDIAA_NAME     Bucket / container name
 ORT_MEDIAA_SECRET   Secret key (optional; defaults to ORT_MEDIAA_KEY)
 S3_PUBLIC_BASE_URL  Public base URL to prefix uploaded keys with
 
+Render default bucket environment variables (checked second)
+------------------------------------------------------------
+BUCKET_ACCESS_KEY_ID
+BUCKET_SECRET_ACCESS_KEY
+BUCKET_NAME
+BUCKET_ENDPOINT_URL
+BUCKET_REGION       (default: us-east-1)
+
 Legacy fallback environment variables
 --------------------------------------
 AWS_ACCESS_KEY_ID
@@ -51,8 +59,9 @@ _MAX_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB
 def _get_s3_config():
     """Return (key_id, secret, endpoint_url, bucket, public_base) from env vars.
 
-    Checks ORT_MEDIAA_* vars first, then falls back to legacy AWS_* / S3_* vars.
-    Returns None if essential credentials are not available.
+    Checks ORT_MEDIAA_* vars first, then Render BUCKET_* vars, then falls back
+    to legacy AWS_* / S3_* vars.  Returns None if essential credentials are not
+    available.
     """
     # ── Primary: ORT_MEDIAA_* ────────────────────────────────────────────────
     ort_key = os.getenv("ORT_MEDIAA_KEY")
@@ -71,6 +80,26 @@ def _get_s3_config():
             "bucket": ort_name,
             "public_base": public_base,
             "region": os.getenv("AWS_REGION", "us-east-1"),
+        }
+
+    # ── Render default bucket vars: BUCKET_* ────────────────────────────────
+    bucket_key_id = os.getenv("BUCKET_ACCESS_KEY_ID")
+    bucket_secret = os.getenv("BUCKET_SECRET_ACCESS_KEY")
+    bucket_name = os.getenv("BUCKET_NAME")
+
+    if bucket_key_id and bucket_secret and bucket_name:
+        endpoint_url = os.getenv("BUCKET_ENDPOINT_URL")
+        region = os.getenv("BUCKET_REGION", "us-east-1")
+        public_base = os.getenv("S3_PUBLIC_BASE_URL", "").rstrip("/")
+        if not public_base and endpoint_url:
+            public_base = f"{endpoint_url.rstrip('/')}/{bucket_name}"
+        return {
+            "key_id": bucket_key_id,
+            "secret": bucket_secret,
+            "endpoint_url": endpoint_url,
+            "bucket": bucket_name,
+            "public_base": public_base,
+            "region": region,
         }
 
     # ── Legacy: AWS_* / S3_* ─────────────────────────────────────────────────
