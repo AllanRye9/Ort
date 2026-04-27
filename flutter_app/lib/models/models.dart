@@ -500,3 +500,27 @@ class ReviewModel {
         createdAt: DateTime.parse(j['created_at'] as String),
       );
 }
+
+class SavedItemModel {
+  const SavedItemModel({
+    required this.id,
+    required this.userId,
+    required this.itemType,
+    required this.itemId,
+    required this.createdAt,
+  });
+
+  final int id;
+  final int userId;
+  final String itemType;
+  final int itemId;
+  final DateTime createdAt;
+
+  factory SavedItemModel.fromJson(Map<String, dynamic> j) => SavedItemModel(
+        id: j['id'] as int,
+        userId: j['user_id'] as int,
+        itemType: j['item_type'] as String,
+        itemId: j['item_id'] as int,
+        createdAt: DateTime.parse(j['created_at'] as String),
+      );
+}

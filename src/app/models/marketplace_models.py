@@ -432,6 +432,26 @@ class Notification(Base):
 
 
 # ---------------------------------------------------------------------------
+# Saved / Favourited Items
+# ---------------------------------------------------------------------------
+
+class SavedItem(Base):
+    __tablename__ = "saved_items"
+    __table_args__ = (
+        Index("ix_saved_items_user_id", "user_id"),
+        Index("ix_saved_items_item_type", "item_type"),
+    )
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    item_type = Column(String(50), nullable=False)   # property, agriculture, manufacturing
+    item_id = Column(Integer, nullable=False)
+    created_at = Column(DateTime, server_default=func.now())
+
+    user = relationship("User", foreign_keys=[user_id])
+
+
+# ---------------------------------------------------------------------------
 # Admin / Support
 # ---------------------------------------------------------------------------
 

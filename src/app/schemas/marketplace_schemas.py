@@ -558,3 +558,21 @@ class NotificationResponse(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+# ========== SAVED ITEMS ==========
+
+class SavedItemCreate(BaseModel):
+    user_id: int
+    item_type: str = Field(..., pattern="^(property|agriculture|manufacturing)$")
+    item_id: int
+
+
+class SavedItemResponse(BaseModel):
+    id: int
+    user_id: int
+    item_type: str
+    item_id: int
+    created_at: datetime
+
+    model_config = {"from_attributes": True}

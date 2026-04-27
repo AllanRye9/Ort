@@ -40,7 +40,7 @@ import os
 import uuid
 from typing import List
 
-from fastapi import APIRouter, HTTPException, UploadFile, File, status
+from fastapi import APIRouter, HTTPException, Query, UploadFile, File, status
 
 logger = logging.getLogger(__name__)
 
@@ -237,3 +237,61 @@ async def upload_images(
         )
     results = await asyncio.gather(*[_process_upload(f) for f in files])
     return {"urls": [r["url"] for r in results]}
+
+
+@router.delete("/image", status_code=status.HTTP_200_OK)
+async def delete_image(url: str = Query(..., description="Public URL of the image to delete")):
+    """Delete an uploaded image by its public URL.
+
+    Removes the object from S3 / Railway bucket when storage is configured.
+    In stub mode, removes the file from the local static directory.
+    """
+    from pathlib import Path
+    import urllib.parse
+
+    s3, bucket, public_base = _get_s3_client()
+
+    if s3 and bucket and public_base:
+        # Derive the S3 object key from the public URL.
+        # public_base ends without slash; URL = public_base + "/" + object_key
+        if not url.startswith(public_base):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="URL does not belong to the configured storage bucket.",
+            )
+        object_key = url[len(public_base):].lstrip("/")
+        try:
+            s3.delete_object(Bucket=bucket, Key=object_key)
+            logger.info("Deleted S3 object: %s", object_key)
+            return {"message": "Image deleted"}
+        except Exception as exc:
+            logger.error("S3 delete failed: %s", exc)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Image deletion failed. Please try again.",
+            ) from exc
+    else:
+        # Stub mode: delete from local static directory
+        base_url = os.getenv("APP_BASE_URL", "https://ort.up.railway.app")
+        static_prefix = f"{base_url}/static/"
+        if url.startswith(static_prefix):
+            rel_path = url[len(static_prefix):]
+            static_dir = Path(__file__).parents[4] / "static"
+            target = (static_dir / rel_path).resolve()
+            # Safety: ensure the resolved path is still inside static_dir
+            if not str(target).startswith(str(static_dir.resolve())):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid image URL.",
+                )
+            if target.exists():
+                try:
+                    target.unlink()
+                    logger.info("Deleted local image: %s", target)
+                except OSError as exc:
+                    logger.error("Failed to delete local image: %s", exc)
+                    raise HTTPException(
+                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                        detail="Image deletion failed.",
+                    ) from exc
+        return {"message": "Image deleted"}

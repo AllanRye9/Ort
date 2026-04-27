@@ -21,6 +21,10 @@ def list_products(
     category: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
     tenant_id: Optional[int] = Query(None),
+    keyword: Optional[str] = Query(None),
+    min_price: Optional[float] = Query(None),
+    max_price: Optional[float] = Query(None),
+    location: Optional[str] = Query(None),
     db: Session = Depends(get_db),
 ):
     q = db.query(ManufacturingProduct)
@@ -30,7 +34,19 @@ def list_products(
         q = q.filter(ManufacturingProduct.status == status)
     if tenant_id:
         q = q.filter(ManufacturingProduct.tenant_id == tenant_id)
-    return q.offset(skip).limit(limit).all()
+    if keyword:
+        like = f"%{keyword}%"
+        q = q.filter(
+            (ManufacturingProduct.title.ilike(like)) |
+            (ManufacturingProduct.category.ilike(like))
+        )
+    if min_price is not None:
+        q = q.filter(ManufacturingProduct.wholesale_price >= min_price)
+    if max_price is not None:
+        q = q.filter(ManufacturingProduct.wholesale_price <= max_price)
+    if location:
+        q = q.filter(ManufacturingProduct.location.ilike(f"%{location}%"))
+    return q.order_by(ManufacturingProduct.created_at.desc()).offset(skip).limit(limit).all()
 
 
 @router.get("/{product_id}", response_model=ManufacturingProductResponse)

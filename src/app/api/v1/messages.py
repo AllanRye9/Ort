@@ -71,12 +71,32 @@ def list_messages(
 
 @router.post("/", response_model=MessageResponse, status_code=status.HTTP_201_CREATED)
 def send_message(payload: MessageCreate, db: Session = Depends(get_db)):
-    # Verify conversation exists
     conv = db.query(Conversation).filter(Conversation.id == payload.conversation_id).first()
     if not conv:
         raise HTTPException(status_code=404, detail="Conversation not found")
     obj = Message(**payload.model_dump())
     db.add(obj)
+    db.flush()
+
+    # Create a notification for the other participant
+    recipient_id = None
+    if conv.initiator_id and conv.initiator_id != payload.sender_id:
+        recipient_id = conv.initiator_id
+    elif conv.recipient_id and conv.recipient_id != payload.sender_id:
+        recipient_id = conv.recipient_id
+
+    if recipient_id:
+        from app.models.marketplace_models import Notification
+        notif = Notification(
+            user_id=recipient_id,
+            title="New Message",
+            body=payload.body[:120] if payload.body else None,
+            notification_type="message",
+            reference_id=payload.conversation_id,
+            reference_type="conversation",
+        )
+        db.add(notif)
+
     db.commit()
     db.refresh(obj)
     return obj

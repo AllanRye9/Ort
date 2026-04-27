@@ -4,7 +4,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from passlib.context import CryptContext
 from jose import jwt, JWTError
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 
 from app.database.database import get_db
 from app.models.models import (
@@ -36,6 +36,7 @@ from app.api.v1 import (
     notifications as notifications_router,
     upload as upload_router,
     admin as admin_module,
+    saved_items as saved_items_router,
 )
 
 router = APIRouter()
@@ -54,6 +55,7 @@ router.include_router(notifications_router.router)
 router.include_router(upload_router.router)
 router.include_router(admin_module.router)
 router.include_router(admin_module.user_tickets_router)
+router.include_router(saved_items_router.router)
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -232,9 +234,33 @@ def delete_client(client_id: int, db: Session = Depends(get_db)):
 def get_properties(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
+    keyword: Optional[str] = Query(None),
+    min_price: Optional[float] = Query(None),
+    max_price: Optional[float] = Query(None),
+    city: Optional[str] = Query(None),
+    property_type: Optional[str] = Query(None),
+    status: Optional[str] = Query(None),
     db: Session = Depends(get_db),
 ):
-    props = db.query(Property).offset(skip).limit(limit).all()
+    q = db.query(Property)
+    if keyword:
+        like = f"%{keyword}%"
+        q = q.filter(
+            (Property.title.ilike(like)) |
+            (Property.address.ilike(like)) |
+            (Property.city.ilike(like))
+        )
+    if min_price is not None:
+        q = q.filter(Property.price >= min_price)
+    if max_price is not None:
+        q = q.filter(Property.price <= max_price)
+    if city:
+        q = q.filter(Property.city.ilike(f"%{city}%"))
+    if property_type:
+        q = q.filter(Property.property_type == property_type)
+    if status:
+        q = q.filter(Property.status == status)
+    props = q.offset(skip).limit(limit).all()
     return [PropertyResponse.from_orm_with_images(p) for p in props]
 
 
