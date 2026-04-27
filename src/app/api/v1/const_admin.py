@@ -20,12 +20,14 @@ _HTML = r"""<!DOCTYPE html>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Ort Admin Console</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"
+        integrity="sha256-oFMFVRpPnlzr3h4TpMCoLHpRSdVTnLMBSPdqvEK2oiU="
+        crossorigin="anonymous"></script>
 <style>
   body{font-family:'Inter',system-ui,sans-serif}
-  .sidebar-link{@apply flex items-center gap-3 px-4 py-2.5 rounded-lg text-gray-300 hover:bg-green-700 hover:text-white transition-colors cursor-pointer text-sm font-medium}
-  .stat-card{@apply bg-white rounded-2xl shadow p-5 flex flex-col gap-1}
-  .badge{@apply inline-block px-2 py-0.5 rounded-full text-xs font-semibold}
+  .sidebar-link{display:flex;align-items:center;gap:0.75rem;padding:0.625rem 1rem;border-radius:0.5rem;color:#d1d5db;transition:background-color 0.15s,color 0.15s;cursor:pointer;font-size:0.875rem;font-weight:500;background:none;border:none;width:100%;text-align:left}
+  .sidebar-link:hover{background-color:#15803d;color:#fff}
+  .badge{display:inline-block;padding:0.125rem 0.5rem;border-radius:9999px;font-size:0.75rem;font-weight:600}
   #toast{transition:opacity .3s}
 </style>
 </head>
@@ -86,41 +88,41 @@ _HTML = r"""<!DOCTYPE html>
       </div>
     </div>
     <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-      <a class="sidebar-link active-nav" onclick="showSection('dashboard')">
+      <button class="sidebar-link" onclick="showSection('dashboard')" aria-label="Dashboard">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
             d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
-        </svg>Dashboard</a>
-      <a class="sidebar-link" onclick="showSection('users')">
+        </svg>Dashboard</button>
+      <button class="sidebar-link" onclick="showSection('users')" aria-label="Users">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
             d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
-        </svg>Users</a>
-      <a class="sidebar-link" onclick="showSection('content')">
+        </svg>Users</button>
+      <button class="sidebar-link" onclick="showSection('content')" aria-label="Content">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
             d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-        </svg>Content</a>
-      <a class="sidebar-link" onclick="showSection('reports')">
+        </svg>Content</button>
+      <button class="sidebar-link" onclick="showSection('reports')" aria-label="Reports">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
             d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-        </svg>Reports</a>
-      <a class="sidebar-link" onclick="showSection('tickets')">
+        </svg>Reports</button>
+      <button class="sidebar-link" onclick="showSection('tickets')" aria-label="Tickets">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
             d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"/>
-        </svg>Tickets</a>
-      <a class="sidebar-link" onclick="showSection('logs')">
+        </svg>Tickets</button>
+      <button class="sidebar-link" onclick="showSection('logs')" aria-label="Audit Logs">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
             d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-        </svg>Audit Logs</a>
-      <a class="sidebar-link" onclick="showSection('broadcast')">
+        </svg>Audit Logs</button>
+      <button class="sidebar-link" onclick="showSection('broadcast')" aria-label="Broadcast">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
             d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/>
-        </svg>Broadcast</a>
+        </svg>Broadcast</button>
     </nav>
     <div class="px-3 py-4 border-t border-green-800">
       <button onclick="logout()"
@@ -513,7 +515,16 @@ async function apiFetch(path, opts={}) {
     headers: { 'Authorization': 'Bearer ' + token, 'Content-Type':'application/json', ...(opts.headers||{}) }
   });
   if (res.status === 401) { logout(); throw new Error('Session expired'); }
-  if (!res.ok) { const d = await res.json().catch(()=>{}); throw new Error((d&&d.detail)||res.statusText); }
+  if (!res.ok) {
+    let errMsg = res.statusText;
+    try {
+      const d = await res.json();
+      if (d && d.detail) errMsg = typeof d.detail === 'string' ? d.detail : JSON.stringify(d.detail);
+    } catch (parseErr) {
+      errMsg = `HTTP ${res.status}: ${res.statusText}`;
+    }
+    throw new Error(errMsg);
+  }
   return res.json();
 }
 
@@ -593,9 +604,14 @@ async function loadUsers(offset) {
   const params = new URLSearchParams({skip:_usersOffset, limit:50});
   if (search) params.set('search', search);
   if (role)   params.set('role', role);
+  // Register pager callback
+  _pagerCbs['users'] = (o) => loadUsers(o);
   try {
     const data = await apiFetch('/admin/users/?' + params);
     const tbody = document.getElementById('usersTable');
+    // Store user data in a map for the edit modal to avoid inline data in onclick
+    window._usersData = {};
+    (data.users||[]).forEach(u => { window._usersData[u.id] = u; });
     tbody.innerHTML = (data.users||[]).map(u=>`
       <tr class="hover:bg-gray-50 transition-colors">
         <td class="px-4 py-3 text-gray-500">${u.id}</td>
@@ -604,13 +620,21 @@ async function loadUsers(offset) {
         <td class="px-4 py-3"><span class="badge ${roleBadge(u.role)}">${esc(u.role||'')}</span></td>
         <td class="px-4 py-3 text-gray-500 text-xs">${fmtDate(u.created_at)}</td>
         <td class="px-4 py-3">
-          <button onclick="openUserModal(${u.id},'${esc(u.first_name||'')}','${esc(u.last_name||'')}','${esc(u.role||'')}','${esc(u.phone||'')}')"
-            class="text-blue-600 hover:text-blue-800 text-xs font-medium mr-2">Edit</button>
-          <button onclick="deleteUser(${u.id})"
-            class="text-red-600 hover:text-red-800 text-xs font-medium">Delete</button>
+          <button data-uid="${u.id}" class="edit-user-btn text-blue-600 hover:text-blue-800 text-xs font-medium mr-2">Edit</button>
+          <button data-uid="${u.id}" class="del-user-btn text-red-600 hover:text-red-800 text-xs font-medium">Delete</button>
         </td>
       </tr>`).join('');
-    renderPager('usersPager', data.total||0, _usersOffset, 50, (o)=>loadUsers(o));
+    // Attach edit/delete handlers via event delegation
+    tbody.querySelectorAll('.edit-user-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const u = window._usersData[parseInt(btn.dataset.uid)];
+        if (u) openUserModal(u.id, u.first_name||'', u.last_name||'', u.role||'', u.phone||'');
+      });
+    });
+    tbody.querySelectorAll('.del-user-btn').forEach(btn => {
+      btn.addEventListener('click', () => deleteUser(parseInt(btn.dataset.uid)));
+    });
+    renderPager('usersPager', data.total||0, _usersOffset, 50, 'users');
   } catch(e) { showToast('Failed to load users: '+e.message,'red'); }
 }
 
@@ -656,10 +680,13 @@ async function loadContent(type, offset) {
   _contentType = type;
   if (offset !== undefined) _contentOffset = offset;
   const params = new URLSearchParams({skip:_contentOffset, limit:50});
+  _pagerCbs['content'] = (o) => loadContent(type, o);
   try {
     const data = await apiFetch('/admin/content/' + type + '/?' + params);
     const items = data.properties || data.listings || data.products || [];
     const total = data.total||0;
+    window._contentData = {};
+    items.forEach(i => { window._contentData[i.id] = {type, id:i.id}; });
     document.getElementById('contentTable').innerHTML = items.map(i=>`
       <tr class="hover:bg-gray-50 transition-colors">
         <td class="px-4 py-3 text-gray-500">${i.id}</td>
@@ -667,11 +694,16 @@ async function loadContent(type, offset) {
         <td class="px-4 py-3"><span class="badge ${statusBadge(i.status)}">${esc(i.status||'')}</span></td>
         <td class="px-4 py-3 text-gray-500 text-xs">${fmtDate(i.created_at)}</td>
         <td class="px-4 py-3">
-          <button onclick="deleteContent('${type}',${i.id})"
-            class="text-red-600 hover:text-red-800 text-xs font-medium">Delete</button>
+          <button data-cid="${i.id}" class="del-content-btn text-red-600 hover:text-red-800 text-xs font-medium">Delete</button>
         </td>
       </tr>`).join('');
-    renderPager('contentPager', total, _contentOffset, 50, (o)=>loadContent(type,o));
+    document.getElementById('contentTable').querySelectorAll('.del-content-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const d = window._contentData[parseInt(btn.dataset.cid)];
+        if (d) deleteContent(d.type, d.id);
+      });
+    });
+    renderPager('contentPager', total, _contentOffset, 50, 'content');
   } catch(e) { showToast('Failed to load content: '+e.message,'red'); }
 }
 
@@ -736,20 +768,24 @@ async function loadTickets(offset) {
   const status = document.getElementById('ticketStatusFilter').value;
   const params = new URLSearchParams({skip:_ticketsOffset, limit:50});
   if (status) params.set('status', status);
+  _pagerCbs['tickets'] = (o) => loadTickets(o);
   try {
     const data = await apiFetch('/admin/tickets/?' + params);
-    document.getElementById('ticketsTable').innerHTML = (data.tickets||[]).map(t=>`
+    const tbody = document.getElementById('ticketsTable');
+    tbody.innerHTML = (data.tickets||[]).map(t=>`
       <tr class="hover:bg-gray-50 transition-colors">
         <td class="px-4 py-3 text-gray-500">${t.id}</td>
         <td class="px-4 py-3 font-medium">${esc(t.subject||'')}</td>
         <td class="px-4 py-3"><span class="badge ${ticketBadge(t.status)}">${esc(t.status||'')}</span></td>
         <td class="px-4 py-3 text-gray-500 text-xs">${fmtDate(t.created_at)}</td>
         <td class="px-4 py-3">
-          <button onclick="openTicketModal(${t.id})"
-            class="text-blue-600 hover:text-blue-800 text-xs font-medium">View</button>
+          <button data-tid="${t.id}" class="view-ticket-btn text-blue-600 hover:text-blue-800 text-xs font-medium">View</button>
         </td>
       </tr>`).join('');
-    renderPager('ticketsPager', data.total||0, _ticketsOffset, 50, (o)=>loadTickets(o));
+    tbody.querySelectorAll('.view-ticket-btn').forEach(btn => {
+      btn.addEventListener('click', () => openTicketModal(parseInt(btn.dataset.tid)));
+    });
+    renderPager('ticketsPager', data.total||0, _ticketsOffset, 50, 'tickets');
   } catch(e) { showToast('Failed to load tickets: '+e.message,'red'); }
 }
 
@@ -785,6 +821,7 @@ async function saveTicket() {
 // ── Audit Logs ─────────────────────────────────────────────────────────────
 async function loadLogs(offset) {
   if (offset !== undefined) _logsOffset = offset;
+  _pagerCbs['logs'] = (o) => loadLogs(o);
   try {
     const data = await apiFetch('/admin/logs/?skip='+_logsOffset+'&limit=50');
     document.getElementById('logsTable').innerHTML = (data.logs||[]).map(l=>`
@@ -795,7 +832,7 @@ async function loadLogs(offset) {
         <td class="px-4 py-3 text-gray-600">${esc(l.target_type||'')} ${l.target_id?'#'+l.target_id:''}</td>
         <td class="px-4 py-3 text-gray-500 text-xs truncate max-w-[200px]">${esc(l.detail||'')}</td>
       </tr>`).join('');
-    renderPager('logsPager', data.total||0, _logsOffset, 50, (o)=>loadLogs(o));
+    renderPager('logsPager', data.total||0, _logsOffset, 50, 'logs');
   } catch(e) { showToast('Failed to load logs: '+e.message,'red'); }
 }
 
@@ -829,21 +866,33 @@ function fmtDate(s) {
 function showToast(msg, color) {
   const t = document.getElementById('toast');
   t.textContent = msg;
-  t.className = `fixed top-4 right-4 z-50 px-4 py-3 rounded-xl shadow-lg text-white text-sm font-medium max-w-xs bg-${color}-600`;
+  // Use explicit classes (Tailwind JIT requires complete class names at parse time)
+  const colorMap = {green: '#16a34a', red: '#dc2626', orange: '#ea580c', blue: '#2563eb'};
+  t.style.backgroundColor = colorMap[color] || colorMap.green;
+  t.className = 'fixed top-4 right-4 z-50 px-4 py-3 rounded-xl shadow-lg text-white text-sm font-medium max-w-xs';
   t.classList.remove('hidden');
   setTimeout(()=>t.classList.add('hidden'), 3500);
 }
 
-function renderPager(elId, total, offset, limit, cb) {
+// Pagination state per table to avoid function serialization
+const _pagerCbs = {};
+
+function renderPager(elId, total, offset, limit, sectionKey) {
   const el = document.getElementById(elId);
   const page = Math.floor(offset/limit)+1;
   const pages = Math.max(1, Math.ceil(total/limit));
+  const prevDis = offset === 0;
+  const nextDis = offset + limit >= total;
   el.innerHTML = `
     <span>Page ${page} of ${pages} (${total.toLocaleString()} total)</span>
-    <button onclick="(${cb.toString()})(${Math.max(0,offset-limit)})"
-      ${offset===0?'disabled':''} class="px-3 py-1 rounded border ${offset===0?'text-gray-300 cursor-not-allowed':'hover:bg-gray-100 cursor-pointer'}">← Prev</button>
-    <button onclick="(${cb.toString()})(${offset+limit})"
-      ${offset+limit>=total?'disabled':''} class="px-3 py-1 rounded border ${offset+limit>=total?'text-gray-300 cursor-not-allowed':'hover:bg-gray-100 cursor-pointer'}">Next →</button>`;
+    <button id="${elId}-prev" class="px-3 py-1 rounded border" ${prevDis?'disabled':''}>← Prev</button>
+    <button id="${elId}-next" class="px-3 py-1 rounded border" ${nextDis?'disabled':''}>Next →</button>`;
+  if (!prevDis) {
+    document.getElementById(elId+'-prev').onclick = () => _pagerCbs[sectionKey](Math.max(0, offset-limit));
+  }
+  if (!nextDis) {
+    document.getElementById(elId+'-next').onclick = () => _pagerCbs[sectionKey](offset+limit);
+  }
 }
 </script>
 </body>
