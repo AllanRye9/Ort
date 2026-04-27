@@ -64,6 +64,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   late final AnimationController _fadeCtrl;
   late final Animation<double> _fadeAnim;
   bool _editMode = false;
+  final _editFormKey = GlobalKey<FormState>();
 
   final _firstNameCtrl = TextEditingController();
   final _lastNameCtrl = TextEditingController();
@@ -104,6 +105,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   }
 
   Future<void> _saveProfile() async {
+    if (!(_editFormKey.currentState?.validate() ?? false)) return;
     final payload = <String, dynamic>{
       'first_name': _firstNameCtrl.text.trim(),
       'last_name': _lastNameCtrl.text.trim(),
@@ -229,6 +231,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
           data: (user) => _editMode
               ? _EditView(
                   user: user,
+                  formKey: _editFormKey,
                   firstNameCtrl: _firstNameCtrl,
                   lastNameCtrl: _lastNameCtrl,
                   phoneCtrl: _phoneCtrl,
@@ -237,6 +240,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                   agencyCtrl: _agencyCtrl,
                   saving: _saving,
                   onSave: _saveProfile,
+                  onUploadAvatar: _uploadAvatar,
                 )
               : _ReadView(
                   user: user,
@@ -863,6 +867,7 @@ class _InfoSection extends StatelessWidget {
 class _EditView extends StatelessWidget {
   const _EditView({
     required this.user,
+    required this.formKey,
     required this.firstNameCtrl,
     required this.lastNameCtrl,
     required this.phoneCtrl,
@@ -871,9 +876,11 @@ class _EditView extends StatelessWidget {
     required this.agencyCtrl,
     required this.saving,
     required this.onSave,
+    required this.onUploadAvatar,
   });
 
   final UserModel user;
+  final GlobalKey<FormState> formKey;
   final TextEditingController firstNameCtrl;
   final TextEditingController lastNameCtrl;
   final TextEditingController phoneCtrl;
@@ -882,92 +889,183 @@ class _EditView extends StatelessWidget {
   final TextEditingController agencyCtrl;
   final bool saving;
   final VoidCallback onSave;
+  final VoidCallback onUploadAvatar;
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _sectionLabel('Basic Info'),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: TextFormField(
-                  controller: firstNameCtrl,
-                  maxLength: 100,
-                  decoration:
-                      const InputDecoration(labelText: 'First Name'),
-                ),
+    return Form(
+      key: formKey,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // ── Avatar ─────────────────────────────────────────────────
+            Center(
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Container(
+                    width: 96,
+                    height: 96,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                          color: AppTheme.primary.withValues(alpha: 0.4),
+                          width: 2),
+                    ),
+                    child: ClipOval(
+                      child: user.avatarUrl != null &&
+                              user.avatarUrl!.isNotEmpty
+                          ? CachedNetworkImage(
+                              imageUrl: user.avatarUrl!,
+                              fit: BoxFit.cover,
+                            )
+                          : Container(
+                              color: AppTheme.primary.withValues(alpha: 0.1),
+                              child: Center(
+                                child: Text(
+                                  '${user.firstName[0]}${user.lastName[0]}'
+                                      .toUpperCase(),
+                                  style: TextStyle(
+                                    fontSize: 30,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppTheme.primary,
+                                  ),
+                                ),
+                              ),
+                            ),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: GestureDetector(
+                      onTap: saving ? null : onUploadAvatar,
+                      child: Container(
+                        width: 30,
+                        height: 30,
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary,
+                          shape: BoxShape.circle,
+                          border:
+                              Border.all(color: Colors.white, width: 2),
+                        ),
+                        child: saving
+                            ? const Padding(
+                                padding: EdgeInsets.all(5),
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2, color: Colors.white),
+                              )
+                            : const Icon(Icons.camera_alt,
+                                size: 14, color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: TextFormField(
-                  controller: lastNameCtrl,
-                  maxLength: 100,
-                  decoration:
-                      const InputDecoration(labelText: 'Last Name'),
-                ),
+            ),
+            const SizedBox(height: 6),
+            Center(
+              child: TextButton(
+                onPressed: saving ? null : onUploadAvatar,
+                child: const Text('Change Photo'),
               ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          TextFormField(
-            controller: phoneCtrl,
-            keyboardType: TextInputType.phone,
-            maxLength: 30,
-            decoration: const InputDecoration(
-              labelText: 'Phone (optional)',
-              prefixIcon: Icon(Icons.phone_outlined),
             ),
-          ),
-          const SizedBox(height: 12),
-          TextFormField(
-            controller: bioCtrl,
-            maxLines: 4,
-            maxLength: 500,
-            decoration: const InputDecoration(
-              labelText: 'Bio (optional)',
-              prefixIcon: Icon(Icons.info_outline),
-              alignLabelWithHint: true,
+            const SizedBox(height: 12),
+            _sectionLabel('Basic Info'),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: firstNameCtrl,
+                    maxLength: 100,
+                    decoration:
+                        const InputDecoration(labelText: 'First Name *'),
+                    validator: (v) {
+                      if (v == null || v.trim().isEmpty) {
+                        return 'First name is required';
+                      }
+                      if (v.trim().length < 2) return 'At least 2 characters';
+                      return null;
+                    },
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextFormField(
+                    controller: lastNameCtrl,
+                    maxLength: 100,
+                    decoration:
+                        const InputDecoration(labelText: 'Last Name *'),
+                    validator: (v) {
+                      if (v == null || v.trim().isEmpty) {
+                        return 'Last name is required';
+                      }
+                      if (v.trim().length < 2) return 'At least 2 characters';
+                      return null;
+                    },
+                  ),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 20),
-          _sectionLabel('Professional Info'),
-          const SizedBox(height: 12),
-          TextFormField(
-            controller: licenseCtrl,
-            maxLength: 100,
-            decoration: const InputDecoration(
-              labelText: 'License / Registration Number (optional)',
-              prefixIcon: Icon(Icons.badge_outlined),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: phoneCtrl,
+              keyboardType: TextInputType.phone,
+              maxLength: 30,
+              decoration: const InputDecoration(
+                labelText: 'Phone (optional)',
+                prefixIcon: Icon(Icons.phone_outlined),
+              ),
             ),
-          ),
-          const SizedBox(height: 12),
-          TextFormField(
-            controller: agencyCtrl,
-            maxLength: 150,
-            decoration: const InputDecoration(
-              labelText: 'Agency / Company Name (optional)',
-              prefixIcon: Icon(Icons.business_outlined),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: bioCtrl,
+              maxLines: 4,
+              maxLength: 500,
+              decoration: const InputDecoration(
+                labelText: 'Bio (optional)',
+                prefixIcon: Icon(Icons.info_outline),
+                alignLabelWithHint: true,
+              ),
             ),
-          ),
-          const SizedBox(height: 28),
-          ElevatedButton.icon(
-            onPressed: saving ? null : onSave,
-            icon: saving
-                ? const SizedBox(
-                    height: 18,
-                    width: 18,
-                    child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Colors.white),
-                  )
-                : const Icon(Icons.save_outlined, size: 18),
-            label: Text(saving ? 'Saving…' : 'Save Changes'),
-          ),
-        ],
+            const SizedBox(height: 20),
+            _sectionLabel('Professional Info'),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: licenseCtrl,
+              maxLength: 100,
+              decoration: const InputDecoration(
+                labelText: 'License / Registration Number (optional)',
+                prefixIcon: Icon(Icons.badge_outlined),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: agencyCtrl,
+              maxLength: 150,
+              decoration: const InputDecoration(
+                labelText: 'Agency / Company Name (optional)',
+                prefixIcon: Icon(Icons.business_outlined),
+              ),
+            ),
+            const SizedBox(height: 28),
+            ElevatedButton.icon(
+              onPressed: saving ? null : onSave,
+              icon: saving
+                  ? const SizedBox(
+                      height: 18,
+                      width: 18,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Icon(Icons.save_outlined, size: 18),
+              label: Text(saving ? 'Saving…' : 'Save Changes'),
+            ),
+          ],
+        ),
       ),
     );
   }
