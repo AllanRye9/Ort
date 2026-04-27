@@ -18,6 +18,7 @@ class _ManufacturingCreateScreenState
   final _formKey = GlobalKey<FormState>();
   final _titleCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
+  final _locationCtrl = TextEditingController();
   final _priceCtrl = TextEditingController();
   final _unitCtrl = TextEditingController();
   final _skuCtrl = TextEditingController();
@@ -49,6 +50,7 @@ class _ManufacturingCreateScreenState
   void dispose() {
     _titleCtrl.dispose();
     _descCtrl.dispose();
+    _locationCtrl.dispose();
     _priceCtrl.dispose();
     _unitCtrl.dispose();
     _skuCtrl.dispose();
@@ -78,6 +80,8 @@ class _ManufacturingCreateScreenState
         'is_locally_made': _isLocallyMade,
         if (_descCtrl.text.trim().isNotEmpty)
           'description': _descCtrl.text.trim(),
+        if (_locationCtrl.text.trim().isNotEmpty)
+          'location': _locationCtrl.text.trim(),
         if (_unitCtrl.text.trim().isNotEmpty) 'unit': _unitCtrl.text.trim(),
         if (_skuCtrl.text.trim().isNotEmpty) 'sku': _skuCtrl.text.trim(),
         if (_moqCtrl.text.trim().isNotEmpty)
@@ -182,6 +186,14 @@ class _ManufacturingCreateScreenState
                 onChanged: (v) => setState(() => _isLocallyMade = v),
                 title: const Text('Locally manufactured'),
                 contentPadding: EdgeInsets.zero,
+              ),
+
+              _sectionTitle('LOCATION'),
+              TextFormField(
+                controller: _locationCtrl,
+                decoration: const InputDecoration(
+                    labelText: 'Location / Manufacturer Address (optional)',
+                    prefixIcon: Icon(Icons.location_on_outlined)),
               ),
 
               _sectionTitle('PRICING & UNITS'),

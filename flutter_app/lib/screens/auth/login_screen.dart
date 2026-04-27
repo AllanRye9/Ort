@@ -28,7 +28,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final ok = await ref
         .read(authProvider.notifier)
         .login(_emailCtrl.text.trim(), _passCtrl.text);
-    if (ok && mounted) context.go('/home');
+    if (ok && mounted) {
+      final role = ref.read(authProvider).role;
+      context.go(role == 'admin' ? '/admin' : '/home');
+    }
   }
 
   @override

@@ -178,6 +178,7 @@ class ManufacturingProduct(Base):
     lead_time_days = Column(Integer)
     is_locally_made = Column(Boolean, default=True)
     country_of_origin = Column(String(100))
+    location = Column(String(255))
     status = Column(
         Enum("available", "out_of_stock", "discontinued", name="mfg_product_status"),
         default="available",
