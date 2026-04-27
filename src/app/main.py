@@ -12,6 +12,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from .database.database import engine, Base, run_schema_migrations
 from .api.v1.api import router
 from .api.v1.const_admin import router as const_admin_router
+from .api.v1.medi_portal import router as medi_portal_router
 
 # Import marketplace models so their tables are registered with Base
 from .models import marketplace_models  # noqa: F401
@@ -166,6 +167,9 @@ app.include_router(router, prefix="/api/v1")
 
 # Backend admin console served at /const (no /api/v1 prefix)
 app.include_router(const_admin_router)
+
+# Company / organisation portal served at /medi (no /api/v1 prefix)
+app.include_router(medi_portal_router)
 
 logger.info("Application startup complete — routes registered under /api/v1")
 

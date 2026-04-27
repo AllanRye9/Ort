@@ -351,6 +351,21 @@ def admin_update_agriculture_status(
     return {"message": "Status updated", "status": new_status}
 
 
+@router.delete("/content/agriculture/{listing_id}")
+def admin_delete_agriculture(
+    listing_id: int,
+    admin: User = Depends(_get_admin_user),
+    db: Session = Depends(get_db),
+):
+    listing = db.query(AgricultureListing).filter(AgricultureListing.id == listing_id).first()
+    if not listing:
+        raise HTTPException(status_code=404, detail="Agriculture listing not found")
+    db.delete(listing)
+    _log_action(db, admin, "delete_agriculture", "agriculture", listing_id)
+    db.commit()
+    return {"message": "Agriculture listing deleted"}
+
+
 @router.get("/content/manufacturing/")
 def admin_list_manufacturing(
     skip: int = Query(0, ge=0),
@@ -394,6 +409,21 @@ def admin_update_manufacturing_status(
     _log_action(db, admin, "update_manufacturing_status", "manufacturing", product_id, new_status)
     db.commit()
     return {"message": "Status updated", "status": new_status}
+
+
+@router.delete("/content/manufacturing/{product_id}")
+def admin_delete_manufacturing(
+    product_id: int,
+    admin: User = Depends(_get_admin_user),
+    db: Session = Depends(get_db),
+):
+    product = db.query(ManufacturingProduct).filter(ManufacturingProduct.id == product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    db.delete(product)
+    _log_action(db, admin, "delete_manufacturing", "manufacturing", product_id)
+    db.commit()
+    return {"message": "Manufacturing product deleted"}
 
 
 # ─── Media Management ─────────────────────────────────────────────────────────
