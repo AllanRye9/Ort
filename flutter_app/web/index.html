@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <!--
     If you are serving your web app in a path other than the root, change the
@@ -24,10 +24,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description" content="Ort Marketplace — Properties, Agriculture &amp; Local Manufacturing">
+  <meta name="theme-color" content="#1B5E20">
 
   <!-- iOS meta tags &amp; icons -->
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Ort Marketplace">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
@@ -37,6 +38,76 @@
   <title>Ort Marketplace</title>
   <link rel="manifest" href="manifest.json">
 
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      height: 100%;
+      /* Match AppTheme.bgLight so there is no colour flash before Flutter renders */
+      background-color: #f8f9fa;
+    }
+
+    /* Branded loading screen shown while the Flutter engine bootstraps */
+    #loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      background-color: #f8f9fa;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    #loading-logo {
+      width: 80px;
+      height: 80px;
+      background-color: #1B5E20;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 16px rgba(27, 94, 32, 0.30);
+    }
+
+    #loading-logo svg {
+      width: 44px;
+      height: 44px;
+      fill: white;
+    }
+
+    #loading-title {
+      color: #1B5E20;
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      letter-spacing: -0.3px;
+    }
+
+    #loading-subtitle {
+      color: #6B6B6B;
+      font-size: 13px;
+      margin-bottom: 32px;
+    }
+
+    .spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid #C8E6C9;
+      border-top-color: #1B5E20;
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+
   <script>
     // The value below is injected by flutter build, do not touch.
     var serviceWorkerVersion = null;
@@ -45,15 +116,37 @@
   <script src="flutter.js" defer></script>
 </head>
 <body>
+  <!-- Visible loading indicator while Flutter bootstraps -->
+  <div id="loading">
+    <div id="loading-logo">
+      <!--
+        Simple storefront icon that matches the app icon used on the login
+        screen (Icons.storefront_rounded).  Using inline SVG avoids an extra
+        network request and ensures it shows immediately.
+      -->
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M20 4H4v2l1 1v11h14V7l1-1V4zm-2 12H6V8h12v8zm-8-6h4v1h-4zm0 2h4v1h-4zM5 20h14v1H5z"/>
+      </svg>
+    </div>
+    <div id="loading-title">Ort Marketplace</div>
+    <div id="loading-subtitle">Properties&nbsp;&bull;&nbsp;Agriculture&nbsp;&bull;&nbsp;Manufacturing</div>
+    <div class="spinner"></div>
+  </div>
+
   <script>
-    window.addEventListener('load', function(ev) {
+    window.addEventListener('load', function () {
       _flutter.loader.load({
         serviceWorker: {
           serviceWorkerVersion: serviceWorkerVersion,
         },
-        onEntrypointLoaded: async function(engineInitializer) {
+        onEntrypointLoaded: async function (engineInitializer) {
+          // Remove the HTML loading screen once Flutter is ready to paint.
+          const loadingEl = document.getElementById('loading');
           let appRunner = await engineInitializer.initializeEngine();
           await appRunner.runApp();
+          if (loadingEl) {
+            loadingEl.style.display = 'none';
+          }
         },
       });
     });
