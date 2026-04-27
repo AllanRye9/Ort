@@ -312,7 +312,12 @@ class _ReadView extends StatelessWidget {
               _ProfileTile(
                 icon: Icons.settings,
                 label: 'Settings',
-                onTap: () => _showComingSoon(context, 'Settings'),
+                onTap: () => context.go('/settings'),
+              ),
+              _ProfileTile(
+                icon: Icons.bookmark_border,
+                label: 'Saved Items',
+                onTap: () => context.go('/saved'),
               ),
               _ProfileTile(
                 icon: Icons.help_outline,
@@ -438,6 +443,11 @@ class _ReadView extends StatelessWidget {
             icon: Icons.chat_bubble_outline,
             label: 'My Messages',
             onTap: () => context.go('/messages'),
+          ),
+          _ProfileTile(
+            icon: Icons.bookmark_border,
+            label: 'Saved Items',
+            onTap: () => context.go('/saved'),
           ),
         ];
       default:

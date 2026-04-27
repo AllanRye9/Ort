@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api_service.dart';
+import '../../core/auth_provider.dart';
 import '../../models/models.dart';
 import '../../widgets/image_gallery.dart';
 
@@ -12,14 +13,62 @@ final _mfgDetailProvider =
   return ManufacturingProductModel.fromJson(data);
 });
 
-class ManufacturingDetailScreen extends ConsumerWidget {
+class ManufacturingDetailScreen extends ConsumerStatefulWidget {
   const ManufacturingDetailScreen({super.key, required this.id});
 
   final int id;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final async = ref.watch(_mfgDetailProvider(id));
+  ConsumerState<ManufacturingDetailScreen> createState() => _ManufacturingDetailScreenState();
+}
+
+class _ManufacturingDetailScreenState extends ConsumerState<ManufacturingDetailScreen> {
+  bool _isSaved = false;
+  bool _saveBusy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedState();
+  }
+
+  Future<void> _loadSavedState() async {
+    try {
+      final api = ref.read(apiServiceProvider);
+      final userId = ref.read(authProvider).userId;
+      if (userId == null) return;
+      final saved = await api.checkSaved(userId: userId, itemType: 'manufacturing', itemId: widget.id);
+      if (mounted) setState(() => _isSaved = saved);
+    } catch (_) {}
+  }
+
+  Future<void> _toggleSave() async {
+    if (_saveBusy) return;
+    setState(() => _saveBusy = true);
+    try {
+      final api = ref.read(apiServiceProvider);
+      final userId = ref.read(authProvider).userId;
+      if (userId == null) return;
+      if (_isSaved) {
+        await api.unsaveItem(userId: userId, itemType: 'manufacturing', itemId: widget.id);
+      } else {
+        await api.saveItem(userId: userId, itemType: 'manufacturing', itemId: widget.id);
+      }
+      if (mounted) setState(() => _isSaved = !_isSaved);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), behavior: SnackBarBehavior.floating),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _saveBusy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final async = ref.watch(_mfgDetailProvider(widget.id));
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
@@ -38,6 +87,33 @@ class ManufacturingDetailScreen extends ConsumerWidget {
           ),
           onPressed: () => Navigator.of(context).pop(),
         ),
+        actions: [
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            decoration: const BoxDecoration(
+              color: Colors.black26,
+              shape: BoxShape.circle,
+            ),
+            child: _saveBusy
+                ? const Padding(
+                    padding: EdgeInsets.all(8),
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
+                    ),
+                  )
+                : IconButton(
+                    icon: Icon(
+                      _isSaved ? Icons.bookmark : Icons.bookmark_border,
+                      color: Colors.white,
+                    ),
+                    onPressed: _toggleSave,
+                    tooltip: _isSaved ? 'Unsave' : 'Save',
+                  ),
+          ),
+        ],
       ),
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),

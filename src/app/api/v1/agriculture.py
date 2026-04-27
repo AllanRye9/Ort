@@ -21,6 +21,10 @@ def list_listings(
     category: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
     tenant_id: Optional[int] = Query(None),
+    keyword: Optional[str] = Query(None),
+    min_price: Optional[float] = Query(None),
+    max_price: Optional[float] = Query(None),
+    location: Optional[str] = Query(None),
     db: Session = Depends(get_db),
 ):
     q = db.query(AgricultureListing)
@@ -30,7 +34,19 @@ def list_listings(
         q = q.filter(AgricultureListing.status == status)
     if tenant_id:
         q = q.filter(AgricultureListing.tenant_id == tenant_id)
-    return q.offset(skip).limit(limit).all()
+    if keyword:
+        like = f"%{keyword}%"
+        q = q.filter(
+            (AgricultureListing.title.ilike(like)) |
+            (AgricultureListing.commodity_type.ilike(like))
+        )
+    if min_price is not None:
+        q = q.filter(AgricultureListing.price_per_unit >= min_price)
+    if max_price is not None:
+        q = q.filter(AgricultureListing.price_per_unit <= max_price)
+    if location:
+        q = q.filter(AgricultureListing.location.ilike(f"%{location}%"))
+    return q.order_by(AgricultureListing.created_at.desc()).offset(skip).limit(limit).all()
 
 
 @router.get("/{listing_id}", response_model=AgricultureListingResponse)

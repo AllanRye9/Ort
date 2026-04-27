@@ -143,6 +143,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               ),
             ),
 
+            // ── AI Assistant ─────────────────────────────────────────────────
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(0, 4, 0, 12),
+                child: const _AiWidget(),
+              ),
+            ),
+
             // ── Role-specific quick actions ──────────────────────────────────
             SliverToBoxAdapter(
               child: Padding(
@@ -877,3 +885,192 @@ class _PlaceholderBox extends StatelessWidget {
       );
 }
 
+
+// ─── AI Assistant widget ─────────────────────────────────────────────────────
+
+class _AiWidget extends StatefulWidget {
+  const _AiWidget();
+
+  @override
+  State<_AiWidget> createState() => _AiWidgetState();
+}
+
+class _AiWidgetState extends State<_AiWidget> {
+  bool _expanded = false;
+  final _ctrl = TextEditingController();
+  final List<_AiMessage> _messages = [
+    const _AiMessage(
+        role: 'assistant',
+        text: 'Hi! I\'m your Ort AI assistant 🤖\nAsk me anything about properties, agriculture, or manufacturing.'),
+  ];
+
+  static const _freeResponses = {
+    'property': '🏠 I found several properties in your area. Try filtering by price or location for better results.',
+    'agriculture': '🌾 Agriculture listings include grains, livestock, and produce. Use the search to find what you need.',
+    'manufacturing': '🏭 We have many manufacturing products including textiles and processed goods.',
+    'price': '💰 Prices vary by category. Use the price filter in Search to narrow results.',
+    'help': '👋 I can help you find listings, understand pricing, or navigate the app. What do you need?',
+    'hello': '👋 Hello! How can I help you today?',
+    'hi': '👋 Hi there! Ask me about properties, agriculture, or manufacturing.',
+  };
+
+  static const _defaultResponse =
+      '💡 Try asking about "properties", "agriculture", "manufacturing", or "price". For advanced AI features, upgrade to Pro.';
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  void _send() {
+    final text = _ctrl.text.trim();
+    if (text.isEmpty) return;
+    setState(() {
+      _messages.add(_AiMessage(role: 'user', text: text));
+      final lower = text.toLowerCase();
+      // Collect all matching responses and join them, falling back to the default.
+      final matches = _freeResponses.entries
+          .where((e) => lower.contains(e.key))
+          .map((e) => e.value)
+          .toList();
+      final response = matches.isNotEmpty
+          ? matches.join('\n\n')
+          : _defaultResponse;
+      _messages.add(_AiMessage(role: 'assistant', text: response));
+    });
+    _ctrl.clear();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          InkWell(
+            onTap: () => setState(() => _expanded = !_expanded),
+            borderRadius: BorderRadius.circular(16),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: cs.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(Icons.auto_awesome, color: cs.primary, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Text('Ort AI',
+                                style: TextStyle(fontWeight: FontWeight.bold)),
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.green.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: const Text('Free',
+                                  style: TextStyle(
+                                      fontSize: 10, color: Colors.green)),
+                            ),
+                          ],
+                        ),
+                        const Text('Ask me about listings',
+                            style: TextStyle(fontSize: 12, color: Colors.grey)),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                      _expanded ? Icons.expand_less : Icons.expand_more,
+                      color: Colors.grey),
+                ],
+              ),
+            ),
+          ),
+          if (_expanded) ...[
+            const Divider(height: 1),
+            SizedBox(
+              height: 180,
+              child: ListView.builder(
+                padding: const EdgeInsets.all(12),
+                itemCount: _messages.length,
+                itemBuilder: (ctx, i) {
+                  final m = _messages[i];
+                  final isUser = m.role == 'user';
+                  return Align(
+                    alignment:
+                        isUser ? Alignment.centerRight : Alignment.centerLeft,
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                      constraints: BoxConstraints(
+                          maxWidth:
+                              MediaQuery.of(ctx).size.width * 0.75),
+                      decoration: BoxDecoration(
+                        color: isUser
+                            ? cs.primary.withValues(alpha: 0.15)
+                            : cs.surface,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                      ),
+                      child: Text(m.text, style: const TextStyle(fontSize: 13)),
+                    ),
+                  );
+                },
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _ctrl,
+                      decoration: InputDecoration(
+                        hintText: 'Ask something…',
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
+                        isDense: true,
+                      ),
+                      onSubmitted: (_) => _send(),
+                      textInputAction: TextInputAction.send,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton.filled(
+                    icon: const Icon(Icons.send, size: 18),
+                    onPressed: _send,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _AiMessage {
+  const _AiMessage({required this.role, required this.text});
+  final String role;
+  final String text;
+}
