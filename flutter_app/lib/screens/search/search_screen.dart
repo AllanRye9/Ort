@@ -591,10 +591,21 @@ class _FilterPanelState extends State<_FilterPanel> {
 
             ElevatedButton(
               onPressed: () {
+                final minP = double.tryParse(_minPriceCtrl.text);
+                final maxP = double.tryParse(_maxPriceCtrl.text);
+                if (minP != null && maxP != null && minP > maxP) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Min price cannot be greater than max price.'),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                  return;
+                }
                 widget.onApply(_FilterState(
                   query: widget.current.query,
-                  minPrice: double.tryParse(_minPriceCtrl.text),
-                  maxPrice: double.tryParse(_maxPriceCtrl.text),
+                  minPrice: minP,
+                  maxPrice: maxP,
                   location: _locationCtrl.text.trim().isNotEmpty
                       ? _locationCtrl.text.trim()
                       : null,

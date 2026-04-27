@@ -929,10 +929,14 @@ class _AiWidgetState extends State<_AiWidget> {
     setState(() {
       _messages.add(_AiMessage(role: 'user', text: text));
       final lower = text.toLowerCase();
-      final response = _freeResponses.entries
+      // Collect all matching responses and join them, falling back to the default.
+      final matches = _freeResponses.entries
           .where((e) => lower.contains(e.key))
           .map((e) => e.value)
-          .firstOrNull ?? _defaultResponse;
+          .toList();
+      final response = matches.isNotEmpty
+          ? matches.join('\n\n')
+          : _defaultResponse;
       _messages.add(_AiMessage(role: 'assistant', text: response));
     });
     _ctrl.clear();
