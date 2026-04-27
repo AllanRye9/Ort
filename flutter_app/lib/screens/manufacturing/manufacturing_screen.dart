@@ -283,30 +283,32 @@ class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen> {
             child: Row(
               children: [
                 Expanded(
-                  child: TextField(
-                    controller: _searchCtrl,
-                    textInputAction: TextInputAction.search,
-                    decoration: InputDecoration(
-                      hintText: 'Search products…',
-                      prefixIcon: const Icon(Icons.search, size: 20),
-                      suffixIcon: _searchCtrl.text.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(Icons.clear, size: 18),
-                              onPressed: () {
-                                _searchCtrl.clear();
-                                _applySearch();
-                              },
-                            )
-                          : null,
-                      isDense: true,
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 10),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
+                  child: ValueListenableBuilder<TextEditingValue>(
+                    valueListenable: _searchCtrl,
+                    builder: (context, value, _) => TextField(
+                      controller: _searchCtrl,
+                      textInputAction: TextInputAction.search,
+                      decoration: InputDecoration(
+                        hintText: 'Search products…',
+                        prefixIcon: const Icon(Icons.search, size: 20),
+                        suffixIcon: value.text.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear, size: 18),
+                                onPressed: () {
+                                  _searchCtrl.clear();
+                                  _applySearch();
+                                },
+                              )
+                            : null,
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
+                      onSubmitted: (_) => _applySearch(),
                     ),
-                    onChanged: (v) => setState(() {}),
-                    onSubmitted: (_) => _applySearch(),
                   ),
                 ),
                 const SizedBox(width: 8),

@@ -14,7 +14,8 @@ class ChatScreen extends ConsumerStatefulWidget {
   ConsumerState<ChatScreen> createState() => _ChatScreenState();
 }
 
-class _ChatScreenState extends ConsumerState<ChatScreen> {
+class _ChatScreenState extends ConsumerState<ChatScreen>
+    with WidgetsBindingObserver {
   final _controller = TextEditingController();
   final _scrollController = ScrollController();
   bool _sending = false;
@@ -26,19 +27,40 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadMessages();
-    // Poll every 5 seconds for new messages from the other party
+    _startPolling();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _pollTimer?.cancel();
+    _controller.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _startPolling();
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      _stopPolling();
+    }
+  }
+
+  void _startPolling() {
+    _pollTimer?.cancel();
     _pollTimer = Timer.periodic(const Duration(seconds: 5), (_) {
       if (mounted && !_sending) _pollMessages();
     });
   }
 
-  @override
-  void dispose() {
+  void _stopPolling() {
     _pollTimer?.cancel();
-    _controller.dispose();
-    _scrollController.dispose();
-    super.dispose();
+    _pollTimer = null;
   }
 
   Future<void> _loadMessages() async {
@@ -78,12 +100,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       final updated = data
           .map((e) => MessageModel.fromJson(e as Map<String, dynamic>))
           .toList();
-      if (updated.length != _messages.length) {
+      // Only update state if there are new messages (compare last message ID)
+      final lastId = _messages.isNotEmpty ? _messages.last.id : null;
+      final newLastId = updated.isNotEmpty ? updated.last.id : null;
+      if (newLastId != lastId || updated.length != _messages.length) {
         setState(() => _messages = updated);
         _scrollToBottom();
       }
     } catch (_) {
-      // Silently ignore polling errors
+      // Silently ignore polling errors to avoid spamming the user
     }
   }
 
