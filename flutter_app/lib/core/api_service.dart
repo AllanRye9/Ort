@@ -463,4 +463,148 @@ class ApiService {
   Future<void> deleteMyAccount() async {
     await _dio.delete('/me/account');
   }
+
+  Future<Map<String, dynamic>> getAdminUser(int userId) async {
+    final res = await _dio.get('/admin/users/$userId');
+    return res.data as Map<String, dynamic>;
+  }
+
+  Future<void> updateAdminUser(int userId, Map<String, dynamic> data) async {
+    await _dio.patch('/admin/users/$userId', data: data);
+  }
+
+  Future<void> deleteAdminUser(int userId) async {
+    await _dio.delete('/admin/users/$userId');
+  }
+
+  Future<Map<String, dynamic>> getAdminProperties({
+    int skip = 0,
+    int limit = 50,
+    String? statusFilter,
+  }) async {
+    final res = await _dio.get('/admin/content/properties/', queryParameters: {
+      'skip': skip,
+      'limit': limit,
+      if (statusFilter != null) 'status': statusFilter,
+    });
+    return res.data as Map<String, dynamic>;
+  }
+
+  Future<void> updateAdminPropertyStatus(int id, String newStatus) async {
+    await _dio.patch('/admin/content/properties/$id/status',
+        queryParameters: {'new_status': newStatus});
+  }
+
+  Future<void> deleteAdminProperty(int id) async {
+    await _dio.delete('/admin/content/properties/$id');
+  }
+
+  Future<Map<String, dynamic>> getAdminAgriculture({
+    int skip = 0,
+    int limit = 50,
+    String? statusFilter,
+  }) async {
+    final res =
+        await _dio.get('/admin/content/agriculture/', queryParameters: {
+      'skip': skip,
+      'limit': limit,
+      if (statusFilter != null) 'status': statusFilter,
+    });
+    return res.data as Map<String, dynamic>;
+  }
+
+  Future<void> updateAdminAgricultureStatus(int id, String newStatus) async {
+    await _dio.patch('/admin/content/agriculture/$id/status',
+        queryParameters: {'new_status': newStatus});
+  }
+
+  Future<Map<String, dynamic>> getAdminManufacturing({
+    int skip = 0,
+    int limit = 50,
+    String? statusFilter,
+  }) async {
+    final res =
+        await _dio.get('/admin/content/manufacturing/', queryParameters: {
+      'skip': skip,
+      'limit': limit,
+      if (statusFilter != null) 'status': statusFilter,
+    });
+    return res.data as Map<String, dynamic>;
+  }
+
+  Future<void> updateAdminManufacturingStatus(int id, String newStatus) async {
+    await _dio.patch('/admin/content/manufacturing/$id/status',
+        queryParameters: {'new_status': newStatus});
+  }
+
+  Future<Map<String, dynamic>> getAdminImages({
+    int skip = 0,
+    int limit = 50,
+  }) async {
+    final res = await _dio.get('/admin/media/images/',
+        queryParameters: {'skip': skip, 'limit': limit});
+    return res.data as Map<String, dynamic>;
+  }
+
+  Future<void> deleteAdminImage(int imageId) async {
+    await _dio.delete('/admin/media/images/$imageId');
+  }
+
+  Future<void> broadcastNotification({
+    required String title,
+    required String body,
+    String? targetRole,
+  }) async {
+    await _dio.post('/admin/notifications/broadcast', data: {
+      'title': title,
+      'body': body,
+      if (targetRole != null) 'target_role': targetRole,
+    });
+  }
+
+  Future<Map<String, dynamic>> getAdminReportsOverview({
+    int days = 30,
+  }) async {
+    final res = await _dio.get('/admin/reports/overview',
+        queryParameters: {'days': days});
+    return res.data as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> getAdminReportsUsers({int days = 30}) async {
+    final res = await _dio.get('/admin/reports/users',
+        queryParameters: {'days': days});
+    return res.data as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> getAdminLogs({
+    int skip = 0,
+    int limit = 50,
+  }) async {
+    final res = await _dio.get('/admin/logs/',
+        queryParameters: {'skip': skip, 'limit': limit});
+    return res.data as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> getAdminTickets({
+    int skip = 0,
+    int limit = 50,
+    String? statusFilter,
+  }) async {
+    final res = await _dio.get('/admin/tickets/', queryParameters: {
+      'skip': skip,
+      'limit': limit,
+      if (statusFilter != null) 'status': statusFilter,
+    });
+    return res.data as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> getAdminTicket(int ticketId) async {
+    final res = await _dio.get('/admin/tickets/$ticketId');
+    return res.data as Map<String, dynamic>;
+  }
+
+  Future<void> updateAdminTicket(
+      int ticketId, Map<String, dynamic> data) async {
+    await _dio.patch('/admin/tickets/$ticketId', data: data);
+  }
 }
