@@ -21,14 +21,6 @@ import '../screens/messages/chat_screen.dart';
 import '../screens/profile/profile_screen.dart';
 import '../screens/notifications/notifications_screen.dart';
 import '../screens/search/search_screen.dart';
-import '../screens/admin/admin_dashboard_screen.dart';
-import '../screens/admin/admin_users_screen.dart';
-import '../screens/admin/admin_content_screen.dart';
-import '../screens/admin/admin_media_screen.dart';
-import '../screens/admin/admin_tickets_screen.dart';
-import '../screens/admin/admin_reports_screen.dart';
-import '../screens/admin/admin_logs_screen.dart';
-import '../screens/admin/admin_notifications_screen.dart';
 
 // ─── Auth-change listenable ──────────────────────────────────────────────────
 //
@@ -102,12 +94,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       // Redirect away from the loading splash once initialized.
       if (loc == '/') {
         if (!isAuthenticated) return '/login';
-        return authState.role == 'admin' ? '/admin' : '/home';
+        return '/home';
       }
 
       if (!isAuthenticated && !isAuthRoute) return '/login';
       if (isAuthenticated && isAuthRoute) return '/home';
-      if (loc.startsWith('/admin') && authState.role != 'admin') return '/home';
       return null;
     },
     routes: [
@@ -122,34 +113,6 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),
       // Full-screen routes (no bottom nav)
       GoRoute(path: '/search', builder: (_, __) => const SearchScreen()),
-      // Admin routes (standalone, outside ShellRoute)
-      GoRoute(
-        path: '/admin',
-        builder: (_, __) => const AdminDashboardScreen(),
-        routes: [
-          GoRoute(
-              path: 'users',
-              builder: (_, __) => const AdminUsersScreen()),
-          GoRoute(
-              path: 'content',
-              builder: (_, __) => const AdminContentScreen()),
-          GoRoute(
-              path: 'media',
-              builder: (_, __) => const AdminMediaScreen()),
-          GoRoute(
-              path: 'tickets',
-              builder: (_, __) => const AdminTicketsScreen()),
-          GoRoute(
-              path: 'reports',
-              builder: (_, __) => const AdminReportsScreen()),
-          GoRoute(
-              path: 'logs',
-              builder: (_, __) => const AdminLogsScreen()),
-          GoRoute(
-              path: 'notifications',
-              builder: (_, __) => const AdminNotificationsScreen()),
-        ],
-      ),
       ShellRoute(
         builder: (context, state, child) => MainShell(child: child),
         routes: [
