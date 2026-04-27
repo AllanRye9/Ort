@@ -105,46 +105,64 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   itemBuilder: (ctx, i) {
                     final m = messages[i];
                     final isMe = m.senderId == currentUserId;
-                    return Align(
-                      alignment: isMe
-                          ? Alignment.centerRight
-                          : Alignment.centerLeft,
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(vertical: 4),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 10),
-                        constraints: BoxConstraints(
-                          maxWidth: MediaQuery.of(ctx).size.width * 0.7,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isMe
-                              ? Theme.of(ctx).colorScheme.primary
-                              : Colors.grey[200],
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              m.body,
-                              style: TextStyle(
-                                color:
-                                    isMe ? Colors.white : Colors.black87,
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Row(
+                        mainAxisAlignment: isMe
+                            ? MainAxisAlignment.end
+                            : MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          if (!isMe) ...[
+                            CircleAvatar(
+                              radius: 14,
+                              backgroundColor: Theme.of(ctx).colorScheme.primary.withValues(alpha: 0.2),
+                              child: Icon(
+                                Icons.person,
+                                size: 16,
+                                color: Theme.of(ctx).colorScheme.primary,
                               ),
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              '${m.sentAt.hour.toString().padLeft(2, '0')}:${m.sentAt.minute.toString().padLeft(2, '0')}',
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: isMe
-                                    ? Colors.white70
-                                    : Colors.black38,
-                              ),
-                            ),
+                            const SizedBox(width: 6),
                           ],
-                        ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 10),
+                            constraints: BoxConstraints(
+                              maxWidth: MediaQuery.of(ctx).size.width * 0.65,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isMe
+                                  ? Theme.of(ctx).colorScheme.primary
+                                  : Colors.grey[200],
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  m.body,
+                                  style: TextStyle(
+                                    color:
+                                        isMe ? Colors.white : Colors.black87,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  '${m.sentAt.hour.toString().padLeft(2, '0')}:${m.sentAt.minute.toString().padLeft(2, '0')}',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: isMe
+                                        ? Colors.white70
+                                        : Colors.black38,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (isMe) const SizedBox(width: 6),
+                        ],
                       ),
                     );
                   },

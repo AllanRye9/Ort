@@ -5,7 +5,7 @@ messaging, RFQ, reviews, and notifications.
 """
 from sqlalchemy import (
     Column, Integer, String, Text, Date, DateTime,
-    Enum, ForeignKey, Boolean, DECIMAL, Index, JSON, Float
+    Enum, ForeignKey, Boolean, DECIMAL, Index, JSON, Float, UniqueConstraint
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -426,6 +426,28 @@ class Notification(Base):
     reference_id = Column(Integer)          # ID of the related entity
     reference_type = Column(String(50))     # order, message, rfq, etc.
     is_read = Column(Boolean, default=False)
+    created_at = Column(DateTime, server_default=func.now())
+
+    user = relationship("User", foreign_keys=[user_id])
+
+
+# ---------------------------------------------------------------------------
+# Saved / Favourited Items
+# ---------------------------------------------------------------------------
+
+class SavedItem(Base):
+    __tablename__ = "saved_items"
+    __table_args__ = (
+        Index("ix_saved_items_user_id", "user_id"),
+        Index("ix_saved_items_item_type", "item_type"),
+        # Prevent duplicate saves at the database level
+        UniqueConstraint("user_id", "item_type", "item_id", name="uq_saved_items_user_type_item"),
+    )
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    item_type = Column(String(50), nullable=False)   # property, agriculture, manufacturing
+    item_id = Column(Integer, nullable=False)
     created_at = Column(DateTime, server_default=func.now())
 
     user = relationship("User", foreign_keys=[user_id])

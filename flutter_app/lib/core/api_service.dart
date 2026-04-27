@@ -419,4 +419,135 @@ class ApiService {
     final data = res.data as Map<String, dynamic>;
     return data['url'] as String;
   }
+
+  // ─── Saved items ──────────────────────────────────────────────────────────
+
+  Future<List<dynamic>> getSavedItems(int userId, {String? itemType}) async {
+    final res = await _dio.get('/saved-items/', queryParameters: {
+      'user_id': userId,
+      if (itemType != null) 'item_type': itemType,
+    });
+    return res.data as List<dynamic>;
+  }
+
+  Future<Map<String, dynamic>> saveItem({
+    required int userId,
+    required String itemType,
+    required int itemId,
+  }) async {
+    final res = await _dio.post('/saved-items/', data: {
+      'user_id': userId,
+      'item_type': itemType,
+      'item_id': itemId,
+    });
+    return res.data as Map<String, dynamic>;
+  }
+
+  Future<void> unsaveItem({
+    required int userId,
+    required String itemType,
+    required int itemId,
+  }) async {
+    await _dio.delete('/saved-items/', queryParameters: {
+      'user_id': userId,
+      'item_type': itemType,
+      'item_id': itemId,
+    });
+  }
+
+  Future<bool> checkSaved({
+    required int userId,
+    required String itemType,
+    required int itemId,
+  }) async {
+    final res = await _dio.get('/saved-items/check', queryParameters: {
+      'user_id': userId,
+      'item_type': itemType,
+      'item_id': itemId,
+    });
+    return res.data as bool;
+  }
+
+  // ─── Image delete ─────────────────────────────────────────────────────────
+
+  Future<void> deleteImage(String url) async {
+    await _dio.delete('/upload/image', queryParameters: {'url': url});
+  }
+
+  // ─── Filtered listings ────────────────────────────────────────────────────
+
+  Future<List<dynamic>> getPropertiesFiltered({
+    int skip = 0,
+    int limit = 50,
+    String? keyword,
+    double? minPrice,
+    double? maxPrice,
+    String? city,
+    String? propertyType,
+    String? status,
+  }) async {
+    final res = await _dio.get('/properties/', queryParameters: {
+      'skip': skip,
+      'limit': limit,
+      if (keyword != null && keyword.isNotEmpty) 'keyword': keyword,
+      if (minPrice != null) 'min_price': minPrice,
+      if (maxPrice != null) 'max_price': maxPrice,
+      if (city != null && city.isNotEmpty) 'city': city,
+      if (propertyType != null && propertyType.isNotEmpty) 'property_type': propertyType,
+      if (status != null && status.isNotEmpty) 'status': status,
+    });
+    return res.data as List<dynamic>;
+  }
+
+  Future<List<dynamic>> getAgricultureFiltered({
+    int skip = 0,
+    int limit = 50,
+    String? keyword,
+    double? minPrice,
+    double? maxPrice,
+    String? category,
+    String? location,
+    String? status,
+  }) async {
+    final res = await _dio.get('/agriculture/', queryParameters: {
+      'skip': skip,
+      'limit': limit,
+      if (keyword != null && keyword.isNotEmpty) 'keyword': keyword,
+      if (minPrice != null) 'min_price': minPrice,
+      if (maxPrice != null) 'max_price': maxPrice,
+      if (category != null && category.isNotEmpty) 'category': category,
+      if (location != null && location.isNotEmpty) 'location': location,
+      if (status != null && status.isNotEmpty) 'status': status,
+    });
+    return res.data as List<dynamic>;
+  }
+
+  Future<List<dynamic>> getManufacturingFiltered({
+    int skip = 0,
+    int limit = 50,
+    String? keyword,
+    double? minPrice,
+    double? maxPrice,
+    String? category,
+    String? location,
+    String? status,
+  }) async {
+    final res = await _dio.get('/manufacturing/', queryParameters: {
+      'skip': skip,
+      'limit': limit,
+      if (keyword != null && keyword.isNotEmpty) 'keyword': keyword,
+      if (minPrice != null) 'min_price': minPrice,
+      if (maxPrice != null) 'max_price': maxPrice,
+      if (category != null && category.isNotEmpty) 'category': category,
+      if (location != null && location.isNotEmpty) 'location': location,
+      if (status != null && status.isNotEmpty) 'status': status,
+    });
+    return res.data as List<dynamic>;
+  }
+
+  Future<Map<String, dynamic>> updateReview(
+      int reviewId, Map<String, dynamic> data) async {
+    final res = await _dio.put('/reviews/$reviewId', data: data);
+    return res.data as Map<String, dynamic>;
+  }
 }
