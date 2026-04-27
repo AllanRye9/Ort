@@ -88,6 +88,11 @@ class ManufacturingDetailScreen extends ConsumerWidget {
                       runSpacing: 8,
                       children: [
                         if (m.category != null) _InfoChip(label: m.category!),
+                        if (m.location != null)
+                          _InfoChip(
+                              label: '📍 ${m.location!}',
+                              bgColor: Colors.blue.withValues(alpha: 0.08),
+                              textColor: Colors.blue[700]!),
                         if (m.sku != null)
                           _InfoChip(label: 'SKU: ${m.sku}'),
                         if (m.moq != null)
