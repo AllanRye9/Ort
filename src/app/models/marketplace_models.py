@@ -5,7 +5,7 @@ messaging, RFQ, reviews, and notifications.
 """
 from sqlalchemy import (
     Column, Integer, String, Text, Date, DateTime,
-    Enum, ForeignKey, Boolean, DECIMAL, Index, JSON, Float
+    Enum, ForeignKey, Boolean, DECIMAL, Index, JSON, Float, UniqueConstraint
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -440,6 +440,8 @@ class SavedItem(Base):
     __table_args__ = (
         Index("ix_saved_items_user_id", "user_id"),
         Index("ix_saved_items_item_type", "item_type"),
+        # Prevent duplicate saves at the database level
+        UniqueConstraint("user_id", "item_type", "item_id", name="uq_saved_items_user_type_item"),
     )
 
     id = Column(Integer, primary_key=True)

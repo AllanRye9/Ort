@@ -105,8 +105,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   itemBuilder: (ctx, i) {
                     final m = messages[i];
                     final isMe = m.senderId == currentUserId;
-                    final senderStr = m.senderId?.toString() ?? '';
-                    final initial = senderStr.isNotEmpty ? senderStr[0].toUpperCase() : '?';
                     return Padding(
                       padding: const EdgeInsets.symmetric(vertical: 4),
                       child: Row(
@@ -119,13 +117,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                             CircleAvatar(
                               radius: 14,
                               backgroundColor: Theme.of(ctx).colorScheme.primary.withValues(alpha: 0.2),
-                              child: Text(
-                                initial,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: Theme.of(ctx).colorScheme.primary,
-                                ),
+                              child: Icon(
+                                Icons.person,
+                                size: 16,
+                                color: Theme.of(ctx).colorScheme.primary,
                               ),
                             ),
                             const SizedBox(width: 6),
