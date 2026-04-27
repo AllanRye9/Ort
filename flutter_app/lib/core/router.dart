@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'auth_provider.dart';
@@ -268,8 +269,8 @@ class _MainShellState extends State<MainShell> {
         if (didPop) return;
         final shouldExit = await _onWillPop(context);
         if (shouldExit && context.mounted) {
-          // Allow the system to exit the app.
-          Navigator.of(context).pop();
+          // Signal the platform to close the app.
+          await SystemNavigator.pop();
         }
       },
       child: Scaffold(
