@@ -279,7 +279,7 @@ async def delete_image(url: str = Query(..., description="Public URL of the imag
             static_dir = Path(__file__).parents[4] / "static"
             target = (static_dir / rel_path).resolve()
             # Safety: ensure the resolved path is still inside static_dir
-            if not str(target).startswith(str(static_dir.resolve())):
+            if not target.is_relative_to(static_dir.resolve()):
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Invalid image URL.",

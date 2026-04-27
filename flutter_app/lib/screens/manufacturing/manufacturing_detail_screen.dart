@@ -35,7 +35,9 @@ class _ManufacturingDetailScreenState extends ConsumerState<ManufacturingDetailS
   Future<void> _loadSavedState() async {
     try {
       final api = ref.read(apiServiceProvider);
-      final saved = await api.checkSaved('manufacturing', widget.id);
+      final userId = ref.read(authProvider).userId;
+      if (userId == null) return;
+      final saved = await api.checkSaved(userId: userId, itemType: 'manufacturing', itemId: widget.id);
       if (mounted) setState(() => _isSaved = saved);
     } catch (_) {}
   }
@@ -46,10 +48,11 @@ class _ManufacturingDetailScreenState extends ConsumerState<ManufacturingDetailS
     try {
       final api = ref.read(apiServiceProvider);
       final userId = ref.read(authProvider).userId;
+      if (userId == null) return;
       if (_isSaved) {
-        await api.unsaveItem('manufacturing', widget.id);
+        await api.unsaveItem(userId: userId, itemType: 'manufacturing', itemId: widget.id);
       } else {
-        await api.saveItem({'user_id': userId, 'item_type': 'manufacturing', 'item_id': widget.id});
+        await api.saveItem(userId: userId, itemType: 'manufacturing', itemId: widget.id);
       }
       if (mounted) setState(() => _isSaved = !_isSaved);
     } catch (e) {
