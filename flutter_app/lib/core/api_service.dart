@@ -425,6 +425,7 @@ class ApiService {
     final res = await _dio.post(
       '/upload/images',
       data: formData,
+      options: Options(contentType: Headers.multipartFormDataContentType),
     );
     final data = res.data as Map<String, dynamic>;
     return (data['urls'] as List<dynamic>).cast<String>();
@@ -449,6 +450,7 @@ class ApiService {
     final res = await _dio.post(
       '/upload/image',
       data: formData,
+      options: Options(contentType: Headers.multipartFormDataContentType),
     );
     final data = res.data as Map<String, dynamic>;
     return data['url'] as String;

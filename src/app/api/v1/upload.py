@@ -310,10 +310,7 @@ async def serve_image(
     return Response(
         content=blob.data,
         media_type=blob.content_type,
-        headers={
-            "Cache-Control": "public, max-age=31536000, immutable",
-            "Access-Control-Allow-Origin": "*",
-        },
+        headers={"Cache-Control": "public, max-age=31536000, immutable"},
     )
 
 
@@ -361,10 +358,7 @@ async def proxy_image(object_key: str):
     return Response(
         content=data,
         media_type=media_type,
-        headers={
-            "Cache-Control": "public, max-age=31536000, immutable",
-            "Access-Control-Allow-Origin": "*",
-        },
+        headers={"Cache-Control": "public, max-age=31536000, immutable"},
     )
 
 

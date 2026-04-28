@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -294,12 +295,12 @@ class _MediaPickerFieldState extends ConsumerState<MediaPickerField> {
                                 child: const Center(
                                     child: CircularProgressIndicator()),
                               )
-                            : Image.network(
-                                _urls[i],
+                            : CachedNetworkImage(
+                                imageUrl: _urls[i],
                                 width: 100,
                                 height: 100,
                                 fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => Container(
+                                errorWidget: (_, __, ___) => Container(
                                   width: 100,
                                   height: 100,
                                   color: Colors.grey[200],
