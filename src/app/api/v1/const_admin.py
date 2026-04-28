@@ -79,14 +79,14 @@ _HTML = r"""<!DOCTYPE html>
     </div>
     <form id="loginForm" class="space-y-4">
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-        <input id="loginEmail" type="email" required
+        <label class="block text-sm font-medium text-gray-700 mb-1">Username / Email</label>
+        <input id="loginUsername" type="text" required autocomplete="username"
           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-          placeholder="admin@example.com"/>
+          placeholder="admin or admin@example.com"/>
       </div>
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-        <input id="loginPassword" type="password" required
+        <input id="loginPassword" type="password" required autocomplete="current-password"
           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
           placeholder="••••••••"/>
       </div>
@@ -479,15 +479,15 @@ window.onload = () => {
 // ── Login ──────────────────────────────────────────────────────────────────
 document.getElementById('loginForm').onsubmit = async (e) => {
   e.preventDefault();
-  const email = document.getElementById('loginEmail').value.trim();
+  const username = document.getElementById('loginUsername').value.trim();
   const pass  = document.getElementById('loginPassword').value;
   const errEl = document.getElementById('loginError');
   errEl.classList.add('hidden');
   try {
-    const r = await fetch(API + '/auth/login', {
+    const r = await fetch(API + '/auth/admin-login', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({email, password: pass})
+      body: JSON.stringify({username, password: pass})
     });
     const data = await r.json();
     if (!r.ok) { errEl.textContent = data.detail || 'Login failed'; errEl.classList.remove('hidden'); return; }
@@ -495,7 +495,7 @@ document.getElementById('loginForm').onsubmit = async (e) => {
     token = data.access_token;
     localStorage.setItem('ort_admin_token', token);
     const adminEmailEl = document.getElementById('adminEmail');
-    if (adminEmailEl) adminEmailEl.textContent = email;
+    if (adminEmailEl) adminEmailEl.textContent = username;
     showApp();
   } catch(err) {
     errEl.textContent = 'Network error: ' + err.message;

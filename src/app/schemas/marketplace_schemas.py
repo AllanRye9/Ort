@@ -201,6 +201,7 @@ class AgricultureListingBase(BaseModel):
     location: Optional[str] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
+    map_link: Optional[str] = None
     is_perishable: Optional[bool] = False
     images: Optional[List[str]] = None
 
@@ -235,6 +236,7 @@ class AgricultureListingUpdate(BaseModel):
     location: Optional[str] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
+    map_link: Optional[str] = None
     is_perishable: Optional[bool] = None
     images: Optional[List[str]] = None
     status: Optional[str] = Field(None, pattern="^(available|sold_out|reserved|expired)$")
@@ -270,6 +272,7 @@ class ManufacturingProductBase(BaseModel):
     is_locally_made: Optional[bool] = True
     country_of_origin: Optional[str] = None
     location: Optional[str] = None
+    map_link: Optional[str] = None
 
 
 class ManufacturingProductCreate(ManufacturingProductBase):
@@ -303,6 +306,7 @@ class ManufacturingProductUpdate(BaseModel):
     is_locally_made: Optional[bool] = None
     country_of_origin: Optional[str] = None
     location: Optional[str] = None
+    map_link: Optional[str] = None
     status: Optional[str] = Field(None, pattern="^(available|out_of_stock|discontinued)$")
 
 

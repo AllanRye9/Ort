@@ -99,6 +99,8 @@ _MIGRATIONS: list[tuple[str, str, str]] = [
     ("support_tickets",  "status",         "VARCHAR(50)  DEFAULT 'open'"),
     ("support_tickets",  "resolution",     "TEXT"),
     ("manufacturing_products", "location", "VARCHAR(255)"),
+    ("agriculture_listings", "map_link", "TEXT"),
+    ("manufacturing_products", "map_link", "TEXT"),
     ("reviews",          "reviewed_agent_id", "INTEGER"),
     ("saved_items", "user_id",    "INTEGER"),
     ("saved_items", "item_type",  "VARCHAR(50)"),
