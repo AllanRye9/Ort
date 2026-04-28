@@ -308,7 +308,7 @@ def update_property(property_id: int, prop_update: PropertyUpdate, db: Session =
 
     db.commit()
     db.refresh(prop)
-    return prop
+    return PropertyResponse.from_orm_with_images(prop)
 
 
 @router.delete("/properties/{property_id}", status_code=status.HTTP_200_OK)

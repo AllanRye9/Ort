@@ -79,7 +79,7 @@ class _ImageGalleryState extends State<ImageGallery> {
                   placeholder: (_, __) => Shimmer.fromColors(
                     baseColor: color,
                     highlightColor:
-                        Theme.of(ctx).colorScheme.surfaceVariant,
+                        Theme.of(ctx).colorScheme.surfaceContainerHighest,
                     child: Container(color: Colors.white),
                   ),
                   errorWidget: (_, __, ___) => _Placeholder(
