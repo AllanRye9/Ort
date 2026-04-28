@@ -85,7 +85,12 @@ class _MediaPickerFieldState extends ConsumerState<MediaPickerField> {
           final bytes = await file.readAsBytes();
           final filename = file.name;
           final ext = filename.split('.').last.toLowerCase();
-          final mimeType = ext == 'png' ? 'image/png' : 'image/jpeg';
+          final mimeType = switch (ext) {
+            'png' => 'image/png',
+            'gif' => 'image/gif',
+            'webp' => 'image/webp',
+            _ => 'image/jpeg',
+          };
           final url = await ref.read(apiServiceProvider).uploadImage(
                 bytes: bytes,
                 filename: filename,
@@ -134,7 +139,12 @@ class _MediaPickerFieldState extends ConsumerState<MediaPickerField> {
     final bytes = await file.readAsBytes();
     final filename = file.name;
     final ext = filename.split('.').last.toLowerCase();
-    final mimeType = ext == 'png' ? 'image/png' : 'image/jpeg';
+    final mimeType = switch (ext) {
+      'png' => 'image/png',
+      'gif' => 'image/gif',
+      'webp' => 'image/webp',
+      _ => 'image/jpeg',
+    };
 
     final idx = _urls.length;
     setState(() {

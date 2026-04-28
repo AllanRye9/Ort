@@ -12,11 +12,6 @@ final _propertyDetailProvider =
   return PropertyModel.fromJson(data);
 });
 
-final _propertyImagesProvider =
-    FutureProvider.autoDispose.family<List<String>, int>((ref, id) async {
-  return ref.read(apiServiceProvider).getPropertyImageUrls(id);
-});
-
 
 class PropertyDetailScreen extends ConsumerStatefulWidget {
   const PropertyDetailScreen({super.key, required this.id});
@@ -74,7 +69,6 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final async = ref.watch(_propertyDetailProvider(widget.id));
-    final imagesAsync = ref.watch(_propertyImagesProvider(widget.id));
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
@@ -126,7 +120,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
         error: (e, _) => Center(child: Text('Error: $e')),
         data: (p) => _PropertyDetailBody(
           property: p,
-          imageUrls: imagesAsync.valueOrNull ?? const [],
+          imageUrls: p.imageUrls,
         ),
       ),
       bottomNavigationBar: async.maybeWhen(
