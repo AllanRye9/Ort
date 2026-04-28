@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/api_service.dart';
+import '../../core/responsive.dart';
 import '../../models/models.dart';
 import '../../widgets/listing_card.dart';
 
@@ -407,38 +408,51 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
                           )
                         : RefreshIndicator(
                             onRefresh: _loadListings,
-                            child: GridView.builder(
-                              padding: const EdgeInsets.fromLTRB(12, 4, 12, 80),
-                              gridDelegate:
-                                  const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                childAspectRatio: 0.72,
-                                crossAxisSpacing: 10,
-                                mainAxisSpacing: 10,
-                              ),
-                              itemCount: _items!.length,
-                              itemBuilder: (ctx, i) {
-                                final p = _items![i];
-                                return ListingCard(
-                                  icon: Icons.apartment_rounded,
-                                  iconColor:
-                                      Theme.of(ctx).colorScheme.primary,
-                                  imageUrl: p.imageUrls.isNotEmpty
-                                      ? p.imageUrls.first
-                                      : null,
-                                  title: p.title,
-                                  subtitle: p.city ?? p.address,
-                                  tag: p.propertyType,
-                                  status: p.status,
-                                  price: '\$${p.price.toStringAsFixed(0)}',
-                                  extras: [
-                                    if (p.bedrooms != null) '${p.bedrooms} bd',
-                                    if (p.bathrooms != null)
-                                      '${p.bathrooms} ba',
-                                    if (p.areaSqft != null)
-                                      '${p.areaSqft} sqft',
-                                  ],
-                                  onTap: () => ctx.go('/properties/${p.id}'),
+                            child: LayoutBuilder(
+                              builder: (ctx, constraints) {
+                                final cols = ctx.gridColumns;
+                                return GridView.builder(
+                                  padding: EdgeInsets.fromLTRB(
+                                    ctx.contentPadding.left,
+                                    4,
+                                    ctx.contentPadding.right,
+                                    80,
+                                  ),
+                                  gridDelegate:
+                                      SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: cols,
+                                    childAspectRatio: 0.72,
+                                    crossAxisSpacing: 10,
+                                    mainAxisSpacing: 10,
+                                  ),
+                                  itemCount: _items!.length,
+                                  itemBuilder: (ctx, i) {
+                                    final p = _items![i];
+                                    return ListingCard(
+                                      icon: Icons.apartment_rounded,
+                                      iconColor:
+                                          Theme.of(ctx).colorScheme.primary,
+                                      imageUrl: p.imageUrls.isNotEmpty
+                                          ? p.imageUrls.first
+                                          : null,
+                                      title: p.title,
+                                      subtitle: p.city ?? p.address,
+                                      tag: p.propertyType,
+                                      status: p.status,
+                                      price:
+                                          '\$${p.price.toStringAsFixed(0)}',
+                                      extras: [
+                                        if (p.bedrooms != null)
+                                          '${p.bedrooms} bd',
+                                        if (p.bathrooms != null)
+                                          '${p.bathrooms} ba',
+                                        if (p.areaSqft != null)
+                                          '${p.areaSqft} sqft',
+                                      ],
+                                      onTap: () =>
+                                          ctx.go('/properties/${p.id}'),
+                                    );
+                                  },
                                 );
                               },
                             ),

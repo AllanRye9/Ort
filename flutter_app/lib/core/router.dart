@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -267,14 +268,61 @@ class _MainShellState extends State<MainShell> {
   @override
   Widget build(BuildContext context) {
     final index = _currentIndex(context);
+    final width = MediaQuery.sizeOf(context).width;
+    final isWide = width >= 600;
+
+    // ── Wide layout: NavigationRail on the left ──────────────────────────────
+    if (isWide) {
+      final isExtended = width >= 900;
+      return Scaffold(
+        body: Row(
+          children: [
+            NavigationRail(
+              selectedIndex: index,
+              onDestinationSelected: (i) => context.go(_tabs[i].$1),
+              labelType: isExtended
+                  ? NavigationRailLabelType.none
+                  : NavigationRailLabelType.all,
+              extended: isExtended,
+              leading: isExtended
+                  ? Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: Text(
+                        'Ort',
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleLarge
+                            ?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                    )
+                  : null,
+              destinations: _tabs
+                  .map(
+                    (t) => NavigationRailDestination(
+                      icon: Icon(t.$2),
+                      selectedIcon: Icon(t.$3),
+                      label: Text(t.$4),
+                    ),
+                  )
+                  .toList(),
+            ),
+            const VerticalDivider(width: 1, thickness: 1),
+            Expanded(child: widget.child),
+          ],
+        ),
+      );
+    }
+
+    // ── Narrow layout: BottomNavigationBar ───────────────────────────────────
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) async {
         if (didPop) return;
         final shouldExit = await _onWillPop(context);
         if (shouldExit && context.mounted) {
-          // Signal the platform to close the app.
-          await SystemNavigator.pop();
+          // SystemNavigator.pop() is Android-only; on web there is no such
+          // concept (and it would throw), so skip it.
+          if (!kIsWeb) await SystemNavigator.pop();
         }
       },
       child: Scaffold(

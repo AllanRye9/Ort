@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/auth_provider.dart';
+import '../../core/responsive.dart';
+import '../../core/theme.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -211,141 +213,234 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
   @override
   Widget build(BuildContext context) {
     final auth = ref.watch(authProvider);
-    return Scaffold(
-      appBar: AppBar(title: const Text('Create Account')),
-      body: SafeArea(
-        child: FadeTransition(
-          opacity: _fadeAnim,
-          child: SlideTransition(
-            position: _slideAnim,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // ── Role selector ────────────────────────────────────────
-                    DropdownButtonFormField<String>(
-                      value: _role,
-                      decoration: const InputDecoration(
-                        labelText: 'Account Type',
-                        prefixIcon: Icon(Icons.badge_outlined),
+    final isWide = context.isWide;
+
+    final formContent = Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // ── Role selector ────────────────────────────────────────
+          DropdownButtonFormField<String>(
+            value: _role,
+            decoration: const InputDecoration(
+              labelText: 'Account Type',
+              prefixIcon: Icon(Icons.badge_outlined),
+            ),
+            items: const [
+              DropdownMenuItem(value: 'user', child: Text('User')),
+              DropdownMenuItem(value: 'agent', child: Text('Agent')),
+            ],
+            onChanged: (v) => setState(() {
+              _role = v!;
+              _licenseNumberCtrl.clear();
+              _agencyNameCtrl.clear();
+              _bioCtrl.clear();
+            }),
+          ),
+
+          // ── Contact fields (always shown) ────────────────────────
+          ..._contactFields(),
+
+          // ── Agent-specific fields ────────────────────────────────
+          if (_role == 'agent') ..._agentFields(),
+
+          // ── Password ─────────────────────────────────────────────
+          _sectionHeader('Security', Icons.lock_outline),
+          TextFormField(
+            controller: _passCtrl,
+            obscureText: _obscurePassword,
+            maxLength: 72,
+            decoration: InputDecoration(
+              labelText: 'Password',
+              prefixIcon: const Icon(Icons.lock_outlined),
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _obscurePassword
+                      ? Icons.visibility_off
+                      : Icons.visibility,
+                ),
+                onPressed: () =>
+                    setState(() => _obscurePassword = !_obscurePassword),
+              ),
+            ),
+            validator: (v) {
+              if (v == null || v.length < 8) return 'Min 8 characters';
+              if (v.length > 72) return 'Max 72 characters';
+              return null;
+            },
+          ),
+
+          // ── Error banner ─────────────────────────────────────────
+          if (auth.error != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Theme.of(context)
+                    .colorScheme
+                    .errorContainer
+                    .withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .error
+                      .withValues(alpha: 0.5),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.error_outline,
+                      color: Theme.of(context).colorScheme.error, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      auth.error!,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                        fontSize: 13,
                       ),
-                      items: const [
-                        DropdownMenuItem(
-                            value: 'user', child: Text('User')),
-                        DropdownMenuItem(value: 'agent', child: Text('Agent')),
-                      ],
-                      onChanged: (v) => setState(() {
-                        _role = v!;
-                        _licenseNumberCtrl.clear();
-                        _agencyNameCtrl.clear();
-                        _bioCtrl.clear();
-                      }),
                     ),
+                  ),
+                ],
+              ),
+            ),
+          ],
 
-                    // ── Contact fields (always shown) ────────────────────────
-                    ..._contactFields(),
+          const SizedBox(height: 24),
 
-                    // ── Agent-specific fields ────────────────────────────────
-                    if (_role == 'agent') ..._agentFields(),
+          // ── Submit ───────────────────────────────────────────────
+          ElevatedButton(
+            onPressed: auth.isLoading ? null : _submit,
+            child: auth.isLoading
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Text('Create Account'),
+          ),
+          const SizedBox(height: 16),
+          TextButton(
+            onPressed: () => context.go('/login'),
+            child: const Text('Already have an account? Sign In'),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Companies & organisations register at ort.up.railway.app/medi',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Colors.grey,
+                ),
+          ),
+        ],
+      ),
+    );
 
-                    // ── Password ─────────────────────────────────────────────
-                    _sectionHeader('Security', Icons.lock_outline),
-                    TextFormField(
-                      controller: _passCtrl,
-                      obscureText: _obscurePassword,
-                      maxLength: 72,
-                      decoration: InputDecoration(
-                        labelText: 'Password',
-                        prefixIcon: const Icon(Icons.lock_outlined),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscurePassword
-                                ? Icons.visibility_off
-                                : Icons.visibility,
-                          ),
-                          onPressed: () => setState(
-                              () => _obscurePassword = !_obscurePassword),
-                        ),
-                      ),
-                      validator: (v) {
-                        if (v == null || v.length < 8) return 'Min 8 characters';
-                        if (v.length > 72) return 'Max 72 characters';
-                        return null;
-                      },
-                    ),
+    final animatedForm = FadeTransition(
+      opacity: _fadeAnim,
+      child: SlideTransition(position: _slideAnim, child: formContent),
+    );
 
-                    // ── Error banner ─────────────────────────────────────────
-                    if (auth.error != null) ...[
-                      const SizedBox(height: 12),
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .errorContainer
-                              .withValues(alpha: 0.3),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .error
-                                .withValues(alpha: 0.5),
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.error_outline,
-                                color: Theme.of(context).colorScheme.error,
-                                size: 18),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                auth.error!,
-                                style: TextStyle(
-                                  color: Theme.of(context).colorScheme.error,
-                                  fontSize: 13,
-                                ),
+    // ── Wide layout: two-pane ──────────────────────────────────────────────
+    if (isWide) {
+      return Scaffold(
+        body: Row(
+          children: [
+            // Left pane: gradient hero
+            Expanded(
+              flex: 4,
+              child: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [AppTheme.primary, Color(0xFF1B5E20)],
+                  ),
+                ),
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(40),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.storefront_rounded,
+                            size: 96, color: Colors.white),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Ort Marketplace',
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineLarge
+                              ?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
                               ),
-                            ),
-                          ],
                         ),
-                      ),
-                    ],
-
-                    const SizedBox(height: 24),
-
-                    // ── Submit ───────────────────────────────────────────────
-                    ElevatedButton(
-                      onPressed: auth.isLoading ? null : _submit,
-                      child: auth.isLoading
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Text('Create Account'),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Properties • Agriculture • Manufacturing',
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyMedium
+                              ?.copyWith(color: Colors.white70),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 16),
-                    TextButton(
-                      onPressed: () => context.go('/login'),
-                      child: const Text('Already have an account? Sign In'),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Companies & organisations register at ort.up.railway.app/medi',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Colors.grey,
-                          ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
-          ),
+            // Right pane: form
+            Expanded(
+              flex: 5,
+              child: SafeArea(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 48, vertical: 32),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 480),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          'Create Account',
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineSmall
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Join the Ort Marketplace today',
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyMedium
+                              ?.copyWith(color: Colors.grey),
+                        ),
+                        const SizedBox(height: 24),
+                        animatedForm,
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // ── Narrow layout ─────────────────────────────────────────────────────
+    return Scaffold(
+      appBar: AppBar(title: const Text('Create Account')),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: animatedForm,
         ),
       ),
     );
