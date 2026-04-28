@@ -180,6 +180,8 @@ class ManufacturingProduct(Base):
     is_locally_made = Column(Boolean, default=True)
     country_of_origin = Column(String(100))
     location = Column(String(255))
+    latitude = Column(Float)
+    longitude = Column(Float)
     map_link = Column(Text)
     status = Column(
         Enum("available", "out_of_stock", "discontinued", name="mfg_product_status"),

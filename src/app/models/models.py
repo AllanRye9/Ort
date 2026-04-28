@@ -1,6 +1,6 @@
 from sqlalchemy import (
     Column, Integer, String, Text, Date, DateTime,
-    Enum, ForeignKey, Boolean, DECIMAL, Index, LargeBinary
+    Enum, ForeignKey, Boolean, DECIMAL, Index, LargeBinary, Float
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -72,6 +72,8 @@ class Property(Base):
     bathrooms = Column(Integer)
     area_sqft = Column(Integer)
     status = Column(Enum("available", "sold", "rented", "pending", name="property_status"), default="available", server_default="available", nullable=False)
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
 
     agent = relationship("User", back_populates="properties")

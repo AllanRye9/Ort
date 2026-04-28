@@ -39,6 +39,8 @@ class UserUpdate(BaseModel):
     password: Optional[str] = Field(None, min_length=8, max_length=128)
     bio: Optional[str] = None
     avatar_url: Optional[str] = None
+    license_number: Optional[str] = Field(None, max_length=100)
+    agency_name: Optional[str] = Field(None, max_length=255)
 
     @field_validator("first_name", "last_name", mode="before")
     @classmethod
@@ -116,6 +118,8 @@ class PropertyBase(BaseModel):
     bedrooms: Optional[int] = None
     bathrooms: Optional[int] = None
     area_sqft: Optional[int] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
 
 
 class PropertyCreate(PropertyBase):
@@ -160,6 +164,7 @@ class PropertyUpdate(BaseModel):
 
 class PropertyResponse(PropertyBase):
     id: int
+    agent_id: Optional[int] = None
     status: str
     created_at: datetime
     image_urls: List[str] = []

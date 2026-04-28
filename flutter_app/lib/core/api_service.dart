@@ -117,6 +117,42 @@ class ApiService {
     return res.data as Map<String, dynamic>;
   }
 
+  Future<void> deleteMe() async {
+    await _dio.delete('/users/me');
+  }
+
+  /// Find an existing conversation between [initiatorId] and [recipientId]
+  /// for the given [propertyId] (if provided), or create one.
+  /// Returns the conversation ID.
+  Future<int> findOrCreateConversation({
+    required int initiatorId,
+    required int recipientId,
+    String? subject,
+    int? propertyId,
+  }) async {
+    // Check existing conversations for this initiator
+    final existing = await getConversations(initiatorId);
+    for (final raw in existing) {
+      final c = raw as Map<String, dynamic>;
+      final cInitiator = c['initiator_id'] as int?;
+      final cRecipient = c['recipient_id'] as int?;
+      final cProperty = c['property_id'] as int?;
+      if (cInitiator == initiatorId && cRecipient == recipientId) {
+        if (propertyId == null || cProperty == propertyId) {
+          return c['id'] as int;
+        }
+      }
+    }
+    // Not found – create a new one
+    final created = await createConversation({
+      'initiator_id': initiatorId,
+      'recipient_id': recipientId,
+      if (subject != null) 'subject': subject,
+      if (propertyId != null) 'property_id': propertyId,
+    });
+    return created['id'] as int;
+  }
+
   // ─── Properties ─────────────────────────────────────────────────────────
 
   Future<List<dynamic>> getProperties({int skip = 0, int limit = 20}) async {
