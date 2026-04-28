@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
 from passlib.context import CryptContext
 from jose import jwt
+from pydantic import BaseModel, Field
 from sqlalchemy.exc import IntegrityError, DataError
 from sqlalchemy.orm import Session
 
@@ -231,3 +232,50 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
         tenant_id=db_tenant.id if db_tenant else None,
         message="Registration successful",
     )
+
+
+class AdminLoginRequest(BaseModel):
+    username: str = Field(..., min_length=1)
+    password: str = Field(..., min_length=1)
+
+
+@router.post("/admin-login", response_model=TokenResponse)
+def admin_login(payload: AdminLoginRequest, db: Session = Depends(get_db)):
+    """Dedicated admin login endpoint that validates against ADMIN_USER / ADMIN_PASSWORD
+    environment variables.  The username does not have to be an e-mail address.
+    """
+    if not _ADMIN_USER or not _ADMIN_PASSWORD:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Admin credentials are not configured on this server.",
+        )
+    credentials_ok = hmac.compare_digest(
+        payload.username.lower(), _ADMIN_USER.lower()
+    ) and hmac.compare_digest(payload.password, _ADMIN_PASSWORD)
+    if not credentials_ok:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid admin credentials.",
+        )
+    # Use the env-var value as the admin e-mail; if it does not contain '@'
+    # we synthesise a local-only address so the DB column stays consistent.
+    admin_email = _ADMIN_USER if "@" in _ADMIN_USER else f"{_ADMIN_USER}@ort.admin"
+    admin_user = db.query(User).filter(User.email == admin_email).first()
+    if admin_user is None:
+        admin_user = User(
+            role="admin",
+            first_name="Admin",
+            last_name="User",
+            email=admin_email,
+            password_hash=pwd_context.hash(_ADMIN_PASSWORD),
+        )
+        db.add(admin_user)
+        db.commit()
+        db.refresh(admin_user)
+        logger.info("Admin user created from ADMIN_USER env var: %s", admin_email)
+    elif admin_user.role != "admin":
+        admin_user.role = "admin"
+        db.commit()
+        db.refresh(admin_user)
+    token = _create_access_token({"sub": str(admin_user.id), "role": "admin"})
+    return TokenResponse(access_token=token, user_id=admin_user.id, role="admin")
