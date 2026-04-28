@@ -105,6 +105,14 @@ _MIGRATIONS: list[tuple[str, str, str]] = [
     ("saved_items", "user_id",    "INTEGER"),
     ("saved_items", "item_type",  "VARCHAR(50)"),
     ("saved_items", "item_id",    "INTEGER"),
+    # Map / location columns
+    ("properties",              "latitude",   "FLOAT"),
+    ("properties",              "longitude",  "FLOAT"),
+    ("manufacturing_products",  "latitude",   "FLOAT"),
+    ("manufacturing_products",  "longitude",  "FLOAT"),
+    # Agriculture lat/lng already in model; ensure migration runs for older DBs
+    ("agriculture_listings",    "latitude",   "FLOAT"),
+    ("agriculture_listings",    "longitude",  "FLOAT"),
 ]
 
 # Columns whose type needs widening on existing databases.

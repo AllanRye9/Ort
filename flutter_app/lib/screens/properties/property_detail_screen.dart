@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:latlong2/latlong.dart';
 import '../../core/api_service.dart';
 import '../../core/auth_provider.dart';
 import '../../models/models.dart';
@@ -66,6 +68,66 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     }
   }
 
+  Future<void> _contactAgent(PropertyModel p) async {
+    final agentId = p.agentId;
+    final userId = ref.read(authProvider).userId;
+    if (userId == null) return;
+    if (agentId == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No agent assigned to this property.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      return;
+    }
+
+    // Show consent dialog before starting conversation
+    final consented = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Contact Agent'),
+        content: const Text(
+          'Starting a conversation will allow the agent to see your public profile '
+          'information (name and contact details you have shared). Do you consent?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Contact Agent'),
+          ),
+        ],
+      ),
+    );
+    if (consented != true || !mounted) return;
+
+    try {
+      final api = ref.read(apiServiceProvider);
+      final convId = await api.findOrCreateConversation(
+        initiatorId: userId,
+        recipientId: agentId,
+        subject: 'Re: ${p.title}',
+        propertyId: p.id,
+      );
+      if (mounted) context.push('/messages/$convId');
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not start conversation: $e'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final async = ref.watch(_propertyDetailProvider(widget.id));
@@ -78,7 +140,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
         title: const Text('Property Detail'),
         leading: IconButton(
           icon: Container(
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: Colors.black26,
               shape: BoxShape.circle,
             ),
@@ -118,13 +180,15 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Error: $e')),
-        data: (p) => _PropertyDetailBody(
-          property: p,
-          imageUrls: p.imageUrls,
-        ),
+        data: (p) => _PropertyDetailBody(property: p),
       ),
       bottomNavigationBar: async.maybeWhen(
-        data: (p) => _BottomBar(property: p),
+        data: (p) => _BottomBar(
+          isSaved: _isSaved,
+          saveBusy: _saveBusy,
+          onSave: _toggleSave,
+          onContactAgent: () => _contactAgent(p),
+        ),
         orElse: () => null,
       ),
     );
@@ -132,9 +196,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
 }
 
 class _PropertyDetailBody extends StatelessWidget {
-  const _PropertyDetailBody({required this.property, required this.imageUrls});
+  const _PropertyDetailBody({required this.property});
   final PropertyModel property;
-  final List<String> imageUrls;
 
   @override
   Widget build(BuildContext context) {
@@ -143,21 +206,20 @@ class _PropertyDetailBody extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Image gallery ────────────────────────────────────────────────
+          // ── Image gallery ─────────────────────────────────────────────────
           ImageGallery(
-            imageUrls: imageUrls.isEmpty ? null : imageUrls,
-            height: 280,
+            imageUrls: p.imageUrls.isEmpty ? null : p.imageUrls,
+            height: 260,
             placeholderIcon: Icons.apartment_rounded,
-            placeholderColor:
-                Theme.of(context).colorScheme.primaryContainer,
+            placeholderColor: Theme.of(context).colorScheme.primaryContainer,
           ),
 
           Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ── Title + status ──────────────────────────────────────────
+                // ── Title + status ───────────────────────────────────────────
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -174,9 +236,9 @@ class _PropertyDetailBody extends StatelessWidget {
                     _StatusBadge(status: p.status),
                   ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
 
-                // ── Location ────────────────────────────────────────────────
+                // ── Location ─────────────────────────────────────────────────
                 Row(
                   children: [
                     Icon(Icons.location_on_outlined,
@@ -191,9 +253,9 @@ class _PropertyDetailBody extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
 
-                // ── Price ────────────────────────────────────────────────────
+                // ── Price ─────────────────────────────────────────────────────
                 Text(
                   '\$${p.price.toStringAsFixed(0)}',
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
@@ -201,12 +263,12 @@ class _PropertyDetailBody extends StatelessWidget {
                         fontWeight: FontWeight.bold,
                       ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
 
-                // ── Spec chips ───────────────────────────────────────────────
+                // ── Spec chips ────────────────────────────────────────────────
                 Wrap(
                   spacing: 8,
-                  runSpacing: 8,
+                  runSpacing: 6,
                   children: [
                     if (p.bedrooms != null)
                       _SpecChip(icon: Icons.bed_outlined, label: '${p.bedrooms} Beds'),
@@ -220,23 +282,47 @@ class _PropertyDetailBody extends StatelessWidget {
                   ],
                 ),
 
-                // ── Description ──────────────────────────────────────────────
+                // ── Description ───────────────────────────────────────────────
                 if (p.description != null) ...[
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
                   const Divider(),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
                   Text('About this property',
                       style: Theme.of(context)
                           .textTheme
                           .titleMedium
                           ?.copyWith(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   Text(p.description!,
                       style: TextStyle(
                           color: Colors.grey[700], height: 1.5, fontSize: 14)),
                 ],
 
-                const SizedBox(height: 100),
+                // ── Map ───────────────────────────────────────────────────────
+                if (p.latitude != null && p.longitude != null) ...[
+                  const SizedBox(height: 16),
+                  const Divider(),
+                  const SizedBox(height: 8),
+                  Text('Location',
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium
+                          ?.copyWith(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: SizedBox(
+                      height: 200,
+                      child: _LocationMap(
+                        lat: p.latitude!,
+                        lng: p.longitude!,
+                        label: p.title,
+                      ),
+                    ),
+                  ),
+                ],
+
+                const SizedBox(height: 96),
               ],
             ),
           ),
@@ -247,14 +333,22 @@ class _PropertyDetailBody extends StatelessWidget {
 }
 
 class _BottomBar extends StatelessWidget {
-  const _BottomBar({required this.property});
-  final PropertyModel property;
+  const _BottomBar({
+    required this.isSaved,
+    required this.saveBusy,
+    required this.onSave,
+    required this.onContactAgent,
+  });
+  final bool isSaved;
+  final bool saveBusy;
+  final VoidCallback onSave;
+  final VoidCallback onContactAgent;
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 20),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.07),
@@ -265,25 +359,85 @@ class _BottomBar extends StatelessWidget {
         ),
         child: Row(
           children: [
+            saveBusy
+                ? const SizedBox(
+                    width: 44,
+                    height: 44,
+                    child: Center(
+                      child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
+                  )
+                : IconButton.outlined(
+                    icon: Icon(
+                      isSaved ? Icons.bookmark : Icons.bookmark_border,
+                      semanticLabel: isSaved ? 'Unsave' : 'Save',
+                    ),
+                    onPressed: onSave,
+                    tooltip: isSaved ? 'Unsave' : 'Save',
+                  ),
+            const SizedBox(width: 10),
             Expanded(
-              child: OutlinedButton.icon(
-                icon: const Icon(Icons.favorite_border),
-                label: const Text('Save'),
-                onPressed: () {},
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              flex: 2,
               child: ElevatedButton.icon(
                 icon: const Icon(Icons.chat_outlined),
                 label: const Text('Contact Agent'),
-                onPressed: () {},
+                onPressed: onContactAgent,
               ),
             ),
           ],
         ),
       );
+}
+
+class _LocationMap extends StatelessWidget {
+  const _LocationMap({
+    required this.lat,
+    required this.lng,
+    required this.label,
+  });
+  final double lat;
+  final double lng;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final point = LatLng(lat, lng);
+    return FlutterMap(
+      options: MapOptions(
+        initialCenter: point,
+        initialZoom: 14,
+        interactionOptions: const InteractionOptions(
+          flags: InteractiveFlag.pinchZoom | InteractiveFlag.drag,
+        ),
+      ),
+      children: [
+        TileLayer(
+          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+          userAgentPackageName: 'com.ort.marketplace',
+        ),
+        MarkerLayer(
+          markers: [
+            Marker(
+              point: point,
+              width: 40,
+              height: 40,
+              child: Tooltip(
+                message: label,
+                child: Icon(
+                  Icons.location_pin,
+                  color: Theme.of(context).colorScheme.primary,
+                  size: 40,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
 }
 
 class _StatusBadge extends StatelessWidget {
@@ -320,7 +474,7 @@ class _SpecChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(10),

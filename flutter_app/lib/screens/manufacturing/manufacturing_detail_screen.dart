@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:latlong2/latlong.dart';
 import '../../core/api_service.dart';
 import '../../core/auth_provider.dart';
 import '../../models/models.dart';
@@ -67,6 +69,104 @@ class _ManufacturingDetailScreenState extends ConsumerState<ManufacturingDetailS
     }
   }
 
+  Future<void> _requestQuote(ManufacturingProductModel m) async {
+    final userId = ref.read(authProvider).userId;
+    if (userId == null) return;
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (ctx) => _RfqDialog(
+        title: m.title,
+        unit: m.unit,
+        tenantId: m.tenantId,
+      ),
+    );
+    if (result == null || !mounted) return;
+    try {
+      await ref.read(apiServiceProvider).createRFQ({
+        'title': 'Quote request for ${m.title}',
+        'description': result['notes'] as String?,
+        'quantity': (result['quantity'] as double?)?.toDouble(),
+        'unit': m.unit,
+        'category': 'manufacturing',
+        'buyer_id': userId,
+        if (m.tenantId != null) 'seller_tenant_id': m.tenantId,
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Quote request submitted!'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to submit quote: $e'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _orderNow(ManufacturingProductModel m) async {
+    final userId = ref.read(authProvider).userId;
+    if (userId == null) return;
+    if (m.tenantId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('This product has no seller – cannot place order.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (ctx) => _OrderDialog(
+        title: m.title,
+        unitPrice: m.wholesalePrice,
+        unit: m.unit,
+      ),
+    );
+    if (result == null || !mounted) return;
+    final qty = result['quantity'] as double? ?? 1.0;
+    try {
+      await ref.read(apiServiceProvider).createOrder({
+        'seller_tenant_id': m.tenantId,
+        'buyer_user_id': userId,
+        'delivery_address': result['address'] as String?,
+        'notes': result['notes'] as String?,
+        'items': [
+          {
+            'manufacturing_product_id': m.id,
+            'quantity': qty,
+            'unit_price': m.wholesalePrice,
+          }
+        ],
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Order placed! Check Orders for status.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Order failed: $e'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final async = ref.watch(_mfgDetailProvider(widget.id));
@@ -125,12 +225,12 @@ class _ManufacturingDetailScreenState extends ConsumerState<ManufacturingDetailS
             children: [
               ImageGallery(
                 imageUrls: m.images,
-                height: 260,
+                height: 240,
                 placeholderIcon: Icons.precision_manufacturing_rounded,
                 placeholderColor: const Color(0xFFFFE0B2),
               ),
               Padding(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -150,7 +250,7 @@ class _ManufacturingDetailScreenState extends ConsumerState<ManufacturingDetailS
                         _StatusBadge(status: m.status),
                       ],
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
                     Text(
                       '\$${m.wholesalePrice.toStringAsFixed(2)} / ${m.unit ?? 'unit'}',
                       style:
@@ -159,10 +259,10 @@ class _ManufacturingDetailScreenState extends ConsumerState<ManufacturingDetailS
                                 fontWeight: FontWeight.bold,
                               ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                     Wrap(
                       spacing: 8,
-                      runSpacing: 8,
+                      runSpacing: 6,
                       children: [
                         if (m.category != null) _InfoChip(label: m.category!),
                         if (m.location != null)
@@ -193,18 +293,18 @@ class _ManufacturingDetailScreenState extends ConsumerState<ManufacturingDetailS
                     ),
                     if (m.certifications != null &&
                         m.certifications!.isNotEmpty) ...[
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 14),
                       const Divider(),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 8),
                       Text('Certifications',
                           style: Theme.of(context)
                               .textTheme
                               .titleSmall
                               ?.copyWith(fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 6),
                       Wrap(
                         spacing: 8,
-                        runSpacing: 8,
+                        runSpacing: 6,
                         children: m.certifications!
                             .map((c) => _InfoChip(
                                   label: '✓ $c',
@@ -215,20 +315,42 @@ class _ManufacturingDetailScreenState extends ConsumerState<ManufacturingDetailS
                       ),
                     ],
                     if (m.description != null) ...[
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 14),
                       const Divider(),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 8),
                       Text('Description',
                           style: Theme.of(context)
                               .textTheme
                               .titleSmall
                               ?.copyWith(fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 4),
                       Text(m.description!,
                           style: TextStyle(
                               color: Colors.grey[700], height: 1.5)),
                     ],
-                    const SizedBox(height: 100),
+                    if (m.latitude != null && m.longitude != null) ...[
+                      const SizedBox(height: 14),
+                      const Divider(),
+                      const SizedBox(height: 8),
+                      Text('Location',
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleSmall
+                              ?.copyWith(fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 8),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: SizedBox(
+                          height: 180,
+                          child: _LocationMap(
+                            lat: m.latitude!,
+                            lng: m.longitude!,
+                            label: m.title,
+                          ),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 96),
                   ],
                 ),
               ),
@@ -237,10 +359,10 @@ class _ManufacturingDetailScreenState extends ConsumerState<ManufacturingDetailS
         ),
       ),
       bottomNavigationBar: async.maybeWhen(
-        data: (_) => Container(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+        data: (m) => Container(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 20),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Theme.of(context).colorScheme.surface,
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.07),
@@ -255,16 +377,16 @@ class _ManufacturingDetailScreenState extends ConsumerState<ManufacturingDetailS
                 child: OutlinedButton.icon(
                   icon: const Icon(Icons.request_quote_outlined),
                   label: const Text('Request Quote'),
-                  onPressed: () {},
+                  onPressed: () => _requestQuote(m),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               Expanded(
                 flex: 2,
                 child: ElevatedButton.icon(
                   icon: const Icon(Icons.shopping_cart_outlined),
                   label: const Text('Order Now'),
-                  onPressed: () {},
+                  onPressed: () => _orderNow(m),
                 ),
               ),
             ],
@@ -272,6 +394,230 @@ class _ManufacturingDetailScreenState extends ConsumerState<ManufacturingDetailS
         ),
         orElse: () => null,
       ),
+    );
+  }
+}
+
+// ─── RFQ dialog ──────────────────────────────────────────────────────────────
+
+class _RfqDialog extends StatefulWidget {
+  const _RfqDialog({required this.title, this.unit, this.tenantId});
+  final String title;
+  final String? unit;
+  final int? tenantId;
+
+  @override
+  State<_RfqDialog> createState() => _RfqDialogState();
+}
+
+class _RfqDialogState extends State<_RfqDialog> {
+  final _qtyCtrl = TextEditingController();
+  final _notesCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _qtyCtrl.dispose();
+    _notesCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+        title: const Text('Request Quote'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('for ${widget.title}',
+                style: const TextStyle(color: Colors.grey, fontSize: 13)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _qtyCtrl,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: 'Quantity${widget.unit != null ? ' (${widget.unit})' : ''}',
+                border: const OutlineInputBorder(),
+                isDense: true,
+              ),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _notesCtrl,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                labelText: 'Notes / requirements',
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop({
+                'quantity': double.tryParse(_qtyCtrl.text),
+                'notes': _notesCtrl.text.trim(),
+              });
+            },
+            child: const Text('Submit'),
+          ),
+        ],
+      );
+}
+
+// ─── Order dialog ─────────────────────────────────────────────────────────────
+
+class _OrderDialog extends StatefulWidget {
+  const _OrderDialog({
+    required this.title,
+    required this.unitPrice,
+    this.unit,
+  });
+  final String title;
+  final double unitPrice;
+  final String? unit;
+
+  @override
+  State<_OrderDialog> createState() => _OrderDialogState();
+}
+
+class _OrderDialogState extends State<_OrderDialog> {
+  final _qtyCtrl = TextEditingController(text: '1');
+  final _addrCtrl = TextEditingController();
+  final _notesCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _qtyCtrl.dispose();
+    _addrCtrl.dispose();
+    _notesCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final qty = double.tryParse(_qtyCtrl.text) ?? 1.0;
+    final total = qty * widget.unitPrice;
+    return AlertDialog(
+      title: const Text('Place Order'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(widget.title,
+                style: const TextStyle(color: Colors.grey, fontSize: 13)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _qtyCtrl,
+              keyboardType: TextInputType.number,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                labelText: 'Quantity${widget.unit != null ? ' (${widget.unit})' : ''}',
+                border: const OutlineInputBorder(),
+                isDense: true,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Total: \$${total.toStringAsFixed(2)}',
+              style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.primary),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _addrCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Delivery address',
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _notesCtrl,
+              maxLines: 2,
+              decoration: const InputDecoration(
+                labelText: 'Notes (optional)',
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Your order will be reviewed by the seller. You will be notified when confirmed.',
+              style: TextStyle(fontSize: 11, color: Colors.grey),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            Navigator.of(context).pop({
+              'quantity': double.tryParse(_qtyCtrl.text) ?? 1.0,
+              'address': _addrCtrl.text.trim(),
+              'notes': _notesCtrl.text.trim(),
+            });
+          },
+          child: const Text('Place Order'),
+        ),
+      ],
+    );
+  }
+}
+
+// ─── Location map ─────────────────────────────────────────────────────────────
+
+class _LocationMap extends StatelessWidget {
+  const _LocationMap({required this.lat, required this.lng, required this.label});
+  final double lat;
+  final double lng;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final point = LatLng(lat, lng);
+    return FlutterMap(
+      options: MapOptions(
+        initialCenter: point,
+        initialZoom: 13,
+        interactionOptions: const InteractionOptions(
+          flags: InteractiveFlag.pinchZoom | InteractiveFlag.drag,
+        ),
+      ),
+      children: [
+        TileLayer(
+          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+          userAgentPackageName: 'com.ort.marketplace',
+        ),
+        MarkerLayer(
+          markers: [
+            Marker(
+              point: point,
+              width: 40,
+              height: 40,
+              child: Tooltip(
+                message: label,
+                child: const Icon(
+                  Icons.location_pin,
+                  color: Color(0xFFE65100),
+                  size: 40,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
