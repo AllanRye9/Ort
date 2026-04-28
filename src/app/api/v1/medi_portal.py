@@ -903,11 +903,11 @@ function renderAgriTable(items) {
         <td class="px-3 py-2 text-gray-500">${esc(i.category||'—')}</td>
         <td class="px-3 py-2"><span class="badge ${statusColor(i.status)}">${esc(i.status||'')}</span></td>
         <td class="px-3 py-2">${i.price_per_unit!=null?Number(i.price_per_unit).toFixed(2)+' '+(i.currency||'USD'):'—'}</td>
-        <td class="px-3 py-2 text-gray-500">${i.map_link
-          ? `<a href="${esc(i.map_link)}" target="_blank" rel="noopener" class="text-green-700 underline text-xs">📍 Map</a>${i.location ? ' · '+esc(i.location) : ''}`
+        <td class="px-3 py-2 text-gray-500">${i.map_link && isSafeUrl(i.map_link)
+          ? `<a href="${esc(i.map_link)}" target="_blank" rel="noopener noreferrer" class="text-green-700 underline text-xs">📍 Map</a>${i.location ? ' · '+esc(i.location) : ''}`
           : esc(i.location||'—')}</td>
         <td class="px-3 py-2">
-          <button onclick='openAgriModal(${JSON.stringify(i)})' class="text-blue-600 hover:text-blue-800 text-xs font-medium mr-2">Edit</button>
+          <button onclick="openAgriModal(agriData.find(x=>x.id===${i.id}))" class="text-blue-600 hover:text-blue-800 text-xs font-medium mr-2">Edit</button>
           <button onclick="deleteAgri(${i.id})" class="text-red-500 hover:text-red-700 text-xs font-medium">Delete</button>
         </td>
       </tr>`).join('')}
@@ -950,11 +950,11 @@ function renderManuTable(items) {
         <td class="px-3 py-2 text-gray-500">${esc(i.category||'—')}</td>
         <td class="px-3 py-2"><span class="badge ${statusColor(i.status)}">${esc(i.status||'')}</span></td>
         <td class="px-3 py-2">${i.wholesale_price!=null?Number(i.wholesale_price).toFixed(2)+' '+(i.currency||'USD'):'—'}</td>
-        <td class="px-3 py-2 text-gray-500">${i.map_link
-          ? `<a href="${esc(i.map_link)}" target="_blank" rel="noopener" class="text-blue-700 underline text-xs">📍 Map</a>${i.location ? ' · '+esc(i.location) : ''}`
+        <td class="px-3 py-2 text-gray-500">${i.map_link && isSafeUrl(i.map_link)
+          ? `<a href="${esc(i.map_link)}" target="_blank" rel="noopener noreferrer" class="text-blue-700 underline text-xs">📍 Map</a>${i.location ? ' · '+esc(i.location) : ''}`
           : esc(i.location||'—')}</td>
         <td class="px-3 py-2">
-          <button onclick='openManuModal(${JSON.stringify(i)})' class="text-blue-600 hover:text-blue-800 text-xs font-medium mr-2">Edit</button>
+          <button onclick="openManuModal(manuData.find(x=>x.id===${i.id}))" class="text-blue-600 hover:text-blue-800 text-xs font-medium mr-2">Edit</button>
           <button onclick="deleteManu(${i.id})" class="text-red-500 hover:text-red-700 text-xs font-medium">Delete</button>
         </td>
       </tr>`).join('')}
@@ -981,20 +981,27 @@ async function uploadImages(files) {
 }
 
 function renderImgPreview(containerId, urls) {
+  const isAgri = containerId === 'agriImgPreview';
   const el = document.getElementById(containerId);
   el.innerHTML = urls.map((u, i) =>
     `<div class="relative group">
        <img src="${esc(u)}" class="img-thumb" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 40 40%22><rect width=%2240%22 height=%2240%22 fill=%22%23e5e7eb%22/><text x=%2250%25%22 y=%2255%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-size=%2212%22>?</text></svg>'"/>
-       <button type="button" onclick="removeImg(this,'${containerId}')" data-idx="${i}"
+       <button type="button" onclick="${isAgri ? 'removeAgriImg' : 'removeManuImg'}(this)" data-idx="${i}"
          class="hidden group-hover:flex absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full text-xs items-center justify-center leading-none">×</button>
      </div>`
   ).join('');
 }
 
-function removeImg(btn, containerId) {
+function removeAgriImg(btn) {
   const idx = parseInt(btn.dataset.idx);
-  if (containerId === 'agriImgPreview') { agriImgUrls.splice(idx, 1); renderImgPreview('agriImgPreview', agriImgUrls); }
-  else { manuImgUrls.splice(idx, 1); renderImgPreview('manuImgPreview', manuImgUrls); }
+  agriImgUrls.splice(idx, 1);
+  renderImgPreview('agriImgPreview', agriImgUrls);
+}
+
+function removeManuImg(btn) {
+  const idx = parseInt(btn.dataset.idx);
+  manuImgUrls.splice(idx, 1);
+  renderImgPreview('manuImgPreview', manuImgUrls);
 }
 
 async function handleAgriImages(input) {
@@ -1226,6 +1233,13 @@ function loadProfile() {
 }
 
 // ── Utilities ──────────────────────────────────────────────────────────────
+function isSafeUrl(url) {
+  try {
+    const u = new URL(url);
+    return u.protocol === 'https:' || u.protocol === 'http:';
+  } catch { return false; }
+}
+
 function imgThumb(images) {
   if (!images || !images.length) return '<span class="text-gray-300 text-lg">🖼</span>';
   return `<img src="${esc(images[0])}" class="img-thumb" onerror="this.style.display='none'" loading="lazy"/>`;
