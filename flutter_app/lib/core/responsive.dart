@@ -22,7 +22,6 @@ extension ResponsiveContext on BuildContext {
   int get gridColumns {
     if (screenWidth >= Breakpoints.desktop) return 4;
     if (screenWidth >= Breakpoints.tablet) return 3;
-    if (screenWidth >= Breakpoints.mobile) return 2;
     return 2;
   }
 
