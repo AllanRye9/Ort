@@ -317,9 +317,13 @@ def delete_property(property_id: int, db: Session = Depends(get_db)):
 def get_property_images(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
+    property_id: Optional[int] = Query(None),
     db: Session = Depends(get_db),
 ):
-    return db.query(PropertyImage).offset(skip).limit(limit).all()
+    q = db.query(PropertyImage)
+    if property_id is not None:
+        q = q.filter(PropertyImage.property_id == property_id)
+    return q.offset(skip).limit(limit).all()
 
 
 @router.get("/property-images/{image_id}", response_model=PropertyImageResponse)
