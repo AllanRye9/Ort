@@ -184,10 +184,14 @@ logger.info("Application startup complete — routes registered under /api/v1")
 # Mount this AFTER the API router so API routes take precedence.
 # ---------------------------------------------------------------------------
 from pathlib import Path as _Path
-_STATIC_DIR = _Path(__file__).parents[2] / "static"
-_STATIC_DIR.mkdir(parents=True, exist_ok=True)
-(_STATIC_DIR / "listings").mkdir(exist_ok=True)
-app.mount("/static", StaticFiles(directory=str(_STATIC_DIR)), name="static")
+
+# Canonical static-files directory.  Exported so that upload.py (and any
+# other module that writes files to disk) can import this single source of
+# truth instead of recomputing the path independently.
+STATIC_DIR = _Path(__file__).parent / "static"
+STATIC_DIR.mkdir(parents=True, exist_ok=True)
+(STATIC_DIR / "listings").mkdir(exist_ok=True)
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 
 @app.get("/")
