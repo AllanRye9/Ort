@@ -727,6 +727,7 @@ class _FeaturedSection<T> extends StatelessWidget {
           constraints: BoxConstraints(maxWidth: context.maxContentWidth),
           child: Padding(
             padding: EdgeInsets.symmetric(
+                // pad stores left+right as a sum; divide by 2 to get per-side value
                 horizontal: pad.horizontal / 2, vertical: 0),
             child: GridView.builder(
               shrinkWrap: true,
@@ -790,7 +791,7 @@ class _FeaturedCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: context.isWide ? null : 175,
+      width: context.isWide ? null : 175, // 175 dp fits ~2 cards on a 360dp phone
       child: Card(
         clipBehavior: Clip.antiAlias,
         child: InkWell(
