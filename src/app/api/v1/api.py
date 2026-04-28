@@ -164,6 +164,17 @@ def update_user(user_id: int, user_update: UserUpdate, db: Session = Depends(get
     return user
 
 
+@router.delete("/users/me", status_code=status.HTTP_200_OK)
+def delete_current_user_me(
+    current_user: User = Depends(_get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Allow the authenticated user to permanently delete their own account."""
+    db.delete(current_user)
+    db.commit()
+    return {"message": "Account deleted successfully"}
+
+
 @router.delete("/users/{user_id}", status_code=status.HTTP_200_OK)
 def delete_user(user_id: int, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
