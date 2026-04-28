@@ -39,7 +39,7 @@ class _AgricultureCreateScreenState
     'livestock',
     'dairy',
     'poultry',
-    'seafood',
+    'fish',
     'spices',
     'oil_seeds',
     'other',
