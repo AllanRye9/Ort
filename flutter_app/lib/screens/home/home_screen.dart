@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:shimmer/shimmer.dart';
 import '../../core/auth_provider.dart';
 import '../../core/listing_providers.dart';
+import '../../core/responsive.dart';
 import '../../core/theme.dart';
 import '../../models/models.dart';
 
@@ -136,9 +137,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
             // ── Search bar ──────────────────────────────────────────────────
             SliverToBoxAdapter(
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: _ContentWrapper(
                 child: _SearchBar(onTap: () => context.go('/search')),
               ),
             ),
@@ -147,14 +146,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(0, 4, 0, 12),
-                child: const _AiWidget(),
+                child: _ContentWrapper(child: const _AiWidget()),
               ),
             ),
 
             // ── Role-specific quick actions ──────────────────────────────────
             SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: _ContentWrapper(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -174,8 +172,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
             // ── Featured Properties ─────────────────────────────────────────
             SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: _ContentWrapper(
                 child: _SectionHeader(
                   title: 'Properties',
                   onSeeAll: () => context.go('/properties'),
@@ -188,15 +185,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 child: propertiesAsync.when(
                   loading: () => const _HorizontalShimmer(),
                   error: (e, _) => _ErrorTile(message: e.toString()),
-                  data: (items) => _PropertyRow(items: items),
+                  data: (items) => _FeaturedSection<PropertyModel>(
+                    items: items,
+                    cardBuilder: (ctx, p) => _FeaturedCard(
+                      imageUrl: p.imageUrls.isNotEmpty ? p.imageUrls.first : null,
+                      icon: Icons.apartment_rounded,
+                      iconColor: AppTheme.primary,
+                      title: p.title,
+                      subtitle: p.city ?? p.address,
+                      price: '\$${p.price.toStringAsFixed(0)}',
+                      badge: p.propertyType,
+                      onTap: () => ctx.go('/properties/${p.id}'),
+                    ),
+                    emptyText: 'No properties listed yet.',
+                  ),
                 ),
               ),
             ),
 
             // ── Agriculture ─────────────────────────────────────────────────
             SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: _ContentWrapper(
                 child: _SectionHeader(
                   title: 'Agriculture',
                   onSeeAll: () => context.go('/agriculture'),
@@ -209,15 +218,33 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 child: agricultureAsync.when(
                   loading: () => const _HorizontalShimmer(),
                   error: (e, _) => _ErrorTile(message: e.toString()),
-                  data: (items) => _AgriRow(items: items),
+                  data: (items) => _FeaturedSection<AgricultureListingModel>(
+                    items: items,
+                    cardBuilder: (ctx, a) {
+                      final imgUrl = (a.images != null && a.images!.isNotEmpty)
+                          ? a.images!.first
+                          : null;
+                      return _FeaturedCard(
+                        imageUrl: imgUrl,
+                        icon: Icons.grass_rounded,
+                        iconColor: const Color(0xFF388E3C),
+                        title: a.title,
+                        subtitle: a.location ?? a.category ?? '',
+                        price:
+                            '\$${a.pricePerUnit.toStringAsFixed(2)}/${a.unit ?? 'unit'}',
+                        badge: a.category,
+                        onTap: () => ctx.go('/agriculture/${a.id}'),
+                      );
+                    },
+                    emptyText: 'No agriculture listings yet.',
+                  ),
                 ),
               ),
             ),
 
             // ── Manufacturing ───────────────────────────────────────────────
             SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: _ContentWrapper(
                 child: _SectionHeader(
                   title: 'Manufacturing',
                   onSeeAll: () => context.go('/manufacturing'),
@@ -230,7 +257,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 child: mfgAsync.when(
                   loading: () => const _HorizontalShimmer(),
                   error: (e, _) => _ErrorTile(message: e.toString()),
-                  data: (items) => _MfgRow(items: items),
+                  data: (items) => _FeaturedSection<ManufacturingProductModel>(
+                    items: items,
+                    cardBuilder: (ctx, m) {
+                      final imgUrl = (m.images != null && m.images!.isNotEmpty)
+                          ? m.images!.first
+                          : null;
+                      return _FeaturedCard(
+                        imageUrl: imgUrl,
+                        icon: Icons.precision_manufacturing_rounded,
+                        iconColor: AppTheme.secondary,
+                        title: m.title,
+                        subtitle:
+                            m.category ?? (m.isLocallyMade ? 'Locally Made' : ''),
+                        price:
+                            '\$${m.wholesalePrice.toStringAsFixed(2)}/${m.unit ?? 'unit'}',
+                        badge: m.category,
+                        onTap: () => ctx.go('/manufacturing/${m.id}'),
+                      );
+                    },
+                    emptyText: 'No manufacturing products yet.',
+                  ),
                 ),
               ),
             ),
@@ -404,8 +451,10 @@ class _QuickActionsGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // On wide screens show all actions in one row; on mobile cap at 4 per row.
+    final cols = context.isWide ? actions.length : 4;
     return GridView.count(
-      crossAxisCount: 4,
+      crossAxisCount: cols,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       mainAxisSpacing: 4,
@@ -619,65 +668,86 @@ class _ErrorTile extends StatelessWidget {
       );
 }
 
-// ─── Row widgets ──────────────────────────────────────────────────────────────
+// ─── Content wrapper (centres content with max-width on wide screens) ─────────
 
-class _PropertyRow extends StatelessWidget {
-  const _PropertyRow({required this.items});
-  final List<PropertyModel> items;
+class _ContentWrapper extends StatelessWidget {
+  const _ContentWrapper({required this.child});
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    if (items.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 16),
-        child: Text('No properties listed yet.',
-            style: TextStyle(color: Colors.grey)),
+    final pad = context.contentPadding;
+    if (!context.isWide) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: child,
       );
     }
-    return SizedBox(
-      height: 220,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: items.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
-        itemBuilder: (ctx, i) {
-          final p = items[i];
-          final imgUrl = p.imageUrls.isNotEmpty ? p.imageUrls.first : null;
-          return _AnimatedEntry(
-            delay: Duration(milliseconds: 60 * i),
-            child: GestureDetector(
-              onTap: () => ctx.go('/properties/${p.id}'),
-              child: _FeaturedCard(
-                imageUrl: imgUrl,
-                icon: Icons.apartment_rounded,
-                iconColor: AppTheme.primary,
-                title: p.title,
-                subtitle: p.city ?? p.address,
-                price: '\$${p.price.toStringAsFixed(0)}',
-                badge: p.propertyType,
-              ),
-            ),
-          );
-        },
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: context.maxContentWidth),
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+              horizontal: pad.left, vertical: pad.top),
+          child: child,
+        ),
       ),
     );
   }
 }
 
-class _AgriRow extends StatelessWidget {
-  const _AgriRow({required this.items});
-  final List<AgricultureListingModel> items;
+// ─── Generic featured section ──────────────────────────────────────────────────
+
+class _FeaturedSection<T> extends StatelessWidget {
+  const _FeaturedSection({
+    required this.items,
+    required this.cardBuilder,
+    required this.emptyText,
+  });
+
+  final List<T> items;
+  final Widget Function(BuildContext ctx, T item) cardBuilder;
+  final String emptyText;
 
   @override
   Widget build(BuildContext context) {
     if (items.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 16),
-        child: Text('No agriculture listings yet.',
-            style: TextStyle(color: Colors.grey)),
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Text(emptyText, style: const TextStyle(color: Colors.grey)),
       );
     }
+
+    // On wide screens render a horizontal wrap/grid; on narrow keep scrolling row.
+    if (context.isWide) {
+      final cols = context.gridColumns;
+      final pad = context.contentPadding;
+      return Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: context.maxContentWidth),
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+                horizontal: pad.horizontal / 2, vertical: 0),
+            child: GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: cols,
+                childAspectRatio: 0.78,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+              ),
+              itemCount: items.length > (cols * 2) ? cols * 2 : items.length,
+              itemBuilder: (ctx, i) => _AnimatedEntry(
+                delay: Duration(milliseconds: 60 * i),
+                child: cardBuilder(ctx, items[i]),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return SizedBox(
       height: 220,
       child: ListView.separated(
@@ -685,71 +755,10 @@ class _AgriRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16),
         itemCount: items.length,
         separatorBuilder: (_, __) => const SizedBox(width: 12),
-        itemBuilder: (ctx, i) {
-          final a = items[i];
-          final imgUrl =
-              (a.images != null && a.images!.isNotEmpty) ? a.images!.first : null;
-          return _AnimatedEntry(
-            delay: Duration(milliseconds: 60 * i),
-            child: GestureDetector(
-              onTap: () => ctx.go('/agriculture/${a.id}'),
-              child: _FeaturedCard(
-                imageUrl: imgUrl,
-                icon: Icons.grass_rounded,
-                iconColor: const Color(0xFF388E3C),
-                title: a.title,
-                subtitle: a.location ?? a.category ?? '',
-                price: '\$${a.pricePerUnit.toStringAsFixed(2)}/${a.unit ?? 'unit'}',
-                badge: a.category,
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _MfgRow extends StatelessWidget {
-  const _MfgRow({required this.items});
-  final List<ManufacturingProductModel> items;
-
-  @override
-  Widget build(BuildContext context) {
-    if (items.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 16),
-        child: Text('No manufacturing products yet.',
-            style: TextStyle(color: Colors.grey)),
-      );
-    }
-    return SizedBox(
-      height: 220,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: items.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
-        itemBuilder: (ctx, i) {
-          final m = items[i];
-          final imgUrl =
-              (m.images != null && m.images!.isNotEmpty) ? m.images!.first : null;
-          return _AnimatedEntry(
-            delay: Duration(milliseconds: 60 * i),
-            child: GestureDetector(
-              onTap: () => ctx.go('/manufacturing/${m.id}'),
-              child: _FeaturedCard(
-                imageUrl: imgUrl,
-                icon: Icons.precision_manufacturing_rounded,
-                iconColor: AppTheme.secondary,
-                title: m.title,
-                subtitle: m.category ?? (m.isLocallyMade ? 'Locally Made' : ''),
-                price: '\$${m.wholesalePrice.toStringAsFixed(2)}/${m.unit ?? 'unit'}',
-                badge: m.category,
-              ),
-            ),
-          );
-        },
+        itemBuilder: (ctx, i) => _AnimatedEntry(
+          delay: Duration(milliseconds: 60 * i),
+          child: cardBuilder(ctx, items[i]),
+        ),
       ),
     );
   }
@@ -766,6 +775,7 @@ class _FeaturedCard extends StatelessWidget {
     required this.subtitle,
     required this.price,
     this.badge,
+    this.onTap,
   });
 
   final String? imageUrl;
@@ -775,14 +785,17 @@ class _FeaturedCard extends StatelessWidget {
   final String subtitle;
   final String price;
   final String? badge;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 175,
+      width: context.isWide ? null : 175,
       child: Card(
         clipBehavior: Clip.antiAlias,
-        child: Column(
+        child: InkWell(
+          onTap: onTap,
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Image / placeholder
@@ -866,6 +879,7 @@ class _FeaturedCard extends StatelessWidget {
             ),
           ],
         ),
+        ),
       ),
     );
   }
@@ -946,7 +960,7 @@ class _AiWidgetState extends State<_AiWidget> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
+      margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
