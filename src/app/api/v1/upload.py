@@ -40,7 +40,11 @@ import os
 import uuid
 from typing import List
 
-from fastapi import APIRouter, HTTPException, Query, UploadFile, File, status
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, status
+from fastapi.responses import Response
+from sqlalchemy.orm import Session
+
+from app.database.database import get_db
 
 logger = logging.getLogger(__name__)
 
@@ -145,7 +149,7 @@ def _get_s3_client():
         return None, None, None
 
 
-async def _process_upload(file: UploadFile) -> dict:
+async def _process_upload(file: UploadFile, db: Session) -> dict:
     """Validate, upload and return ``{"url": ...}`` for a single file."""
     # Content-type validation
     if file.content_type not in _ALLOWED_CONTENT_TYPES:
@@ -191,37 +195,42 @@ async def _process_upload(file: UploadFile) -> dict:
                 detail="Image upload failed. Please try again.",
             ) from exc
     else:
-        # Stub mode – S3 is not configured.  Save the file to disk so that
-        # the /static/listings/ URL we return actually resolves.
-        from app.main import STATIC_DIR as static_dir
-        save_path = static_dir / object_key
-        save_path.parent.mkdir(parents=True, exist_ok=True)
+        # No S3 configured – persist image data in the database so it survives
+        # container restarts (e.g. Railway ephemeral filesystem).
+        from app.models.models import ImageBlob
+        img_id = str(uuid.uuid4())
+        content_type = file.content_type or "image/jpeg"
         try:
-            save_path.write_bytes(contents)
-        except OSError as exc:
-            logger.error("Failed to save image to disk: %s", exc)
+            blob = ImageBlob(id=img_id, data=contents, content_type=content_type)
+            db.add(blob)
+            db.commit()
+        except Exception as exc:
+            db.rollback()
+            logger.error("Failed to save image to database: %s", exc)
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Image upload failed. Please try again.",
             ) from exc
         logger.warning(
-            "S3 not configured – saved image locally at %s", save_path
+            "S3 not configured – saved image to database with id %s", img_id
         )
         base_url = os.getenv("APP_BASE_URL", "https://ort.up.railway.app")
-        return {"url": f"{base_url}/static/{object_key}"}
+        return {"url": f"{base_url}/api/v1/upload/image/{img_id}"}
 
 
 @router.post("/image", status_code=status.HTTP_200_OK)
 async def upload_image(
     file: UploadFile = File(...),
+    db: Session = Depends(get_db),
 ):
     """Upload a single image file and return its public URL."""
-    return await _process_upload(file)
+    return await _process_upload(file, db)
 
 
 @router.post("/images", status_code=status.HTTP_200_OK)
 async def upload_images(
     files: List[UploadFile] = File(...),
+    db: Session = Depends(get_db),
 ):
     """Upload multiple image files (up to 20) and return their public URLs."""
     if not files:
@@ -234,16 +243,43 @@ async def upload_images(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Maximum 20 files per request.",
         )
-    results = await asyncio.gather(*[_process_upload(f) for f in files])
+    results = await asyncio.gather(*[_process_upload(f, db) for f in files])
     return {"urls": [r["url"] for r in results]}
 
 
+@router.get("/image/{image_id}")
+async def serve_image(
+    image_id: str,
+    db: Session = Depends(get_db),
+):
+    """Serve an image stored in the database (stub / no-S3 mode).
+
+    Returns the raw image bytes with the original content-type header so
+    Flutter's ``Image.network()`` and browser ``<img>`` tags display it.
+    """
+    from app.models.models import ImageBlob
+    blob = db.query(ImageBlob).filter(ImageBlob.id == image_id).first()
+    if not blob:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Image not found.",
+        )
+    return Response(
+        content=blob.data,
+        media_type=blob.content_type,
+        headers={"Cache-Control": "public, max-age=31536000, immutable"},
+    )
+
+
 @router.delete("/image", status_code=status.HTTP_200_OK)
-async def delete_image(url: str = Query(..., description="Public URL of the image to delete")):
+async def delete_image(
+    url: str = Query(..., description="Public URL of the image to delete"),
+    db: Session = Depends(get_db),
+):
     """Delete an uploaded image by its public URL.
 
     Removes the object from S3 / Railway bucket when storage is configured.
-    In stub mode, removes the file from the local static directory.
+    In stub mode, removes the record from the database.
     """
     import urllib.parse
 
@@ -269,25 +305,23 @@ async def delete_image(url: str = Query(..., description="Public URL of the imag
                 detail="Image deletion failed. Please try again.",
             ) from exc
     else:
-        # Stub mode: delete from local static directory
-        base_url = os.getenv("APP_BASE_URL", "https://ort.up.railway.app")
-        static_prefix = f"{base_url}/static/"
-        if url.startswith(static_prefix):
-            rel_path = url[len(static_prefix):]
-            from app.main import STATIC_DIR as static_dir
-            target = (static_dir / rel_path).resolve()
-            # Safety: ensure the resolved path is still inside static_dir
-            if not target.is_relative_to(static_dir.resolve()):
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Invalid image URL.",
-                )
-            if target.exists():
+        # Stub mode: delete from database by image ID extracted from URL.
+        # URL format: {base_url}/api/v1/upload/image/{uuid}
+        from app.models.models import ImageBlob
+        parsed = urllib.parse.urlparse(url)
+        path = parsed.path  # e.g. /api/v1/upload/image/<uuid>
+        prefix = "/api/v1/upload/image/"
+        if path.startswith(prefix):
+            img_id = path[len(prefix):].strip("/")
+            blob = db.query(ImageBlob).filter(ImageBlob.id == img_id).first()
+            if blob:
                 try:
-                    target.unlink()
-                    logger.info("Deleted local image: %s", target)
-                except OSError as exc:
-                    logger.error("Failed to delete local image: %s", exc)
+                    db.delete(blob)
+                    db.commit()
+                    logger.info("Deleted image blob: %s", img_id)
+                except Exception as exc:
+                    db.rollback()
+                    logger.error("Failed to delete image blob: %s", exc)
                     raise HTTPException(
                         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                         detail="Image deletion failed.",

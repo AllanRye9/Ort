@@ -17,6 +17,7 @@ from .api.v1.web_portal import router as web_portal_router
 
 # Import marketplace models so their tables are registered with Base
 from .models import marketplace_models  # noqa: F401
+from .models import models as _core_models  # noqa: F401  (registers ImageBlob etc.)
 
 # ---------------------------------------------------------------------------
 # Logging – configure root logger so every module's logger writes to stdout.
