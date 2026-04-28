@@ -310,7 +310,10 @@ async def serve_image(
     return Response(
         content=blob.data,
         media_type=blob.content_type,
-        headers={"Cache-Control": "public, max-age=31536000, immutable"},
+        headers={
+            "Cache-Control": "public, max-age=31536000, immutable",
+            "Access-Control-Allow-Origin": "*",
+        },
     )
 
 
