@@ -1,6 +1,6 @@
 from sqlalchemy import (
     Column, Integer, String, Text, Date, DateTime,
-    Enum, ForeignKey, Boolean, DECIMAL, Index
+    Enum, ForeignKey, Boolean, DECIMAL, Index, LargeBinary
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -185,3 +185,18 @@ class Payment(Base):
     payment_date = Column(Date, server_default=func.current_date())
 
     transaction = relationship("Transaction", back_populates="payments")
+
+
+class ImageBlob(Base):
+    """Stores uploaded image binary data in the database.
+
+    Used as a persistence layer when S3/object-storage is not configured
+    so that images survive container restarts on platforms like Railway.
+    """
+
+    __tablename__ = "image_blobs"
+
+    id = Column(String(36), primary_key=True)  # UUID string
+    data = Column(LargeBinary, nullable=False)
+    content_type = Column(String(50), nullable=False, server_default="image/jpeg")
+    created_at = Column(DateTime, server_default=func.now())
