@@ -251,20 +251,35 @@ async function loadAll() {
   ]);
 }
 
+async function fetchWithTimeout(url, ms) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), ms);
+  try {
+    const r = await fetch(url, { signal: ctrl.signal });
+    clearTimeout(timer);
+    return r;
+  } catch(e) {
+    clearTimeout(timer);
+    throw e;
+  }
+}
+
 async function fetchCategory(type, url) {
   const gridKey = gridId(type);
   try {
-    const r = await fetch(url);
+    const r = await fetchWithTimeout(url, 12000);
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const data = await r.json();
     const items = Array.isArray(data) ? data : (data.items || data.listings || data.products || []);
     allData[type] = items;
     renderGrid(type);
   } catch(e) {
-    document.getElementById(gridKey + '-grid').innerHTML =
+    const grid = document.getElementById(gridKey + '-grid');
+    if (grid) grid.innerHTML =
       '<p class="col-span-full text-center text-gray-400 py-16 text-sm">Could not load listings. ' +
       '<a href="/medi" class="text-green-700 underline">Sign in to view all.</a></p>';
-    document.getElementById(gridKey + '-count').textContent = '';
+    const count = document.getElementById(gridKey + '-count');
+    if (count) count.textContent = '';
   }
 }
 
