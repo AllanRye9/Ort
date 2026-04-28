@@ -85,7 +85,7 @@ class _ManufacturingDetailScreenState extends ConsumerState<ManufacturingDetailS
       await ref.read(apiServiceProvider).createRFQ({
         'title': 'Quote request for ${m.title}',
         'description': result['notes'] as String?,
-        'quantity': (result['quantity'] as double?)?.toDouble(),
+        'quantity': result['quantity'] as double?,
         'unit': m.unit,
         'category': 'manufacturing',
         'buyer_id': userId,

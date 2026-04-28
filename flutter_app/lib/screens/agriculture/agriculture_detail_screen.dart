@@ -507,7 +507,7 @@ class _OrderDialogState extends State<_OrderDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('${widget.title}',
+            Text(widget.title,
                 style: const TextStyle(color: Colors.grey, fontSize: 13)),
             const SizedBox(height: 12),
             TextField(
