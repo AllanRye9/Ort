@@ -33,6 +33,16 @@ class _MediaPickerFieldState extends ConsumerState<MediaPickerField> {
   final List<String> _urls = [];
   final List<bool> _uploading = [];
 
+  static String _mimeTypeFromFilename(String filename) {
+    final ext = filename.split('.').last.toLowerCase();
+    return switch (ext) {
+      'png' => 'image/png',
+      'gif' => 'image/gif',
+      'webp' => 'image/webp',
+      _ => 'image/jpeg',
+    };
+  }
+
   @override
   void initState() {
     super.initState();
@@ -84,13 +94,7 @@ class _MediaPickerFieldState extends ConsumerState<MediaPickerField> {
         try {
           final bytes = await file.readAsBytes();
           final filename = file.name;
-          final ext = filename.split('.').last.toLowerCase();
-          final mimeType = switch (ext) {
-            'png' => 'image/png',
-            'gif' => 'image/gif',
-            'webp' => 'image/webp',
-            _ => 'image/jpeg',
-          };
+          final mimeType = _mimeTypeFromFilename(filename);
           final url = await ref.read(apiServiceProvider).uploadImage(
                 bytes: bytes,
                 filename: filename,
@@ -138,13 +142,7 @@ class _MediaPickerFieldState extends ConsumerState<MediaPickerField> {
 
     final bytes = await file.readAsBytes();
     final filename = file.name;
-    final ext = filename.split('.').last.toLowerCase();
-    final mimeType = switch (ext) {
-      'png' => 'image/png',
-      'gif' => 'image/gif',
-      'webp' => 'image/webp',
-      _ => 'image/jpeg',
-    };
+    final mimeType = _mimeTypeFromFilename(filename);
 
     final idx = _urls.length;
     setState(() {
