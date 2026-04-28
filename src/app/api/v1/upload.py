@@ -193,8 +193,7 @@ async def _process_upload(file: UploadFile) -> dict:
     else:
         # Stub mode – S3 is not configured.  Save the file to disk so that
         # the /static/listings/ URL we return actually resolves.
-        from pathlib import Path
-        static_dir = Path(__file__).parents[4] / "static"
+        from app.main import STATIC_DIR as static_dir
         save_path = static_dir / object_key
         save_path.parent.mkdir(parents=True, exist_ok=True)
         try:
@@ -246,7 +245,6 @@ async def delete_image(url: str = Query(..., description="Public URL of the imag
     Removes the object from S3 / Railway bucket when storage is configured.
     In stub mode, removes the file from the local static directory.
     """
-    from pathlib import Path
     import urllib.parse
 
     s3, bucket, public_base = _get_s3_client()
@@ -276,7 +274,7 @@ async def delete_image(url: str = Query(..., description="Public URL of the imag
         static_prefix = f"{base_url}/static/"
         if url.startswith(static_prefix):
             rel_path = url[len(static_prefix):]
-            static_dir = Path(__file__).parents[4] / "static"
+            from app.main import STATIC_DIR as static_dir
             target = (static_dir / rel_path).resolve()
             # Safety: ensure the resolved path is still inside static_dir
             if not target.is_relative_to(static_dir.resolve()):
