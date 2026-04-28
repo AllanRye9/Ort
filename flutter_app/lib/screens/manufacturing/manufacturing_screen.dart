@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/api_service.dart';
+import '../../core/responsive.dart';
 import '../../models/models.dart';
 import '../../widgets/listing_card.dart';
 
@@ -413,43 +414,52 @@ class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen> {
                           )
                         : RefreshIndicator(
                             onRefresh: _loadListings,
-                            child: GridView.builder(
-                              padding:
-                                  const EdgeInsets.fromLTRB(12, 4, 12, 80),
-                              gridDelegate:
-                                  const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                childAspectRatio: 0.7,
-                                crossAxisSpacing: 10,
-                                mainAxisSpacing: 10,
-                              ),
-                              itemCount: _items!.length,
-                              itemBuilder: (ctx, i) {
-                                final m = _items![i];
-                                final imgUrl = (m.images != null &&
-                                        m.images!.isNotEmpty)
-                                    ? m.images!.first
-                                    : null;
-                                return ListingCard(
-                                  icon: Icons.precision_manufacturing_rounded,
-                                  iconColor: const Color(0xFFE65100),
-                                  imageUrl: imgUrl,
-                                  title: m.title,
-                                  subtitle: m.location ??
-                                      m.category ??
-                                      (m.isLocallyMade ? 'Locally Made' : ''),
-                                  tag: m.category ?? 'Manufacturing',
-                                  status: m.status,
-                                  price:
-                                      '\$${m.wholesalePrice.toStringAsFixed(2)}/${m.unit ?? 'unit'}',
-                                  extras: [
-                                    if (m.moq != null) 'MOQ: ${m.moq}',
-                                    if (m.leadTimeDays != null)
-                                      'Lead: ${m.leadTimeDays}d',
-                                    if (m.isLocallyMade) 'Local',
-                                  ],
-                                  onTap: () =>
-                                      ctx.go('/manufacturing/${m.id}'),
+                            child: LayoutBuilder(
+                              builder: (ctx, _) {
+                                final cols = ctx.gridColumns;
+                                return GridView.builder(
+                                  padding: EdgeInsets.fromLTRB(
+                                    ctx.contentPadding.left,
+                                    4,
+                                    ctx.contentPadding.right,
+                                    80,
+                                  ),
+                                  gridDelegate:
+                                      SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: cols,
+                                    childAspectRatio: 0.7,
+                                    crossAxisSpacing: 10,
+                                    mainAxisSpacing: 10,
+                                  ),
+                                  itemCount: _items!.length,
+                                  itemBuilder: (ctx, i) {
+                                    final m = _items![i];
+                                    final imgUrl = (m.images != null &&
+                                            m.images!.isNotEmpty)
+                                        ? m.images!.first
+                                        : null;
+                                    return ListingCard(
+                                      icon: Icons.precision_manufacturing_rounded,
+                                      iconColor: const Color(0xFFE65100),
+                                      imageUrl: imgUrl,
+                                      title: m.title,
+                                      subtitle: m.location ??
+                                          m.category ??
+                                          (m.isLocallyMade ? 'Locally Made' : ''),
+                                      tag: m.category ?? 'Manufacturing',
+                                      status: m.status,
+                                      price:
+                                          '\$${m.wholesalePrice.toStringAsFixed(2)}/${m.unit ?? 'unit'}',
+                                      extras: [
+                                        if (m.moq != null) 'MOQ: ${m.moq}',
+                                        if (m.leadTimeDays != null)
+                                          'Lead: ${m.leadTimeDays}d',
+                                        if (m.isLocallyMade) 'Local',
+                                      ],
+                                      onTap: () =>
+                                          ctx.go('/manufacturing/${m.id}'),
+                                    );
+                                  },
                                 );
                               },
                             ),

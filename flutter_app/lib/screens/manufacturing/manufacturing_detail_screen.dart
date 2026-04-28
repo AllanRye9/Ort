@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/api_service.dart';
 import '../../core/auth_provider.dart';
 import '../../models/models.dart';
@@ -85,7 +86,7 @@ class _ManufacturingDetailScreenState extends ConsumerState<ManufacturingDetailS
             padding: const EdgeInsets.all(4),
             child: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
           ),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () => context.pop(),
         ),
         actions: [
           Container(
