@@ -15,8 +15,8 @@ ORT_MEDIAA_NAME     Bucket / container name
 ORT_MEDIAA_SECRET   Secret key (optional; defaults to ORT_MEDIAA_KEY)
 S3_PUBLIC_BASE_URL  Public base URL to prefix uploaded keys with
 
-Render default bucket environment variables (checked second)
-------------------------------------------------------------
+Railway / Render bucket environment variables (checked second)
+--------------------------------------------------------------
 BUCKET_ACCESS_KEY_ID
 BUCKET_SECRET_ACCESS_KEY
 BUCKET_NAME
@@ -31,7 +31,27 @@ AWS_REGION          (default: us-east-1)
 S3_BUCKET_NAME
 S3_ENDPOINT_URL
 S3_PUBLIC_BASE_URL
+
+Public URL resolution
+---------------------
+S3_PUBLIC_BASE_URL is the recommended way to set the public-facing base URL
+for uploaded objects.  When it is not set the code attempts to derive a
+public URL automatically:
+
+  * Railway buckets  – the public URL is ``https://<bucket>.<endpoint-host>``
+    (virtual-hosted-style).  The BUCKET_ENDPOINT_URL is the S3-API endpoint
+    used for uploads; the public URL uses the same host with the bucket name
+    prepended as a subdomain.
+  * AWS S3           – ``https://<bucket>.s3.<region>.amazonaws.com``
+  * ORT_MEDIAA_*     – ``<ORT_MEDIAA_API>/<ORT_MEDIAA_NAME>`` (path-style)
+
+If none of the above can be determined the upload endpoint falls back to
+routing image requests through the API's own proxy endpoint:
+  GET /api/v1/upload/proxy/<object-key>
+This guarantees the returned URL is always reachable from the frontend even
+when the bucket is not publicly accessible.
 """
+
 
 import io
 import asyncio
@@ -87,7 +107,7 @@ def _get_s3_config():
             "region": os.getenv("AWS_REGION", "us-east-1"),
         }
 
-    # ── Render default bucket vars: BUCKET_* ────────────────────────────────
+    # ── Railway / Render bucket vars: BUCKET_* ──────────────────────────────
     bucket_key_id = os.getenv("BUCKET_ACCESS_KEY_ID")
     bucket_secret = os.getenv("BUCKET_SECRET_ACCESS_KEY")
     bucket_name = os.getenv("BUCKET_NAME")
@@ -97,7 +117,16 @@ def _get_s3_config():
         region = os.getenv("BUCKET_REGION", "us-east-1")
         public_base = os.getenv("S3_PUBLIC_BASE_URL", "").rstrip("/")
         if not public_base and endpoint_url:
-            public_base = f"{endpoint_url.rstrip('/')}/{bucket_name}"
+            # Railway buckets expose objects at a virtual-hosted-style URL:
+            #   https://<bucket-name>.<endpoint-host>
+            # The BUCKET_ENDPOINT_URL is the S3-API endpoint used for uploads
+            # (e.g. https://bucket.us-east-1.railway.app) which is NOT the
+            # same as the public download URL.  We construct the public URL by
+            # prepending the bucket name as a subdomain of the endpoint host.
+            from urllib.parse import urlparse as _urlparse
+            _parsed = _urlparse(endpoint_url)
+            _host = _parsed.netloc or _parsed.path  # handle bare hostnames
+            public_base = f"{_parsed.scheme}://{bucket_name}.{_host}"
         return {
             "key_id": bucket_key_id,
             "secret": bucket_secret,
@@ -106,6 +135,7 @@ def _get_s3_config():
             "public_base": public_base,
             "region": region,
         }
+
 
     # ── Legacy: AWS_* / S3_* ─────────────────────────────────────────────────
     key_id = os.getenv("AWS_ACCESS_KEY_ID")
@@ -186,9 +216,19 @@ async def _process_upload(file: UploadFile, db: Session) -> dict:
                 ExtraArgs={"ContentType": file.content_type, "ACL": "public-read"},
             )
             if not public_base:
-                public_base = f"https://{bucket}.s3.amazonaws.com"
-            url = f"{public_base}/{object_key}"
-            logger.info("Uploaded image to S3 key: %s", object_key)
+                # Last-resort fallback: route through the API's own proxy so
+                # the URL is always reachable from the frontend even when the
+                # bucket's public URL cannot be determined automatically.
+                # Set S3_PUBLIC_BASE_URL to avoid this path in production.
+                app_base = os.getenv("APP_BASE_URL", "https://ort.up.railway.app").rstrip("/")
+                url = f"{app_base}/api/v1/upload/proxy/{object_key}"
+                logger.warning(
+                    "S3_PUBLIC_BASE_URL not set – returning proxy URL for key: %s",
+                    object_key,
+                )
+            else:
+                url = f"{public_base}/{object_key}"
+            logger.info("Uploaded image to S3 key: %s → %s", object_key, url)
             return {"url": url}
         except Exception as exc:
             logger.error("S3 upload failed: %s", exc)
@@ -196,6 +236,7 @@ async def _process_upload(file: UploadFile, db: Session) -> dict:
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Image upload failed. Please try again.",
             ) from exc
+
     else:
         # No S3 configured – persist image data in the database so it survives
         # container restarts (e.g. Railway ephemeral filesystem).
@@ -273,6 +314,57 @@ async def serve_image(
     )
 
 
+@router.get("/proxy/{object_key:path}")
+async def proxy_image(object_key: str):
+    """Proxy an image from S3 storage and return it with proper CORS headers.
+
+    This endpoint is used as a fallback when the S3 bucket's public URL cannot
+    be determined automatically (i.e. ``S3_PUBLIC_BASE_URL`` is not set and the
+    virtual-hosted URL could not be derived from ``BUCKET_ENDPOINT_URL``).
+
+    The frontend always receives a URL that resolves through this API, which
+    already has CORS configured for ``*``, so images render correctly regardless
+    of the bucket's own CORS policy.
+    """
+    s3, bucket, _ = _get_s3_client()
+    if not s3 or not bucket:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Storage not configured.",
+        )
+
+    try:
+        buf = io.BytesIO()
+        s3.download_fileobj(bucket, object_key, buf)
+        data = buf.getvalue()
+    except Exception as exc:
+        logger.error("Proxy fetch failed for key %s: %s", object_key, exc)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Image not found.",
+        ) from exc
+
+    # Determine content-type from the key extension; default to JPEG.
+    ext = object_key.rsplit(".", 1)[-1].lower() if "." in object_key else ""
+    _mime_map = {
+        "jpg": "image/jpeg",
+        "jpeg": "image/jpeg",
+        "png": "image/png",
+        "webp": "image/webp",
+        "gif": "image/gif",
+    }
+    media_type = _mime_map.get(ext, "image/jpeg")
+
+    return Response(
+        content=data,
+        media_type=media_type,
+        headers={
+            "Cache-Control": "public, max-age=31536000, immutable",
+            "Access-Control-Allow-Origin": "*",
+        },
+    )
+
+
 @router.delete("/image", status_code=status.HTTP_200_OK)
 async def delete_image(
     url: str = Query(..., description="Public URL of the image to delete"),
@@ -282,30 +374,53 @@ async def delete_image(
 
     Removes the object from S3 / Railway bucket when storage is configured.
     In stub mode, removes the record from the database.
+
+    Handles three URL formats:
+      1. ``{public_base}/{object_key}``  – direct bucket URL
+      2. ``{app_base}/api/v1/upload/proxy/{object_key}``  – proxy URL
+      3. ``{app_base}/api/v1/upload/image/{uuid}``  – database blob URL
     """
     import urllib.parse
 
     s3, bucket, public_base = _get_s3_client()
 
-    if s3 and bucket and public_base:
-        # Derive the S3 object key from the public URL.
-        # public_base ends without slash; URL = public_base + "/" + object_key
-        if not url.startswith(public_base):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="URL does not belong to the configured storage bucket.",
-            )
-        object_key = url[len(public_base):].lstrip("/")
-        try:
-            s3.delete_object(Bucket=bucket, Key=object_key)
-            logger.info("Deleted S3 object: %s", object_key)
-            return {"message": "Image deleted"}
-        except Exception as exc:
-            logger.error("S3 delete failed: %s", exc)
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Image deletion failed. Please try again.",
-            ) from exc
+    if s3 and bucket:
+        parsed = urllib.parse.urlparse(url)
+        path = parsed.path  # e.g. /api/v1/upload/proxy/listings/uuid.jpg
+
+        # ── Proxy URL: /api/v1/upload/proxy/<object_key> ────────────────────
+        _proxy_prefix = "/api/v1/upload/proxy/"
+        if path.startswith(_proxy_prefix):
+            object_key = path[len(_proxy_prefix):].strip("/")
+            try:
+                s3.delete_object(Bucket=bucket, Key=object_key)
+                logger.info("Deleted S3 object (via proxy URL): %s", object_key)
+                return {"message": "Image deleted"}
+            except Exception as exc:
+                logger.error("S3 delete failed: %s", exc)
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Image deletion failed. Please try again.",
+                ) from exc
+
+        # ── Direct bucket URL: {public_base}/{object_key} ───────────────────
+        if public_base and url.startswith(public_base):
+            object_key = url[len(public_base):].lstrip("/")
+            try:
+                s3.delete_object(Bucket=bucket, Key=object_key)
+                logger.info("Deleted S3 object: %s", object_key)
+                return {"message": "Image deleted"}
+            except Exception as exc:
+                logger.error("S3 delete failed: %s", exc)
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Image deletion failed. Please try again.",
+                ) from exc
+
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="URL does not belong to the configured storage bucket.",
+        )
     else:
         # Stub mode: delete from database by image ID extracted from URL.
         # URL format: {base_url}/api/v1/upload/image/{uuid}
