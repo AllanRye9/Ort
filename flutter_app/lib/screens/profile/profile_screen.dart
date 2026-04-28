@@ -341,6 +341,15 @@ class _ReadView extends StatelessWidget {
                   },
                 ),
               ),
+              Consumer(
+                builder: (ctx, ref, _) => _ProfileTile(
+                  icon: Icons.delete_forever_outlined,
+                  label: 'Delete Account',
+                  iconColor: Colors.red[800]!,
+                  labelColor: Colors.red[800]!,
+                  onTap: () => _showDeleteAccountDialog(ctx, ref),
+                ),
+              ),
             ],
           ),
         ),
@@ -555,6 +564,50 @@ class _ReadView extends StatelessWidget {
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
             child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteAccountDialog(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Account'),
+        content: const Text(
+          'This will permanently delete your account and all your data. '
+          'This action cannot be undone. Are you sure?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red[700],
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () async {
+              Navigator.of(ctx).pop();
+              try {
+                await ref.read(apiServiceProvider).deleteMe();
+                await ref.read(authProvider.notifier).logout();
+                if (context.mounted) context.go('/login');
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Delete failed: $e'),
+                      backgroundColor: Colors.red,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text('Delete Account'),
           ),
         ],
       ),

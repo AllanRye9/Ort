@@ -111,6 +111,9 @@ class PropertyModel {
     required this.status,
     required this.createdAt,
     this.imageUrls = const [],
+    this.agentId,
+    this.latitude,
+    this.longitude,
   });
 
   final int id;
@@ -126,6 +129,9 @@ class PropertyModel {
   final String status;
   final DateTime createdAt;
   final List<String> imageUrls;
+  final int? agentId;
+  final double? latitude;
+  final double? longitude;
 
   factory PropertyModel.fromJson(Map<String, dynamic> j) => PropertyModel(
         id: j['id'] as int,
@@ -141,6 +147,9 @@ class PropertyModel {
         status: (j['status'] as String?) ?? 'available',
         createdAt: DateTime.parse(j['created_at'] as String),
         imageUrls: (j['image_urls'] as List<dynamic>?)?.cast<String>() ?? const [],
+        agentId: j['agent_id'] as int?,
+        latitude: j['latitude'] != null ? double.parse(j['latitude'].toString()) : null,
+        longitude: j['longitude'] != null ? double.parse(j['longitude'].toString()) : null,
       );
 }
 
@@ -160,6 +169,8 @@ class AgricultureListingModel {
     this.qualityGrade,
     this.certification,
     this.location,
+    this.latitude,
+    this.longitude,
     this.isPerishable = false,
     this.images,
     this.storageConditions,
@@ -181,6 +192,8 @@ class AgricultureListingModel {
   final String? qualityGrade;
   final String? certification;
   final String? location;
+  final double? latitude;
+  final double? longitude;
   final bool isPerishable;
   final List<String>? images;
   final String? storageConditions;
@@ -205,6 +218,8 @@ class AgricultureListingModel {
         qualityGrade: j['quality_grade'] as String?,
         certification: j['certification'] as String?,
         location: j['location'] as String?,
+        latitude: j['latitude'] != null ? double.parse(j['latitude'].toString()) : null,
+        longitude: j['longitude'] != null ? double.parse(j['longitude'].toString()) : null,
         isPerishable: j['is_perishable'] as bool? ?? false,
         images: (j['images'] as List<dynamic>?)?.cast<String>(),
         storageConditions: j['storage_conditions'] as String?,
@@ -232,6 +247,8 @@ class ManufacturingProductModel {
     this.isLocallyMade = true,
     this.countryOfOrigin,
     this.location,
+    this.latitude,
+    this.longitude,
     required this.status,
     required this.createdAt,
   });
@@ -253,6 +270,8 @@ class ManufacturingProductModel {
   final bool isLocallyMade;
   final String? countryOfOrigin;
   final String? location;
+  final double? latitude;
+  final double? longitude;
   final String status;
   final DateTime createdAt;
 
@@ -276,6 +295,8 @@ class ManufacturingProductModel {
         isLocallyMade: j['is_locally_made'] as bool? ?? true,
         countryOfOrigin: j['country_of_origin'] as String?,
         location: j['location'] as String?,
+        latitude: j['latitude'] != null ? double.parse(j['latitude'].toString()) : null,
+        longitude: j['longitude'] != null ? double.parse(j['longitude'].toString()) : null,
         status: (j['status'] as String?) ?? 'available',
         createdAt: DateTime.parse(j['created_at'] as String),
       );
