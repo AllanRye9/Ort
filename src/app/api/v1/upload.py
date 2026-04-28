@@ -42,6 +42,7 @@ from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, status
 from fastapi.responses import Response
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.database.database import get_db
@@ -171,7 +172,8 @@ async def _process_upload(file: UploadFile, db: Session) -> dict:
     if ext not in {"jpg", "jpeg", "png", "webp", "gif"}:
         ext = "jpg"
 
-    object_key = f"listings/{uuid.uuid4()}.{ext}"
+    img_uuid = uuid.uuid4()
+    object_key = f"listings/{img_uuid}.{ext}"
 
     s3, bucket, public_base = _get_s3_client()
 
@@ -198,13 +200,13 @@ async def _process_upload(file: UploadFile, db: Session) -> dict:
         # No S3 configured – persist image data in the database so it survives
         # container restarts (e.g. Railway ephemeral filesystem).
         from app.models.models import ImageBlob
-        img_id = str(uuid.uuid4())
+        img_id = str(img_uuid)
         content_type = file.content_type or "image/jpeg"
         try:
             blob = ImageBlob(id=img_id, data=contents, content_type=content_type)
             db.add(blob)
             db.commit()
-        except Exception as exc:
+        except SQLAlchemyError as exc:
             db.rollback()
             logger.error("Failed to save image to database: %s", exc)
             raise HTTPException(
@@ -319,7 +321,7 @@ async def delete_image(
                     db.delete(blob)
                     db.commit()
                     logger.info("Deleted image blob: %s", img_id)
-                except Exception as exc:
+                except SQLAlchemyError as exc:
                     db.rollback()
                     logger.error("Failed to delete image blob: %s", exc)
                     raise HTTPException(
