@@ -237,9 +237,7 @@ class _MainShellState extends State<MainShell> {
       // A natural forward navigation clears the forward stack; back/forward
       // button presses set the flag to skip clearing.
       if (!_didGoBack && !_didGoForward && _forwardStack.isNotEmpty) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) setState(() => _forwardStack.clear());
-        });
+        setState(() => _forwardStack.clear());
       }
       _didGoBack = false;
       _didGoForward = false;
