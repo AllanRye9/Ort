@@ -190,6 +190,10 @@ class ApiService {
     return res.data as Map<String, dynamic>;
   }
 
+  Future<void> deleteProperty(int id) async {
+    await _dio.delete('/properties/$id');
+  }
+
   // ─── Agriculture ─────────────────────────────────────────────────────────
 
   Future<List<dynamic>> getAgricultureListings({
@@ -220,6 +224,10 @@ class ApiService {
     return res.data as Map<String, dynamic>;
   }
 
+  Future<void> deleteAgricultureListing(int id) async {
+    await _dio.delete('/agriculture/$id');
+  }
+
   // ─── Manufacturing ────────────────────────────────────────────────────────
 
   Future<List<dynamic>> getManufacturingProducts({
@@ -248,6 +256,10 @@ class ApiService {
       Map<String, dynamic> data) async {
     final res = await _dio.post('/manufacturing/', data: data);
     return res.data as Map<String, dynamic>;
+  }
+
+  Future<void> deleteManufacturingProduct(int id) async {
+    await _dio.delete('/manufacturing/$id');
   }
 
   // ─── Orders ───────────────────────────────────────────────────────────────
