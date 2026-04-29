@@ -76,6 +76,53 @@ class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen> {
     }
   }
 
+  Future<void> _confirmDeleteManufacturing(ManufacturingProductModel m) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Product'),
+        content: Text('Delete "${m.title}"? This cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red[700],
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      await ref.read(apiServiceProvider).deleteManufacturingProduct(m.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Product deleted.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        _loadListings();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Delete failed: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
   void _applySearch() {
     setState(() => _keyword = _searchCtrl.text.trim());
     _loadListings();
@@ -458,6 +505,8 @@ class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen> {
                                       ],
                                       onTap: () =>
                                           ctx.go('/manufacturing/${m.id}'),
+                                      onLongPress: () =>
+                                          _confirmDeleteManufacturing(m),
                                     );
                                   },
                                 );
