@@ -113,6 +113,8 @@ _MIGRATIONS: list[tuple[str, str, str]] = [
     # Agriculture lat/lng already in model; ensure migration runs for older DBs
     ("agriculture_listings",    "latitude",   "FLOAT"),
     ("agriculture_listings",    "longitude",  "FLOAT"),
+    # image_blobs.created_at added in PR #64; needed for existing databases
+    ("image_blobs",             "created_at", "TIMESTAMP"),
 ]
 
 # Columns whose type needs widening on existing databases.
@@ -153,7 +155,7 @@ def run_schema_migrations() -> None:
     # All values come from the hardcoded _MIGRATIONS constant, but we validate
     # defensively so that an accidental edit cannot produce an injection.
     _COL_TYPE_RE = re.compile(
-        r"^(?:VARCHAR|TEXT|INTEGER|DECIMAL|FLOAT|BOOLEAN|DATE|DATETIME)"
+        r"^(?:VARCHAR|TEXT|INTEGER|DECIMAL|FLOAT|BOOLEAN|DATE|DATETIME|TIMESTAMP)"
         r"(?:\s*\(\s*\d+(?:\s*,\s*\d+)?\s*\))?"   # optional (len) or (p,s)
         r"(?:\s+DEFAULT\s+'[A-Za-z0-9_]+')?$",      # optional DEFAULT clause
         re.IGNORECASE,
