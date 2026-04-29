@@ -427,7 +427,7 @@ class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen> {
                                   gridDelegate:
                                       SliverGridDelegateWithFixedCrossAxisCount(
                                     crossAxisCount: cols,
-                                    childAspectRatio: 0.7,
+                                    childAspectRatio: 0.65,
                                     crossAxisSpacing: 10,
                                     mainAxisSpacing: 10,
                                   ),
