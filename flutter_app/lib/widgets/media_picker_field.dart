@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -33,6 +35,8 @@ class _MediaPickerFieldState extends ConsumerState<MediaPickerField> {
   final _picker = ImagePicker();
   final List<String> _urls = [];
   final List<bool> _uploading = [];
+  // Local image bytes kept for each slot so a preview is visible while uploading.
+  final List<Uint8List?> _localBytes = [];
 
   static String _mimeTypeFromFilename(String filename) {
     final ext = filename.split('.').last.toLowerCase();
@@ -49,6 +53,7 @@ class _MediaPickerFieldState extends ConsumerState<MediaPickerField> {
     super.initState();
     _urls.addAll(widget.initialUrls);
     _uploading.addAll(List.filled(widget.initialUrls.length, false));
+    _localBytes.addAll(List.filled(widget.initialUrls.length, null));
   }
 
   int get _uploadingCount => _uploading.where((v) => v).length;
@@ -77,12 +82,46 @@ class _MediaPickerFieldState extends ConsumerState<MediaPickerField> {
       );
     }
 
-    // Add placeholder slots
+    // Read bytes for all picked files up-front so local previews are available
+    // immediately while uploads are in progress. Files that cannot be read are
+    // silently skipped (e.g. permission denied on some platforms).
+    final fileDataList = <({XFile file, Uint8List bytes})>[];
+    final unreadable = <int>[];
+    final rawReads = await Future.wait(
+      toUpload.asMap().entries.map((e) async {
+        try {
+          final bytes = await e.value.readAsBytes();
+          return (idx: e.key, file: e.value, bytes: bytes, ok: true);
+        } catch (_) {
+          return (idx: e.key, file: e.value, bytes: Uint8List(0), ok: false);
+        }
+      }),
+    );
+    for (final r in rawReads) {
+      if (r.ok) {
+        fileDataList.add((file: r.file, bytes: r.bytes));
+      } else {
+        unreadable.add(r.idx);
+      }
+    }
+    if (unreadable.isNotEmpty && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              '${unreadable.length} image${unreadable.length == 1 ? '' : 's'} could not be read and were skipped.'),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+    if (fileDataList.isEmpty || !mounted) return;
+
+    // Add placeholder slots with local byte previews
     final startIdx = _urls.length;
     setState(() {
-      for (int i = 0; i < toUpload.length; i++) {
+      for (final fd in fileDataList) {
         _urls.add('');
         _uploading.add(true);
+        _localBytes.add(fd.bytes);
       }
     });
 
@@ -90,14 +129,13 @@ class _MediaPickerFieldState extends ConsumerState<MediaPickerField> {
     final failedIndices = <int>[];
 
     await Future.wait(
-      List.generate(toUpload.length, (i) async {
-        final file = toUpload[i];
+      List.generate(fileDataList.length, (i) async {
+        final fd = fileDataList[i];
         try {
-          final bytes = await file.readAsBytes();
-          final filename = file.name;
+          final filename = fd.file.name;
           final mimeType = _mimeTypeFromFilename(filename);
           final url = await ref.read(apiServiceProvider).uploadImage(
-                bytes: bytes,
+                bytes: fd.bytes,
                 filename: filename,
                 mimeType: mimeType,
               );
@@ -105,6 +143,8 @@ class _MediaPickerFieldState extends ConsumerState<MediaPickerField> {
             setState(() {
               _urls[startIdx + i] = url;
               _uploading[startIdx + i] = false;
+              // Clear local bytes once the remote URL is available.
+              _localBytes[startIdx + i] = null;
             });
           }
         } catch (e) {
@@ -120,6 +160,7 @@ class _MediaPickerFieldState extends ConsumerState<MediaPickerField> {
         for (final idx in failedIndices.reversed) {
           _urls.removeAt(idx);
           _uploading.removeAt(idx);
+          _localBytes.removeAt(idx);
         }
       });
       ScaffoldMessenger.of(context).showSnackBar(
@@ -149,6 +190,7 @@ class _MediaPickerFieldState extends ConsumerState<MediaPickerField> {
     setState(() {
       _urls.add('');
       _uploading.add(true);
+      _localBytes.add(bytes);
     });
 
     try {
@@ -161,6 +203,7 @@ class _MediaPickerFieldState extends ConsumerState<MediaPickerField> {
         setState(() {
           _urls[idx] = url;
           _uploading[idx] = false;
+          _localBytes[idx] = null;
         });
         _notifyChange();
       }
@@ -169,6 +212,7 @@ class _MediaPickerFieldState extends ConsumerState<MediaPickerField> {
         setState(() {
           _urls.removeAt(idx);
           _uploading.removeAt(idx);
+          _localBytes.removeAt(idx);
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Upload failed: $e')),
@@ -186,6 +230,7 @@ class _MediaPickerFieldState extends ConsumerState<MediaPickerField> {
     setState(() {
       _urls.removeAt(index);
       _uploading.removeAt(index);
+      _localBytes.removeAt(index);
     });
     _notifyChange();
   }
@@ -281,6 +326,7 @@ class _MediaPickerFieldState extends ConsumerState<MediaPickerField> {
               // Existing / uploading images
               ...List.generate(_urls.length, (i) {
                 final uploading = i < _uploading.length && _uploading[i];
+                final localPreview = _localBytes[i];
                 return Padding(
                   padding: const EdgeInsets.only(right: 8),
                   child: Stack(
@@ -288,12 +334,30 @@ class _MediaPickerFieldState extends ConsumerState<MediaPickerField> {
                       ClipRRect(
                         borderRadius: BorderRadius.circular(10),
                         child: uploading
-                            ? Container(
-                                width: 100,
-                                height: 100,
-                                color: Colors.grey[200],
-                                child: const Center(
-                                    child: CircularProgressIndicator()),
+                            ? Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  if (localPreview != null)
+                                    Image.memory(
+                                      localPreview,
+                                      width: 100,
+                                      height: 100,
+                                      fit: BoxFit.cover,
+                                      gaplessPlayback: true,
+                                    )
+                                  else
+                                    Container(
+                                      width: 100,
+                                      height: 100,
+                                      color: Colors.grey[200],
+                                    ),
+                                  Container(
+                                    width: 100,
+                                    height: 100,
+                                    color: Colors.black26,
+                                  ),
+                                  const CircularProgressIndicator(),
+                                ],
                               )
                             : CachedNetworkImage(
                                 imageUrl: _urls[i],
