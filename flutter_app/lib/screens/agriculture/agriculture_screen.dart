@@ -75,6 +75,53 @@ class _AgricultureScreenState extends ConsumerState<AgricultureScreen> {
     }
   }
 
+  Future<void> _confirmDeleteAgriculture(AgricultureListingModel a) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Listing'),
+        content: Text('Delete "${a.title}"? This cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red[700],
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      await ref.read(apiServiceProvider).deleteAgricultureListing(a.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Listing deleted.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        _loadListings();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Delete failed: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
   void _applySearch() {
     setState(() => _keyword = _searchCtrl.text.trim());
     _loadListings();
@@ -456,6 +503,8 @@ class _AgricultureScreenState extends ConsumerState<AgricultureScreen> {
                                       ],
                                       onTap: () =>
                                           ctx.go('/agriculture/${a.id}'),
+                                      onLongPress: () =>
+                                          _confirmDeleteAgriculture(a),
                                     );
                                   },
                                 );

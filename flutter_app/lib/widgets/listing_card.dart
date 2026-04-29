@@ -18,6 +18,7 @@ class ListingCard extends StatelessWidget {
     this.extras = const [],
     this.imageUrl,
     required this.onTap,
+    this.onLongPress,
   });
 
   final IconData icon;
@@ -30,6 +31,7 @@ class ListingCard extends StatelessWidget {
   final List<String> extras;
   final String? imageUrl;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
 
   Color _statusColor(String s) {
     switch (s) {
@@ -54,6 +56,7 @@ class ListingCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
+        onLongPress: onLongPress,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
