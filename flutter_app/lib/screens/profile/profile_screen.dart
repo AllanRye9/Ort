@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/api_service.dart';
 import '../../core/auth_provider.dart';
+import '../../core/constants.dart';
 import '../../core/theme.dart';
 import '../../core/theme_provider.dart';
 import '../../models/models.dart';
@@ -360,7 +362,13 @@ class _ReadView extends StatelessWidget {
   List<Widget> _roleTiles(BuildContext context, String role) {
     switch (role) {
       case 'admin':
-        return [];  // Admin panel is at /const on the backend server.
+        return [
+          _ProfileTile(
+            icon: Icons.admin_panel_settings_outlined,
+            label: 'Admin Panel',
+            onTap: () => _openAdminPanel(context),
+          ),
+        ];
       case 'agent':
         return [
           _ProfileTile(
@@ -568,6 +576,42 @@ class _ReadView extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _openAdminPanel(BuildContext context) async {
+    // Derive the admin panel URL from the API base URL.
+    // AppConstants.baseUrl is expected to end with /api/v1 (optionally with
+    // a trailing slash), e.g. https://ort.up.railway.app/api/v1. Strip that
+    // suffix and append /const to reach the backend admin dashboard.
+    String base = AppConstants.baseUrl;
+    if (base.endsWith('/api/v1')) {
+      base = base.substring(0, base.length - '/api/v1'.length);
+    } else if (base.endsWith('/api/v1/')) {
+      base = base.substring(0, base.length - '/api/v1/'.length);
+    }
+    final adminUrl = '$base/const';
+    final uri = Uri.parse(adminUrl);
+    bool launched = false;
+    try {
+      launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      launched = false;
+    }
+    if (!launched && context.mounted) {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Admin Panel'),
+          content: SelectableText(adminUrl),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Close'),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   void _showDeleteAccountDialog(BuildContext context, WidgetRef ref) {
