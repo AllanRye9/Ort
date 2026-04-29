@@ -37,8 +37,21 @@ class AppTheme {
     labelLarge: TextStyle(fontWeight: FontWeight.w600, letterSpacing: 0.5),
   );
 
+  // ── Smooth page transitions shared by all themes ─────────────────────────
+  static const _pageTransitions = PageTransitionsTheme(
+    builders: {
+      TargetPlatform.android: ZoomPageTransitionsBuilder(),
+      TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+      TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+      TargetPlatform.linux: FadeUpwardsPageTransitionsBuilder(),
+      TargetPlatform.windows: FadeUpwardsPageTransitionsBuilder(),
+      TargetPlatform.fuchsia: ZoomPageTransitionsBuilder(),
+    },
+  );
+
   static ThemeData get lightTheme => ThemeData(
         useMaterial3: true,
+        pageTransitionsTheme: _pageTransitions,
         colorScheme: ColorScheme.fromSeed(
           seedColor: primary,
           secondary: secondary,
@@ -162,6 +175,7 @@ class AppTheme {
 
   static ThemeData get darkTheme => ThemeData(
         useMaterial3: true,
+        pageTransitionsTheme: _pageTransitions,
         colorScheme: ColorScheme.fromSeed(
           seedColor: primary,
           secondary: secondary,
@@ -229,6 +243,7 @@ class AppTheme {
 
   static ThemeData get oceanTheme => ThemeData(
         useMaterial3: true,
+        pageTransitionsTheme: _pageTransitions,
         colorScheme: ColorScheme.fromSeed(
           seedColor: oceanPrimary,
           secondary: oceanSecondary,
