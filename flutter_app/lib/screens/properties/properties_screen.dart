@@ -421,7 +421,7 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
                                   gridDelegate:
                                       SliverGridDelegateWithFixedCrossAxisCount(
                                     crossAxisCount: cols,
-                                    childAspectRatio: 0.72,
+                                    childAspectRatio: 0.65,
                                     crossAxisSpacing: 10,
                                     mainAxisSpacing: 10,
                                   ),
