@@ -54,6 +54,7 @@ import asyncio
 import logging
 import os
 import uuid
+import re
 from typing import List
 from urllib.parse import urlparse as _urlparse
 
@@ -361,11 +362,20 @@ async def proxy_image(object_key: str):
             detail="Storage not configured.",
         )
 
+    # Guard against path-traversal attempts.  S3 object keys consist only of
+    # printable characters but we reject any key that contains ".." segments
+    # (which could reference unintended objects in the bucket).
+    if re.search(r"(^|/)\.\.(/|$)", object_key):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid object key.",
+        )
+
     try:
         buf = io.BytesIO()
         # Run the blocking boto3 call in a thread-pool executor so it does not
         # stall the async event loop under concurrent requests.
-        await asyncio.get_event_loop().run_in_executor(
+        await asyncio.get_running_loop().run_in_executor(
             None, lambda: s3.download_fileobj(bucket, object_key, buf)
         )
         data = buf.getvalue()
