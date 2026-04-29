@@ -202,3 +202,26 @@ class ImageBlob(Base):
     data = Column(LargeBinary, nullable=False)
     content_type = Column(String(50), nullable=False, server_default="image/jpeg")
     created_at = Column(DateTime, server_default=func.now())
+
+
+class UploadRecord(Base):
+    """Tracks who uploaded each image to enable ownership-based deletion.
+
+    ``key`` stores either the S3 object key (e.g. ``listings/uuid.jpg``) for
+    S3-backed uploads or the ImageBlob UUID for database-mode uploads.
+    ``uploaded_by_user_id`` is NULL when the upload was made without
+    authentication (e.g. anonymous or pre-auth-tracking requests).
+    """
+
+    __tablename__ = "upload_records"
+    __table_args__ = (
+        Index("ix_upload_records_key", "key"),
+        Index("ix_upload_records_user_id", "uploaded_by_user_id"),
+    )
+
+    id = Column(Integer, primary_key=True)
+    key = Column(String(512), nullable=False, unique=True)
+    uploaded_by_user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at = Column(DateTime, server_default=func.now())

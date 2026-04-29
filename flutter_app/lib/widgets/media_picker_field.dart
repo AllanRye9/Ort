@@ -227,12 +227,17 @@ class _MediaPickerFieldState extends ConsumerState<MediaPickerField> {
   }
 
   void _remove(int index) {
+    final url = index < _urls.length ? _urls[index] : '';
     setState(() {
       _urls.removeAt(index);
       _uploading.removeAt(index);
       _localBytes.removeAt(index);
     });
     _notifyChange();
+    // Best-effort: delete from backend if the image was already uploaded.
+    if (url.isNotEmpty) {
+      ref.read(apiServiceProvider).deleteImage(url).catchError((_) {});
+    }
   }
 
   void _showSourcePicker() {
