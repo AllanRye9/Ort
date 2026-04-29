@@ -59,6 +59,7 @@ import logging
 import os
 import uuid
 from typing import List
+from urllib.parse import urlparse as _urlparse
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, status
 from fastapi.responses import Response
@@ -123,7 +124,6 @@ def _get_s3_config():
             # (e.g. https://bucket.us-east-1.railway.app) which is NOT the
             # same as the public download URL.  We construct the public URL by
             # prepending the bucket name as a subdomain of the endpoint host.
-            from urllib.parse import urlparse as _urlparse
             _parsed = _urlparse(endpoint_url)
             _host = _parsed.netloc or _parsed.path  # handle bare hostnames
             public_base = f"{_parsed.scheme}://{bucket_name}.{_host}"
@@ -143,14 +143,23 @@ def _get_s3_config():
     bucket = os.getenv("S3_BUCKET_NAME")
 
     if key_id and secret and bucket:
+        endpoint_url = os.getenv("S3_ENDPOINT_URL")
         public_base = os.getenv("S3_PUBLIC_BASE_URL", "").rstrip("/")
         if not public_base:
-            region = os.getenv("AWS_REGION", "us-east-1")
-            public_base = f"https://{bucket}.s3.{region}.amazonaws.com"
+            if endpoint_url:
+                # Non-AWS provider (e.g. Railway bucket) – derive a
+                # virtual-hosted-style public URL from the endpoint, the same
+                # way the BUCKET_* path does.
+                _parsed = _urlparse(endpoint_url)
+                _host = _parsed.netloc or _parsed.path
+                public_base = f"{_parsed.scheme}://{bucket}.{_host}"
+            else:
+                region = os.getenv("AWS_REGION", "us-east-1")
+                public_base = f"https://{bucket}.s3.{region}.amazonaws.com"
         return {
             "key_id": key_id,
             "secret": secret,
-            "endpoint_url": os.getenv("S3_ENDPOINT_URL"),
+            "endpoint_url": endpoint_url,
             "bucket": bucket,
             "public_base": public_base,
             "region": os.getenv("AWS_REGION", "us-east-1"),
@@ -209,12 +218,29 @@ async def _process_upload(file: UploadFile, db: Session) -> dict:
 
     if s3 and bucket:
         try:
-            s3.upload_fileobj(
-                io.BytesIO(contents),
-                bucket,
-                object_key,
-                ExtraArgs={"ContentType": file.content_type, "ACL": "public-read"},
-            )
+            try:
+                s3.upload_fileobj(
+                    io.BytesIO(contents),
+                    bucket,
+                    object_key,
+                    ExtraArgs={"ContentType": file.content_type, "ACL": "public-read"},
+                )
+            except Exception as acl_exc:
+                # Some S3-compatible providers (e.g. Railway buckets) do not
+                # support ACLs and return an error when the ACL extra arg is
+                # included.  Fall back to uploading without the ACL header.
+                # We catch broadly here because the exact error class varies
+                # by provider (ClientError for AWS/boto3-compatible, or a
+                # plain Exception for others).
+                logger.warning(
+                    "Upload with ACL=public-read failed (%s); retrying without ACL.", acl_exc
+                )
+                s3.upload_fileobj(
+                    io.BytesIO(contents),
+                    bucket,
+                    object_key,
+                    ExtraArgs={"ContentType": file.content_type},
+                )
             if not public_base:
                 # Last-resort fallback: route through the API's own proxy so
                 # the URL is always reachable from the frontend even when the
