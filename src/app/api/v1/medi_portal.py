@@ -90,8 +90,8 @@ _HTML = r"""<!DOCTYPE html>
 <body class="bg-gray-50 text-gray-800">
 
 <!-- ═══ AUTH OVERLAY ════════════════════════════════════════════════════════ -->
-<div id="authOverlay" class="fixed inset-0 bg-gradient-to-br from-green-900 to-green-700 flex items-center justify-center z-50">
-  <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
+<div id="authOverlay" class="fixed inset-0 bg-gradient-to-br from-green-900 to-green-700 flex items-center justify-center z-50 p-4">
+  <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md max-h-[90vh] overflow-y-auto">
     <div class="flex flex-col items-center mb-6">
       <div class="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center mb-3">
         <svg class="w-8 h-8 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
