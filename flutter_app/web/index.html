@@ -106,6 +106,39 @@
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
+
+    /* Error state shown if Flutter fails to initialise */
+    #loading-error {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      margin-top: 24px;
+    }
+
+    #loading-error p {
+      color: #c62828;
+      font-size: 13px;
+      text-align: center;
+      max-width: 320px;
+      line-height: 1.5;
+    }
+
+    #loading-error button {
+      margin-top: 4px;
+      background: #1B5E20;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 20px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    #loading-error button:hover {
+      background: #2E7D32;
+    }
   </style>
 
   <script>
@@ -130,25 +163,73 @@
     </div>
     <div id="loading-title">Ort Marketplace</div>
     <div id="loading-subtitle">Properties&nbsp;&bull;&nbsp;Agriculture&nbsp;&bull;&nbsp;Manufacturing</div>
-    <div class="spinner"></div>
+    <div class="spinner" id="loading-spinner"></div>
+    <!-- Shown only when Flutter fails to initialise -->
+    <div id="loading-error">
+      <p id="loading-error-msg">The app failed to load. Please check your connection and try again.</p>
+      <button onclick="window.location.reload()">Retry</button>
+    </div>
   </div>
 
   <script>
+    function _showLoadError(msg) {
+      var spinner = document.getElementById('loading-spinner');
+      var errEl   = document.getElementById('loading-error');
+      var msgEl   = document.getElementById('loading-error-msg');
+      if (spinner) spinner.style.display = 'none';
+      if (msgEl && msg) msgEl.textContent = msg;
+      if (errEl) errEl.style.display = 'flex';
+    }
+
     window.addEventListener('load', function () {
+      // Watchdog: if Flutter hasn't hidden the loading screen within this
+      // timeout, assume something went wrong (e.g. CanvasKit WASM download
+      // stalled) and show the retry button so the user isn't stuck forever.
+      var LOAD_TIMEOUT_MS = 30000;
+
+      var watchdog = setTimeout(function () {
+        var loadingEl = document.getElementById('loading');
+        if (loadingEl && loadingEl.style.display !== 'none') {
+          _showLoadError(
+            'The app is taking longer than expected to load. ' +
+            'This may be due to a slow network. Please retry.'
+          );
+        }
+      }, LOAD_TIMEOUT_MS);
+
       _flutter.loader.load({
         serviceWorker: {
           serviceWorkerVersion: serviceWorkerVersion,
         },
         onEntrypointLoaded: async function (engineInitializer) {
-          // Remove the HTML loading screen once Flutter is ready to paint.
-          const loadingEl = document.getElementById('loading');
-          let appRunner = await engineInitializer.initializeEngine();
-          await appRunner.runApp();
-          if (loadingEl) {
-            loadingEl.style.display = 'none';
+          try {
+            // Remove the HTML loading screen once Flutter is ready to paint.
+            var loadingEl = document.getElementById('loading');
+            var appRunner = await engineInitializer.initializeEngine();
+            await appRunner.runApp();
+            clearTimeout(watchdog);
+            if (loadingEl) {
+              loadingEl.style.display = 'none';
+            }
+          } catch (e) {
+            clearTimeout(watchdog);
+            _showLoadError('App initialization failed: ' + (e && e.message ? e.message : String(e)));
           }
         },
       });
+    });
+
+    // Surface unhandled promise rejections during Flutter startup as a visible
+    // error rather than a silent blank screen.
+    window.addEventListener('unhandledrejection', function (event) {
+      var loadingEl = document.getElementById('loading');
+      if (loadingEl && loadingEl.style.display !== 'none') {
+        var reason = event.reason;
+        _showLoadError(
+          'App startup error: ' +
+          (reason && reason.message ? reason.message : String(reason))
+        );
+      }
     });
   </script>
 </body>

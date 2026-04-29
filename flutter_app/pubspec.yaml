@@ -51,9 +51,6 @@ dependencies:
   json_annotation: ^4.9.0
   freezed_annotation: ^2.4.1
 
-  # Notifications
-  flutter_local_notifications: ^17.1.2
-
   # Icons
   cupertino_icons: ^1.0.6
 
