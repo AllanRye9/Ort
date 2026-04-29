@@ -226,6 +226,29 @@ class _MediaPickerFieldState extends ConsumerState<MediaPickerField> {
         List.unmodifiable(_urls.where((u) => u.isNotEmpty)));
   }
 
+  void _confirmRemove(int index) {
+    showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete image?'),
+        content: const Text('This image will be removed from the listing.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    ).then((confirmed) {
+      if (confirmed == true && mounted) _remove(index);
+    });
+  }
+
   void _remove(int index) {
     final url = index < _urls.length ? _urls[index] : '';
     setState(() {
@@ -336,47 +359,50 @@ class _MediaPickerFieldState extends ConsumerState<MediaPickerField> {
                   padding: const EdgeInsets.only(right: 8),
                   child: Stack(
                     children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
-                        child: uploading
-                            ? Stack(
-                                alignment: Alignment.center,
-                                children: [
-                                  if (localPreview != null)
-                                    Image.memory(
-                                      localPreview,
-                                      width: 100,
-                                      height: 100,
-                                      fit: BoxFit.cover,
-                                      gaplessPlayback: true,
-                                    )
-                                  else
+                      GestureDetector(
+                        onLongPress: uploading ? null : () => _confirmRemove(i),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: uploading
+                              ? Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    if (localPreview != null)
+                                      Image.memory(
+                                        localPreview,
+                                        width: 100,
+                                        height: 100,
+                                        fit: BoxFit.cover,
+                                        gaplessPlayback: true,
+                                      )
+                                    else
+                                      Container(
+                                        width: 100,
+                                        height: 100,
+                                        color: Colors.grey[200],
+                                      ),
                                     Container(
                                       width: 100,
                                       height: 100,
-                                      color: Colors.grey[200],
+                                      color: Colors.black26,
                                     ),
-                                  Container(
-                                    width: 100,
-                                    height: 100,
-                                    color: Colors.black26,
-                                  ),
-                                  const CircularProgressIndicator(),
-                                ],
-                              )
-                            : CachedNetworkImage(
-                                imageUrl: _urls[i],
-                                width: 100,
-                                height: 100,
-                                fit: BoxFit.cover,
-                                errorWidget: (_, __, ___) => Container(
+                                    const CircularProgressIndicator(),
+                                  ],
+                                )
+                              : CachedNetworkImage(
+                                  imageUrl: _urls[i],
                                   width: 100,
                                   height: 100,
-                                  color: Colors.grey[200],
-                                  child: const Icon(Icons.broken_image,
-                                      color: Colors.grey),
+                                  fit: BoxFit.cover,
+                                  errorWidget: (_, __, ___) => Container(
+                                    width: 100,
+                                    height: 100,
+                                    color: Colors.grey[200],
+                                    child: const Icon(Icons.broken_image,
+                                        color: Colors.grey),
+                                  ),
                                 ),
-                              ),
+                        ),
                       ),
                       if (!uploading)
                         Positioned(
@@ -389,9 +415,9 @@ class _MediaPickerFieldState extends ConsumerState<MediaPickerField> {
                                 color: Colors.black54,
                                 shape: BoxShape.circle,
                               ),
-                              padding: const EdgeInsets.all(2),
-                              child: const Icon(Icons.close,
-                                  size: 14, color: Colors.white),
+                              padding: const EdgeInsets.all(4),
+                              child: const Icon(Icons.delete_outline,
+                                  size: 16, color: Colors.white),
                             ),
                           ),
                         ),
