@@ -34,22 +34,18 @@ S3_PUBLIC_BASE_URL
 
 Public URL resolution
 ---------------------
-S3_PUBLIC_BASE_URL is the recommended way to set the public-facing base URL
-for uploaded objects.  When it is not set the code attempts to derive a
-public URL automatically:
-
-  * Railway buckets  – the public URL is ``https://<bucket>.<endpoint-host>``
-    (virtual-hosted-style).  The BUCKET_ENDPOINT_URL is the S3-API endpoint
-    used for uploads; the public URL uses the same host with the bucket name
-    prepended as a subdomain.
-  * AWS S3           – ``https://<bucket>.s3.<region>.amazonaws.com``
-  * ORT_MEDIAA_*     – ``<ORT_MEDIAA_API>/<ORT_MEDIAA_NAME>`` (path-style)
-
-If none of the above can be determined the upload endpoint falls back to
-routing image requests through the API's own proxy endpoint:
+By default ALL uploaded objects are served through the API's own proxy:
   GET /api/v1/upload/proxy/<object-key>
-This guarantees the returned URL is always reachable from the frontend even
-when the bucket is not publicly accessible.
+
+This guarantees images are always reachable from the frontend regardless of
+whether the storage provider supports public-read ACLs or has CORS configured.
+Railway buckets, for example, do not support per-object ACLs so uploaded
+objects are private; direct bucket URLs would return 403 for Flutter Web.
+
+To serve images directly from the bucket (e.g. from a CDN or an AWS S3 bucket
+with a public-read bucket policy) set S3_PUBLIC_BASE_URL to the bucket's
+public-facing base URL.  When that variable is set, uploaded objects return
+a direct URL:  ``<S3_PUBLIC_BASE_URL>/<object-key>``
 """
 
 
@@ -58,6 +54,7 @@ import asyncio
 import logging
 import os
 import uuid
+import re
 from typing import List
 from urllib.parse import urlparse as _urlparse
 
@@ -241,19 +238,23 @@ async def _process_upload(file: UploadFile, db: Session) -> dict:
                     object_key,
                     ExtraArgs={"ContentType": file.content_type},
                 )
-            if not public_base:
-                # Last-resort fallback: route through the API's own proxy so
-                # the URL is always reachable from the frontend even when the
-                # bucket's public URL cannot be determined automatically.
-                # Set S3_PUBLIC_BASE_URL to avoid this path in production.
+            _explicit_public_base = os.getenv("S3_PUBLIC_BASE_URL", "").rstrip("/")
+            if _explicit_public_base:
+                # Caller has explicitly declared a public CDN / bucket URL;
+                # trust it and use direct object URLs for best performance.
+                url = f"{_explicit_public_base}/{object_key}"
+            else:
+                # Default: route all image requests through the API proxy.
+                # This guarantees accessibility regardless of whether the
+                # storage provider supports public-read ACLs.  Railway buckets,
+                # for example, do not support per-object ACLs, so derived
+                # virtual-hosted-style URLs return 403 for unauthenticated
+                # requests.  The proxy uses the configured S3 credentials to
+                # download the object and serve it with proper CORS headers.
+                # To opt out and use direct bucket URLs, set S3_PUBLIC_BASE_URL
+                # to the public-facing base URL of the bucket.
                 app_base = os.getenv("APP_BASE_URL", "https://ort.up.railway.app").rstrip("/")
                 url = f"{app_base}/api/v1/upload/proxy/{object_key}"
-                logger.warning(
-                    "S3_PUBLIC_BASE_URL not set – returning proxy URL for key: %s",
-                    object_key,
-                )
-            else:
-                url = f"{public_base}/{object_key}"
             logger.info("Uploaded image to S3 key: %s → %s", object_key, url)
             return {"url": url}
         except Exception as exc:
@@ -344,13 +345,15 @@ async def serve_image(
 async def proxy_image(object_key: str):
     """Proxy an image from S3 storage and return it with proper CORS headers.
 
-    This endpoint is used as a fallback when the S3 bucket's public URL cannot
-    be determined automatically (i.e. ``S3_PUBLIC_BASE_URL`` is not set and the
-    virtual-hosted URL could not be derived from ``BUCKET_ENDPOINT_URL``).
+    This is the default URL scheme used for all S3-backed uploads unless
+    ``S3_PUBLIC_BASE_URL`` is explicitly configured.  Using the API proxy
+    instead of direct bucket URLs means:
 
-    The frontend always receives a URL that resolves through this API, which
-    already has CORS configured for ``*``, so images render correctly regardless
-    of the bucket's own CORS policy.
+    * Private objects (e.g. Railway buckets that do not support public-read
+      ACLs) are always accessible – the proxy uses S3 credentials.
+    * CORS is handled by the FastAPI CORS middleware, so Flutter Web never
+      encounters browser-level CORS rejections from the bucket.
+    * No bucket-side CORS configuration is required.
     """
     s3, bucket, _ = _get_s3_client()
     if not s3 or not bucket:
@@ -359,9 +362,22 @@ async def proxy_image(object_key: str):
             detail="Storage not configured.",
         )
 
+    # Guard against path-traversal attempts.  S3 object keys consist only of
+    # printable characters but we reject any key that contains ".." segments
+    # (which could reference unintended objects in the bucket).
+    if re.search(r"(^|/)\.\.(/|$)", object_key):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid object key.",
+        )
+
     try:
         buf = io.BytesIO()
-        s3.download_fileobj(bucket, object_key, buf)
+        # Run the blocking boto3 call in a thread-pool executor so it does not
+        # stall the async event loop under concurrent requests.
+        await asyncio.get_running_loop().run_in_executor(
+            None, lambda: s3.download_fileobj(bucket, object_key, buf)
+        )
         data = buf.getvalue()
     except Exception as exc:
         logger.error("Proxy fetch failed for key %s: %s", object_key, exc)
