@@ -55,11 +55,13 @@ import logging
 import os
 import uuid
 import re
-from typing import List
+from typing import List, Optional
 from urllib.parse import urlparse as _urlparse
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, status
 from fastapi.responses import Response
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from jose import jwt, JWTError
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -68,6 +70,59 @@ from app.database.database import get_db
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/upload", tags=["upload"])
+
+_SECRET_KEY = os.getenv("SECRET_KEY", "change-me-in-production")
+_ALGORITHM = "HS256"
+_bearer = HTTPBearer(auto_error=False)
+
+
+def _get_optional_user_id(
+    credentials: HTTPAuthorizationCredentials = Depends(_bearer),
+) -> Optional[int]:
+    """Decode JWT and return the user's integer ID, or None if unauthenticated."""
+    if credentials is None:
+        return None
+    try:
+        payload = jwt.decode(credentials.credentials, _SECRET_KEY, algorithms=[_ALGORITHM])
+        sub = payload.get("sub")
+        if sub is None:
+            return None
+        return int(sub)
+    except (JWTError, ValueError):
+        return None
+
+
+def _get_required_user(
+    credentials: HTTPAuthorizationCredentials = Depends(_bearer),
+    db: Session = Depends(get_db),
+):
+    """Decode JWT and return the User record; raise 401 if missing or invalid."""
+    from app.models.models import User
+
+    if credentials is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required",
+        )
+    try:
+        payload = jwt.decode(credentials.credentials, _SECRET_KEY, algorithms=[_ALGORITHM])
+        sub = payload.get("sub")
+        if sub is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
+            )
+        user_id = int(sub)
+    except (JWTError, ValueError):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
+        )
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found"
+        )
+    return user
+
 
 _ALLOWED_CONTENT_TYPES = {
     "image/jpeg",
@@ -186,7 +241,7 @@ def _get_s3_client():
         return None, None, None
 
 
-async def _process_upload(file: UploadFile, db: Session) -> dict:
+async def _process_upload(file: UploadFile, db: Session, uploader_user_id: Optional[int] = None) -> dict:
     """Validate, upload and return ``{"url": ...}`` for a single file."""
     # Content-type validation
     if file.content_type not in _ALLOWED_CONTENT_TYPES:
@@ -256,6 +311,7 @@ async def _process_upload(file: UploadFile, db: Session) -> dict:
                 app_base = os.getenv("APP_BASE_URL", "https://ort.up.railway.app").rstrip("/")
                 url = f"{app_base}/api/v1/upload/proxy/{object_key}"
             logger.info("Uploaded image to S3 key: %s → %s", object_key, url)
+            _record_upload(db, key=object_key, user_id=uploader_user_id)
             return {"url": url}
         except Exception as exc:
             logger.error("S3 upload failed: %s", exc)
@@ -284,23 +340,43 @@ async def _process_upload(file: UploadFile, db: Session) -> dict:
         logger.warning(
             "S3 not configured – saved image to database with id %s", img_id
         )
+        _record_upload(db, key=img_id, user_id=uploader_user_id)
         base_url = os.getenv("APP_BASE_URL", "https://ort.up.railway.app")
         return {"url": f"{base_url}/api/v1/upload/image/{img_id}"}
+
+
+def _record_upload(db: Session, key: str, user_id: Optional[int]) -> None:
+    """Persist an UploadRecord so we can verify ownership on deletion."""
+    from app.models.models import UploadRecord
+    from sqlalchemy.exc import IntegrityError
+    try:
+        record = UploadRecord(key=key, uploaded_by_user_id=user_id)
+        db.add(record)
+        db.commit()
+    except IntegrityError:
+        # Duplicate key – record already exists (e.g. a retry). Safe to ignore.
+        db.rollback()
+    except SQLAlchemyError as exc:
+        db.rollback()
+        # Non-fatal – ownership tracking failure should not abort the upload.
+        logger.warning("Failed to record upload ownership for key %s: %s", key, exc)
 
 
 @router.post("/image", status_code=status.HTTP_200_OK)
 async def upload_image(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
+    uploader_user_id: Optional[int] = Depends(_get_optional_user_id),
 ):
     """Upload a single image file and return its public URL."""
-    return await _process_upload(file, db)
+    return await _process_upload(file, db, uploader_user_id=uploader_user_id)
 
 
 @router.post("/images", status_code=status.HTTP_200_OK)
 async def upload_images(
     files: List[UploadFile] = File(...),
     db: Session = Depends(get_db),
+    uploader_user_id: Optional[int] = Depends(_get_optional_user_id),
 ):
     """Upload multiple image files (up to 20) and return their public URLs."""
     if not files:
@@ -313,7 +389,7 @@ async def upload_images(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Maximum 20 files per request.",
         )
-    results = await asyncio.gather(*[_process_upload(f, db) for f in files])
+    results = await asyncio.gather(*[_process_upload(f, db, uploader_user_id) for f in files])
     return {"urls": [r["url"] for r in results]}
 
 
@@ -408,8 +484,12 @@ async def proxy_image(object_key: str):
 async def delete_image(
     url: str = Query(..., description="Public URL of the image to delete"),
     db: Session = Depends(get_db),
+    current_user=Depends(_get_required_user),
 ):
     """Delete an uploaded image by its public URL.
+
+    Requires authentication.  Only the admin or the user who originally
+    uploaded the image may delete it.
 
     Removes the object from S3 / Railway bucket when storage is configured.
     In stub mode, removes the record from the database.
@@ -420,61 +500,71 @@ async def delete_image(
       3. ``{app_base}/api/v1/upload/image/{uuid}``  – database blob URL
     """
     import urllib.parse
+    from app.models.models import UploadRecord
 
     s3, bucket, public_base = _get_s3_client()
 
-    if s3 and bucket:
-        parsed = urllib.parse.urlparse(url)
-        path = parsed.path  # e.g. /api/v1/upload/proxy/listings/uuid.jpg
+    # ── Resolve the lookup key from the URL ──────────────────────────────────
+    parsed = urllib.parse.urlparse(url)
+    path = parsed.path
 
-        # ── Proxy URL: /api/v1/upload/proxy/<object_key> ────────────────────
-        _proxy_prefix = "/api/v1/upload/proxy/"
-        if path.startswith(_proxy_prefix):
-            object_key = path[len(_proxy_prefix):].strip("/")
-            try:
-                s3.delete_object(Bucket=bucket, Key=object_key)
-                logger.info("Deleted S3 object (via proxy URL): %s", object_key)
-                return {"message": "Image deleted"}
-            except Exception as exc:
-                logger.error("S3 delete failed: %s", exc)
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Image deletion failed. Please try again.",
-                ) from exc
+    _proxy_prefix = "/api/v1/upload/proxy/"
+    _blob_prefix = "/api/v1/upload/image/"
 
-        # ── Direct bucket URL: {public_base}/{object_key} ───────────────────
-        if public_base and url.startswith(public_base):
-            object_key = url[len(public_base):].lstrip("/")
-            try:
-                s3.delete_object(Bucket=bucket, Key=object_key)
-                logger.info("Deleted S3 object: %s", object_key)
-                return {"message": "Image deleted"}
-            except Exception as exc:
-                logger.error("S3 delete failed: %s", exc)
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Image deletion failed. Please try again.",
-                ) from exc
-
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="URL does not belong to the configured storage bucket.",
-        )
+    if path.startswith(_proxy_prefix):
+        lookup_key = path[len(_proxy_prefix):].strip("/")
+    elif path.startswith(_blob_prefix):
+        lookup_key = path[len(_blob_prefix):].strip("/")
+    elif public_base and url.startswith(public_base):
+        lookup_key = url[len(public_base):].lstrip("/")
     else:
-        # Stub mode: delete from database by image ID extracted from URL.
-        # URL format: {base_url}/api/v1/upload/image/{uuid}
+        lookup_key = None
+
+    # ── Authorisation check ──────────────────────────────────────────────────
+    if current_user.role != "admin":
+        if lookup_key is None:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You do not have permission to delete this image.",
+            )
+        record = db.query(UploadRecord).filter(UploadRecord.key == lookup_key).first()
+        # Deny if: no record, anonymous upload (NULL user_id), or different uploader.
+        if (
+            record is None
+            or record.uploaded_by_user_id is None
+            or record.uploaded_by_user_id != current_user.id
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You do not have permission to delete this image.",
+            )
+
+    # ── Perform the deletion ─────────────────────────────────────────────────
+    if s3 and bucket:
+        if lookup_key is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="URL does not belong to the configured storage bucket.",
+            )
+        try:
+            s3.delete_object(Bucket=bucket, Key=lookup_key)
+            logger.info("Deleted S3 object: %s (by user %s)", lookup_key, current_user.id)
+        except Exception as exc:
+            logger.error("S3 delete failed: %s", exc)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Image deletion failed. Please try again.",
+            ) from exc
+    else:
+        # Stub mode: delete from database by image ID.
         from app.models.models import ImageBlob
-        parsed = urllib.parse.urlparse(url)
-        path = parsed.path  # e.g. /api/v1/upload/image/<uuid>
-        prefix = "/api/v1/upload/image/"
-        if path.startswith(prefix):
-            img_id = path[len(prefix):].strip("/")
-            blob = db.query(ImageBlob).filter(ImageBlob.id == img_id).first()
+        if lookup_key is not None:
+            blob = db.query(ImageBlob).filter(ImageBlob.id == lookup_key).first()
             if blob:
                 try:
                     db.delete(blob)
                     db.commit()
-                    logger.info("Deleted image blob: %s", img_id)
+                    logger.info("Deleted image blob: %s (by user %s)", lookup_key, current_user.id)
                 except SQLAlchemyError as exc:
                     db.rollback()
                     logger.error("Failed to delete image blob: %s", exc)
@@ -482,4 +572,16 @@ async def delete_image(
                         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                         detail="Image deletion failed.",
                     ) from exc
-        return {"message": "Image deleted"}
+
+    # Remove the upload record regardless of storage mode.
+    if lookup_key is not None:
+        record = db.query(UploadRecord).filter(UploadRecord.key == lookup_key).first()
+        if record:
+            try:
+                db.delete(record)
+                db.commit()
+            except SQLAlchemyError as exc:
+                db.rollback()
+                logger.warning("Failed to remove UploadRecord for key %s: %s", lookup_key, exc)
+
+    return {"message": "Image deleted"}
