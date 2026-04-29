@@ -223,6 +223,47 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   DateTime? _lastBackPress;
 
+  // ── Back/forward history ─────────────────────────────────────────────────
+  final List<String> _forwardStack = [];
+  String _prevLocation = '';
+  bool _didGoBack = false;
+  bool _didGoForward = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final loc = GoRouterState.of(context).matchedLocation;
+    if (loc != _prevLocation && _prevLocation.isNotEmpty) {
+      // A natural forward navigation clears the forward stack; back/forward
+      // button presses set the flag to skip clearing.
+      if (!_didGoBack && !_didGoForward && _forwardStack.isNotEmpty) {
+        setState(() => _forwardStack.clear());
+      }
+      _didGoBack = false;
+      _didGoForward = false;
+    }
+    _prevLocation = loc;
+  }
+
+  void _goBack(BuildContext context) {
+    final router = GoRouter.of(context);
+    if (router.canPop()) {
+      final currentLoc = GoRouterState.of(context).matchedLocation;
+      setState(() {
+        _didGoBack = true;
+        _forwardStack.add(currentLoc);
+      });
+      router.pop();
+    }
+  }
+
+  void _goForward(BuildContext context) {
+    if (_forwardStack.isEmpty) return;
+    final target = _forwardStack.removeLast();
+    setState(() => _didGoForward = true);
+    context.go(target);
+  }
+
   static const _tabs = [
     ('/home', Icons.home_outlined, Icons.home_rounded, 'Home'),
     ('/properties', Icons.apartment_outlined, Icons.apartment_rounded, 'Properties'),
@@ -274,6 +315,8 @@ class _MainShellState extends State<MainShell> {
     // ── Wide layout: NavigationRail on the left ──────────────────────────────
     if (isWide) {
       final isExtended = width >= 900;
+      final canGoBack = GoRouter.of(context).canPop();
+      final canGoForward = _forwardStack.isNotEmpty;
       return Scaffold(
         body: Row(
           children: [
@@ -307,7 +350,45 @@ class _MainShellState extends State<MainShell> {
                   .toList(),
             ),
             const VerticalDivider(width: 1, thickness: 1),
-            Expanded(child: widget.child),
+            Expanded(
+              child: Column(
+                children: [
+                  // ── Back / forward toolbar ──────────────────────────────
+                  Material(
+                    color: Theme.of(context).colorScheme.surface,
+                    elevation: 0,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: Border(
+                          bottom: BorderSide(
+                            color: Theme.of(context).dividerColor,
+                            width: 0.5,
+                          ),
+                        ),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                      child: Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 16),
+                            onPressed: canGoBack ? () => _goBack(context) : null,
+                            tooltip: 'Back',
+                            visualDensity: VisualDensity.compact,
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+                            onPressed: canGoForward ? () => _goForward(context) : null,
+                            tooltip: 'Forward',
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Expanded(child: widget.child),
+                ],
+              ),
+            ),
           ],
         ),
       );
