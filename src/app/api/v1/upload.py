@@ -348,10 +348,14 @@ async def _process_upload(file: UploadFile, db: Session, uploader_user_id: Optio
 def _record_upload(db: Session, key: str, user_id: Optional[int]) -> None:
     """Persist an UploadRecord so we can verify ownership on deletion."""
     from app.models.models import UploadRecord
+    from sqlalchemy.exc import IntegrityError
     try:
         record = UploadRecord(key=key, uploaded_by_user_id=user_id)
         db.add(record)
         db.commit()
+    except IntegrityError:
+        # Duplicate key – record already exists (e.g. a retry). Safe to ignore.
+        db.rollback()
     except SQLAlchemyError as exc:
         db.rollback()
         # Non-fatal – ownership tracking failure should not abort the upload.
@@ -524,7 +528,12 @@ async def delete_image(
                 detail="You do not have permission to delete this image.",
             )
         record = db.query(UploadRecord).filter(UploadRecord.key == lookup_key).first()
-        if record is None or record.uploaded_by_user_id != current_user.id:
+        # Deny if: no record, anonymous upload (NULL user_id), or different uploader.
+        if (
+            record is None
+            or record.uploaded_by_user_id is None
+            or record.uploaded_by_user_id != current_user.id
+        ):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You do not have permission to delete this image.",
@@ -571,7 +580,8 @@ async def delete_image(
             try:
                 db.delete(record)
                 db.commit()
-            except SQLAlchemyError:
+            except SQLAlchemyError as exc:
                 db.rollback()
+                logger.warning("Failed to remove UploadRecord for key %s: %s", lookup_key, exc)
 
     return {"message": "Image deleted"}
