@@ -67,70 +67,77 @@ class ListingCard extends StatelessWidget {
             ),
 
             // ── Text content ───────────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
                     ),
-                  ),
-                  if (subtitle.isNotEmpty) ...[
-                    const SizedBox(height: 3),
+                    if (subtitle.isNotEmpty) ...[
+                      const SizedBox(height: 3),
+                      Row(
+                        children: [
+                          Icon(Icons.location_on_outlined,
+                              size: 12,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant),
+                          const SizedBox(width: 2),
+                          Expanded(
+                            child: Text(
+                              subtitle,
+                              style: TextStyle(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
+                                  fontSize: 12),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                    const SizedBox(height: 4),
                     Row(
                       children: [
-                        Icon(Icons.location_on_outlined,
-                            size: 12, color: Colors.grey[500]),
-                        const SizedBox(width: 2),
-                        Expanded(
-                          child: Text(
-                            subtitle,
-                            style: TextStyle(
-                                color: Colors.grey[600], fontSize: 12),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                        _TagChip(label: tag, color: iconColor),
+                        const Spacer(),
+                        Text(
+                          price,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.primary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
                           ),
                         ),
                       ],
                     ),
-                  ],
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      _TagChip(label: tag, color: iconColor),
-                      const Spacer(),
+                    if (extras.isNotEmpty) ...[
+                      const SizedBox(height: 4),
                       Text(
-                        price,
+                        extras.where((e) => e.trim().isNotEmpty).join(' · '),
                         style: TextStyle(
-                          color: Theme.of(context).colorScheme.primary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant,
+                            fontSize: 11),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
-                  ),
-                  if (extras.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Wrap(
-                      spacing: 8,
-                      children: extras
-                          .map(
-                            (e) => Text(
-                              e,
-                              style: TextStyle(
-                                  color: Colors.grey[500], fontSize: 11),
-                            ),
-                          )
-                          .toList(),
-                    ),
                   ],
-                ],
+                ),
               ),
             ),
           ],
@@ -159,7 +166,7 @@ class _HeroImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const height = 140.0;
+    const height = 120.0;
 
     final badge = Positioned(
       top: 8,

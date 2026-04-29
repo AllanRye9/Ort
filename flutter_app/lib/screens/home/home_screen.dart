@@ -414,7 +414,7 @@ class _SearchBar extends StatelessWidget {
         onTap: onTap,
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(14),
             boxShadow: [
               BoxShadow(
@@ -433,10 +433,14 @@ class _SearchBar extends StatelessWidget {
               Expanded(
                 child: Text(
                   'Search properties, agriculture, goods…',
-                  style: TextStyle(color: Colors.grey[500], fontSize: 14),
+                  style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontSize: 14),
                 ),
               ),
-              Icon(Icons.tune, color: Colors.grey[400], size: 18),
+              Icon(Icons.tune,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  size: 18),
             ],
           ),
         ),
@@ -714,7 +718,9 @@ class _FeaturedSection<T> extends StatelessWidget {
     if (items.isEmpty) {
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Text(emptyText, style: const TextStyle(color: Colors.grey)),
+        child: Text(emptyText,
+            style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant)),
       );
     }
 
@@ -853,8 +859,11 @@ class _FeaturedCard extends StatelessWidget {
                     title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w600, fontSize: 12, height: 1.3),
+                    style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                        height: 1.3,
+                        color: Theme.of(context).colorScheme.onSurface),
                   ),
                   if (subtitle.isNotEmpty) ...[
                     const SizedBox(height: 2),
@@ -862,8 +871,9 @@ class _FeaturedCard extends StatelessWidget {
                       subtitle,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style:
-                          TextStyle(color: Colors.grey[500], fontSize: 10),
+                      style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontSize: 10),
                     ),
                   ],
                   const SizedBox(height: 6),
