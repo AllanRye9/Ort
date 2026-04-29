@@ -74,6 +74,53 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
     }
   }
 
+  Future<void> _confirmDeleteProperty(PropertyModel p) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Listing'),
+        content: Text('Delete "${p.title}"? This cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red[700],
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      await ref.read(apiServiceProvider).deleteProperty(p.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Listing deleted.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        _loadListings();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Delete failed: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
   void _applySearch() {
     setState(() => _keyword = _searchCtrl.text.trim());
     _loadListings();
@@ -451,6 +498,8 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
                                       ],
                                       onTap: () =>
                                           ctx.go('/properties/${p.id}'),
+                                      onLongPress: () =>
+                                          _confirmDeleteProperty(p),
                                     );
                                   },
                                 );
