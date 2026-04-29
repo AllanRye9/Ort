@@ -72,7 +72,6 @@ class ListingCard extends StatelessWidget {
                 padding: const EdgeInsets.all(12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       title,
@@ -127,7 +126,7 @@ class ListingCard extends StatelessWidget {
                     if (extras.isNotEmpty) ...[
                       const SizedBox(height: 4),
                       Text(
-                        extras.join(' · '),
+                        extras.where((e) => e.trim().isNotEmpty).join(' · '),
                         style: TextStyle(
                             color: Theme.of(context)
                                 .colorScheme
