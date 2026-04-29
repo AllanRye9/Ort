@@ -579,9 +579,16 @@ class _ReadView extends StatelessWidget {
   }
 
   Future<void> _openAdminPanel(BuildContext context) async {
-    // Derive the admin panel URL from the API base URL by stripping /api/v1
-    // and appending /const. The base URL is configurable via --dart-define=API_BASE_URL.
-    final base = AppConstants.baseUrl.replaceAll(RegExp(r'/api/v1/?$'), '');
+    // Derive the admin panel URL from the API base URL.
+    // AppConstants.baseUrl is expected to end with /api/v1 (optionally with
+    // a trailing slash), e.g. https://ort.up.railway.app/api/v1. Strip that
+    // suffix and append /const to reach the backend admin dashboard.
+    String base = AppConstants.baseUrl;
+    if (base.endsWith('/api/v1')) {
+      base = base.substring(0, base.length - '/api/v1'.length);
+    } else if (base.endsWith('/api/v1/')) {
+      base = base.substring(0, base.length - '/api/v1/'.length);
+    }
     final adminUrl = '$base/const';
     final uri = Uri.parse(adminUrl);
     bool launched = false;
