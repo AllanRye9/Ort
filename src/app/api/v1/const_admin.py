@@ -490,7 +490,15 @@ document.getElementById('loginForm').onsubmit = async (e) => {
       body: JSON.stringify({username, password: pass})
     });
     const data = await r.json();
-    if (!r.ok) { errEl.textContent = data.detail || 'Login failed'; errEl.classList.remove('hidden'); return; }
+    if (!r.ok) {
+      let msg = data.detail || 'Login failed';
+      if (r.status === 503) {
+        msg = 'Admin credentials are not configured on this server. ' +
+              'Set the ADMIN_USER and ADMIN_PASSWORD environment variables ' +
+              'in your deployment configuration and redeploy.';
+      }
+      errEl.textContent = msg; errEl.classList.remove('hidden'); return;
+    }
     if (data.role !== 'admin') { errEl.textContent = 'Access denied — admin accounts only.'; errEl.classList.remove('hidden'); return; }
     token = data.access_token;
     localStorage.setItem('ort_admin_token', token);
