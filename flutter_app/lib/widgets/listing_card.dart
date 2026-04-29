@@ -69,7 +69,7 @@ class ListingCard extends StatelessWidget {
             // ── Text content ───────────────────────────────────────────────
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
