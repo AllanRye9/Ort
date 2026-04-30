@@ -67,8 +67,7 @@ SECRET_KEY = os.getenv("SECRET_KEY", "change-me-in-production")
 ALGORITHM = "HS256"
 
 
-def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    return haversine_km(lat1, lon1, lat2, lon2)
+
 
 
 def _get_current_user(
@@ -288,7 +287,7 @@ def get_properties(
         with_dist = []
         for p in props:
             if p.latitude is not None and p.longitude is not None:
-                d = _haversine_km(lat, lon, p.latitude, p.longitude)
+                d = haversine_km(lat, lon, p.latitude, p.longitude)
                 if d <= radius_km:
                     with_dist.append((d, p))
         with_dist.sort(key=lambda x: x[0])

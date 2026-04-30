@@ -371,12 +371,25 @@ class _DistanceCalculatorScreenState
             const SizedBox(height: 24),
 
             // ── Calculate button ───────────────────────────────────
+            // Triggers geocoding for any manually entered addresses that
+            // haven't been resolved yet, then updates the displayed result.
             ElevatedButton.icon(
               icon: const Icon(Icons.calculate_outlined),
               label: const Text('Calculate'),
-              onPressed: _aLat != null && _bLat != null
-                  ? () => setState(() {})
-                  : null,
+              onPressed: () async {
+                bool changed = false;
+                if (_aLat == null &&
+                    _pointACtrl.text.trim().isNotEmpty) {
+                  await _geocodeManual(forA: true);
+                  changed = true;
+                }
+                if (_bLat == null &&
+                    _pointBCtrl.text.trim().isNotEmpty) {
+                  await _geocodeManual(forA: false);
+                  changed = true;
+                }
+                if (!changed && mounted) setState(() {});
+              },
             ),
           ],
         ),
