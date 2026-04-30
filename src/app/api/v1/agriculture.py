@@ -1,5 +1,4 @@
 """Agriculture listings router."""
-import math
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
@@ -14,18 +13,9 @@ from app.schemas.marketplace_schemas import (
     AgricultureListingResponse,
     AgriStatusUpdate,
 )
+from app.utils.geo import haversine_km
 
 router = APIRouter(prefix="/agriculture", tags=["agriculture"])
-
-
-def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    """Return the great-circle distance in km between two (lat, lon) points."""
-    R = 6371.0
-    phi1, phi2 = math.radians(lat1), math.radians(lat2)
-    dphi = math.radians(lat2 - lat1)
-    dlambda = math.radians(lon2 - lon1)
-    a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2
-    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
 
 @router.get("/", response_model=List[AgricultureListingResponse])
@@ -74,7 +64,7 @@ def list_listings(
         with_dist = []
         for item in items:
             if item.latitude is not None and item.longitude is not None:
-                d = _haversine_km(lat, lon, item.latitude, item.longitude)
+                d = haversine_km(lat, lon, item.latitude, item.longitude)
                 if d <= radius_km:
                     with_dist.append((d, item))
         with_dist.sort(key=lambda x: x[0])

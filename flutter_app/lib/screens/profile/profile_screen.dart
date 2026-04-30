@@ -44,11 +44,11 @@ String _levelLabel(int score) {
   return '👤 Newbie';
 }
 
-Color _levelColor(int score) {
+Color _levelColor(int score, ColorScheme cs) {
   if (score >= 8) return const Color(0xFFFFD700);
-  if (score >= 6) return const Color(0xFF1B5E20);
+  if (score >= 6) return cs.primary;
   if (score >= 4) return Colors.orange;
-  if (score >= 2) return Colors.blue;
+  if (score >= 2) return cs.secondary;
   return Colors.grey;
 }
 
@@ -798,7 +798,7 @@ class _XpLevelCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = _levelColor(score);
+    final color = _levelColor(score, Theme.of(context).colorScheme);
     final label = _levelLabel(score);
     final xp = score * _xpPerPoint;
 
