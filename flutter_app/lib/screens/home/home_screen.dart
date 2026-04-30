@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:shimmer/shimmer.dart';
 import '../../core/auth_provider.dart';
 import '../../core/listing_providers.dart';
+import '../../core/location_service.dart';
 import '../../core/responsive.dart';
 import '../../core/theme.dart';
 import '../../models/models.dart';
@@ -36,7 +37,7 @@ const _userQuickActions = [
   _QuickAction(Icons.apartment_outlined, 'Properties', '/properties', Color(0xFF1B5E20)),
   _QuickAction(Icons.grass_outlined, 'Agriculture', '/agriculture', Color(0xFF2E7D32)),
   _QuickAction(Icons.precision_manufacturing_outlined, 'Products', '/manufacturing', Color(0xFFE65100)),
-  _QuickAction(Icons.shopping_bag_outlined, 'My Orders', '/orders', Color(0xFF1565C0)),
+  _QuickAction(Icons.calculate_outlined, 'Distance', '/distance-calculator', Color(0xFF1565C0)),
 ];
 
 class _QuickAction {
@@ -61,6 +62,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   late final AnimationController _fadeCtrl;
   late final Animation<double> _fadeAnim;
 
+  bool _locationDenied = false;
+
   @override
   void initState() {
     super.initState();
@@ -69,6 +72,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       duration: const Duration(milliseconds: 600),
     )..forward();
     _fadeAnim = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeIn);
+    _initLocation();
+  }
+
+  Future<void> _initLocation() async {
+    final pos = await LocationService.instance.requestAndGetPosition();
+    if (!mounted) return;
+    if (pos != null) {
+      ref.read(userLocationProvider.notifier).state =
+          (pos.latitude, pos.longitude);
+    } else {
+      setState(() => _locationDenied = true);
+    }
   }
 
   @override
@@ -138,7 +153,36 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             // ── Search bar ──────────────────────────────────────────────────
             SliverToBoxAdapter(
               child: _ContentWrapper(
-                child: _SearchBar(onTap: () => context.go('/search')),
+                child: Column(
+                  children: [
+                    _SearchBar(onTap: () => context.go('/search')),
+                    if (_locationDenied)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: MaterialBanner(
+                          content: const Text(
+                              'Enable location to find nearby listings.'),
+                          leading: const Icon(Icons.location_off_outlined),
+                          actions: [
+                            TextButton(
+                              onPressed: () => _initLocation().then((_) {
+                                if (mounted &&
+                                    ref.read(userLocationProvider) != null) {
+                                  setState(() => _locationDenied = false);
+                                }
+                              }),
+                              child: const Text('Enable'),
+                            ),
+                            TextButton(
+                              onPressed: () =>
+                                  setState(() => _locationDenied = false),
+                              child: const Text('Dismiss'),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
 

@@ -40,6 +40,9 @@ dependencies:
   flutter_map: ^6.1.0
   latlong2: ^0.9.1
 
+  # Location
+  geolocator: ^13.0.1
+
   # File handling
   image_picker: ^1.1.1
   file_picker: ^8.0.3

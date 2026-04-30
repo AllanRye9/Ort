@@ -69,6 +69,83 @@ class _ManufacturingDetailScreenState extends ConsumerState<ManufacturingDetailS
     }
   }
 
+  Future<void> _contactAgent(ManufacturingProductModel m) async {
+    final userId = ref.read(authProvider).userId;
+    if (userId == null) return;
+    if (m.tenantId == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No seller contact available for this product.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      return;
+    }
+    try {
+      final api = ref.read(apiServiceProvider);
+      final tenantData = await api.getTenant(m.tenantId!);
+      final recipientId = tenantData['owner_user_id'] as int?;
+      if (recipientId == null || !mounted) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Seller contact not available.'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+        return;
+      }
+      final convId = await api.findOrCreateConversation(
+        initiatorId: userId,
+        recipientId: recipientId,
+        subject: 'Re: ${m.title}',
+      );
+      if (mounted) context.push('/messages/$convId');
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not start conversation: $e'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _updateStatus(ManufacturingProductModel m) async {
+    const statuses = ['available', 'out_of_stock', 'discontinued'];
+    final picked = await showDialog<String>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: const Text('Update Status'),
+        children: statuses
+            .map((s) => SimpleDialogOption(
+                  onPressed: () => Navigator.of(ctx).pop(s),
+                  child: Text(s, style: TextStyle(
+                    fontWeight: s == m.status ? FontWeight.bold : FontWeight.normal,
+                  )),
+                ))
+            .toList(),
+      ),
+    );
+    if (picked == null || picked == m.status || !mounted) return;
+    try {
+      await ref.read(apiServiceProvider).patchMfgStatus(m.id, picked);
+      ref.invalidate(_mfgDetailProvider(widget.id));
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update status: $e'),
+              behavior: SnackBarBehavior.floating),
+        );
+      }
+    }
+  }
+
   Future<void> _requestQuote(ManufacturingProductModel m) async {
     final userId = ref.read(authProvider).userId;
     if (userId == null) return;
@@ -170,6 +247,11 @@ class _ManufacturingDetailScreenState extends ConsumerState<ManufacturingDetailS
   @override
   Widget build(BuildContext context) {
     final async = ref.watch(_mfgDetailProvider(widget.id));
+    final auth = ref.watch(authProvider);
+    final isOwner = auth.isAuthenticated &&
+        (auth.role == 'company' ||
+            auth.role == 'organization' ||
+            auth.role == 'agent');
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
@@ -189,6 +271,23 @@ class _ManufacturingDetailScreenState extends ConsumerState<ManufacturingDetailS
           onPressed: () => context.pop(),
         ),
         actions: [
+          if (isOwner)
+            async.maybeWhen(
+              data: (m) => Container(
+                margin: const EdgeInsets.only(right: 4),
+                decoration: const BoxDecoration(
+                  color: Colors.black26,
+                  shape: BoxShape.circle,
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.edit_outlined,
+                      color: Colors.white, size: 18),
+                  onPressed: () => _updateStatus(m),
+                  tooltip: 'Update status',
+                ),
+              ),
+              orElse: () => const SizedBox.shrink(),
+            ),
           Container(
             margin: const EdgeInsets.only(right: 8),
             decoration: const BoxDecoration(
@@ -376,16 +475,29 @@ class _ManufacturingDetailScreenState extends ConsumerState<ManufacturingDetailS
               Expanded(
                 child: OutlinedButton.icon(
                   icon: const Icon(Icons.request_quote_outlined),
-                  label: const Text('Request Quote'),
+                  label: const Text('Quote'),
                   onPressed: () => _requestQuote(m),
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               Expanded(
-                flex: 2,
+                child: FilledButton.tonalIcon(
+                  style: FilledButton.styleFrom(
+                    backgroundColor:
+                        Theme.of(context).colorScheme.secondaryContainer,
+                    foregroundColor:
+                        Theme.of(context).colorScheme.onSecondaryContainer,
+                  ),
+                  icon: const Icon(Icons.message_outlined),
+                  label: const Text('Contact'),
+                  onPressed: () => _contactAgent(m),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
                 child: ElevatedButton.icon(
                   icon: const Icon(Icons.shopping_cart_outlined),
-                  label: const Text('Order Now'),
+                  label: const Text('Order'),
                   onPressed: () => _orderNow(m),
                 ),
               ),

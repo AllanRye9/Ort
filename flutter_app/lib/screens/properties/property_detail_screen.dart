@@ -68,6 +68,185 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     }
   }
 
+  Future<void> _requestQuote(PropertyModel p) async {
+    final userId = ref.read(authProvider).userId;
+    if (userId == null) return;
+    final notesCtrl = TextEditingController();
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Request Quote'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('for ${p.title}',
+                style: const TextStyle(color: Colors.grey, fontSize: 13)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: notesCtrl,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                labelText: 'Notes / requirements',
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(notesCtrl.text.trim()),
+            child: const Text('Submit'),
+          ),
+        ],
+      ),
+    );
+    notesCtrl.dispose();
+    if (result == null || !mounted) return;
+    try {
+      await ref.read(apiServiceProvider).createRFQ({
+        'title': 'Quote request for ${p.title}',
+        'description': result,
+        'category': 'property',
+        'buyer_id': userId,
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Quote request submitted!'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to submit quote: $e'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _orderNow(PropertyModel p) async {
+    final userId = ref.read(authProvider).userId;
+    if (userId == null) return;
+    final notesCtrl = TextEditingController();
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Place Order'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(p.title,
+                style: const TextStyle(color: Colors.grey, fontSize: 13)),
+            const SizedBox(height: 8),
+            Text(
+              '\$${p.price.toStringAsFixed(0)}',
+              style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(ctx).colorScheme.primary),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: notesCtrl,
+              maxLines: 2,
+              decoration: const InputDecoration(
+                labelText: 'Notes (optional)',
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Your order will be reviewed by the agent.',
+              style: TextStyle(fontSize: 11, color: Colors.grey),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(notesCtrl.text.trim()),
+            child: const Text('Place Order'),
+          ),
+        ],
+      ),
+    );
+    notesCtrl.dispose();
+    if (result == null || !mounted) return;
+    try {
+      await ref.read(apiServiceProvider).createOrder({
+        'buyer_id': userId,
+        'order_items': [
+          {
+            'property_id': p.id,
+            'quantity': 1.0,
+            'unit_price': p.price,
+          }
+        ],
+        'notes': result,
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Order placed! Check Orders for status.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Order failed: $e'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _updateStatus(PropertyModel p) async {
+    const statuses = ['available', 'sold', 'rented', 'pending'];
+    final picked = await showDialog<String>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: const Text('Update Status'),
+        children: statuses
+            .map((s) => SimpleDialogOption(
+                  onPressed: () => Navigator.of(ctx).pop(s),
+                  child: Text(s, style: TextStyle(
+                    fontWeight: s == p.status ? FontWeight.bold : FontWeight.normal,
+                  )),
+                ))
+            .toList(),
+      ),
+    );
+    if (picked == null || picked == p.status || !mounted) return;
+    try {
+      await ref.read(apiServiceProvider).patchPropertyStatus(p.id, picked);
+      ref.invalidate(_propertyDetailProvider(widget.id));
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update status: $e'),
+              behavior: SnackBarBehavior.floating),
+        );
+      }
+    }
+  }
+
   Future<void> _contactAgent(PropertyModel p) async {
     final agentId = p.agentId;
     final userId = ref.read(authProvider).userId;
@@ -131,6 +310,9 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final async = ref.watch(_propertyDetailProvider(widget.id));
+    final auth = ref.watch(authProvider);
+    final isOwner = auth.isAuthenticated &&
+        (auth.role == 'agent' || auth.role == 'company' || auth.role == 'organization');
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
@@ -150,6 +332,23 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
           onPressed: () => context.pop(),
         ),
         actions: [
+          if (isOwner)
+            async.maybeWhen(
+              data: (p) => Container(
+                margin: const EdgeInsets.only(right: 4),
+                decoration: const BoxDecoration(
+                  color: Colors.black26,
+                  shape: BoxShape.circle,
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.edit_outlined,
+                      color: Colors.white, size: 18),
+                  onPressed: () => _updateStatus(p),
+                  tooltip: 'Update status',
+                ),
+              ),
+              orElse: () => const SizedBox.shrink(),
+            ),
           Container(
             margin: const EdgeInsets.only(right: 8),
             decoration: const BoxDecoration(
@@ -188,6 +387,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
           saveBusy: _saveBusy,
           onSave: _toggleSave,
           onContactAgent: () => _contactAgent(p),
+          onRequestQuote: () => _requestQuote(p),
+          onOrderNow: () => _orderNow(p),
         ),
         orElse: () => null,
       ),
@@ -338,11 +539,15 @@ class _BottomBar extends StatelessWidget {
     required this.saveBusy,
     required this.onSave,
     required this.onContactAgent,
+    required this.onRequestQuote,
+    required this.onOrderNow,
   });
   final bool isSaved;
   final bool saveBusy;
   final VoidCallback onSave;
   final VoidCallback onContactAgent;
+  final VoidCallback onRequestQuote;
+  final VoidCallback onOrderNow;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -379,12 +584,34 @@ class _BottomBar extends StatelessWidget {
                     onPressed: onSave,
                     tooltip: isSaved ? 'Unsave' : 'Save',
                   ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 6),
+            Expanded(
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.request_quote_outlined, size: 16),
+                label: const Text('Quote'),
+                onPressed: onRequestQuote,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: FilledButton.tonalIcon(
+                style: FilledButton.styleFrom(
+                  backgroundColor:
+                      Theme.of(context).colorScheme.secondaryContainer,
+                  foregroundColor:
+                      Theme.of(context).colorScheme.onSecondaryContainer,
+                ),
+                icon: const Icon(Icons.chat_outlined, size: 16),
+                label: const Text('Contact'),
+                onPressed: onContactAgent,
+              ),
+            ),
+            const SizedBox(width: 6),
             Expanded(
               child: ElevatedButton.icon(
-                icon: const Icon(Icons.chat_outlined),
-                label: const Text('Contact Agent'),
-                onPressed: onContactAgent,
+                icon: const Icon(Icons.shopping_cart_outlined, size: 16),
+                label: const Text('Order'),
+                onPressed: onOrderNow,
               ),
             ),
           ],

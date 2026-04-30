@@ -7,6 +7,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'api_service.dart';
 import '../models/models.dart';
 
+/// The user's last known GPS position as `(lat, lon)`. Null until the user
+/// grants location permission or manually sets a location.
+final userLocationProvider = StateProvider<(double, double)?>((_) => null);
+
+/// Radius (in km) for location-based listing filter. Default 10 km.
+final radiusFilterProvider = StateProvider<double>((_) => 10.0);
+
 final homePropertiesProvider = FutureProvider<List<PropertyModel>>(
   (ref) async {
     final data = await ref.read(apiServiceProvider).getProperties(limit: 20);

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/api_service.dart';
+import '../../core/location_service.dart';
 import '../../core/responsive.dart';
 import '../../models/models.dart';
 import '../../widgets/listing_card.dart';
@@ -20,6 +21,10 @@ class _AgricultureScreenState extends ConsumerState<AgricultureScreen> {
   String? _status;
   double? _minPrice;
   double? _maxPrice;
+  double? _radiusKm;
+  double? _lat;
+  double? _lon;
+  bool _locationLoading = false;
 
   List<AgricultureListingModel>? _items;
   bool _loading = true;
@@ -55,6 +60,9 @@ class _AgricultureScreenState extends ConsumerState<AgricultureScreen> {
             status: _status,
             minPrice: _minPrice,
             maxPrice: _maxPrice,
+            lat: _lat,
+            lon: _lon,
+            radiusKm: _radiusKm,
           );
       if (mounted) {
         setState(() {
@@ -134,6 +142,9 @@ class _AgricultureScreenState extends ConsumerState<AgricultureScreen> {
       _status = null;
       _minPrice = null;
       _maxPrice = null;
+      _radiusKm = null;
+      _lat = null;
+      _lon = null;
       _searchCtrl.clear();
     });
     _loadListings();
@@ -144,7 +155,41 @@ class _AgricultureScreenState extends ConsumerState<AgricultureScreen> {
       _category != null ||
       _status != null ||
       _minPrice != null ||
-      _maxPrice != null;
+      _maxPrice != null ||
+      _radiusKm != null;
+
+  Future<void> _toggleRadius(double km) async {
+    if (_radiusKm == km) {
+      setState(() {
+        _radiusKm = null;
+        _lat = null;
+        _lon = null;
+      });
+      _loadListings();
+      return;
+    }
+    setState(() => _locationLoading = true);
+    final pos = await LocationService.instance.requestAndGetPosition();
+    if (!mounted) return;
+    if (pos == null) {
+      setState(() => _locationLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              'Location permission is required for nearby search.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+    setState(() {
+      _lat = pos.latitude;
+      _lon = pos.longitude;
+      _radiusKm = km;
+      _locationLoading = false;
+    });
+    _loadListings();
+  }
 
   void _showFilterSheet() {
     String? tempCat = _category;
@@ -410,6 +455,44 @@ class _AgricultureScreenState extends ConsumerState<AgricultureScreen> {
                 ),
               ),
             ),
+          // ── Radius filter chips ───────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.only(left: 12, right: 12, bottom: 4),
+            child: SizedBox(
+              height: 36,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: _locationLoading
+                        ? const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 8),
+                            child: SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2)),
+                          )
+                        : const Icon(Icons.my_location_outlined,
+                            size: 16, color: Colors.grey),
+                  ),
+                  for (final km in [1.0, 5.0, 10.0, 50.0])
+                    Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: FilterChip(
+                        label: Text('${km.toInt()} km',
+                            style: const TextStyle(fontSize: 12)),
+                        selected: _radiusKm == km,
+                        onSelected: (_) => _toggleRadius(km),
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
           // ── Results ───────────────────────────────────────────────
           Expanded(
             child: _loading
