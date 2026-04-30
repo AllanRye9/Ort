@@ -124,6 +124,7 @@ class TenantUpdate(BaseModel):
 class TenantResponse(TenantBase):
     id: int
     slug: str
+    owner_user_id: Optional[int] = None
     is_verified: bool
     is_active: bool
     created_at: datetime
@@ -216,6 +217,10 @@ class AgricultureListingCreate(AgricultureListingBase):
         if not v or not v.strip():
             raise ValueError("Field cannot be blank")
         return v.strip()
+
+
+class AgriStatusUpdate(BaseModel):
+    status: str = Field(..., pattern="^(available|sold_out|reserved|expired)$")
 
 
 class AgricultureListingUpdate(BaseModel):
@@ -314,6 +319,10 @@ class ManufacturingProductUpdate(BaseModel):
     status: Optional[str] = Field(None, pattern="^(available|out_of_stock|discontinued)$")
 
 
+class MfgStatusUpdate(BaseModel):
+    status: str = Field(..., pattern="^(available|out_of_stock|discontinued)$")
+
+
 class ManufacturingProductResponse(ManufacturingProductBase):
     id: int
     tenant_id: Optional[int] = None
@@ -324,6 +333,10 @@ class ManufacturingProductResponse(ManufacturingProductBase):
 
 
 # ========== ORDER ==========
+
+class PropertyStatusUpdate(BaseModel):
+    status: str = Field(..., pattern="^(available|sold|rented|pending)$")
+
 
 class OrderItemCreate(BaseModel):
     property_id: Optional[int] = None
