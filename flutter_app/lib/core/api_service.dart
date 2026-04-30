@@ -58,9 +58,15 @@ class ApiService {
         },
         onError: (error, handler) async {
           if (error.response?.statusCode == 401) {
-            // Clear stored credentials and signal the auth layer
-            await _storage.deleteAll();
-            onUnauthorized?.call();
+            // Only trigger logout when the failing request was authenticated
+            // with a Bearer token. Unauthenticated endpoints returning 401
+            // (e.g., wrong credentials on login) must not clear a valid session.
+            final hadToken =
+                error.requestOptions.headers['Authorization'] != null;
+            if (hadToken) {
+              await _storage.deleteAll();
+              onUnauthorized?.call();
+            }
           }
           return handler.next(error);
         },
@@ -194,6 +200,13 @@ class ApiService {
     await _dio.delete('/properties/$id');
   }
 
+  Future<Map<String, dynamic>> patchPropertyStatus(
+      int id, String status) async {
+    final res = await _dio.patch('/properties/$id/status',
+        data: {'status': status});
+    return res.data as Map<String, dynamic>;
+  }
+
   // ─── Agriculture ─────────────────────────────────────────────────────────
 
   Future<List<dynamic>> getAgricultureListings({
@@ -228,6 +241,13 @@ class ApiService {
     await _dio.delete('/agriculture/$id');
   }
 
+  Future<Map<String, dynamic>> patchAgriStatus(
+      int id, String status) async {
+    final res = await _dio.patch('/agriculture/$id/status',
+        data: {'status': status});
+    return res.data as Map<String, dynamic>;
+  }
+
   // ─── Manufacturing ────────────────────────────────────────────────────────
 
   Future<List<dynamic>> getManufacturingProducts({
@@ -260,6 +280,12 @@ class ApiService {
 
   Future<void> deleteManufacturingProduct(int id) async {
     await _dio.delete('/manufacturing/$id');
+  }
+
+  Future<Map<String, dynamic>> patchMfgStatus(int id, String status) async {
+    final res = await _dio.patch('/manufacturing/$id/status',
+        data: {'status': status});
+    return res.data as Map<String, dynamic>;
   }
 
   // ─── Orders ───────────────────────────────────────────────────────────────
@@ -400,6 +426,11 @@ class ApiService {
     return res.data as List<dynamic>;
   }
 
+  Future<Map<String, dynamic>> getTenant(int tenantId) async {
+    final res = await _dio.get('/tenants/$tenantId');
+    return res.data as Map<String, dynamic>;
+  }
+
   Future<Map<String, dynamic>> createTenant(Map<String, dynamic> data) async {
     final res = await _dio.post('/tenants/', data: data);
     return res.data as Map<String, dynamic>;
@@ -533,6 +564,9 @@ class ApiService {
     String? city,
     String? propertyType,
     String? status,
+    double? lat,
+    double? lon,
+    double? radiusKm,
   }) async {
     final res = await _dio.get('/properties/', queryParameters: {
       'skip': skip,
@@ -543,6 +577,9 @@ class ApiService {
       if (city != null && city.isNotEmpty) 'city': city,
       if (propertyType != null && propertyType.isNotEmpty) 'property_type': propertyType,
       if (status != null && status.isNotEmpty) 'status': status,
+      if (lat != null) 'lat': lat,
+      if (lon != null) 'lon': lon,
+      if (radiusKm != null) 'radius_km': radiusKm,
     });
     return res.data as List<dynamic>;
   }
@@ -556,6 +593,9 @@ class ApiService {
     String? category,
     String? location,
     String? status,
+    double? lat,
+    double? lon,
+    double? radiusKm,
   }) async {
     final res = await _dio.get('/agriculture/', queryParameters: {
       'skip': skip,
@@ -566,6 +606,9 @@ class ApiService {
       if (category != null && category.isNotEmpty) 'category': category,
       if (location != null && location.isNotEmpty) 'location': location,
       if (status != null && status.isNotEmpty) 'status': status,
+      if (lat != null) 'lat': lat,
+      if (lon != null) 'lon': lon,
+      if (radiusKm != null) 'radius_km': radiusKm,
     });
     return res.data as List<dynamic>;
   }
@@ -579,6 +622,9 @@ class ApiService {
     String? category,
     String? location,
     String? status,
+    double? lat,
+    double? lon,
+    double? radiusKm,
   }) async {
     final res = await _dio.get('/manufacturing/', queryParameters: {
       'skip': skip,
@@ -589,6 +635,9 @@ class ApiService {
       if (category != null && category.isNotEmpty) 'category': category,
       if (location != null && location.isNotEmpty) 'location': location,
       if (status != null && status.isNotEmpty) 'status': status,
+      if (lat != null) 'lat': lat,
+      if (lon != null) 'lon': lon,
+      if (radiusKm != null) 'radius_km': radiusKm,
     });
     return res.data as List<dynamic>;
   }

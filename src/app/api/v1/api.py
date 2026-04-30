@@ -1,3 +1,4 @@
+import math
 import os
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -22,6 +23,7 @@ from app.schemas.schemas import (
     TransactionCreate, TransactionResponse,
     UserCreate, UserResponse, UserUpdate,
 )
+from app.schemas.marketplace_schemas import PropertyStatusUpdate
 
 # Marketplace module routers
 from app.api.v1 import (
@@ -63,6 +65,15 @@ _bearer = HTTPBearer(auto_error=False)
 
 SECRET_KEY = os.getenv("SECRET_KEY", "change-me-in-production")
 ALGORITHM = "HS256"
+
+
+def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    R = 6371.0
+    phi1, phi2 = math.radians(lat1), math.radians(lat2)
+    dphi = math.radians(lat2 - lat1)
+    dlambda = math.radians(lon2 - lon1)
+    a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2
+    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
 
 def _get_current_user(
@@ -251,6 +262,9 @@ def get_properties(
     city: Optional[str] = Query(None),
     property_type: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
+    lat: Optional[float] = Query(None),
+    lon: Optional[float] = Query(None),
+    radius_km: Optional[float] = Query(None, gt=0),
     db: Session = Depends(get_db),
 ):
     q = db.query(Property)
@@ -271,7 +285,20 @@ def get_properties(
         q = q.filter(Property.property_type == property_type)
     if status:
         q = q.filter(Property.status == status)
+    elif lat is not None and lon is not None and radius_km is not None:
+        q = q.filter(Property.status == "available")
     props = q.offset(skip).limit(limit).all()
+
+    if lat is not None and lon is not None and radius_km is not None:
+        with_dist = []
+        for p in props:
+            if p.latitude is not None and p.longitude is not None:
+                d = _haversine_km(lat, lon, p.latitude, p.longitude)
+                if d <= radius_km:
+                    with_dist.append((d, p))
+        with_dist.sort(key=lambda x: x[0])
+        props = [p for _, p in with_dist]
+
     return [PropertyResponse.from_orm_with_images(p) for p in props]
 
 
@@ -306,6 +333,24 @@ def update_property(property_id: int, prop_update: PropertyUpdate, db: Session =
     for key, value in prop_update.model_dump(exclude_unset=True).items():
         setattr(prop, key, value)
 
+    db.commit()
+    db.refresh(prop)
+    return PropertyResponse.from_orm_with_images(prop)
+
+
+@router.patch("/properties/{property_id}/status", response_model=PropertyResponse)
+def update_property_status(
+    property_id: int,
+    payload: PropertyStatusUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(_get_current_user),
+):
+    prop = db.query(Property).filter(Property.id == property_id).first()
+    if not prop:
+        raise HTTPException(status_code=404, detail="Property not found")
+    if prop.agent_id is not None and prop.agent_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorised to update this property")
+    prop.status = payload.status
     db.commit()
     db.refresh(prop)
     return PropertyResponse.from_orm_with_images(prop)

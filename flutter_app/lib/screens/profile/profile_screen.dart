@@ -46,7 +46,7 @@ String _levelLabel(int score) {
 
 Color _levelColor(int score) {
   if (score >= 8) return const Color(0xFFFFD700);
-  if (score >= 6) return AppTheme.primary;
+  if (score >= 6) return const Color(0xFF1B5E20);
   if (score >= 4) return Colors.orange;
   if (score >= 2) return Colors.blue;
   return Colors.grey;
@@ -131,12 +131,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
           SnackBar(
             content: Row(
               children: [
-                const Icon(Icons.check_circle, color: Colors.white),
+                Icon(Icons.check_circle,
+                    color: Theme.of(context).colorScheme.onPrimary),
                 const SizedBox(width: 8),
                 Text('Profile updated! +$_xpPerPoint XP 🎉'),
               ],
             ),
-            backgroundColor: AppTheme.primary,
+            backgroundColor: Theme.of(context).colorScheme.primary,
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -674,12 +675,13 @@ class _ProfileHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [AppTheme.primary, Color(0xFF388E3C)],
+          colors: [cs.primary, cs.primaryContainer],
         ),
       ),
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
@@ -694,7 +696,7 @@ class _ProfileHeader extends StatelessWidget {
                 height: 108,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 3),
+                  border: Border.all(color: cs.onPrimary, width: 3),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.25),
@@ -709,15 +711,15 @@ class _ProfileHeader extends StatelessWidget {
                           fit: BoxFit.cover,
                         )
                       : Container(
-                          color: Colors.white.withValues(alpha: 0.2),
+                          color: cs.onPrimary.withValues(alpha: 0.2),
                           child: Center(
                             child: Text(
                               '${user.firstName[0]}${user.lastName[0]}'
                                   .toUpperCase(),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 34,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.white,
+                                color: cs.onPrimary,
                               ),
                             ),
                           ),
@@ -733,18 +735,18 @@ class _ProfileHeader extends StatelessWidget {
                     width: 34,
                     height: 34,
                     decoration: BoxDecoration(
-                      color: AppTheme.secondary,
+                      color: cs.secondary,
                       shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
+                      border: Border.all(color: cs.onPrimary, width: 2),
                     ),
                     child: saving
-                        ? const Padding(
-                            padding: EdgeInsets.all(6),
+                        ? Padding(
+                            padding: const EdgeInsets.all(6),
                             child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white),
+                                strokeWidth: 2, color: cs.onPrimary),
                           )
-                        : const Icon(Icons.camera_alt,
-                            size: 16, color: Colors.white),
+                        : Icon(Icons.camera_alt,
+                            size: 16, color: cs.onSecondary),
                   ),
                 ),
               ),
@@ -753,8 +755,8 @@ class _ProfileHeader extends StatelessWidget {
           const SizedBox(height: 14),
           Text(
             user.fullName,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: cs.onPrimary,
               fontSize: 22,
               fontWeight: FontWeight.bold,
             ),
@@ -763,7 +765,7 @@ class _ProfileHeader extends StatelessWidget {
           Text(
             user.email,
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.8),
+              color: cs.onPrimary.withValues(alpha: 0.8),
               fontSize: 13,
             ),
           ),
@@ -775,7 +777,7 @@ class _ProfileHeader extends StatelessWidget {
               user.bio!,
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.9),
+                color: cs.onPrimary.withValues(alpha: 0.9),
                 fontSize: 13,
                 height: 1.4,
               ),
@@ -864,8 +866,12 @@ class _XpLevelCard extends StatelessWidget {
             children: [
               Text(
                 'Profile $score/$_maxScore complete',
-                style:
-                    TextStyle(fontSize: 12, color: Colors.grey[600]),
+                style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.55)),
               ),
               if (pct < 1.0)
                 Text(
@@ -913,9 +919,10 @@ class _InfoSection extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE0E0E0)),
+        border: Border.all(
+            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.4)),
       ),
       child: Column(
         children: items.asMap().entries.map((e) {
@@ -929,7 +936,10 @@ class _InfoSection extends StatelessWidget {
                   children: [
                     Icon(icon,
                         size: 18,
-                        color: AppTheme.primary.withValues(alpha: 0.7)),
+                        color: Theme.of(context)
+                            .colorScheme
+                            .primary
+                            .withValues(alpha: 0.7)),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -938,11 +948,17 @@ class _InfoSection extends StatelessWidget {
                           Text(label,
                               style: TextStyle(
                                   fontSize: 11,
-                                  color: Colors.grey[500])),
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurface
+                                      .withValues(alpha: 0.5))),
                           Text(value,
-                              style: const TextStyle(
+                              style: TextStyle(
                                   fontSize: 14,
-                                  fontWeight: FontWeight.w500)),
+                                  fontWeight: FontWeight.w500,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurface)),
                         ],
                       ),
                     ),
@@ -1008,7 +1024,10 @@ class _EditView extends StatelessWidget {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                          color: AppTheme.primary.withValues(alpha: 0.4),
+                          color: Theme.of(context)
+                              .colorScheme
+                              .primary
+                              .withValues(alpha: 0.4),
                           width: 2),
                     ),
                     child: ClipOval(
@@ -1019,7 +1038,10 @@ class _EditView extends StatelessWidget {
                               fit: BoxFit.cover,
                             )
                           : Container(
-                              color: AppTheme.primary.withValues(alpha: 0.1),
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .primary
+                                  .withValues(alpha: 0.1),
                               child: Center(
                                 child: Text(
                                   '${user.firstName[0]}${user.lastName[0]}'
@@ -1027,7 +1049,7 @@ class _EditView extends StatelessWidget {
                                   style: TextStyle(
                                     fontSize: 30,
                                     fontWeight: FontWeight.bold,
-                                    color: AppTheme.primary,
+                                    color: Theme.of(context).colorScheme.primary,
                                   ),
                                 ),
                               ),
@@ -1043,19 +1065,24 @@ class _EditView extends StatelessWidget {
                         width: 30,
                         height: 30,
                         decoration: BoxDecoration(
-                          color: AppTheme.primary,
+                          color: Theme.of(context).colorScheme.primary,
                           shape: BoxShape.circle,
-                          border:
-                              Border.all(color: Colors.white, width: 2),
+                          border: Border.all(
+                              color: Theme.of(context).colorScheme.surface,
+                              width: 2),
                         ),
                         child: saving
-                            ? const Padding(
-                                padding: EdgeInsets.all(5),
+                            ? Padding(
+                                padding: const EdgeInsets.all(5),
                                 child: CircularProgressIndicator(
-                                    strokeWidth: 2, color: Colors.white),
+                                    strokeWidth: 2,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onPrimary),
                               )
-                            : const Icon(Icons.camera_alt,
-                                size: 14, color: Colors.white),
+                            : Icon(Icons.camera_alt,
+                                size: 14,
+                                color: Theme.of(context).colorScheme.onPrimary),
                       ),
                     ),
                   ),
@@ -1167,13 +1194,15 @@ class _EditView extends StatelessWidget {
     );
   }
 
-  Widget _sectionLabel(String text) => Text(
-        text,
-        style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: AppTheme.primary,
-            letterSpacing: 0.5),
+  Widget _sectionLabel(String text) => Builder(
+        builder: (context) => Text(
+          text,
+          style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Theme.of(context).colorScheme.primary,
+              letterSpacing: 0.5),
+        ),
       );
 }
 
