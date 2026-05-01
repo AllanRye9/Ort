@@ -4,10 +4,10 @@ class AppTheme {
   AppTheme._();
 
   // ── Brand palette ────────────────────────────────────────────────────────
-  static const Color primary = Color(0xFF1B5E20);       // deep forest green
-  static const Color primaryLight = Color(0xFF2E7D32);  // medium green
+  static const Color primary = Color(0xFF1B5E20); // deep forest green
+  static const Color primaryLight = Color(0xFF2E7D32); // medium green
   static const Color primaryContainer = Color(0xFFC8E6C9);
-  static const Color secondary = Color(0xFFE65100);     // deep orange
+  static const Color secondary = Color(0xFFE65100); // deep orange
   static const Color secondaryContainer = Color(0xFFFFE0B2);
   static const Color error = Color(0xFFC62828);
   static const Color bgLight = Color(0xFFF8F9FA);
@@ -16,10 +16,10 @@ class AppTheme {
   static const Color cardShadow = Color(0x14000000);
 
   // ── Ocean palette ─────────────────────────────────────────────────────────
-  static const Color oceanPrimary = Color(0xFF01579B);       // deep ocean blue
-  static const Color oceanPrimaryLight = Color(0xFF0277BD);  // medium blue
+  static const Color oceanPrimary = Color(0xFF01579B); // deep ocean blue
+  static const Color oceanPrimaryLight = Color(0xFF0277BD); // medium blue
   static const Color oceanPrimaryContainer = Color(0xFFB3E5FC);
-  static const Color oceanSecondary = Color(0xFF00838F);     // teal
+  static const Color oceanSecondary = Color(0xFF00838F); // teal
   static const Color oceanBg = Color(0xFFE1F5FE);
 
   static const _textTheme = TextTheme(
@@ -81,7 +81,7 @@ class AppTheme {
           ),
           iconTheme: IconThemeData(color: Colors.white),
         ),
-        cardTheme: CardTheme(
+        cardTheme: CardThemeData(
           elevation: 0,
           color: Colors.white,
           shape: RoundedRectangleBorder(
@@ -118,8 +118,8 @@ class AppTheme {
               borderRadius: BorderRadius.circular(12),
             ),
             elevation: 0,
-            textStyle: const TextStyle(
-                fontWeight: FontWeight.w600, fontSize: 15),
+            textStyle:
+                const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
           ),
         ),
         outlinedButtonTheme: OutlinedButtonThemeData(
@@ -130,8 +130,8 @@ class AppTheme {
               borderRadius: BorderRadius.circular(12),
             ),
             side: const BorderSide(color: primary, width: 1.5),
-            textStyle: const TextStyle(
-                fontWeight: FontWeight.w600, fontSize: 15),
+            textStyle:
+                const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
           ),
         ),
         textButtonTheme: TextButtonThemeData(
@@ -190,7 +190,7 @@ class AppTheme {
           elevation: 0,
           scrolledUnderElevation: 0,
         ),
-        cardTheme: CardTheme(
+        cardTheme: CardThemeData(
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
@@ -272,7 +272,7 @@ class AppTheme {
           ),
           iconTheme: IconThemeData(color: Colors.white),
         ),
-        cardTheme: CardTheme(
+        cardTheme: CardThemeData(
           elevation: 0,
           color: Colors.white,
           shape: RoundedRectangleBorder(
@@ -309,8 +309,8 @@ class AppTheme {
               borderRadius: BorderRadius.circular(12),
             ),
             elevation: 0,
-            textStyle: const TextStyle(
-                fontWeight: FontWeight.w600, fontSize: 15),
+            textStyle:
+                const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
           ),
         ),
         outlinedButtonTheme: OutlinedButtonThemeData(
@@ -321,8 +321,8 @@ class AppTheme {
               borderRadius: BorderRadius.circular(12),
             ),
             side: const BorderSide(color: oceanPrimary, width: 1.5),
-            textStyle: const TextStyle(
-                fontWeight: FontWeight.w600, fontSize: 15),
+            textStyle:
+                const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
           ),
         ),
         textButtonTheme: TextButtonThemeData(
@@ -380,4 +380,3 @@ extension AppThemeChoiceX on AppThemeChoice {
     }
   }
 }
-
