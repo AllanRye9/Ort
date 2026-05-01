@@ -12,7 +12,7 @@ from app.models.models import (
     Appointment, Client, Inquiry, Listing, Payment,
     Property, PropertyImage, Transaction, User,
 )
-from app.models.marketplace_models import OrderItem
+from app.models.marketplace_models import OrderItem, RFQ
 from app.schemas.schemas import (
     AppointmentCreate, AppointmentResponse,
     ClientCreate, ClientResponse, ClientUpdate,
@@ -370,10 +370,10 @@ def delete_property(property_id: int, db: Session = Depends(get_db)):
 
 @router.get("/properties/{property_id}/bid-count")
 def get_property_bid_count(property_id: int, db: Session = Depends(get_db)):
-    """Return the number of bids (order items) for a given property."""
+    """Return the number of bids (RFQs with a target_price) for a given property."""
     count = (
-        db.query(func.count(OrderItem.id))
-        .filter(OrderItem.property_id == property_id)
+        db.query(func.count(RFQ.id))
+        .filter(RFQ.property_id == property_id, RFQ.target_price.isnot(None))
         .scalar()
     ) or 0
     return {"property_id": property_id, "bid_count": count}
