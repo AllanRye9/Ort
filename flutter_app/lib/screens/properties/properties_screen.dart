@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/api_service.dart';
+import '../../core/listing_providers.dart';
 import '../../core/location_service.dart';
 import '../../core/responsive.dart';
 import '../../models/models.dart';
@@ -168,18 +169,41 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
       return;
     }
     setState(() => _locationLoading = true);
+    // Use cached location from shared provider when available.
+    final cached = ref.read(userLocationProvider);
+    if (cached != null) {
+      setState(() {
+        _lat = cached.$1;
+        _lon = cached.$2;
+        _radiusKm = km;
+        _locationLoading = false;
+      });
+      _loadListings();
+      return;
+    }
     final pos = await LocationService.instance.requestAndGetPosition();
     if (!mounted) return;
     if (pos == null) {
       setState(() => _locationLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Location permission is required for nearby search.'),
+        SnackBar(
+          content: const Text('Enable GPS to search by distance.'),
           behavior: SnackBarBehavior.floating,
+          action: SnackBarAction(
+            label: 'Settings',
+            onPressed: () async {
+              try {
+                await LocationService.instance.requestAndGetPosition();
+              } catch (_) {}
+            },
+          ),
         ),
       );
       return;
     }
+    // Cache the position for reuse.
+    ref.read(userLocationProvider.notifier).state =
+        (pos.latitude, pos.longitude);
     setState(() {
       _lat = pos.latitude;
       _lon = pos.longitude;
