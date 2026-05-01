@@ -141,7 +141,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     final result = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Place Order'),
+        title: const Text('Place Bid'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -166,7 +166,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Your order will be reviewed by the agent.',
+              'Your bid will be reviewed by the agent.',
               style: TextStyle(fontSize: 11, color: Colors.grey),
             ),
           ],
@@ -178,7 +178,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(ctx).pop(notesCtrl.text.trim()),
-            child: const Text('Place Order'),
+            child: const Text('Place Bid'),
           ),
         ],
       ),
@@ -200,7 +200,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Order placed! Check Orders for status.'),
+            content: Text('Bid placed! Check Bids for status.'),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -209,7 +209,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Order failed: $e'),
+            content: Text('Bid failed: $e'),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -386,9 +386,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
           isSaved: _isSaved,
           saveBusy: _saveBusy,
           onSave: _toggleSave,
-          onContactAgent: () => _contactAgent(p),
-          onRequestQuote: () => _requestQuote(p),
-          onOrderNow: () => _orderNow(p),
+          onBidNow: () => _orderNow(p),
         ),
         orElse: () => null,
       ),
@@ -538,16 +536,12 @@ class _BottomBar extends StatelessWidget {
     required this.isSaved,
     required this.saveBusy,
     required this.onSave,
-    required this.onContactAgent,
-    required this.onRequestQuote,
-    required this.onOrderNow,
+    required this.onBidNow,
   });
   final bool isSaved;
   final bool saveBusy;
   final VoidCallback onSave;
-  final VoidCallback onContactAgent;
-  final VoidCallback onRequestQuote;
-  final VoidCallback onOrderNow;
+  final VoidCallback onBidNow;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -584,34 +578,12 @@ class _BottomBar extends StatelessWidget {
                     onPressed: onSave,
                     tooltip: isSaved ? 'Unsave' : 'Save',
                   ),
-            const SizedBox(width: 6),
-            Expanded(
-              child: OutlinedButton.icon(
-                icon: const Icon(Icons.request_quote_outlined, size: 16),
-                label: const Text('Quote'),
-                onPressed: onRequestQuote,
-              ),
-            ),
-            const SizedBox(width: 6),
-            Expanded(
-              child: FilledButton.tonalIcon(
-                style: FilledButton.styleFrom(
-                  backgroundColor:
-                      Theme.of(context).colorScheme.secondaryContainer,
-                  foregroundColor:
-                      Theme.of(context).colorScheme.onSecondaryContainer,
-                ),
-                icon: const Icon(Icons.chat_outlined, size: 16),
-                label: const Text('Contact'),
-                onPressed: onContactAgent,
-              ),
-            ),
-            const SizedBox(width: 6),
+            const SizedBox(width: 8),
             Expanded(
               child: ElevatedButton.icon(
-                icon: const Icon(Icons.shopping_cart_outlined, size: 16),
-                label: const Text('Order'),
-                onPressed: onOrderNow,
+                icon: const Icon(Icons.gavel_outlined, size: 16),
+                label: const Text('Bid'),
+                onPressed: onBidNow,
               ),
             ),
           ],

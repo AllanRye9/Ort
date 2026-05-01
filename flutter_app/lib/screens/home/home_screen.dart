@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shimmer/shimmer.dart';
 import '../../core/auth_provider.dart';
@@ -62,7 +65,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   late final AnimationController _fadeCtrl;
   late final Animation<double> _fadeAnim;
 
-  bool _locationDenied = false;
+  // true when the device's location service (GPS toggle) is off
+  bool _locationServiceOff = false;
+  // true when the user has denied the location permission
+  bool _locationPermissionDenied = false;
+
+  StreamSubscription<ServiceStatus>? _serviceStatusSub;
 
   @override
   void initState() {
@@ -73,21 +81,54 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     )..forward();
     _fadeAnim = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeIn);
     _initLocation();
+    // Listen for the device-level location service being toggled on/off.
+    _serviceStatusSub =
+        Geolocator.getServiceStatusStream().listen(_onServiceStatusChanged);
+  }
+
+  void _onServiceStatusChanged(ServiceStatus status) {
+    if (status == ServiceStatus.enabled) {
+      // Location services were turned on – retry immediately.
+      setState(() => _locationServiceOff = false);
+      _initLocation();
+    } else {
+      setState(() => _locationServiceOff = true);
+    }
   }
 
   Future<void> _initLocation() async {
+    // Check whether the device's location service (GPS) is enabled first.
+    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!mounted) return;
+    if (!serviceEnabled) {
+      setState(() {
+        _locationServiceOff = true;
+        _locationPermissionDenied = false;
+      });
+      return;
+    }
+
     final pos = await LocationService.instance.requestAndGetPosition();
     if (!mounted) return;
     if (pos != null) {
       ref.read(userLocationProvider.notifier).state =
           (pos.latitude, pos.longitude);
+      setState(() {
+        _locationServiceOff = false;
+        _locationPermissionDenied = false;
+      });
     } else {
-      setState(() => _locationDenied = true);
+      // Position came back null with service enabled → permission denied.
+      setState(() {
+        _locationServiceOff = false;
+        _locationPermissionDenied = true;
+      });
     }
   }
 
   @override
   void dispose() {
+    _serviceStatusSub?.cancel();
     _fadeCtrl.dispose();
     super.dispose();
   }
@@ -156,7 +197,41 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 child: Column(
                   children: [
                     _SearchBar(onTap: () => context.go('/search')),
-                    if (_locationDenied)
+                    if (_locationServiceOff)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: MaterialBanner(
+                          content: const Text(
+                              'Location services are disabled. Enable them to find nearby listings.'),
+                          leading: const Icon(Icons.location_off_outlined),
+                          actions: [
+                            TextButton(
+                              onPressed: () async {
+                                try {
+                                  await Geolocator.openLocationSettings();
+                                } catch (_) {
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                            'Could not open location settings.'),
+                                        behavior: SnackBarBehavior.floating,
+                                      ),
+                                    );
+                                  }
+                                }
+                              },
+                              child: const Text('Open Settings'),
+                            ),
+                            TextButton(
+                              onPressed: () =>
+                                  setState(() => _locationServiceOff = false),
+                              child: const Text('Dismiss'),
+                            ),
+                          ],
+                        ),
+                      )
+                    else if (_locationPermissionDenied)
                       Padding(
                         padding: const EdgeInsets.only(top: 8),
                         child: MaterialBanner(
@@ -168,14 +243,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                               onPressed: () => _initLocation().then((_) {
                                 if (mounted &&
                                     ref.read(userLocationProvider) != null) {
-                                  setState(() => _locationDenied = false);
+                                  setState(
+                                      () => _locationPermissionDenied = false);
                                 }
                               }),
                               child: const Text('Enable'),
                             ),
                             TextButton(
-                              onPressed: () =>
-                                  setState(() => _locationDenied = false),
+                              onPressed: () => setState(
+                                  () => _locationPermissionDenied = false),
                               child: const Text('Dismiss'),
                             ),
                           ],
