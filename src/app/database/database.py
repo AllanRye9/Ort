@@ -117,6 +117,13 @@ _MIGRATIONS: list[tuple[str, str, str]] = [
     ("properties",              "country",        "VARCHAR(100)"),
     ("properties",              "plot_length_m",  "FLOAT"),
     ("properties",              "plot_width_m",   "FLOAT"),
+    # Land sub-category and area
+    ("properties",              "land_category",  "VARCHAR(50)"),
+    ("properties",              "land_area_acres","FLOAT"),
+    # Soft-delete flags
+    ("properties",              "is_deleted",     "BOOLEAN DEFAULT 'false'"),
+    ("agriculture_listings",    "is_deleted",     "BOOLEAN DEFAULT 'false'"),
+    ("manufacturing_products",  "is_deleted",     "BOOLEAN DEFAULT 'false'"),
     # image_blobs.created_at added in PR #64; needed for existing databases
     ("image_blobs",             "created_at", "TIMESTAMP"),
 ]
@@ -137,6 +144,7 @@ _ENUM_VALUE_MIGRATIONS: list[tuple[str, str]] = [
     ("property_types", "office"),
     ("property_types", "warehouse"),
     ("property_types", "other"),
+    ("property_status", "unavailable"),
 ]
 
 

@@ -196,6 +196,12 @@ class ApiService {
     return res.data as Map<String, dynamic>;
   }
 
+  Future<Map<String, dynamic>> updateProperty(
+      int id, Map<String, dynamic> data) async {
+    final res = await _dio.put('/properties/$id', data: data);
+    return res.data as Map<String, dynamic>;
+  }
+
   Future<void> deleteProperty(int id) async {
     await _dio.delete('/properties/$id');
   }
@@ -205,6 +211,20 @@ class ApiService {
     final res = await _dio.patch('/properties/$id/status',
         data: {'status': status});
     return res.data as Map<String, dynamic>;
+  }
+
+  Future<int> getPropertyBidCount(int id) async {
+    final res = await _dio.get('/properties/$id/bid-count');
+    final data = res.data as Map<String, dynamic>;
+    return (data['bid_count'] as num).toInt();
+  }
+
+  Future<List<dynamic>> getMyProperties({int? agentId}) async {
+    final res = await _dio.get('/properties/', queryParameters: {
+      'limit': 200,
+      if (agentId != null) 'agent_id': agentId,
+    });
+    return res.data as List<dynamic>;
   }
 
   // ─── Agriculture ─────────────────────────────────────────────────────────
@@ -564,6 +584,7 @@ class ApiService {
     String? city,
     String? propertyType,
     String? status,
+    int? agentId,
     double? lat,
     double? lon,
     double? radiusKm,
@@ -577,6 +598,7 @@ class ApiService {
       if (city != null && city.isNotEmpty) 'city': city,
       if (propertyType != null && propertyType.isNotEmpty) 'property_type': propertyType,
       if (status != null && status.isNotEmpty) 'status': status,
+      if (agentId != null) 'agent_id': agentId,
       if (lat != null) 'lat': lat,
       if (lon != null) 'lon': lon,
       if (radiusKm != null) 'radius_km': radiusKm,

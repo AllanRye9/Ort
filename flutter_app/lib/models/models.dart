@@ -117,6 +117,8 @@ class PropertyModel {
     this.country,
     this.plotLengthM,
     this.plotWidthM,
+    this.landCategory,
+    this.landAreaAcres,
   });
 
   final int id;
@@ -145,6 +147,12 @@ class PropertyModel {
   /// Plot width in metres (Uganda metric measurement).
   final double? plotWidthM;
 
+  /// Land sub-category (farmland, residential, industrial, other).
+  final String? landCategory;
+
+  /// Land area in acres for land type properties.
+  final double? landAreaAcres;
+
   /// Whether this is a Uganda listing using metric L×W measurement.
   bool get isUgandaMetric => plotLengthM != null && plotWidthM != null;
 
@@ -172,6 +180,8 @@ class PropertyModel {
         country: j['country'] as String?,
         plotLengthM: j['plot_length_m'] != null ? double.parse(j['plot_length_m'].toString()) : null,
         plotWidthM: j['plot_width_m'] != null ? double.parse(j['plot_width_m'].toString()) : null,
+        landCategory: j['land_category'] as String?,
+        landAreaAcres: j['land_area_acres'] != null ? double.parse(j['land_area_acres'].toString()) : null,
       );
 }
 

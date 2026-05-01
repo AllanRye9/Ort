@@ -124,4 +124,39 @@ class LocationService {
       return null;
     }
   }
+
+  /// Reverse-geocode a GPS coordinate to get country and display name.
+  /// Uses Nominatim's /reverse endpoint for accurate results.
+  Future<GeocodeResult?> reverseGeocodePosition(double lat, double lon) async {
+    try {
+      final response = await _dio.get(
+        'https://nominatim.openstreetmap.org/reverse',
+        queryParameters: {
+          'lat': lat,
+          'lon': lon,
+          'format': 'json',
+          'addressdetails': 1,
+        },
+        options: Options(headers: {'User-Agent': 'ort-marketplace/2.0'}),
+      );
+      final data = response.data as Map<String, dynamic>?;
+      if (data == null || data['error'] != null) return null;
+      final rLat = double.tryParse(data['lat']?.toString() ?? '');
+      final rLon = double.tryParse(data['lon']?.toString() ?? '');
+      if (rLat == null || rLon == null) return null;
+
+      final address = data['address'] as Map<String, dynamic>?;
+      final country = address?['country'] as String?;
+      final displayName = data['display_name'] as String?;
+
+      return GeocodeResult(
+        latitude: rLat,
+        longitude: rLon,
+        country: country,
+        displayName: displayName,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
 }

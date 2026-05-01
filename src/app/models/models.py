@@ -74,9 +74,12 @@ class Property(Base):
     country = Column(String(100), nullable=True)
     plot_length_m = Column(Float, nullable=True)
     plot_width_m = Column(Float, nullable=True)
-    status = Column(Enum("available", "sold", "rented", "pending", name="property_status"), default="available", server_default="available", nullable=False)
+    land_category = Column(String(50), nullable=True)   # farmland, residential, industrial, other
+    land_area_acres = Column(Float, nullable=True)       # area in acres for land properties
+    status = Column(Enum("available", "sold", "rented", "pending", "unavailable", name="property_status"), default="available", server_default="available", nullable=False)
     latitude = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)
+    is_deleted = Column(Boolean, default=False, server_default="false", nullable=False)
     created_at = Column(DateTime, server_default=func.now())
 
     agent = relationship("User", back_populates="properties")
