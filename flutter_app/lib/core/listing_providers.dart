@@ -3,6 +3,8 @@
 /// can call `ref.invalidate(...)` to force a refresh after creating/editing a
 /// listing, so uploaded images appear everywhere automatically.
 
+import 'dart:math';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'api_service.dart';
 import '../models/models.dart';
@@ -11,8 +13,46 @@ import '../models/models.dart';
 /// grants location permission or manually sets a location.
 final userLocationProvider = StateProvider<(double, double)?>((_) => null);
 
-/// Radius (in km) for location-based listing filter. Default 10 km.
-final radiusFilterProvider = StateProvider<double>((_) => 10.0);
+/// Radius (in km) for location-based listing filter. Default 50 km.
+final radiusFilterProvider = StateProvider<double>((_) => 50.0);
+
+// ─── Haversine distance helper ────────────────────────────────────────────────
+
+/// Returns the great-circle distance in kilometres between two coordinates.
+double haversineKm(double lat1, double lon1, double lat2, double lon2) {
+  const R = 6371.0;
+  final phi1 = lat1 * pi / 180;
+  final phi2 = lat2 * pi / 180;
+  final dPhi = (lat2 - lat1) * pi / 180;
+  final dLambda = (lon2 - lon1) * pi / 180;
+  final a = sin(dPhi / 2) * sin(dPhi / 2) +
+      cos(phi1) * cos(phi2) * sin(dLambda / 2) * sin(dLambda / 2);
+  return R * 2 * atan2(sqrt(a), sqrt(1 - a));
+}
+
+/// Sorts [items] by distance from [userLoc] (closest first).
+/// Items whose coordinates are null are placed at the end of the list.
+List<T> sortedByDistance<T>(
+  List<T> items,
+  (double, double)? userLoc,
+  double? Function(T) getLat,
+  double? Function(T) getLon,
+) {
+  if (userLoc == null) return items;
+  final (uLat, uLon) = userLoc;
+  final copy = [...items];
+  copy.sort((a, b) {
+    final aLat = getLat(a), aLon = getLon(a);
+    final bLat = getLat(b), bLon = getLon(b);
+    if (aLat == null || aLon == null) return 1;
+    if (bLat == null || bLon == null) return -1;
+    return haversineKm(uLat, uLon, aLat, aLon)
+        .compareTo(haversineKm(uLat, uLon, bLat, bLon));
+  });
+  return copy;
+}
+
+// ─── Raw fetch providers (network) ───────────────────────────────────────────
 
 final homePropertiesProvider = FutureProvider<List<PropertyModel>>(
   (ref) async {
@@ -44,6 +84,37 @@ final homeMfgProvider = FutureProvider<List<ManufacturingProductModel>>(
         .toList();
   },
 );
+
+// ─── Distance-sorted derived providers ───────────────────────────────────────
+// These re-sort when userLocationProvider or radiusFilterProvider changes
+// WITHOUT re-fetching from the API.
+
+final sortedHomePropertiesProvider =
+    Provider<AsyncValue<List<PropertyModel>>>((ref) {
+  final data = ref.watch(homePropertiesProvider);
+  final loc = ref.watch(userLocationProvider);
+  ref.watch(radiusFilterProvider); // trigger re-sort on radius change
+  return data.whenData(
+      (items) => sortedByDistance(items, loc, (p) => p.latitude, (p) => p.longitude));
+});
+
+final sortedHomeAgricultureProvider =
+    Provider<AsyncValue<List<AgricultureListingModel>>>((ref) {
+  final data = ref.watch(homeAgricultureProvider);
+  final loc = ref.watch(userLocationProvider);
+  ref.watch(radiusFilterProvider);
+  return data.whenData(
+      (items) => sortedByDistance(items, loc, (a) => a.latitude, (a) => a.longitude));
+});
+
+final sortedHomeMfgProvider =
+    Provider<AsyncValue<List<ManufacturingProductModel>>>((ref) {
+  final data = ref.watch(homeMfgProvider);
+  final loc = ref.watch(userLocationProvider);
+  ref.watch(radiusFilterProvider);
+  return data.whenData(
+      (items) => sortedByDistance(items, loc, (m) => m.latitude, (m) => m.longitude));
+});
 
 /// Call this after creating any listing to ensure the home feed is refreshed.
 void invalidateHomeProviders(WidgetRef ref) {
