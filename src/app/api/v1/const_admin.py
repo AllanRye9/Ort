@@ -412,7 +412,7 @@ _HTML = r"""<!DOCTYPE html>
               <th class="px-4 py-3 text-left font-semibold text-gray-600">Type</th>
               <th class="px-4 py-3 text-left font-semibold text-gray-600">Title</th>
               <th class="px-4 py-3 text-left font-semibold text-gray-600">Status</th>
-              <th class="px-4 py-3 text-left font-semibold text-gray-600">Deleted On</th>
+              <th class="px-4 py-3 text-left font-semibold text-gray-600">Created On</th>
               <th class="px-4 py-3 text-left font-semibold text-gray-600">Actions</th>
             </tr>
           </thead>
