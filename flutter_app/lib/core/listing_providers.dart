@@ -12,28 +12,53 @@ import '../models/models.dart';
 
 // ─── Currency formatting ──────────────────────────────────────────────────────
 
-/// Formats [amount] as a currency string.
+/// Formats [amount] as a currency string based on [country] or explicit
+/// [currency] code.
 ///
-/// When [country] is Uganda or United Arab Emirates, or when [currency] is
-/// 'UGX', the amount is displayed in Uganda Shillings (UGX) with no decimal
-/// places and thousand-separator commas.
-///
-/// All other amounts are displayed in USD using the `$` symbol with [decimals]
-/// decimal places. The [decimals] parameter has no effect for UGX amounts,
-/// which always use zero decimal places.
+/// * Uganda (`UGX` or country == "Uganda") → `UGX 1,234,567` (no decimals)
+/// * UAE (`AED` or country == "United Arab Emirates") → `AED 1,234` (no decimals)
+/// * All other → `$1234.00` using [decimals] decimal places
 String formatCurrency(
   double amount, {
   String? country,
   String? currency,
   int decimals = 0,
 }) {
-  final isUgx = currency?.toUpperCase() == 'UGX' ||
-      const ['uganda', 'united arab emirates']
-          .contains(country?.toLowerCase());
-  if (isUgx) {
+  final c = country?.toLowerCase();
+  final cur = currency?.toUpperCase();
+
+  if (cur == 'UGX' || c == 'uganda') {
     return 'UGX ${NumberFormat('#,###', 'en_US').format(amount.round())}';
   }
+  if (cur == 'AED' || c == 'united arab emirates') {
+    return 'AED ${NumberFormat('#,###', 'en_US').format(amount.round())}';
+  }
   return '\$${amount.toStringAsFixed(decimals)}';
+}
+
+/// Returns the currency code for the given country name.
+/// Defaults to 'USD' when the country is not specifically recognised.
+String currencyCodeForCountry(String? country) {
+  switch (country?.toLowerCase()) {
+    case 'uganda':
+      return 'UGX';
+    case 'united arab emirates':
+      return 'AED';
+    default:
+      return 'USD';
+  }
+}
+
+/// Returns the currency symbol / prefix for the given country.
+String currencyPrefixForCountry(String? country) {
+  switch (country?.toLowerCase()) {
+    case 'uganda':
+      return 'UGX ';
+    case 'united arab emirates':
+      return 'AED ';
+    default:
+      return '\$';
+  }
 }
 
 /// The user's last known GPS position as `(lat, lon)`. Null until the user

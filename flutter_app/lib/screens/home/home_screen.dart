@@ -31,8 +31,8 @@ final _homeUserProvider = FutureProvider.autoDispose<UserModel?>((ref) async {
 
 const _agentQuickActions = [
   _QuickAction(Icons.add_business_outlined, 'New Listing', '/properties/create', Color(0xFF1B5E20)),
-  _QuickAction(Icons.people_outline, 'My Clients', '/properties', Color(0xFF1565C0)),
-  _QuickAction(Icons.bar_chart_outlined, 'Analytics', '/orders', Color(0xFF6A1B9A)),
+  _QuickAction(Icons.people_outline, 'My Clients', '/my-clients', Color(0xFF1565C0)),
+  _QuickAction(Icons.bar_chart_outlined, 'Analytics', '/analytics', Color(0xFF6A1B9A)),
   _QuickAction(Icons.star_border_outlined, 'Reviews', '/profile', Color(0xFFE65100)),
 ];
 
@@ -152,18 +152,57 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       return;
     }
 
-    final pos = await LocationService.instance.requestAndGetPosition();
-    if (!mounted) return;
-    if (pos != null) {
-      final loc = (pos.latitude, pos.longitude);
-      ref.read(userLocationProvider.notifier).state = loc;
-      setState(() {
-        _locationServiceOff = false;
-        _lastSortedLoc = loc;
-      });
-      _startPositionTracking();
+    try {
+      final pos = await LocationService.instance.requestAndGetPosition();
+      if (!mounted) return;
+      if (pos != null) {
+        final loc = (pos.latitude, pos.longitude);
+        ref.read(userLocationProvider.notifier).state = loc;
+        setState(() {
+          _locationServiceOff = false;
+          _lastSortedLoc = loc;
+        });
+        _startPositionTracking();
+      }
+      // If permission denied (once), silently skip – no banner shown.
+    } on LocationPermissionDeniedException {
+      // Permission permanently denied – show a one-time dialog to open settings.
+      if (!mounted) return;
+      if (!_locationDialogShown) {
+        setState(() => _locationDialogShown = true);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          showDialog<bool>(
+            context: context,
+            barrierDismissible: false,
+            builder: (ctx) => AlertDialog(
+              title: const Text('Location Permission Required'),
+              content: const Text(
+                'Location permission has been permanently denied. '
+                'To see listings near you, open app settings and allow location access.\n\n'
+                'Listings will be shown in default order until permission is granted.',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(false),
+                  child: const Text('Skip'),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.of(ctx).pop(true),
+                  child: const Text('Open Settings'),
+                ),
+              ],
+            ),
+          ).then((open) async {
+            if (open == true) {
+              await Geolocator.openAppSettings();
+            }
+          });
+        });
+      }
+    } catch (_) {
+      // Unexpected error – silently skip.
     }
-    // If permission denied, silently skip – no banner shown.
   }
 
   /// Shows a dialog when GPS is off, giving the user Cancel/Accept options.

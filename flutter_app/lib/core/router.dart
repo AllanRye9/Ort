@@ -22,6 +22,8 @@ import '../screens/messages/conversations_screen.dart';
 import '../screens/messages/chat_screen.dart';
 import '../screens/profile/profile_screen.dart';
 import '../screens/profile/my_listings_screen.dart';
+import '../screens/profile/my_clients_screen.dart';
+import '../screens/profile/analytics_screen.dart';
 import '../screens/notifications/notifications_screen.dart';
 import '../screens/search/search_screen.dart';
 import '../screens/settings/settings_screen.dart';
@@ -126,6 +128,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
       GoRoute(path: '/saved', builder: (_, __) => const SavedScreen()),
       GoRoute(path: '/my-listings', builder: (_, __) => const MyListingsScreen()),
+      GoRoute(path: '/my-clients', builder: (_, __) => const MyClientsScreen()),
+      GoRoute(path: '/analytics', builder: (_, __) => const AnalyticsScreen()),
       ShellRoute(
         builder: (context, state, child) => MainShell(child: child),
         routes: [

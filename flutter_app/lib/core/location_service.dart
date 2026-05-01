@@ -25,6 +25,16 @@ class GeocodeResult {
   bool get isUganda => country?.toLowerCase() == 'uganda';
 }
 
+/// Thrown when the user has permanently denied location permission.
+/// Callers should offer to open the app settings so the user can grant it.
+class LocationPermissionDeniedException implements Exception {
+  const LocationPermissionDeniedException();
+  @override
+  String toString() =>
+      'Location permission has been permanently denied. '
+      'Please enable it in app settings.';
+}
+
 /// Singleton service for device GPS and address geocoding.
 class LocationService {
   LocationService._();
@@ -48,7 +58,10 @@ class LocationService {
   /// Requests location permission (if needed) and returns the current device
   /// position. Caches the last known result.
   ///
-  /// Returns `null` if permission is denied or if location services are off.
+  /// Returns `null` when location services are disabled on the device.
+  ///
+  /// Throws [LocationPermissionDeniedException] when the permission has been
+  /// permanently denied so callers can offer to open the system app settings.
   Future<Position?> requestAndGetPosition() async {
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -59,7 +72,9 @@ class LocationService {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) return null;
       }
-      if (permission == LocationPermission.deniedForever) return null;
+      if (permission == LocationPermission.deniedForever) {
+        throw const LocationPermissionDeniedException();
+      }
 
       final pos = await Geolocator.getCurrentPosition(
         locationSettings: kIsWeb
@@ -71,6 +86,8 @@ class LocationService {
       );
       _lastPosition = pos;
       return pos;
+    } on LocationPermissionDeniedException {
+      rethrow;
     } catch (_) {
       return null;
     }

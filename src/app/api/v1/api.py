@@ -29,6 +29,7 @@ from app.utils.geo import haversine_km
 
 # Marketplace module routers
 from app.api.v1 import (
+    agent as agent_router,
     auth as auth_router,
     tenants as tenants_router,
     agriculture as agriculture_router,
@@ -47,6 +48,7 @@ router = APIRouter()
 
 # Register marketplace module routers
 router.include_router(auth_router.router)
+router.include_router(agent_router.router)
 router.include_router(tenants_router.router)
 router.include_router(agriculture_router.router)
 router.include_router(manufacturing_router.router)
