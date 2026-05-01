@@ -218,7 +218,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
   }
 
   Future<void> _updateStatus(PropertyModel p) async {
-    const statuses = ['available', 'sold', 'rented', 'pending'];
+    const statuses = ['available', 'sold', 'rented', 'pending', 'unavailable'];
     final picked = await showDialog<String>(
       context: context,
       builder: (ctx) => SimpleDialog(
@@ -469,10 +469,24 @@ class _PropertyDetailBody extends StatelessWidget {
                   spacing: 8,
                   runSpacing: 6,
                   children: [
+                    if (p.landCategory != null)
+                      _SpecChip(
+                        icon: Icons.landscape_outlined,
+                        label: '${p.landCategory![0].toUpperCase()}${p.landCategory!.substring(1)} Land',
+                      ),
+                    if (p.landAreaAcres != null)
+                      _SpecChip(
+                        icon: Icons.crop_square_outlined,
+                        label: '${p.landAreaAcres!.toStringAsFixed(2)} acres',
+                      ),
                     if (p.bedrooms != null)
-                      _SpecChip(icon: Icons.bed_outlined, label: '${p.bedrooms} Beds'),
+                      _SpecChip(
+                          icon: Icons.bed_outlined,
+                          label: '${p.bedrooms} Bedroom${p.bedrooms! != 1 ? 's' : ''}'),
                     if (p.bathrooms != null)
-                      _SpecChip(icon: Icons.bathtub_outlined, label: '${p.bathrooms} Baths'),
+                      _SpecChip(
+                          icon: Icons.bathtub_outlined,
+                          label: '${p.bathrooms} Bathroom${p.bathrooms! != 1 ? 's' : ''}'),
                     if (p.isUgandaMetric)
                       _SpecChip(
                         icon: Icons.square_foot,
@@ -481,7 +495,7 @@ class _PropertyDetailBody extends StatelessWidget {
                             '(${p.totalAreaM2!.toStringAsFixed(0)} m²)',
                       )
                     else if (p.areaSqft != null)
-                      _SpecChip(icon: Icons.square_foot, label: '${p.areaSqft} sqft'),
+                      _SpecChip(icon: Icons.square_foot, label: '${p.areaSqft} sq ft'),
                     _SpecChip(
                         icon: Icons.category_outlined,
                         label: p.propertyType.toUpperCase()),
@@ -501,6 +515,10 @@ class _PropertyDetailBody extends StatelessWidget {
                     ),
                   ),
                 ],
+
+                // ── Bid count ─────────────────────────────────────────────────
+                const SizedBox(height: 12),
+                _AnimatedBidCount(propertyId: p.id),
 
                 // ── Description ───────────────────────────────────────────────
                 if (p.description != null) ...[
@@ -714,4 +732,59 @@ class _SpecChip extends StatelessWidget {
           ],
         ),
       );
+}
+
+// ─── Animated bid count ────────────────────────────────────────────────────────
+
+class _AnimatedBidCount extends ConsumerWidget {
+  const _AnimatedBidCount({required this.propertyId});
+  final int propertyId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final bidAsync = ref.watch(
+      FutureProvider.autoDispose.family<int, int>((r, id) async {
+        return r.read(apiServiceProvider).getPropertyBidCount(id);
+      })(propertyId),
+    );
+
+    return bidAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (count) => TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0, end: count.toDouble()),
+        duration: const Duration(milliseconds: 800),
+        curve: Curves.easeOut,
+        builder: (context, value, _) {
+          final cs = Theme.of(context).colorScheme;
+          return Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: cs.primaryContainer.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                  color: cs.primary.withValues(alpha: 0.25)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.gavel_outlined,
+                    size: 16, color: cs.primary),
+                const SizedBox(width: 6),
+                Text(
+                  '${value.toInt()} Bid${value.toInt() != 1 ? 's' : ''}',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: cs.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
 }

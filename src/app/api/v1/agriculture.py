@@ -34,7 +34,7 @@ def list_listings(
     radius_km: Optional[float] = Query(None, gt=0),
     db: Session = Depends(get_db),
 ):
-    q = db.query(AgricultureListing)
+    q = db.query(AgricultureListing).filter(AgricultureListing.is_deleted == False)
     if category:
         q = q.filter(AgricultureListing.category == category)
     if status:
@@ -96,7 +96,7 @@ def update_listing_status(
 
 @router.get("/{listing_id}", response_model=AgricultureListingResponse)
 def get_listing(listing_id: int, db: Session = Depends(get_db)):
-    obj = db.query(AgricultureListing).filter(AgricultureListing.id == listing_id).first()
+    obj = db.query(AgricultureListing).filter(AgricultureListing.id == listing_id, AgricultureListing.is_deleted == False).first()
     if not obj:
         raise HTTPException(status_code=404, detail="Agriculture listing not found")
     return obj
@@ -125,9 +125,9 @@ def update_listing(listing_id: int, payload: AgricultureListingUpdate, db: Sessi
 
 @router.delete("/{listing_id}", status_code=status.HTTP_200_OK)
 def delete_listing(listing_id: int, db: Session = Depends(get_db)):
-    obj = db.query(AgricultureListing).filter(AgricultureListing.id == listing_id).first()
+    obj = db.query(AgricultureListing).filter(AgricultureListing.id == listing_id, AgricultureListing.is_deleted == False).first()
     if not obj:
         raise HTTPException(status_code=404, detail="Agriculture listing not found")
-    db.delete(obj)
+    obj.is_deleted = True
     db.commit()
     return {"message": "Agriculture listing deleted successfully"}

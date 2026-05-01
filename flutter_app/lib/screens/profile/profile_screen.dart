@@ -374,7 +374,7 @@ class _ReadView extends StatelessWidget {
           _ProfileTile(
             icon: Icons.apartment,
             label: 'My Listings',
-            onTap: () => context.go('/properties'),
+            onTap: () => context.go('/my-listings'),
           ),
           _ProfileTile(
             icon: Icons.people,

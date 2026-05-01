@@ -135,6 +135,7 @@ class AgricultureListing(Base):
     map_link = Column(Text)
     is_perishable = Column(Boolean, default=False)
     images = Column(JSON)                   # list of image URLs
+    is_deleted = Column(Boolean, default=False, server_default="false", nullable=False)
     status = Column(
         Enum("available", "sold_out", "reserved", "expired", name="agri_listing_status"),
         default="available",
@@ -183,6 +184,7 @@ class ManufacturingProduct(Base):
     latitude = Column(Float)
     longitude = Column(Float)
     map_link = Column(Text)
+    is_deleted = Column(Boolean, default=False, server_default="false", nullable=False)
     status = Column(
         Enum("available", "out_of_stock", "discontinued", name="mfg_product_status"),
         default="available",
