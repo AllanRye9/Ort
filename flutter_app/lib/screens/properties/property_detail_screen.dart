@@ -14,6 +14,11 @@ final _propertyDetailProvider =
   return PropertyModel.fromJson(data);
 });
 
+final _propertyBidCountProvider =
+    FutureProvider.autoDispose.family<int, int>((ref, id) async {
+  return ref.read(apiServiceProvider).getPropertyBidCount(id);
+});
+
 
 class PropertyDetailScreen extends ConsumerStatefulWidget {
   const PropertyDetailScreen({super.key, required this.id});
@@ -742,11 +747,7 @@ class _AnimatedBidCount extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final bidAsync = ref.watch(
-      FutureProvider.autoDispose.family<int, int>((r, id) async {
-        return r.read(apiServiceProvider).getPropertyBidCount(id);
-      })(propertyId),
-    );
+    final bidAsync = ref.watch(_propertyBidCountProvider(propertyId));
 
     return bidAsync.when(
       loading: () => const SizedBox.shrink(),

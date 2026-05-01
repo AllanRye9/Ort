@@ -199,9 +199,11 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
           }
         } else {
           // Use acres or hectares input
+          // Area conversion: 1 hectare = 2.47105 acres
+          const double hectaresToAcres = 2.47105;
           final val = double.tryParse(_landAreaCtrl.text.trim());
           if (val != null) {
-            landAreaAcres = _landAreaUnit == 'hectares' ? val * 2.47105 : val;
+            landAreaAcres = _landAreaUnit == 'hectares' ? val * hectaresToAcres : val;
           }
         }
       } else if (_isUganda) {
@@ -518,6 +520,7 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
                   onUnitChanged: (u) => setState(() => _landAreaUnit = u),
                   onMetricChanged: (v) =>
                       setState(() => _landResidentialUseMetric = v),
+                  onChanged: () => setState(() {}),
                   cs: cs,
                 ),
               ] else if (_propertyType != 'land') ...[
@@ -667,6 +670,7 @@ class _LandAreaSection extends StatelessWidget {
     required this.residentialUseMetric,
     required this.onUnitChanged,
     required this.onMetricChanged,
+    required this.onChanged,
     required this.cs,
   });
 
@@ -678,6 +682,7 @@ class _LandAreaSection extends StatelessWidget {
   final bool residentialUseMetric;
   final ValueChanged<String> onUnitChanged;
   final ValueChanged<bool> onMetricChanged;
+  final VoidCallback onChanged;
   final ColorScheme cs;
 
   double get _minAcres => landAreaUnit == 'hectares' ? 0.1 : 1.0;
@@ -714,7 +719,10 @@ class _LandAreaSection extends StatelessWidget {
           const SizedBox(height: 12),
           if (residentialUseMetric)
             _MetricDimensionsInput(
-                lengthCtrl: lengthCtrl, widthCtrl: widthCtrl, cs: cs)
+                lengthCtrl: lengthCtrl,
+                widthCtrl: widthCtrl,
+                cs: cs,
+                onChanged: onChanged)
           else
             _AcresHectaresInput(
               ctrl: landAreaCtrl,
@@ -814,11 +822,13 @@ class _MetricDimensionsInput extends StatelessWidget {
     required this.lengthCtrl,
     required this.widthCtrl,
     required this.cs,
+    required this.onChanged,
   });
 
   final TextEditingController lengthCtrl;
   final TextEditingController widthCtrl;
   final ColorScheme cs;
+  final VoidCallback onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -839,6 +849,7 @@ class _MetricDimensionsInput extends StatelessWidget {
                   if (double.tryParse(v) == null) return 'Invalid';
                   return null;
                 },
+                onChanged: (_) => onChanged(),
               ),
             ),
             const SizedBox(width: 12),
@@ -854,6 +865,7 @@ class _MetricDimensionsInput extends StatelessWidget {
                   if (double.tryParse(v) == null) return 'Invalid';
                   return null;
                 },
+                onChanged: (_) => onChanged(),
               ),
             ),
           ],

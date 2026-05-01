@@ -61,7 +61,8 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Delete Listing'),
-        content: Text('Delete "${p.title}"? It can be restored by an admin.'),
+        content: Text(
+            'Delete "${p.title}"? This will soft-delete it; admins can restore it from the Deleted Items panel.'),
         actions: [
           TextButton(
               onPressed: () => Navigator.of(ctx).pop(false),
