@@ -59,6 +59,7 @@ class ListingCard extends StatelessWidget {
         onLongPress: onLongPress,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
             // ── Hero image / placeholder ───────────────────────────────────
             _HeroImage(
@@ -70,8 +71,7 @@ class ListingCard extends StatelessWidget {
             ),
 
             // ── Text content ───────────────────────────────────────────────
-            Expanded(
-              child: Padding(
+            Padding(
                 padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -142,7 +142,6 @@ class ListingCard extends StatelessWidget {
                   ],
                 ),
               ),
-            ),
           ],
         ),
       ),

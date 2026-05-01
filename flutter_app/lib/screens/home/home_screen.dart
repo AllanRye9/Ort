@@ -652,12 +652,12 @@ class _SearchBar extends StatelessWidget {
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: cs.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.black.withValues(alpha: 0.12)),
+          border: Border.all(color: cs.outline.withValues(alpha: 0.25)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
+              color: cs.shadow.withValues(alpha: 0.06),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -671,8 +671,8 @@ class _SearchBar extends StatelessWidget {
             Expanded(
               child: Text(
                 'Search properties, agriculture, goods…',
-                style: const TextStyle(
-                  color: Color(0xFF424242),
+                style: TextStyle(
+                  color: cs.onSurface.withValues(alpha: 0.7),
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
                 ),
