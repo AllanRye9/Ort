@@ -74,72 +74,6 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     }
   }
 
-  Future<void> _requestQuote(PropertyModel p) async {
-    final userId = ref.read(authProvider).userId;
-    if (userId == null) return;
-    final notesCtrl = TextEditingController();
-    final result = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Request Quote'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('for ${p.title}',
-                style: const TextStyle(color: Colors.grey, fontSize: 13)),
-            const SizedBox(height: 12),
-            TextField(
-              controller: notesCtrl,
-              maxLines: 3,
-              decoration: const InputDecoration(
-                labelText: 'Notes / requirements',
-                border: OutlineInputBorder(),
-                isDense: true,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(ctx).pop(notesCtrl.text.trim()),
-            child: const Text('Submit'),
-          ),
-        ],
-      ),
-    );
-    notesCtrl.dispose();
-    if (result == null || !mounted) return;
-    try {
-      await ref.read(apiServiceProvider).createRFQ({
-        'title': 'Quote request for ${p.title}',
-        'description': result,
-        'category': 'property',
-        'buyer_id': userId,
-      });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Quote request submitted!'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to submit quote: $e'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    }
-  }
-
   Future<void> _placeBid(PropertyModel p) async {
     final userId = ref.read(authProvider).userId;
     if (userId == null) return;
@@ -234,7 +168,10 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
         'category': 'property',
         'buyer_id': userId,
         'target_price': result['price'],
+        'property_id': widget.id,
       });
+      // Refresh the bid count displayed on the page.
+      ref.invalidate(_propertyBidCountProvider(widget.id));
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -422,11 +359,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
       ),
       bottomNavigationBar: async.maybeWhen(
         data: (p) => _BottomBar(
-          isSaved: _isSaved,
-          saveBusy: _saveBusy,
-          onSave: _toggleSave,
           onBidNow: () => _placeBid(p),
-          onQuote: () => _requestQuote(p),
           onContact: () => _contactAgent(p),
         ),
         orElse: () => null,
@@ -624,18 +557,10 @@ class _PropertyDetailBody extends StatelessWidget {
 
 class _BottomBar extends StatelessWidget {
   const _BottomBar({
-    required this.isSaved,
-    required this.saveBusy,
-    required this.onSave,
     required this.onBidNow,
-    required this.onQuote,
     required this.onContact,
   });
-  final bool isSaved;
-  final bool saveBusy;
-  final VoidCallback onSave;
   final VoidCallback onBidNow;
-  final VoidCallback onQuote;
   final VoidCallback onContact;
 
   @override
@@ -651,67 +576,28 @@ class _BottomBar extends StatelessWidget {
             ),
           ],
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+        child: Row(
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    icon: const Icon(Icons.request_quote_outlined, size: 16),
-                    label: const Text('Quote'),
-                    onPressed: onQuote,
-                  ),
+            Expanded(
+              child: FilledButton.tonal(
+                onPressed: onContact,
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.chat_bubble_outline, size: 16),
+                    SizedBox(width: 6),
+                    Text('Chat'),
+                  ],
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: FilledButton.tonal(
-                    onPressed: onContact,
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.chat_bubble_outline, size: 16),
-                        SizedBox(width: 6),
-                        Text('Chat'),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                saveBusy
-                    ? const SizedBox(
-                        width: 44,
-                        height: 44,
-                        child: Center(
-                          child: SizedBox(
-                            width: 20,
-                            height: 20,
-                            child:
-                                CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                        ),
-                      )
-                    : IconButton.outlined(
-                        icon: Icon(
-                          isSaved ? Icons.bookmark : Icons.bookmark_border,
-                          semanticLabel: isSaved ? 'Unsave' : 'Save',
-                        ),
-                        onPressed: onSave,
-                        tooltip: isSaved ? 'Unsave' : 'Save',
-                      ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    icon: const Icon(Icons.gavel_outlined, size: 16),
-                    label: const Text('Bid'),
-                    onPressed: onBidNow,
-                  ),
-                ),
-              ],
+            const SizedBox(width: 8),
+            Expanded(
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.gavel_outlined, size: 16),
+                label: const Text('Bid'),
+                onPressed: onBidNow,
+              ),
             ),
           ],
         ),

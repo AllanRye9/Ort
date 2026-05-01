@@ -126,6 +126,8 @@ _MIGRATIONS: list[tuple[str, str, str]] = [
     ("manufacturing_products",  "is_deleted",     "BOOLEAN DEFAULT 'false'"),
     # image_blobs.created_at added in PR #64; needed for existing databases
     ("image_blobs",             "created_at", "TIMESTAMP"),
+    # Bid tracking: link RFQs to the property they reference
+    ("rfqs",                    "property_id", "INTEGER"),
 ]
 
 # Columns whose type needs widening on existing databases.

@@ -335,6 +335,7 @@ class RFQ(Base):
     id = Column(Integer, primary_key=True)
     buyer_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     seller_tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="SET NULL"), nullable=True)
+    property_id = Column(Integer, ForeignKey("properties.id", ondelete="SET NULL"), nullable=True)
     title = Column(String(255), nullable=False)
     description = Column(Text)
     category = Column(String(100))      # property, agriculture, manufacturing
