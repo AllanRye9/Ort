@@ -571,12 +571,16 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
                                       price:
                                           '\$${p.price.toStringAsFixed(0)}',
                                       extras: [
+                                        if (p.propertyType == 'land' && p.landCategory != null)
+                                          '${p.landCategory![0].toUpperCase()}${p.landCategory!.substring(1)} Land',
+                                        if (p.propertyType == 'land' && p.landAreaAcres != null)
+                                          '${p.landAreaAcres!.toStringAsFixed(2)} acres',
                                         if (p.bedrooms != null)
-                                          '${p.bedrooms} bd',
+                                          '${p.bedrooms} Bedroom${p.bedrooms! != 1 ? 's' : ''}',
                                         if (p.bathrooms != null)
-                                          '${p.bathrooms} ba',
+                                          '${p.bathrooms} Bathroom${p.bathrooms! != 1 ? 's' : ''}',
                                         if (p.areaSqft != null)
-                                          '${p.areaSqft} sqft',
+                                          '${p.areaSqft} sq ft',
                                       ],
                                       onTap: () =>
                                           ctx.go('/properties/${p.id}'),
