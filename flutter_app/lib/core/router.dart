@@ -231,6 +231,7 @@ class _MainShellState extends State<MainShell> {
   DateTime? _lastBackPress;
 
   // ── Back/forward history ─────────────────────────────────────────────────
+  final List<String> _historyStack = [];
   final List<String> _forwardStack = [];
   String _prevLocation = '';
   bool _didGoBack = false;
@@ -241,10 +242,13 @@ class _MainShellState extends State<MainShell> {
     super.didChangeDependencies();
     final loc = GoRouterState.of(context).matchedLocation;
     if (loc != _prevLocation && _prevLocation.isNotEmpty) {
-      // A natural forward navigation clears the forward stack; back/forward
-      // button presses set the flag to skip clearing.
-      if (!_didGoBack && !_didGoForward && _forwardStack.isNotEmpty) {
-        setState(() => _forwardStack.clear());
+      // A natural forward navigation pushes previous location to history and
+      // clears the forward stack; back/forward button presses skip this.
+      if (!_didGoBack && !_didGoForward) {
+        setState(() {
+          _historyStack.add(_prevLocation);
+          _forwardStack.clear();
+        });
       }
       _didGoBack = false;
       _didGoForward = false;
@@ -253,15 +257,14 @@ class _MainShellState extends State<MainShell> {
   }
 
   void _goBack(BuildContext context) {
-    final router = GoRouter.of(context);
-    if (router.canPop()) {
-      final currentLoc = GoRouterState.of(context).matchedLocation;
-      setState(() {
-        _didGoBack = true;
-        _forwardStack.add(currentLoc);
-      });
-      router.pop();
-    }
+    if (_historyStack.isEmpty) return;
+    final current = GoRouterState.of(context).matchedLocation;
+    final target = _historyStack.removeLast();
+    setState(() {
+      _didGoBack = true;
+      _forwardStack.add(current);
+    });
+    context.go(target);
   }
 
   void _goForward(BuildContext context) {
@@ -322,7 +325,7 @@ class _MainShellState extends State<MainShell> {
     // ── Wide layout: NavigationRail on the left ──────────────────────────────
     if (isWide) {
       final isExtended = width >= 900;
-      final canGoBack = GoRouter.of(context).canPop();
+      final canGoBack = _historyStack.isNotEmpty;
       final canGoForward = _forwardStack.isNotEmpty;
       return Scaffold(
         body: Row(
@@ -378,7 +381,7 @@ class _MainShellState extends State<MainShell> {
     }
 
     // ── Narrow layout: BottomNavigationBar ───────────────────────────────────
-    final canGoBack = GoRouter.of(context).canPop();
+    final canGoBack = _historyStack.isNotEmpty;
     final canGoForward = _forwardStack.isNotEmpty;
 
     return PopScope(
