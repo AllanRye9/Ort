@@ -140,73 +140,106 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     }
   }
 
-  Future<void> _orderNow(PropertyModel p) async {
+  Future<void> _placeBid(PropertyModel p) async {
     final userId = ref.read(authProvider).userId;
     if (userId == null) return;
+
+    // Derive currency from the property's country if available.
+    final country = p.country?.toLowerCase();
+    final currencySymbol = country == 'uganda'
+        ? 'UGX '
+        : country == 'united arab emirates'
+            ? 'AED '
+            : '\$';
+    final currencyCode = country == 'uganda'
+        ? 'UGX'
+        : country == 'united arab emirates'
+            ? 'AED'
+            : 'USD';
+
+    final bidCtrl =
+        TextEditingController(text: p.price.toStringAsFixed(0));
     final notesCtrl = TextEditingController();
-    final result = await showDialog<String>(
+    final result = await showDialog<Map<String, dynamic>>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Place Bid'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(p.title,
-                style: const TextStyle(color: Colors.grey, fontSize: 13)),
-            const SizedBox(height: 8),
-            Text(
-              '\$${p.price.toStringAsFixed(0)}',
-              style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(ctx).colorScheme.primary),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: notesCtrl,
-              maxLines: 2,
-              decoration: const InputDecoration(
-                labelText: 'Notes (optional)',
-                border: OutlineInputBorder(),
-                isDense: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialog) => AlertDialog(
+          title: const Text('Place Bid'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(p.title,
+                  style:
+                      const TextStyle(color: Colors.grey, fontSize: 13)),
+              const SizedBox(height: 12),
+              TextField(
+                controller: bidCtrl,
+                keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true),
+                decoration: InputDecoration(
+                  labelText: 'Your bid amount ($currencyCode)',
+                  prefixText: currencySymbol,
+                  border: const OutlineInputBorder(),
+                  helperText:
+                      'Listed at $currencySymbol${p.price.toStringAsFixed(0)}',
+                  isDense: true,
+                ),
+                onChanged: (_) => setDialog(() {}),
               ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: notesCtrl,
+                maxLines: 2,
+                decoration: const InputDecoration(
+                  labelText: 'Message (optional)',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Your bid will be reviewed by the agent.',
+                style: TextStyle(fontSize: 11, color: Colors.grey),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Cancel'),
             ),
-            const SizedBox(height: 8),
-            const Text(
-              'Your bid will be reviewed by the agent.',
-              style: TextStyle(fontSize: 11, color: Colors.grey),
+            ElevatedButton(
+              onPressed: () {
+                final price =
+                    double.tryParse(bidCtrl.text.trim());
+                if (price == null || price <= 0) return;
+                Navigator.of(ctx).pop({
+                  'price': price,
+                  'notes': notesCtrl.text.trim(),
+                });
+              },
+              child: const Text('Submit Bid'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(ctx).pop(notesCtrl.text.trim()),
-            child: const Text('Place Bid'),
-          ),
-        ],
       ),
     );
+    bidCtrl.dispose();
     notesCtrl.dispose();
     if (result == null || !mounted) return;
     try {
-      await ref.read(apiServiceProvider).createOrder({
+      await ref.read(apiServiceProvider).createRFQ({
+        'title': 'Bid on ${p.title}',
+        'description': result['notes'] as String? ?? '',
+        'category': 'property',
         'buyer_id': userId,
-        'order_items': [
-          {
-            'property_id': p.id,
-            'quantity': 1.0,
-            'unit_price': p.price,
-          }
-        ],
-        'notes': result,
+        'target_price': result['price'],
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Bid placed! Check Bids for status.'),
+            content: Text(
+                'Bid submitted! The agent will contact you via Messages.'),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -392,7 +425,9 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
           isSaved: _isSaved,
           saveBusy: _saveBusy,
           onSave: _toggleSave,
-          onBidNow: () => _orderNow(p),
+          onBidNow: () => _placeBid(p),
+          onQuote: () => _requestQuote(p),
+          onContact: () => _contactAgent(p),
         ),
         orElse: () => null,
       ),
@@ -593,11 +628,15 @@ class _BottomBar extends StatelessWidget {
     required this.saveBusy,
     required this.onSave,
     required this.onBidNow,
+    required this.onQuote,
+    required this.onContact,
   });
   final bool isSaved;
   final bool saveBusy;
   final VoidCallback onSave;
   final VoidCallback onBidNow;
+  final VoidCallback onQuote;
+  final VoidCallback onContact;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -612,35 +651,67 @@ class _BottomBar extends StatelessWidget {
             ),
           ],
         ),
-        child: Row(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            saveBusy
-                ? const SizedBox(
-                    width: 44,
-                    height: 44,
-                    child: Center(
-                      child: SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                    ),
-                  )
-                : IconButton.outlined(
-                    icon: Icon(
-                      isSaved ? Icons.bookmark : Icons.bookmark_border,
-                      semanticLabel: isSaved ? 'Unsave' : 'Save',
-                    ),
-                    onPressed: onSave,
-                    tooltip: isSaved ? 'Unsave' : 'Save',
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.request_quote_outlined, size: 16),
+                    label: const Text('Quote'),
+                    onPressed: onQuote,
                   ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: ElevatedButton.icon(
-                icon: const Icon(Icons.gavel_outlined, size: 16),
-                label: const Text('Bid'),
-                onPressed: onBidNow,
-              ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: FilledButton.tonal(
+                    onPressed: onContact,
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.chat_bubble_outline, size: 16),
+                        SizedBox(width: 6),
+                        Text('Chat'),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                saveBusy
+                    ? const SizedBox(
+                        width: 44,
+                        height: 44,
+                        child: Center(
+                          child: SizedBox(
+                            width: 20,
+                            height: 20,
+                            child:
+                                CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ),
+                      )
+                    : IconButton.outlined(
+                        icon: Icon(
+                          isSaved ? Icons.bookmark : Icons.bookmark_border,
+                          semanticLabel: isSaved ? 'Unsave' : 'Save',
+                        ),
+                        onPressed: onSave,
+                        tooltip: isSaved ? 'Unsave' : 'Save',
+                      ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.gavel_outlined, size: 16),
+                    label: const Text('Bid'),
+                    onPressed: onBidNow,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
