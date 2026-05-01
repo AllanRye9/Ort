@@ -51,6 +51,16 @@ class _QuickAction {
   final Color color;
 }
 
+// ─── Distance helper ──────────────────────────────────────────────────────────
+
+/// Returns the distance in km from [userLoc] to [lat]/[lon], or null if any
+/// value is missing.
+double? _distKmFromUser(
+    (double, double)? userLoc, double? lat, double? lon) {
+  if (userLoc == null || lat == null || lon == null) return null;
+  return haversineKm(userLoc.$1, userLoc.$2, lat, lon);
+}
+
 // ─── Home screen ─────────────────────────────────────────────────────────────
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -296,9 +306,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       subtitle: p.city ?? p.address,
                       price: '\$${p.price.toStringAsFixed(0)}',
                       badge: p.propertyType,
-                      distanceKm: (userLoc != null && p.latitude != null && p.longitude != null)
-                          ? haversineKm(userLoc.$1, userLoc.$2, p.latitude!, p.longitude!)
-                          : null,
+                      distanceKm: _distKmFromUser(userLoc, p.latitude, p.longitude),
                       onTap: () => ctx.go('/properties/${p.id}'),
                     ),
                     emptyText: 'No properties listed yet.',
@@ -337,9 +345,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         price:
                             '\$${a.pricePerUnit.toStringAsFixed(2)}/${a.unit ?? 'unit'}',
                         badge: a.category,
-                        distanceKm: (userLoc != null && a.latitude != null && a.longitude != null)
-                            ? haversineKm(userLoc.$1, userLoc.$2, a.latitude!, a.longitude!)
-                            : null,
+                        distanceKm: _distKmFromUser(userLoc, a.latitude, a.longitude),
                         onTap: () => ctx.go('/agriculture/${a.id}'),
                       );
                     },
@@ -380,9 +386,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         price:
                             '\$${m.wholesalePrice.toStringAsFixed(2)}/${m.unit ?? 'unit'}',
                         badge: m.category,
-                        distanceKm: (userLoc != null && m.latitude != null && m.longitude != null)
-                            ? haversineKm(userLoc.$1, userLoc.$2, m.latitude!, m.longitude!)
-                            : null,
+                        distanceKm: _distKmFromUser(userLoc, m.latitude, m.longitude),
                         onTap: () => ctx.go('/manufacturing/${m.id}'),
                       );
                     },
@@ -1110,9 +1114,10 @@ class _FeaturedCard extends StatelessWidget {
   final VoidCallback? onTap;
 
   String get _distanceLabel {
+    const metersPerKm = 1000;
     if (distanceKm == null) return '';
     if (distanceKm! < 1.0) {
-      return '${(distanceKm! * 1000).toStringAsFixed(0)} m';
+      return '${(distanceKm! * metersPerKm).toStringAsFixed(0)} m';
     }
     return '${distanceKm!.toStringAsFixed(2)} km';
   }

@@ -20,7 +20,7 @@ final radiusFilterProvider = StateProvider<double>((_) => 50.0);
 
 /// Returns the great-circle distance in kilometres between two coordinates.
 double haversineKm(double lat1, double lon1, double lat2, double lon2) {
-  const R = 6371.0;
+  const R = 6371.0; // Earth's mean radius in kilometres
   final phi1 = lat1 * pi / 180;
   final phi2 = lat2 * pi / 180;
   final dPhi = (lat2 - lat1) * pi / 180;
