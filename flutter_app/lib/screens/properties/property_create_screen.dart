@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/api_service.dart';
+import '../../core/auth_provider.dart';
 import '../../core/listing_providers.dart';
 import '../../core/location_service.dart';
 import '../../widgets/media_picker_field.dart';
@@ -280,6 +281,7 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
             : null;
       }
 
+      final userId = ref.read(authProvider).userId;
       final payload = <String, dynamic>{
         'title': _titleCtrl.text.trim(),
         'address': _addressCtrl.text.trim().isNotEmpty
@@ -289,6 +291,7 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
         'property_type': _propertyType,
         'latitude': _geocodedLat,
         'longitude': _geocodedLon,
+        if (userId != null) 'agent_id': userId,
         if (_geocodedCountry != null) 'country': _geocodedCountry,
         if (_descCtrl.text.trim().isNotEmpty)
           'description': _descCtrl.text.trim(),

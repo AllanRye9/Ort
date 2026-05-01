@@ -453,6 +453,7 @@ class MessageResponse(BaseModel):
 class RFQCreate(BaseModel):
     seller_tenant_id: Optional[int] = None
     buyer_id: Optional[int] = None
+    property_id: Optional[int] = None
     title: str = Field(..., min_length=3)
     description: Optional[str] = None
     category: Optional[str] = None
@@ -485,6 +486,7 @@ class RFQResponse(BaseModel):
     id: int
     buyer_id: Optional[int] = None
     seller_tenant_id: Optional[int] = None
+    property_id: Optional[int] = None
     title: str
     description: Optional[str] = None
     category: Optional[str] = None
