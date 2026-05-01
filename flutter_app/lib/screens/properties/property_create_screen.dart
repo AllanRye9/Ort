@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/api_service.dart';
 import '../../core/listing_providers.dart';
@@ -49,8 +50,21 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
   bool _gpsCapturing = false;
   String? _locationError;
 
-  bool get _isUganda =>
-      _geocodedCountry?.toLowerCase() == 'uganda';
+  bool get _isUganda => _geocodedCountry?.toLowerCase() == 'uganda';
+  bool get _isUAE =>
+      _geocodedCountry?.toLowerCase() == 'united arab emirates';
+
+  // Property types that have bedrooms / bathrooms
+  static const _residentialTypes = ['house', 'apartment', 'villa'];
+
+  bool get _showBedroomsBathrooms =>
+      _residentialTypes.contains(_propertyType);
+
+  String get _currencyCode =>
+      _isUganda ? 'UGX' : (_isUAE ? 'AED' : 'USD');
+
+  String get _currencyPrefix =>
+      _isUganda ? 'UGX ' : (_isUAE ? 'AED ' : '\$');
 
   bool get _isUAE =>
       _geocodedCountry?.toLowerCase() == 'united arab emirates';
@@ -105,7 +119,7 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
       if (!mounted) return;
       if (pos == null) {
         setState(() {
-          _locationError = 'Could not get GPS location. Check permissions.';
+          _locationError = 'Location unavailable. Check that GPS is enabled on your device and permissions are granted.';
           _gpsCapturing = false;
         });
         return;
@@ -126,6 +140,38 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
         _locationError = null;
         _gpsCapturing = false;
       });
+    } on LocationPermissionDeniedException {
+      if (mounted) {
+        setState(() {
+          _locationError =
+              'Location permission is permanently denied. Open app settings to enable it.';
+          _gpsCapturing = false;
+        });
+        // Offer to open app settings
+        final open = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Location Permission Required'),
+            content: const Text(
+              'Location permission has been permanently denied. '
+              'To use GPS, please open app settings and allow location access.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: const Text('Open Settings'),
+              ),
+            ],
+          ),
+        );
+        if (open == true) {
+          await Geolocator.openAppSettings();
+        }
+      }
     } catch (_) {
       if (mounted) {
         setState(() {
@@ -545,38 +591,41 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
                   cs: cs,
                 ),
               ] else if (_propertyType != 'land') ...[
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: _bedroomsCtrl,
-                        keyboardType: TextInputType.number,
-                        decoration:
-                            const InputDecoration(labelText: 'Bedrooms'),
-                        validator: (v) {
-                          if (v == null || v.isEmpty) return null;
-                          if (int.tryParse(v) == null) return 'Invalid';
-                          return null;
-                        },
+                // Bedrooms/bathrooms only for residential types
+                if (_showBedroomsBathrooms) ...[
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: _bedroomsCtrl,
+                          keyboardType: TextInputType.number,
+                          decoration:
+                              const InputDecoration(labelText: 'Bedrooms'),
+                          validator: (v) {
+                            if (v == null || v.isEmpty) return null;
+                            if (int.tryParse(v) == null) return 'Invalid';
+                            return null;
+                          },
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: TextFormField(
-                        controller: _bathroomsCtrl,
-                        keyboardType: TextInputType.number,
-                        decoration:
-                            const InputDecoration(labelText: 'Bathrooms'),
-                        validator: (v) {
-                          if (v == null || v.isEmpty) return null;
-                          if (int.tryParse(v) == null) return 'Invalid';
-                          return null;
-                        },
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _bathroomsCtrl,
+                          keyboardType: TextInputType.number,
+                          decoration:
+                              const InputDecoration(labelText: 'Bathrooms'),
+                          validator: (v) {
+                            if (v == null || v.isEmpty) return null;
+                            if (int.tryParse(v) == null) return 'Invalid';
+                            return null;
+                          },
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 // Uganda: L × W measurement; everywhere else: area in sqft
                 if (_isUganda) ...[
                   Text(
