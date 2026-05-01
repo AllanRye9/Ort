@@ -100,8 +100,7 @@ class _DistanceCalculatorScreenState
     final query = (forA ? _pointACtrl.text : _pointBCtrl.text).trim();
     if (query.isEmpty || query == 'My Location') return;
     setState(() => _resolving = true);
-    final result =
-        await LocationService.instance.geocodeAddress(query);
+    final result = await LocationService.instance.geocodeAddress(query);
     if (!mounted) return;
     setState(() => _resolving = false);
     if (result == null) {
@@ -189,7 +188,8 @@ class _DistanceCalculatorScreenState
                 const SizedBox(width: 8),
                 _loadingA
                     ? const SizedBox(
-                        width: 36, height: 36,
+                        width: 36,
+                        height: 36,
                         child: Center(
                             child: CircularProgressIndicator(strokeWidth: 2)))
                     : IconButton.filled(
@@ -204,8 +204,8 @@ class _DistanceCalculatorScreenState
                 padding: const EdgeInsets.only(top: 4),
                 child: Text(
                   '${_aLat!.toStringAsFixed(5)}, ${_aLon!.toStringAsFixed(5)}',
-                  style:
-                      TextStyle(fontSize: 11, color: cs.onSurface.withValues(alpha: 0.5)),
+                  style: TextStyle(
+                      fontSize: 11, color: cs.onSurface.withValues(alpha: 0.5)),
                 ),
               ),
 
@@ -231,7 +231,8 @@ class _DistanceCalculatorScreenState
                 const SizedBox(width: 8),
                 _loadingB
                     ? const SizedBox(
-                        width: 36, height: 36,
+                        width: 36,
+                        height: 36,
                         child: Center(
                             child: CircularProgressIndicator(strokeWidth: 2)))
                     : IconButton.filled(
@@ -252,15 +253,14 @@ class _DistanceCalculatorScreenState
                 padding: const EdgeInsets.only(top: 4),
                 child: Text(
                   '${_bLat!.toStringAsFixed(5)}, ${_bLon!.toStringAsFixed(5)}',
-                  style:
-                      TextStyle(fontSize: 11, color: cs.onSurface.withValues(alpha: 0.5)),
+                  style: TextStyle(
+                      fontSize: 11, color: cs.onSurface.withValues(alpha: 0.5)),
                 ),
               ),
 
             const SizedBox(height: 20),
 
-            if (_resolving)
-              const Center(child: CircularProgressIndicator()),
+            if (_resolving) const Center(child: CircularProgressIndicator()),
 
             // ── Result ─────────────────────────────────────────────
             if (dist != null) ...[
@@ -294,8 +294,7 @@ class _DistanceCalculatorScreenState
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 12,
-                          color:
-                              cs.onPrimaryContainer.withValues(alpha: 0.6),
+                          color: cs.onPrimaryContainer.withValues(alpha: 0.6),
                         ),
                       ),
                     ],
@@ -378,13 +377,11 @@ class _DistanceCalculatorScreenState
               label: const Text('Calculate'),
               onPressed: () async {
                 bool changed = false;
-                if (_aLat == null &&
-                    _pointACtrl.text.trim().isNotEmpty) {
+                if (_aLat == null && _pointACtrl.text.trim().isNotEmpty) {
                   await _geocodeManual(forA: true);
                   changed = true;
                 }
-                if (_bLat == null &&
-                    _pointBCtrl.text.trim().isNotEmpty) {
+                if (_bLat == null && _pointBCtrl.text.trim().isNotEmpty) {
                   await _geocodeManual(forA: false);
                   changed = true;
                 }
@@ -448,16 +445,15 @@ class _ItemPickerSheetState extends ConsumerState<_ItemPickerSheet>
       ]);
       if (mounted) {
         setState(() {
-          _props = (r[0] as List)
-              .map((e) => PropertyModel.fromJson(e as Map<String, dynamic>))
+          // Removed unnecessary casts: 'as List' and 'as Map<String, dynamic>'
+          _props = (r[0] as List<dynamic>)
+              .map((e) => PropertyModel.fromJson(e))
               .toList();
-          _agri = (r[1] as List)
-              .map((e) =>
-                  AgricultureListingModel.fromJson(e as Map<String, dynamic>))
+          _agri = (r[1] as List<dynamic>)
+              .map((e) => AgricultureListingModel.fromJson(e))
               .toList();
-          _mfg = (r[2] as List)
-              .map((e) => ManufacturingProductModel.fromJson(
-                  e as Map<String, dynamic>))
+          _mfg = (r[2] as List<dynamic>)
+              .map((e) => ManufacturingProductModel.fromJson(e))
               .toList();
           _loading = false;
         });
@@ -503,38 +499,38 @@ class _ItemPickerSheetState extends ConsumerState<_ItemPickerSheet>
                     children: [
                       _ItemList(
                           items: _props
-                              ?.where((p) =>
-                                  p.latitude != null && p.longitude != null)
-                              .map((p) => _PickedItem(
-                                    label: p.title,
-                                    lat: p.latitude!,
-                                    lon: p.longitude!,
-                                  ))
-                              .toList() ??
+                                  ?.where((p) =>
+                                      p.latitude != null && p.longitude != null)
+                                  .map((p) => _PickedItem(
+                                        label: p.title,
+                                        lat: p.latitude!,
+                                        lon: p.longitude!,
+                                      ))
+                                  .toList() ??
                               [],
                           scrollCtrl: scrollCtrl),
                       _ItemList(
                           items: _agri
-                              ?.where((a) =>
-                                  a.latitude != null && a.longitude != null)
-                              .map((a) => _PickedItem(
-                                    label: a.title,
-                                    lat: a.latitude!,
-                                    lon: a.longitude!,
-                                  ))
-                              .toList() ??
+                                  ?.where((a) =>
+                                      a.latitude != null && a.longitude != null)
+                                  .map((a) => _PickedItem(
+                                        label: a.title,
+                                        lat: a.latitude!,
+                                        lon: a.longitude!,
+                                      ))
+                                  .toList() ??
                               [],
                           scrollCtrl: scrollCtrl),
                       _ItemList(
                           items: _mfg
-                              ?.where((m) =>
-                                  m.latitude != null && m.longitude != null)
-                              .map((m) => _PickedItem(
-                                    label: m.title,
-                                    lat: m.latitude!,
-                                    lon: m.longitude!,
-                                  ))
-                              .toList() ??
+                                  ?.where((m) =>
+                                      m.latitude != null && m.longitude != null)
+                                  .map((m) => _PickedItem(
+                                        label: m.title,
+                                        lat: m.latitude!,
+                                        lon: m.longitude!,
+                                      ))
+                                  .toList() ??
                               [],
                           scrollCtrl: scrollCtrl),
                     ],

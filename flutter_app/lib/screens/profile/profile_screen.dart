@@ -217,19 +217,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
             ),
           if (_editMode)
             TextButton(
-              onPressed: _saving
-                  ? null
-                  : () => setState(() => _editMode = false),
-              child: const Text('Cancel',
-                  style: TextStyle(color: Colors.white70)),
+              onPressed:
+                  _saving ? null : () => setState(() => _editMode = false),
+              child:
+                  const Text('Cancel', style: TextStyle(color: Colors.white70)),
             ),
         ],
       ),
       body: FadeTransition(
         opacity: _fadeAnim,
         child: meAsync.when(
-          loading: () =>
-              const Center(child: CircularProgressIndicator()),
+          loading: () => const Center(child: CircularProgressIndicator()),
           error: (e, _) => Center(child: Text('Error: $e')),
           data: (user) => _editMode
               ? _EditView(
@@ -281,7 +279,8 @@ class _ReadView extends StatelessWidget {
       padding: EdgeInsets.zero,
       children: [
         // ── Gradient header ─────────────────────────────────────────────────
-        _ProfileHeader(user: user, saving: saving, onUploadAvatar: onUploadAvatar),
+        _ProfileHeader(
+            user: user, saving: saving, onUploadAvatar: onUploadAvatar),
 
         Padding(
           padding: const EdgeInsets.all(16),
@@ -480,17 +479,17 @@ class _ReadView extends StatelessWidget {
   // Shared tiles used by 'user' role and unknown/future roles.
   List<Widget> _userDefaultTiles(BuildContext context) {
     return [
-          _ProfileTile(
-            icon: Icons.shopping_bag,
-            label: 'My Orders',
-            onTap: () => context.go('/orders'),
-          ),
-          _ProfileTile(
-            icon: Icons.star_border,
-            label: 'My Reviews',
-            onTap: () => _showComingSoon(context, 'My Reviews'),
-          ),
-        ];
+      _ProfileTile(
+        icon: Icons.shopping_bag,
+        label: 'My Orders',
+        onTap: () => context.go('/orders'),
+      ),
+      _ProfileTile(
+        icon: Icons.star_border,
+        label: 'My Reviews',
+        onTap: () => _showComingSoon(context, 'My Reviews'),
+      ),
+    ];
   }
 
   void _showThemePicker(BuildContext context, WidgetRef ref) {
@@ -838,9 +837,7 @@ class _XpLevelCard extends StatelessWidget {
                 child: Text(
                   '$xp XP',
                   style: TextStyle(
-                      color: color,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13),
+                      color: color, fontWeight: FontWeight.bold, fontSize: 13),
                 ),
               ),
             ],
@@ -877,9 +874,7 @@ class _XpLevelCard extends StatelessWidget {
                 Text(
                   _nextTip(score),
                   style: TextStyle(
-                      fontSize: 11,
-                      color: color,
-                      fontWeight: FontWeight.w500),
+                      fontSize: 11, color: color, fontWeight: FontWeight.w500),
                 ),
             ],
           ),
@@ -922,7 +917,8 @@ class _InfoSection extends StatelessWidget {
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.4)),
+            color:
+                Theme.of(context).colorScheme.outline.withValues(alpha: 0.4)),
       ),
       child: Column(
         children: items.asMap().entries.map((e) {
@@ -930,8 +926,8 @@ class _InfoSection extends StatelessWidget {
           return Column(
             children: [
               Padding(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 child: Row(
                   children: [
                     Icon(icon,
@@ -956,9 +952,8 @@ class _InfoSection extends StatelessWidget {
                               style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w500,
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onSurface)),
+                                  color:
+                                      Theme.of(context).colorScheme.onSurface)),
                         ],
                       ),
                     ),
@@ -1049,7 +1044,8 @@ class _EditView extends StatelessWidget {
                                   style: TextStyle(
                                     fontSize: 30,
                                     fontWeight: FontWeight.bold,
-                                    color: Theme.of(context).colorScheme.primary,
+                                    color:
+                                        Theme.of(context).colorScheme.primary,
                                   ),
                                 ),
                               ),
@@ -1121,8 +1117,7 @@ class _EditView extends StatelessWidget {
                   child: TextFormField(
                     controller: lastNameCtrl,
                     maxLength: 100,
-                    decoration:
-                        const InputDecoration(labelText: 'Last Name *'),
+                    decoration: const InputDecoration(labelText: 'Last Name *'),
                     validator: (v) {
                       if (v == null || v.trim().isEmpty) {
                         return 'Last name is required';
@@ -1213,30 +1208,14 @@ class _RoleBadge extends StatelessWidget {
 
   final String role;
 
-  Color _color() {
-    switch (role) {
-      case 'admin':
-        return Colors.red;
-      case 'company':
-        return Colors.blue;
-      case 'organization':
-        return Colors.purple;
-      case 'agent':
-        return Colors.teal;
-      default:
-        return Colors.green;
-    }
-  }
-
   @override
   Widget build(BuildContext context) => Container(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
         decoration: BoxDecoration(
           color: Colors.white.withValues(alpha: 0.2),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-              color: Colors.white.withValues(alpha: 0.5), width: 1),
+          border:
+              Border.all(color: Colors.white.withValues(alpha: 0.5), width: 1),
         ),
         child: Text(
           role.toUpperCase(),
@@ -1271,8 +1250,7 @@ class _ProfileTile extends StatelessWidget {
   Widget build(BuildContext context) => ListTile(
         leading: Icon(icon, color: iconColor),
         title: Text(label,
-            style:
-                labelColor != null ? TextStyle(color: labelColor) : null),
+            style: labelColor != null ? TextStyle(color: labelColor) : null),
         trailing: trailing ??
             const Icon(Icons.chevron_right, size: 18, color: Colors.grey),
         onTap: onTap,
@@ -1297,8 +1275,8 @@ class _ThemeChip extends StatelessWidget {
 
 // ─── Agent reviews section ────────────────────────────────────────────────────
 
-final _agentReviewsProvider =
-    FutureProvider.autoDispose.family<List<ReviewModel>, int>((ref, agentId) async {
+final _agentReviewsProvider = FutureProvider.autoDispose
+    .family<List<ReviewModel>, int>((ref, agentId) async {
   final data = await ref.read(apiServiceProvider).getAgentReviews(agentId);
   return data
       .map((e) => ReviewModel.fromJson(e as Map<String, dynamic>))
@@ -1367,8 +1345,8 @@ class _AgentReviewsSectionState extends ConsumerState<_AgentReviewsSection> {
   Widget build(BuildContext context) {
     final reviewsAsync = ref.watch(_agentReviewsProvider(widget.agentId));
     final authState = ref.watch(authProvider);
-    final canReview = authState.isAuthenticated &&
-        authState.userId != widget.agentId;
+    final canReview =
+        authState.isAuthenticated && authState.userId != widget.agentId;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1399,8 +1377,8 @@ class _AgentReviewsSectionState extends ConsumerState<_AgentReviewsSection> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text('Your Rating',
-                      style: TextStyle(
-                          fontSize: 12, fontWeight: FontWeight.w500)),
+                      style:
+                          TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
                   const SizedBox(height: 4),
                   Row(
                     children: List.generate(
@@ -1504,9 +1482,7 @@ class _AgentReviewsSectionState extends ConsumerState<_AgentReviewsSection> {
                       children: List.generate(
                         5,
                         (i) => Icon(
-                          i < avg.round()
-                              ? Icons.star
-                              : Icons.star_border,
+                          i < avg.round() ? Icons.star : Icons.star_border,
                           color: Colors.amber,
                           size: 16,
                         ),
@@ -1514,8 +1490,8 @@ class _AgentReviewsSectionState extends ConsumerState<_AgentReviewsSection> {
                     ),
                     const SizedBox(width: 6),
                     Text('(${reviews.length})',
-                        style: const TextStyle(
-                            color: Colors.grey, fontSize: 12)),
+                        style:
+                            const TextStyle(color: Colors.grey, fontSize: 12)),
                   ],
                 ),
                 const SizedBox(height: 8),
