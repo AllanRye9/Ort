@@ -560,7 +560,9 @@ class _HeroBannerState extends State<_HeroBanner>
   }
 
   @override
-  Widget build(BuildContext context) => Container(
+  Widget build(BuildContext context) {
+    final roleIcon = Icon(_roleIcon, color: Colors.white, size: 28);
+    return Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
@@ -623,20 +625,18 @@ class _HeroBannerState extends State<_HeroBanner>
                             fit: BoxFit.cover,
                             width: 52,
                             height: 52,
-                            placeholder: (_, __) => Icon(_roleIcon,
-                                color: Colors.white, size: 28),
-                            errorWidget: (_, __, ___) => Icon(_roleIcon,
-                                color: Colors.white, size: 28),
+                            placeholder: (_, __) => roleIcon,
+                            errorWidget: (_, __, ___) => roleIcon,
                           ),
                         )
-                      : Icon(_roleIcon, color: Colors.white, size: 28),
+                      : roleIcon,
                 ),
               ),
             ),
           ],
         ),
       );
-}
+  }
 
 // ─── Search bar ───────────────────────────────────────────────────────────────
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/api_service.dart';
 import '../../core/listing_providers.dart';
@@ -195,7 +196,7 @@ class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen> {
             label: 'Settings',
             onPressed: () async {
               try {
-                await LocationService.instance.requestAndGetPosition();
+                await Geolocator.openAppSettings();
               } catch (_) {}
             },
           ),
