@@ -2,6 +2,28 @@
 import 'package:geolocator/geolocator.dart';
 import 'package:dio/dio.dart';
 
+/// Result returned by [LocationService.geocodeAddressDetailed].
+class GeocodeResult {
+  const GeocodeResult({
+    required this.latitude,
+    required this.longitude,
+    this.country,
+    this.displayName,
+  });
+
+  final double latitude;
+  final double longitude;
+
+  /// ISO country name as returned by Nominatim, e.g. "Uganda", "Kenya".
+  final String? country;
+
+  /// Human-readable display name from Nominatim.
+  final String? displayName;
+
+  /// Returns `true` when this result is for a location in Uganda.
+  bool get isUganda => country?.toLowerCase() == 'uganda';
+}
+
 /// Singleton service for device GPS and address geocoding.
 class LocationService {
   LocationService._();
@@ -14,6 +36,12 @@ class LocationService {
     connectTimeout: const Duration(seconds: 8),
     receiveTimeout: const Duration(seconds: 8),
   ));
+
+  /// Strips characters that may confuse Nominatim (e.g. special symbols) while
+  /// preserving letters, digits, spaces, commas, hyphens, and periods.
+  static String sanitizeQuery(String query) {
+    return query.replaceAll(RegExp(r"[^\w\s,.\-']"), ' ').trim();
+  }
 
   /// Requests location permission (if needed) and returns the current device
   /// position. Caches the last known result.
@@ -47,14 +75,27 @@ class LocationService {
   /// Geocode a free-text address/city/query using Nominatim (OpenStreetMap).
   /// Returns `(lat, lon)` or `null` if nothing found.
   Future<(double, double)?> geocodeAddress(String query) async {
-    if (query.trim().isEmpty) return null;
+    final result = await geocodeAddressDetailed(query);
+    if (result == null) return null;
+    return (result.latitude, result.longitude);
+  }
+
+  /// Geocode a free-text address and return a full [GeocodeResult] (including
+  /// country) or `null` when the place cannot be found.
+  ///
+  /// The query is sanitized before being sent to the API to increase match
+  /// rates and reduce noise.
+  Future<GeocodeResult?> geocodeAddressDetailed(String query) async {
+    final sanitized = sanitizeQuery(query);
+    if (sanitized.isEmpty) return null;
     try {
       final response = await _dio.get(
         'https://nominatim.openstreetmap.org/search',
         queryParameters: {
-          'q': query,
+          'q': sanitized,
           'format': 'json',
           'limit': 1,
+          'addressdetails': 1,
         },
         options: Options(headers: {'User-Agent': 'ort-marketplace/2.0'}),
       );
@@ -64,7 +105,17 @@ class LocationService {
       final lat = double.tryParse(first['lat']?.toString() ?? '');
       final lon = double.tryParse(first['lon']?.toString() ?? '');
       if (lat == null || lon == null) return null;
-      return (lat, lon);
+
+      final address = first['address'] as Map<String, dynamic>?;
+      final country = address?['country'] as String?;
+      final displayName = first['display_name'] as String?;
+
+      return GeocodeResult(
+        latitude: lat,
+        longitude: lon,
+        country: country,
+        displayName: displayName,
+      );
     } catch (_) {
       return null;
     }

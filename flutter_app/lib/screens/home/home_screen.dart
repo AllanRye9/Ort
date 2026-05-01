@@ -81,8 +81,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   bool _locationPermissionDenied = false;
   // whether the user dismissed the location-service-off banner
   bool _locationBannerDismissed = false;
+  // whether the one-time GPS-off dialog has been shown this session
+  bool _locationDialogShown = false;
+
+  // Position used for the most recent sort, used to detect >500 m moves.
+  (double, double)? _lastSortedLoc;
+  // true when user has moved >500 m since the last sort
+  bool _showRefreshResults = false;
 
   StreamSubscription<ServiceStatus>? _serviceStatusSub;
+  StreamSubscription<Position>? _positionSub;
 
   @override
   void initState() {
@@ -124,18 +132,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         _locationServiceOff = true;
         _locationPermissionDenied = false;
       });
+      // Show a one-time dialog prompting the user to enable GPS.
+      if (!_locationDialogShown) {
+        setState(() => _locationDialogShown = true);
+        _showGpsOffDialog();
+      }
       return;
     }
 
     final pos = await LocationService.instance.requestAndGetPosition();
     if (!mounted) return;
     if (pos != null) {
-      ref.read(userLocationProvider.notifier).state =
-          (pos.latitude, pos.longitude);
+      final loc = (pos.latitude, pos.longitude);
+      ref.read(userLocationProvider.notifier).state = loc;
       setState(() {
         _locationServiceOff = false;
         _locationPermissionDenied = false;
+        _lastSortedLoc = loc;
       });
+      _startPositionTracking();
     } else {
       // Position came back null with service enabled → permission denied.
       setState(() {
@@ -145,9 +160,84 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     }
   }
 
+  /// Shows a dialog when GPS is off, giving the user Cancel/Accept options.
+  void _showGpsOffDialog() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Location services are off'),
+          content: const Text(
+            'Location services are turned off. Would you like to enable them '
+            'to see listings near you?\n\n'
+            'If you cancel, listings will be shown in default order '
+            '(most recent first).',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Enable GPS'),
+            ),
+          ],
+        ),
+      ).then((accepted) async {
+        if (accepted == true) {
+          try {
+            await Geolocator.openLocationSettings();
+          } catch (_) {}
+        } else {
+          // User declined – show dismissible banner but do not re-prompt.
+          if (mounted) setState(() => _locationBannerDismissed = false);
+        }
+      });
+    });
+  }
+
+  /// Starts a position stream to detect when the user has moved >500 m.
+  void _startPositionTracking() {
+    _positionSub?.cancel();
+    _positionSub = Geolocator.getPositionStream(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.medium,
+        distanceFilter: 100, // receive updates every 100 m
+      ),
+    ).listen((pos) {
+      if (!mounted) return;
+      final current = (pos.latitude, pos.longitude);
+      final last = _lastSortedLoc;
+      if (last != null) {
+        final dist = haversineKm(last.$1, last.$2, current.$1, current.$2);
+        if (dist >= 0.5 && !_showRefreshResults) {
+          setState(() => _showRefreshResults = true);
+        }
+      }
+    });
+  }
+
+  /// Re-sorts listings based on the current position.
+  Future<void> _refreshResults() async {
+    final pos = await LocationService.instance.requestAndGetPosition();
+    if (!mounted) return;
+    if (pos != null) {
+      final loc = (pos.latitude, pos.longitude);
+      ref.read(userLocationProvider.notifier).state = loc;
+      setState(() {
+        _lastSortedLoc = loc;
+        _showRefreshResults = false;
+      });
+    }
+  }
+
   @override
   void dispose() {
     _serviceStatusSub?.cancel();
+    _positionSub?.cancel();
     _fadeCtrl.dispose();
     super.dispose();
   }
@@ -242,6 +332,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         onAction: () => _initLocation(),
                         onDismiss: () =>
                             setState(() => _locationPermissionDenied = false),
+                      ),
+                    // Refresh results banner when user has moved >500 m
+                    if (_showRefreshResults)
+                      _LocationBanner(
+                        icon: Icons.refresh_outlined,
+                        message: 'You\'ve moved! Refresh to see listings near your new location.',
+                        actionLabel: 'Refresh',
+                        onAction: _refreshResults,
+                        onDismiss: () =>
+                            setState(() => _showRefreshResults = false),
                       ),
                     // Radius filter chips (only shown when location is available)
                     if (userLoc != null) ...[
@@ -658,7 +758,7 @@ class _RadiusFilter extends ConsumerStatefulWidget {
 }
 
 class _RadiusFilterState extends ConsumerState<_RadiusFilter> {
-  static const _presets = [1.0, 5.0, 10.0, 25.0, 50.0];
+  static const _presets = [1.0, 5.0, 10.0, 20.0, 30.0, 40.0, 50.0];
   final _customCtrl = TextEditingController();
   bool _showCustom = false;
 

@@ -106,13 +106,17 @@ _MIGRATIONS: list[tuple[str, str, str]] = [
     ("saved_items", "item_type",  "VARCHAR(50)"),
     ("saved_items", "item_id",    "INTEGER"),
     # Map / location columns
-    ("properties",              "latitude",   "FLOAT"),
-    ("properties",              "longitude",  "FLOAT"),
-    ("manufacturing_products",  "latitude",   "FLOAT"),
-    ("manufacturing_products",  "longitude",  "FLOAT"),
+    ("properties",              "latitude",       "FLOAT"),
+    ("properties",              "longitude",      "FLOAT"),
+    ("manufacturing_products",  "latitude",       "FLOAT"),
+    ("manufacturing_products",  "longitude",      "FLOAT"),
     # Agriculture lat/lng already in model; ensure migration runs for older DBs
-    ("agriculture_listings",    "latitude",   "FLOAT"),
-    ("agriculture_listings",    "longitude",  "FLOAT"),
+    ("agriculture_listings",    "latitude",       "FLOAT"),
+    ("agriculture_listings",    "longitude",      "FLOAT"),
+    # Uganda / regional measurement columns
+    ("properties",              "country",        "VARCHAR(100)"),
+    ("properties",              "plot_length_m",  "FLOAT"),
+    ("properties",              "plot_width_m",   "FLOAT"),
     # image_blobs.created_at added in PR #64; needed for existing databases
     ("image_blobs",             "created_at", "TIMESTAMP"),
 ]

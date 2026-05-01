@@ -471,7 +471,7 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
                         : const Icon(Icons.my_location_outlined,
                             size: 16, color: Colors.grey),
                   ),
-                  for (final km in [1.0, 5.0, 10.0, 50.0])
+                  for (final km in [1.0, 5.0, 10.0, 20.0, 30.0, 40.0, 50.0])
                     Padding(
                       padding: const EdgeInsets.only(right: 6),
                       child: FilterChip(
