@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
@@ -103,8 +104,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     // Request location exactly once at startup.
     _initLocation();
     // Listen for the device-level location service being toggled on/off.
-    _serviceStatusSub =
-        Geolocator.getServiceStatusStream().listen(_onServiceStatusChanged);
+    // getServiceStatusStream is not supported on web.
+    if (!kIsWeb) {
+      _serviceStatusSub =
+          Geolocator.getServiceStatusStream().listen(_onServiceStatusChanged);
+    }
   }
 
   void _onServiceStatusChanged(ServiceStatus status) {
@@ -200,7 +204,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   /// Starts a position stream to detect when the user has moved >500 m.
+  /// Position streaming with distanceFilter is not supported on web.
   void _startPositionTracking() {
+    if (kIsWeb) return;
     _positionSub?.cancel();
     _positionSub = Geolocator.getPositionStream(
       locationSettings: const LocationSettings(
@@ -404,7 +410,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       iconColor: AppTheme.primary,
                       title: p.title,
                       subtitle: p.city ?? p.address,
-                      price: '\$${p.price.toStringAsFixed(0)}',
+                      price: formatCurrency(p.price, country: p.country),
                       badge: p.propertyType,
                       distanceKm: _distKmFromUser(userLoc, p.latitude, p.longitude),
                       onTap: () => ctx.go('/properties/${p.id}'),
@@ -443,7 +449,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         title: a.title,
                         subtitle: a.location ?? a.category ?? '',
                         price:
-                            '\$${a.pricePerUnit.toStringAsFixed(2)}/${a.unit ?? 'unit'}',
+                            '${formatCurrency(a.pricePerUnit, currency: a.currency, decimals: 2)}/${a.unit ?? 'unit'}',
                         badge: a.category,
                         distanceKm: _distKmFromUser(userLoc, a.latitude, a.longitude),
                         onTap: () => ctx.go('/agriculture/${a.id}'),
@@ -484,7 +490,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         subtitle:
                             m.category ?? (m.isLocallyMade ? 'Locally Made' : ''),
                         price:
-                            '\$${m.wholesalePrice.toStringAsFixed(2)}/${m.unit ?? 'unit'}',
+                            '${formatCurrency(m.wholesalePrice, currency: m.currency, decimals: 2)}/${m.unit ?? 'unit'}',
                         badge: m.category,
                         distanceKm: _distKmFromUser(userLoc, m.latitude, m.longitude),
                         onTap: () => ctx.go('/manufacturing/${m.id}'),
