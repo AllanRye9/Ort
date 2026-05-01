@@ -474,7 +474,7 @@ class _ManufacturingDetailScreenState extends ConsumerState<ManufacturingDetailS
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  icon: const Icon(Icons.request_quote_outlined),
+                  icon: const Icon(Icons.request_quote_outlined, size: 16),
                   label: const Text('Quote'),
                   onPressed: () => _requestQuote(m),
                 ),
@@ -488,7 +488,7 @@ class _ManufacturingDetailScreenState extends ConsumerState<ManufacturingDetailS
                     foregroundColor:
                         Theme.of(context).colorScheme.onSecondaryContainer,
                   ),
-                  icon: const Icon(Icons.message_outlined),
+                  icon: const Icon(Icons.message_outlined, size: 16),
                   label: const Text('Contact'),
                   onPressed: () => _contactAgent(m),
                 ),
@@ -496,7 +496,7 @@ class _ManufacturingDetailScreenState extends ConsumerState<ManufacturingDetailS
               const SizedBox(width: 8),
               Expanded(
                 child: ElevatedButton.icon(
-                  icon: const Icon(Icons.shopping_cart_outlined),
+                  icon: const Icon(Icons.shopping_cart_outlined, size: 16),
                   label: const Text('Order'),
                   onPressed: () => _orderNow(m),
                 ),
