@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/api_service.dart';
 import '../../core/listing_providers.dart';
+import '../../core/location_service.dart';
 import '../../widgets/media_picker_field.dart';
 
 class PropertyCreateScreen extends ConsumerStatefulWidget {
@@ -19,14 +20,29 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
   final _descCtrl = TextEditingController();
   final _addressCtrl = TextEditingController();
   final _cityCtrl = TextEditingController();
+  final _placeNameCtrl = TextEditingController();
   final _priceCtrl = TextEditingController();
   final _bedroomsCtrl = TextEditingController();
   final _bathroomsCtrl = TextEditingController();
   final _areaCtrl = TextEditingController();
+  final _lengthCtrl = TextEditingController();
+  final _widthCtrl = TextEditingController();
 
   String _propertyType = 'house';
   List<String> _imageUrls = [];
   bool _submitting = false;
+
+  // Location state
+  double? _geocodedLat;
+  double? _geocodedLon;
+  String? _geocodedCountry;
+  String? _geocodedDisplayName;
+  bool _geocoding = false;
+  bool _gpsCapturing = false;
+  String? _locationError;
+
+  bool get _isUganda =>
+      _geocodedCountry?.toLowerCase() == 'uganda';
 
   static const _propertyTypes = [
     'house',
@@ -45,22 +61,142 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
     _descCtrl.dispose();
     _addressCtrl.dispose();
     _cityCtrl.dispose();
+    _placeNameCtrl.dispose();
     _priceCtrl.dispose();
     _bedroomsCtrl.dispose();
     _bathroomsCtrl.dispose();
     _areaCtrl.dispose();
+    _lengthCtrl.dispose();
+    _widthCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _captureGpsLocation() async {
+    setState(() {
+      _gpsCapturing = true;
+      _locationError = null;
+    });
+    try {
+      final pos = await LocationService.instance.requestAndGetPosition();
+      if (!mounted) return;
+      if (pos == null) {
+        setState(() {
+          _locationError = 'Could not get GPS location. Check permissions.';
+          _gpsCapturing = false;
+        });
+        return;
+      }
+      // Reverse-geocode to get country and display name.
+      final result = await LocationService.instance.geocodeAddressDetailed(
+        '${pos.latitude},${pos.longitude}',
+      );
+      if (!mounted) return;
+      setState(() {
+        _geocodedLat = pos.latitude;
+        _geocodedLon = pos.longitude;
+        _geocodedCountry = result?.country;
+        _geocodedDisplayName = result?.displayName ??
+            '${pos.latitude.toStringAsFixed(5)}, '
+            '${pos.longitude.toStringAsFixed(5)}';
+        _locationError = null;
+        _gpsCapturing = false;
+      });
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _locationError = 'GPS capture failed. Please try again.';
+          _gpsCapturing = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _validatePlaceName() async {
+    final query = _placeNameCtrl.text.trim();
+    if (query.isEmpty) return;
+    setState(() {
+      _geocoding = true;
+      _locationError = null;
+      _geocodedLat = null;
+      _geocodedLon = null;
+      _geocodedCountry = null;
+      _geocodedDisplayName = null;
+    });
+    try {
+      final result =
+          await LocationService.instance.geocodeAddressDetailed(query);
+      if (!mounted) return;
+      if (result == null) {
+        setState(() {
+          _locationError =
+              "Place doesn't exist on Map. Please correct the spelling "
+              'or use a more recognised landmark.';
+          _geocoding = false;
+        });
+        return;
+      }
+      setState(() {
+        _geocodedLat = result.latitude;
+        _geocodedLon = result.longitude;
+        _geocodedCountry = result.country;
+        _geocodedDisplayName = result.displayName;
+        _locationError = null;
+        _geocoding = false;
+      });
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _locationError =
+              'Map service is unreachable. Please check your connection.';
+          _geocoding = false;
+        });
+      }
+    }
   }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+
+    if (_geocodedLat == null || _geocodedLon == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              'Please validate the listing location before publishing.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
     setState(() => _submitting = true);
     try {
+      double? areaValue;
+      double? lengthM;
+      double? widthM;
+
+      if (_isUganda) {
+        final l = double.tryParse(_lengthCtrl.text.trim());
+        final w = double.tryParse(_widthCtrl.text.trim());
+        if (l != null && w != null) {
+          lengthM = l;
+          widthM = w;
+        }
+      } else {
+        areaValue = _areaCtrl.text.trim().isNotEmpty
+            ? double.tryParse(_areaCtrl.text.trim())
+            : null;
+      }
+
       final payload = <String, dynamic>{
         'title': _titleCtrl.text.trim(),
-        'address': _addressCtrl.text.trim(),
+        'address': _addressCtrl.text.trim().isNotEmpty
+            ? _addressCtrl.text.trim()
+            : (_geocodedDisplayName ?? 'Unknown'),
         'price': double.parse(_priceCtrl.text.trim()),
         'property_type': _propertyType,
+        'latitude': _geocodedLat,
+        'longitude': _geocodedLon,
+        if (_geocodedCountry != null) 'country': _geocodedCountry,
         if (_descCtrl.text.trim().isNotEmpty)
           'description': _descCtrl.text.trim(),
         if (_cityCtrl.text.trim().isNotEmpty) 'city': _cityCtrl.text.trim(),
@@ -68,8 +204,9 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
           'bedrooms': int.parse(_bedroomsCtrl.text.trim()),
         if (_bathroomsCtrl.text.trim().isNotEmpty)
           'bathrooms': int.parse(_bathroomsCtrl.text.trim()),
-        if (_areaCtrl.text.trim().isNotEmpty)
-          'area_sqft': int.parse(_areaCtrl.text.trim()),
+        if (!_isUganda && areaValue != null) 'area_sqft': areaValue.toInt(),
+        if (_isUganda && lengthM != null) 'plot_length_m': lengthM,
+        if (_isUganda && widthM != null) 'plot_width_m': widthM,
         if (_imageUrls.isNotEmpty) 'images': _imageUrls,
       };
 
@@ -108,6 +245,8 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
       appBar: AppBar(title: const Text('List a Property')),
       body: Form(
@@ -157,12 +296,128 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
 
               // ── Location ────────────────────────────────────────────────────
               _sectionTitle('LOCATION'),
+              Text(
+                'Option A – Use my current GPS location',
+                style: TextStyle(
+                    fontSize: 12, color: cs.onSurface.withValues(alpha: 0.7)),
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                icon: _gpsCapturing
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.my_location, size: 18),
+                label: Text(_gpsCapturing
+                    ? 'Getting location…'
+                    : 'Capture GPS Location'),
+                onPressed:
+                    (_gpsCapturing || _geocoding) ? null : _captureGpsLocation,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Option B – Enter place name',
+                style: TextStyle(
+                    fontSize: 12, color: cs.onSurface.withValues(alpha: 0.7)),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _placeNameCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Place name (e.g. "Mbarara, Uganda")',
+                        isDense: true,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: FilledButton(
+                      onPressed:
+                          (_geocoding || _gpsCapturing) ? null : _validatePlaceName,
+                      child: _geocoding
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white),
+                            )
+                          : const Text('Validate'),
+                    ),
+                  ),
+                ],
+              ),
+              // Show validation result / error
+              if (_geocodedDisplayName != null) ...[
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: cs.primaryContainer.withValues(alpha: 0.4),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                        color: cs.primary.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.check_circle_outline,
+                          size: 16, color: cs.primary),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          _geocodedDisplayName!,
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: cs.onSurface.withValues(alpha: 0.8)),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (_isUganda)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 6),
+                          child: Chip(
+                            label: const Text('Uganda',
+                                style: TextStyle(fontSize: 10)),
+                            backgroundColor:
+                                cs.secondary.withValues(alpha: 0.15),
+                            side: BorderSide.none,
+                            visualDensity: VisualDensity.compact,
+                            padding: EdgeInsets.zero,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+              if (_locationError != null) ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(Icons.error_outline, size: 16, color: cs.error),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        _locationError!,
+                        style: TextStyle(
+                            fontSize: 12, color: cs.error),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 12),
               TextFormField(
                 controller: _addressCtrl,
-                decoration:
-                    const InputDecoration(labelText: 'Address *'),
-                validator: (v) =>
-                    v == null || v.trim().isEmpty ? 'Required' : null,
+                decoration: const InputDecoration(
+                    labelText: 'Street address (optional refinement)'),
               ),
               const SizedBox(height: 12),
               TextFormField(
@@ -221,17 +476,86 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
                 ],
               ),
               const SizedBox(height: 12),
-              TextFormField(
-                controller: _areaCtrl,
-                keyboardType: TextInputType.number,
-                decoration:
-                    const InputDecoration(labelText: 'Area (sqft, optional)'),
-                validator: (v) {
-                  if (v == null || v.isEmpty) return null;
-                  if (int.tryParse(v) == null) return 'Invalid';
-                  return null;
-                },
-              ),
+              // Uganda: L × W measurement; everywhere else: area in sqft
+              if (_isUganda) ...[
+                Text(
+                  'PLOT DIMENSIONS (METRIC – UGANDA)',
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _lengthCtrl,
+                        keyboardType:
+                            const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(
+                            labelText: 'Length (m)', suffixText: 'm'),
+                        validator: (v) {
+                          if (v == null || v.isEmpty) return null;
+                          if (double.tryParse(v) == null) return 'Invalid';
+                          return null;
+                        },
+                        onChanged: (_) => setState(() {}),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextFormField(
+                        controller: _widthCtrl,
+                        keyboardType:
+                            const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(
+                            labelText: 'Width (m)', suffixText: 'm'),
+                        validator: (v) {
+                          if (v == null || v.isEmpty) return null;
+                          if (double.tryParse(v) == null) return 'Invalid';
+                          return null;
+                        },
+                        onChanged: (_) => setState(() {}),
+                      ),
+                    ),
+                  ],
+                ),
+                // Live area preview
+                Builder(builder: (_) {
+                  final l = double.tryParse(_lengthCtrl.text);
+                  final w = double.tryParse(_widthCtrl.text);
+                  if (l != null && w != null) {
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        'Dimensions: ${l.toStringAsFixed(0)}m × '
+                        '${w.toStringAsFixed(0)}m  |  '
+                        'Total Area: ${(l * w).toStringAsFixed(0)} m²',
+                        style: TextStyle(
+                            fontSize: 13,
+                            color: cs.primary,
+                            fontWeight: FontWeight.w600),
+                      ),
+                    );
+                  }
+                  return const SizedBox.shrink();
+                }),
+              ] else ...[
+                TextFormField(
+                  controller: _areaCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration:
+                      const InputDecoration(labelText: 'Area (sqft, optional)'),
+                  validator: (v) {
+                    if (v == null || v.isEmpty) return null;
+                    if (int.tryParse(v) == null) return 'Invalid';
+                    return null;
+                  },
+                ),
+              ],
 
               const SizedBox(height: 32),
               ElevatedButton(

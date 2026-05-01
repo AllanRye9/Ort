@@ -473,13 +473,34 @@ class _PropertyDetailBody extends StatelessWidget {
                       _SpecChip(icon: Icons.bed_outlined, label: '${p.bedrooms} Beds'),
                     if (p.bathrooms != null)
                       _SpecChip(icon: Icons.bathtub_outlined, label: '${p.bathrooms} Baths'),
-                    if (p.areaSqft != null)
+                    if (p.isUgandaMetric)
+                      _SpecChip(
+                        icon: Icons.square_foot,
+                        label: '${p.plotLengthM!.toStringAsFixed(0)}m × '
+                            '${p.plotWidthM!.toStringAsFixed(0)}m  '
+                            '(${p.totalAreaM2!.toStringAsFixed(0)} m²)',
+                      )
+                    else if (p.areaSqft != null)
                       _SpecChip(icon: Icons.square_foot, label: '${p.areaSqft} sqft'),
                     _SpecChip(
                         icon: Icons.category_outlined,
                         label: p.propertyType.toUpperCase()),
                   ],
                 ),
+                // Uganda metric dimensions detail row
+                if (p.isUgandaMetric) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'Dimensions: ${p.plotLengthM!.toStringAsFixed(0)}m × '
+                    '${p.plotWidthM!.toStringAsFixed(0)}m  |  '
+                    'Total Area: ${p.totalAreaM2!.toStringAsFixed(0)} m²',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
 
                 // ── Description ───────────────────────────────────────────────
                 if (p.description != null) ...[
