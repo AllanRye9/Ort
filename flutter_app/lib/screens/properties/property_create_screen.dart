@@ -104,7 +104,7 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
       if (!mounted) return;
       if (pos == null) {
         setState(() {
-          _locationError = 'Location services are off. Please enable GPS in settings.';
+          _locationError = 'Location unavailable. Check that GPS is enabled on your device and permissions are granted.';
           _gpsCapturing = false;
         });
         return;
