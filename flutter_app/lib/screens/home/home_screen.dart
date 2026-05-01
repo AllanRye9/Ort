@@ -51,6 +51,16 @@ class _QuickAction {
   final Color color;
 }
 
+// ─── Distance helper ──────────────────────────────────────────────────────────
+
+/// Returns the distance in km from [userLoc] to [lat]/[lon], or null if any
+/// value is missing.
+double? _distKmFromUser(
+    (double, double)? userLoc, double? lat, double? lon) {
+  if (userLoc == null || lat == null || lon == null) return null;
+  return haversineKm(userLoc.$1, userLoc.$2, lat, lon);
+}
+
 // ─── Home screen ─────────────────────────────────────────────────────────────
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -69,9 +79,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   bool _locationServiceOff = false;
   // true when the user has denied the location permission
   bool _locationPermissionDenied = false;
+  // whether the user dismissed the location-service-off banner
+  bool _locationBannerDismissed = false;
 
   StreamSubscription<ServiceStatus>? _serviceStatusSub;
-  bool _locationDialogVisible = false;
 
   @override
   void initState() {
@@ -81,12 +92,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       duration: const Duration(milliseconds: 600),
     )..forward();
     _fadeAnim = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeIn);
-    _initLocation().then((_) {
-      if (mounted && _locationServiceOff) {
-        WidgetsBinding.instance
-            .addPostFrameCallback((_) => _showLocationDisabledPopup());
-      }
-    });
+    // Request location exactly once at startup.
+    _initLocation();
     // Listen for the device-level location service being toggled on/off.
     _serviceStatusSub =
         Geolocator.getServiceStatusStream().listen(_onServiceStatusChanged);
@@ -94,67 +101,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   void _onServiceStatusChanged(ServiceStatus status) {
     if (status == ServiceStatus.enabled) {
-      // Location services were turned on – retry immediately and refresh
-      // all home section listings so nearby data loads right away.
-      setState(() => _locationServiceOff = false);
+      // Location services were turned on – retry and re-sort listings.
+      setState(() {
+        _locationServiceOff = false;
+        _locationBannerDismissed = false;
+      });
       _initLocation();
-      ref.invalidate(homePropertiesProvider);
-      ref.invalidate(homeAgricultureProvider);
-      ref.invalidate(homeMfgProvider);
     } else {
       setState(() => _locationServiceOff = true);
-      if (mounted) {
-        WidgetsBinding.instance
-            .addPostFrameCallback((_) => _showLocationDisabledPopup());
-      }
     }
   }
 
-  /// Shows a dialog popup prompting the user to enable location services.
-  /// Guarded by [_locationDialogVisible] to prevent overlapping dialogs.
-  void _showLocationDisabledPopup() {
-    if (!mounted || _locationDialogVisible) return;
-    _locationDialogVisible = true;
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        icon: const Icon(Icons.location_off_outlined, size: 40),
-        title: const Text('Location Disabled'),
-        content: const Text('Enable location to find nearby listings'),
-        actions: [
-          TextButton(
-            onPressed: () {
-              _locationDialogVisible = false;
-              Navigator.of(ctx).pop();
-            },
-            child: const Text('Not Now'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              _locationDialogVisible = false;
-              Navigator.of(ctx).pop();
-              try {
-                await Geolocator.openLocationSettings();
-              } catch (_) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Could not open location settings.'),
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                }
-              }
-            },
-            child: const Text('Open Settings'),
-          ),
-        ],
-      ),
-    );
-  }
-
   Future<void> _initLocation() async {
+    // Skip if we already have a position cached.
+    if (ref.read(userLocationProvider) != null) return;
+
     // Check whether the device's location service (GPS) is enabled first.
     final serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!mounted) return;
@@ -193,9 +154,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   @override
   Widget build(BuildContext context) {
-    final propertiesAsync = ref.watch(homePropertiesProvider);
-    final agricultureAsync = ref.watch(homeAgricultureProvider);
-    final mfgAsync = ref.watch(homeMfgProvider);
+    final propertiesAsync = ref.watch(sortedHomePropertiesProvider);
+    final agricultureAsync = ref.watch(sortedHomeAgricultureProvider);
+    final mfgAsync = ref.watch(sortedHomeMfgProvider);
+    final userLoc = ref.watch(userLocationProvider);
     final auth = ref.watch(authProvider);
     final role = auth.role ?? 'user';
 
@@ -249,38 +211,43 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   style: TextStyle(color: Colors.white, fontSize: 17)),
             ),
 
-            // ── Search bar ──────────────────────────────────────────────────
+            // ── Search bar + location banners + radius filter ───────────────
             SliverToBoxAdapter(
               child: _ContentWrapper(
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _SearchBar(onTap: () => context.go('/search')),
-                    if (_locationPermissionDenied)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: MaterialBanner(
-                          content: const Text(
-                              'Enable location to find nearby listings.'),
-                          leading: const Icon(Icons.location_off_outlined),
-                          actions: [
-                            TextButton(
-                              onPressed: () => _initLocation().then((_) {
-                                if (mounted &&
-                                    ref.read(userLocationProvider) != null) {
-                                  setState(
-                                      () => _locationPermissionDenied = false);
-                                }
-                              }),
-                              child: const Text('Enable'),
-                            ),
-                            TextButton(
-                              onPressed: () => setState(
-                                  () => _locationPermissionDenied = false),
-                              child: const Text('Dismiss'),
-                            ),
-                          ],
-                        ),
+                    const SizedBox(height: 8),
+                    // Location service is OFF – non-blocking dismissible banner
+                    if (_locationServiceOff && !_locationBannerDismissed)
+                      _LocationBanner(
+                        icon: Icons.location_off_outlined,
+                        message: 'Turn on GPS to find listings near you.',
+                        actionLabel: 'Open Settings',
+                        onAction: () async {
+                          try {
+                            await Geolocator.openLocationSettings();
+                          } catch (_) {}
+                        },
+                        onDismiss: () =>
+                            setState(() => _locationBannerDismissed = true),
                       ),
+                    // Permission denied – non-blocking dismissible banner
+                    if (_locationPermissionDenied)
+                      _LocationBanner(
+                        icon: Icons.location_off_outlined,
+                        message: 'Grant location permission to sort listings by proximity.',
+                        actionLabel: 'Enable',
+                        onAction: () => _initLocation(),
+                        onDismiss: () =>
+                            setState(() => _locationPermissionDenied = false),
+                      ),
+                    // Radius filter chips (only shown when location is available)
+                    if (userLoc != null) ...[
+                      const SizedBox(height: 4),
+                      const _RadiusFilter(),
+                    ],
                   ],
                 ),
               ),
@@ -339,6 +306,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       subtitle: p.city ?? p.address,
                       price: '\$${p.price.toStringAsFixed(0)}',
                       badge: p.propertyType,
+                      distanceKm: _distKmFromUser(userLoc, p.latitude, p.longitude),
                       onTap: () => ctx.go('/properties/${p.id}'),
                     ),
                     emptyText: 'No properties listed yet.',
@@ -377,6 +345,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         price:
                             '\$${a.pricePerUnit.toStringAsFixed(2)}/${a.unit ?? 'unit'}',
                         badge: a.category,
+                        distanceKm: _distKmFromUser(userLoc, a.latitude, a.longitude),
                         onTap: () => ctx.go('/agriculture/${a.id}'),
                       );
                     },
@@ -417,6 +386,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         price:
                             '\$${m.wholesalePrice.toStringAsFixed(2)}/${m.unit ?? 'unit'}',
                         badge: m.category,
+                        distanceKm: _distKmFromUser(userLoc, m.latitude, m.longitude),
                         onTap: () => ctx.go('/manufacturing/${m.id}'),
                       );
                     },
@@ -554,41 +524,243 @@ class _SearchBar extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => GestureDetector(
-        onTap: onTap,
-        child: Container(
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            borderRadius: BorderRadius.circular(14),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.08),
-                blurRadius: 12,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          child: Row(
-            children: [
-              Icon(Icons.search,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant, size: 20),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'Search properties, agriculture, goods…',
-                  style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      fontSize: 14),
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: cs.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: cs.outline.withValues(alpha: 0.45)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+        child: Row(
+          children: [
+            Icon(Icons.search, color: cs.primary, size: 22),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Search properties, agriculture, goods…',
+                style: TextStyle(
+                  color: cs.onSurface.withValues(alpha: 0.65),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
-              Icon(Icons.tune,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  size: 18),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: cs.primary.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.tune, color: cs.primary, size: 14),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Filter',
+                    style: TextStyle(
+                      color: cs.primary,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Location banner ──────────────────────────────────────────────────────────
+
+class _LocationBanner extends StatelessWidget {
+  const _LocationBanner({
+    required this.icon,
+    required this.message,
+    required this.actionLabel,
+    required this.onAction,
+    required this.onDismiss,
+  });
+
+  final IconData icon;
+  final String message;
+  final String actionLabel;
+  final VoidCallback onAction;
+  final VoidCallback onDismiss;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      decoration: BoxDecoration(
+        color: cs.errorContainer.withValues(alpha: 0.25),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: cs.error.withValues(alpha: 0.25)),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: cs.error),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                fontSize: 12,
+                color: cs.onSurface.withValues(alpha: 0.8),
+              ),
+            ),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(
+              visualDensity: VisualDensity.compact,
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+            ),
+            onPressed: onAction,
+            child: Text(
+              actionLabel,
+              style: TextStyle(fontSize: 12, color: cs.primary),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.close, size: 16),
+            visualDensity: VisualDensity.compact,
+            onPressed: onDismiss,
+            color: cs.onSurface.withValues(alpha: 0.45),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Radius filter chips ──────────────────────────────────────────────────────
+
+class _RadiusFilter extends ConsumerStatefulWidget {
+  const _RadiusFilter();
+
+  @override
+  ConsumerState<_RadiusFilter> createState() => _RadiusFilterState();
+}
+
+class _RadiusFilterState extends ConsumerState<_RadiusFilter> {
+  static const _presets = [1.0, 5.0, 10.0, 25.0, 50.0];
+  final _customCtrl = TextEditingController();
+  bool _showCustom = false;
+
+  @override
+  void dispose() {
+    _customCtrl.dispose();
+    super.dispose();
+  }
+
+  void _setRadius(double km) {
+    ref.read(radiusFilterProvider.notifier).state = km;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final radius = ref.watch(radiusFilterProvider);
+    final cs = Theme.of(context).colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.radar, size: 13, color: cs.onSurface.withValues(alpha: 0.5)),
+            const SizedBox(width: 4),
+            Text(
+              'Show listings within:',
+              style: TextStyle(
+                fontSize: 11,
+                color: cs.onSurface.withValues(alpha: 0.55),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              for (final km in _presets) ...[
+                FilterChip(
+                  label: Text(
+                    km == km.truncateToDouble()
+                        ? '${km.toStringAsFixed(0)} km'
+                        : '${km.toStringAsFixed(1)} km',
+                  ),
+                  selected: radius == km && !_showCustom,
+                  onSelected: (_) {
+                    setState(() => _showCustom = false);
+                    _setRadius(km);
+                  },
+                  visualDensity: VisualDensity.compact,
+                  labelStyle: TextStyle(
+                    fontSize: 11,
+                    color: (radius == km && !_showCustom) ? cs.onPrimary : cs.onSurface,
+                  ),
+                  selectedColor: cs.primary,
+                  showCheckmark: false,
+                ),
+                const SizedBox(width: 6),
+              ],
+              FilterChip(
+                label: const Text('Custom'),
+                selected: _showCustom,
+                onSelected: (_) => setState(() => _showCustom = !_showCustom),
+                visualDensity: VisualDensity.compact,
+                labelStyle: TextStyle(
+                  fontSize: 11,
+                  color: _showCustom ? cs.onPrimary : cs.onSurface,
+                ),
+                selectedColor: cs.primary,
+                showCheckmark: false,
+              ),
             ],
           ),
         ),
-      );
+        if (_showCustom) ...[
+          const SizedBox(height: 6),
+          SizedBox(
+            width: 160,
+            child: TextField(
+              controller: _customCtrl,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: InputDecoration(
+                hintText: 'e.g. 35',
+                suffixText: 'km',
+                isDense: true,
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8)),
+              ),
+              onSubmitted: (v) {
+                final km = double.tryParse(v);
+                if (km != null && km > 0) _setRadius(km);
+              },
+            ),
+          ),
+        ],
+      ],
+    );
+  }
 }
 
 // ─── Quick-actions grid ───────────────────────────────────────────────────────
@@ -926,6 +1098,7 @@ class _FeaturedCard extends StatelessWidget {
     required this.subtitle,
     required this.price,
     this.badge,
+    this.distanceKm,
     this.onTap,
   });
 
@@ -936,10 +1109,22 @@ class _FeaturedCard extends StatelessWidget {
   final String subtitle;
   final String price;
   final String? badge;
+  /// Distance in km from user location. Null when location is not available.
+  final double? distanceKm;
   final VoidCallback? onTap;
+
+  String get _distanceLabel {
+    const metersPerKm = 1000;
+    if (distanceKm == null) return '';
+    if (distanceKm! < 1.0) {
+      return '${(distanceKm! * metersPerKm).toStringAsFixed(0)} m';
+    }
+    return '${distanceKm!.toStringAsFixed(2)} km';
+  }
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return SizedBox(
       width: context.isWide ? null : 175, // 175 dp fits ~2 cards on a 360dp phone
       child: Card(
@@ -971,7 +1156,7 @@ class _FeaturedCard extends StatelessWidget {
                         )
                       : _PlaceholderBox(icon: icon, iconColor: iconColor),
                 ),
-                // Category badge
+                // Category badge (bottom-right)
                 if (badge != null && badge!.isNotEmpty)
                   Positioned(
                     bottom: 6,
@@ -992,6 +1177,36 @@ class _FeaturedCard extends StatelessWidget {
                       ),
                     ),
                   ),
+                // Distance badge (top-left)
+                if (distanceKm != null)
+                  Positioned(
+                    top: 6,
+                    left: 6,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: cs.primary.withValues(alpha: 0.85),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.near_me,
+                              size: 9, color: Colors.white),
+                          const SizedBox(width: 3),
+                          Text(
+                            _distanceLabel,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
               ],
             ),
             Padding(
@@ -1007,7 +1222,7 @@ class _FeaturedCard extends StatelessWidget {
                         fontWeight: FontWeight.w600,
                         fontSize: 12,
                         height: 1.3,
-                        color: Theme.of(context).colorScheme.onSurface),
+                        color: cs.onSurface),
                   ),
                   if (subtitle.isNotEmpty) ...[
                     const SizedBox(height: 2),
@@ -1016,7 +1231,7 @@ class _FeaturedCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          color: cs.onSurfaceVariant,
                           fontSize: 10),
                     ),
                   ],
@@ -1024,7 +1239,7 @@ class _FeaturedCard extends StatelessWidget {
                   Text(
                     price,
                     style: TextStyle(
-                      color: Theme.of(context).colorScheme.primary,
+                      color: cs.primary,
                       fontWeight: FontWeight.bold,
                       fontSize: 12,
                     ),
