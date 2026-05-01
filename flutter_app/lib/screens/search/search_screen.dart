@@ -53,7 +53,8 @@ class _FilterState {
       (section != null && section != 'all');
 }
 
-final _filterProvider = StateProvider<_FilterState>((ref) => const _FilterState());
+final _filterProvider =
+    StateProvider<_FilterState>((ref) => const _FilterState());
 
 // ─── Combined search result ───────────────────────────────────────────────────
 
@@ -130,23 +131,20 @@ final _searchResultsProvider =
       case 'property':
         combined.addAll(
           (results[i] as List<dynamic>)
-              .map((e) => _PropertyResult(
-                  PropertyModel.fromJson(e as Map<String, dynamic>)))
-              .toList(),
+              .map((e) => _PropertyResult(PropertyModel.fromJson(e)))
+              .toList(), // Removed unnecessary cast: 'e as Map<String, dynamic>'
         );
       case 'agriculture':
         combined.addAll(
           (results[i] as List<dynamic>)
-              .map((e) => _AgriResult(AgricultureListingModel.fromJson(
-                  e as Map<String, dynamic>)))
-              .toList(),
+              .map((e) => _AgriResult(AgricultureListingModel.fromJson(e)))
+              .toList(), // Removed unnecessary cast: 'e as Map<String, dynamic>'
         );
       case 'manufacturing':
         combined.addAll(
           (results[i] as List<dynamic>)
-              .map((e) => _MfgResult(ManufacturingProductModel.fromJson(
-                  e as Map<String, dynamic>)))
-              .toList(),
+              .map((e) => _MfgResult(ManufacturingProductModel.fromJson(e)))
+              .toList(), // Removed unnecessary cast: 'e as Map<String, dynamic>'
         );
     }
   }
@@ -306,8 +304,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                 filter.query.isNotEmpty
                                     ? 'No results for "${filter.query}"'
                                     : 'No listings match your filters',
-                                style:
-                                    const TextStyle(color: Colors.grey),
+                                style: const TextStyle(color: Colors.grey),
                                 textAlign: TextAlign.center,
                               ),
                             ],
@@ -317,8 +314,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       return ListView.separated(
                         padding: const EdgeInsets.all(16),
                         itemCount: items.length,
-                        separatorBuilder: (_, __) =>
-                            const SizedBox(height: 12),
+                        separatorBuilder: (_, __) => const SizedBox(height: 12),
                         itemBuilder: (ctx, i) => _resultTile(ctx, items[i]),
                       );
                     },
@@ -498,8 +494,7 @@ class _FilterPanelState extends State<_FilterPanel> {
                 const Expanded(
                   child: Text(
                     'Filters',
-                    style:
-                        TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                 ),
                 TextButton(
@@ -596,7 +591,8 @@ class _FilterPanelState extends State<_FilterPanel> {
                 if (minP != null && maxP != null && minP > maxP) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Min price cannot be greater than max price.'),
+                      content:
+                          Text('Min price cannot be greater than max price.'),
                       behavior: SnackBarBehavior.floating,
                     ),
                   );
