@@ -1,4 +1,5 @@
 // import 'dart:convert';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:geolocator/geolocator.dart';
 import 'package:dio/dio.dart';
 
@@ -61,10 +62,12 @@ class LocationService {
       if (permission == LocationPermission.deniedForever) return null;
 
       final pos = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.medium,
-          timeLimit: Duration(seconds: 10),
-        ),
+        locationSettings: kIsWeb
+            ? const LocationSettings(accuracy: LocationAccuracy.medium)
+            : const LocationSettings(
+                accuracy: LocationAccuracy.medium,
+                timeLimit: Duration(seconds: 10),
+              ),
       );
       _lastPosition = pos;
       return pos;
