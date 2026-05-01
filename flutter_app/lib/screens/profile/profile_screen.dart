@@ -379,7 +379,12 @@ class _ReadView extends StatelessWidget {
           _ProfileTile(
             icon: Icons.people,
             label: 'My Clients',
-            onTap: () => _showComingSoon(context, 'My Clients'),
+            onTap: () => context.go('/my-clients'),
+          ),
+          _ProfileTile(
+            icon: Icons.bar_chart_outlined,
+            label: 'Analytics',
+            onTap: () => context.go('/analytics'),
           ),
           _ProfileTile(
             icon: Icons.shopping_bag,
@@ -1464,36 +1469,11 @@ class _AgentReviewsSectionState extends ConsumerState<_AgentReviewsSection> {
                 ),
               );
             }
-            final avg = reviews.map((r) => r.rating).reduce((a, b) => a + b) /
-                reviews.length;
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Average rating summary
-                Row(
-                  children: [
-                    Text(
-                      avg.toStringAsFixed(1),
-                      style: const TextStyle(
-                          fontSize: 22, fontWeight: FontWeight.w700),
-                    ),
-                    const SizedBox(width: 6),
-                    Row(
-                      children: List.generate(
-                        5,
-                        (i) => Icon(
-                          i < avg.round() ? Icons.star : Icons.star_border,
-                          color: Colors.amber,
-                          size: 16,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Text('(${reviews.length})',
-                        style:
-                            const TextStyle(color: Colors.grey, fontSize: 12)),
-                  ],
-                ),
+                // Average rating summary with star breakdown
+                _ReviewStatsSummary(reviews: reviews),
                 const SizedBox(height: 8),
                 // Individual reviews
                 ...reviews.map((r) => _ReviewTile(review: r)),
@@ -1502,6 +1482,113 @@ class _AgentReviewsSectionState extends ConsumerState<_AgentReviewsSection> {
           },
         ),
       ],
+    );
+  }
+}
+
+class _ReviewStatsSummary extends StatelessWidget {
+  const _ReviewStatsSummary({required this.reviews});
+  final List<ReviewModel> reviews;
+
+  @override
+  Widget build(BuildContext context) {
+    final total = reviews.length;
+    if (total == 0) return const SizedBox.shrink();
+
+    final avg = reviews.map((r) => r.rating).reduce((a, b) => a + b) / total;
+    // Count per star level (5 down to 1)
+    final counts = <int, int>{for (var i = 1; i <= 5; i++) i: 0};
+    for (final r in reviews) {
+      counts[r.rating] = (counts[r.rating] ?? 0) + 1;
+    }
+
+    final cs = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerHighest.withValues(alpha: 0.4),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Big average
+          Column(
+            children: [
+              Text(
+                avg.toStringAsFixed(1),
+                style: const TextStyle(
+                    fontSize: 36, fontWeight: FontWeight.bold),
+              ),
+              Row(
+                children: List.generate(
+                  5,
+                  (i) => Icon(
+                    i < avg.round() ? Icons.star_rounded : Icons.star_outline_rounded,
+                    color: Colors.amber[700],
+                    size: 14,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                '$total review${total != 1 ? 's' : ''}',
+                style: TextStyle(
+                    fontSize: 11,
+                    color: cs.onSurface.withValues(alpha: 0.55)),
+              ),
+            ],
+          ),
+          const SizedBox(width: 16),
+          // Star breakdown bars
+          Expanded(
+            child: Column(
+              children: List.generate(5, (i) {
+                final star = 5 - i;
+                final count = counts[star] ?? 0;
+                final fraction = total > 0 ? count / total : 0.0;
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Row(
+                    children: [
+                      Text('$star', style: const TextStyle(fontSize: 11)),
+                      const SizedBox(width: 4),
+                      Icon(Icons.star_rounded,
+                          color: Colors.amber[700], size: 11),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: fraction,
+                            minHeight: 7,
+                            backgroundColor:
+                                cs.onSurface.withValues(alpha: 0.1),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.amber[700]!),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      SizedBox(
+                        width: 20,
+                        child: Text(
+                          '$count',
+                          style: TextStyle(
+                              fontSize: 11,
+                              color: cs.onSurface.withValues(alpha: 0.6)),
+                          textAlign: TextAlign.end,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

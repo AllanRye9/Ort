@@ -679,4 +679,16 @@ class ApiService {
     final res = await _dio.put('/reviews/$reviewId', data: data);
     return res.data as Map<String, dynamic>;
   }
+
+  // ─── Agent stats & clients ────────────────────────────────────────────────
+
+  Future<Map<String, dynamic>> getAgentStats(int agentId) async {
+    final res = await _dio.get('/agent/stats', queryParameters: {'agent_id': agentId});
+    return res.data as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> getAgentClients(int agentId) async {
+    final res = await _dio.get('/agent/clients', queryParameters: {'agent_id': agentId});
+    return res.data as Map<String, dynamic>;
+  }
 }
