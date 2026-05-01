@@ -446,6 +446,16 @@ class ApiService {
     return res.data as List<dynamic>;
   }
 
+  Future<Map<String, dynamic>?> getTenantByOwner(int ownerUserId) async {
+    final res = await _dio.get('/tenants/', queryParameters: {
+      'owner_user_id': ownerUserId,
+      'limit': 1,
+    });
+    final list = res.data as List<dynamic>;
+    if (list.isEmpty) return null;
+    return list.first as Map<String, dynamic>;
+  }
+
   Future<Map<String, dynamic>> getTenant(int tenantId) async {
     final res = await _dio.get('/tenants/$tenantId');
     return res.data as Map<String, dynamic>;
