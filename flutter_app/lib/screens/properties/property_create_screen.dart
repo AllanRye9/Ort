@@ -52,6 +52,21 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
   bool get _isUganda =>
       _geocodedCountry?.toLowerCase() == 'uganda';
 
+  bool get _isUAE =>
+      _geocodedCountry?.toLowerCase() == 'united arab emirates';
+
+  String get _priceCurrencyCode {
+    if (_isUganda) return 'UGX';
+    if (_isUAE) return 'AED';
+    return 'USD';
+  }
+
+  String get _priceCurrencyPrefix {
+    if (_isUganda) return 'UGX ';
+    if (_isUAE) return 'AED ';
+    return '\$';
+  }
+
   static const _propertyTypes = [
     'house',
     'apartment',
@@ -442,12 +457,13 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      if (_isUganda)
+                      if (_isUganda || _isUAE)
                         Padding(
                           padding: const EdgeInsets.only(left: 6),
                           child: Chip(
-                            label: const Text('Uganda',
-                                style: TextStyle(fontSize: 10)),
+                            label: Text(
+                                _isUganda ? 'Uganda (UGX)' : 'UAE (AED)',
+                                style: const TextStyle(fontSize: 10)),
                             backgroundColor:
                                 cs.secondary.withValues(alpha: 0.15),
                             side: BorderSide.none,
@@ -493,9 +509,14 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
               TextFormField(
                 controller: _priceCtrl,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(
-                  labelText: 'Price (USD) *',
-                  prefixText: '\$',
+                decoration: InputDecoration(
+                  labelText: 'Price ($_priceCurrencyCode) *',
+                  prefixText: _priceCurrencyPrefix,
+                  helperText: _isUganda
+                      ? 'Enter price in Uganda Shillings (UGX)'
+                      : _isUAE
+                          ? 'Enter price in UAE Dirhams (AED)'
+                          : null,
                 ),
                 validator: (v) {
                   if (v == null || v.trim().isEmpty) return 'Required';

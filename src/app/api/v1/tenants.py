@@ -1,7 +1,7 @@
 """Tenant & Subscription router."""
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 
 from app.database.database import get_db
 from app.models.marketplace_models import Tenant, SubscriptionPlan, TenantSubscription
@@ -20,9 +20,13 @@ router = APIRouter(tags=["tenants"])
 def list_tenants(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
+    owner_user_id: Optional[int] = Query(None),
     db: Session = Depends(get_db),
 ):
-    return db.query(Tenant).offset(skip).limit(limit).all()
+    q = db.query(Tenant)
+    if owner_user_id:
+        q = q.filter(Tenant.owner_user_id == owner_user_id)
+    return q.offset(skip).limit(limit).all()
 
 
 @router.get("/tenants/{tenant_id}", response_model=TenantResponse)
