@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 import '../../core/api_service.dart';
 import '../../core/auth_provider.dart';
+import '../../core/listing_providers.dart';
 import '../../models/models.dart';
 import '../../widgets/image_gallery.dart';
 
@@ -461,7 +462,7 @@ class _PropertyDetailBody extends StatelessWidget {
 
                 // ── Price ─────────────────────────────────────────────────────
                 Text(
-                  '\$${p.price.toStringAsFixed(0)}',
+                  formatCurrency(p.price, country: p.country),
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                         color: Theme.of(context).colorScheme.primary,
                         fontWeight: FontWeight.bold,
@@ -562,6 +563,17 @@ class _PropertyDetailBody extends StatelessWidget {
                         label: p.title,
                       ),
                     ),
+                  ),
+                ],
+
+                // ── Reviews ───────────────────────────────────────────────────
+                if (p.agentId != null) ...[
+                  const SizedBox(height: 16),
+                  const Divider(),
+                  const SizedBox(height: 8),
+                  _PropertyReviewsSection(
+                    propertyId: p.id,
+                    agentId: p.agentId!,
                   ),
                 ],
 
@@ -785,6 +797,313 @@ class _AnimatedBidCount extends ConsumerWidget {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+// ─── Property reviews section ─────────────────────────────────────────────────
+
+final _propertyReviewsProvider =
+    FutureProvider.autoDispose.family<List<ReviewModel>, int>((ref, propertyId) async {
+  final data = await ref.read(apiServiceProvider).getReviews(propertyId: propertyId);
+  return data.map((e) => ReviewModel.fromJson(e as Map<String, dynamic>)).toList();
+});
+
+class _PropertyReviewsSection extends ConsumerStatefulWidget {
+  const _PropertyReviewsSection({
+    required this.propertyId,
+    required this.agentId,
+  });
+
+  final int propertyId;
+  final int agentId;
+
+  @override
+  ConsumerState<_PropertyReviewsSection> createState() =>
+      _PropertyReviewsSectionState();
+}
+
+class _PropertyReviewsSectionState
+    extends ConsumerState<_PropertyReviewsSection> {
+  bool _showForm = false;
+  int _draftRating = 5;
+  final _titleCtrl = TextEditingController();
+  final _bodyCtrl = TextEditingController();
+  bool _submitting = false;
+
+  @override
+  void dispose() {
+    _titleCtrl.dispose();
+    _bodyCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    setState(() => _submitting = true);
+    try {
+      await ref.read(apiServiceProvider).createReview({
+        'reviewed_agent_id': widget.agentId,
+        'property_id': widget.propertyId,
+        'rating': _draftRating,
+        if (_titleCtrl.text.trim().isNotEmpty) 'title': _titleCtrl.text.trim(),
+        if (_bodyCtrl.text.trim().isNotEmpty) 'body': _bodyCtrl.text.trim(),
+      });
+      ref.invalidate(_propertyReviewsProvider(widget.propertyId));
+      if (mounted) {
+        setState(() {
+          _showForm = false;
+          _submitting = false;
+          _titleCtrl.clear();
+          _bodyCtrl.clear();
+          _draftRating = 5;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Review submitted!'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _submitting = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to submit review: $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final reviewsAsync = ref.watch(_propertyReviewsProvider(widget.propertyId));
+    final authState = ref.watch(authProvider);
+    final canReview =
+        authState.isAuthenticated && authState.userId != widget.agentId;
+    final cs = Theme.of(context).colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Header
+        Row(
+          children: [
+            Text(
+              'Reviews',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const Spacer(),
+            if (canReview && !_showForm)
+              TextButton.icon(
+                onPressed: () => setState(() => _showForm = true),
+                icon: const Icon(Icons.rate_review_outlined, size: 16),
+                label: const Text('Write a review'),
+              ),
+          ],
+        ),
+
+        // Rating summary
+        reviewsAsync.maybeWhen(
+          data: (reviews) {
+            if (reviews.isEmpty) return const SizedBox.shrink();
+            final avg = reviews.map((r) => r.rating).reduce((a, b) => a + b) /
+                reviews.length;
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Row(
+                children: [
+                  Icon(Icons.star_rounded, color: Colors.amber[700], size: 20),
+                  const SizedBox(width: 4),
+                  Text(
+                    avg.toStringAsFixed(1),
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: cs.onSurface),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    '(${reviews.length} review${reviews.length != 1 ? 's' : ''})',
+                    style: TextStyle(
+                        color: cs.onSurface.withValues(alpha: 0.6),
+                        fontSize: 13),
+                  ),
+                ],
+              ),
+            );
+          },
+          orElse: () => const SizedBox.shrink(),
+        ),
+
+        // Submit form
+        if (_showForm) ...[
+          const SizedBox(height: 8),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Your Rating',
+                      style:
+                          TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: List.generate(
+                      5,
+                      (i) => GestureDetector(
+                        onTap: () => setState(() => _draftRating = i + 1),
+                        child: Icon(
+                          i < _draftRating ? Icons.star : Icons.star_border,
+                          color: Colors.amber,
+                          size: 28,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _titleCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Title (optional)',
+                      isDense: true,
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _bodyCtrl,
+                    maxLines: 3,
+                    decoration: const InputDecoration(
+                      labelText: 'Your review (optional)',
+                      isDense: true,
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: _submitting
+                            ? null
+                            : () => setState(() => _showForm = false),
+                        child: const Text('Cancel'),
+                      ),
+                      const SizedBox(width: 8),
+                      FilledButton(
+                        onPressed: _submitting ? null : _submit,
+                        child: _submitting
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2, color: Colors.white),
+                              )
+                            : const Text('Submit'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+        ],
+
+        // Review list
+        reviewsAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Text('Could not load reviews: $e',
+              style: TextStyle(color: cs.error, fontSize: 12)),
+          data: (reviews) {
+            if (reviews.isEmpty) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Text(
+                  'No reviews yet.',
+                  style: TextStyle(
+                      color: cs.onSurface.withValues(alpha: 0.5), fontSize: 13),
+                ),
+              );
+            }
+            return Column(
+              children: reviews
+                  .map((r) => _ReviewCard(review: r))
+                  .toList(),
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _ReviewCard extends StatelessWidget {
+  const _ReviewCard({required this.review});
+  final ReviewModel review;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Row(
+                  children: List.generate(
+                    5,
+                    (i) => Icon(
+                      i < review.rating ? Icons.star : Icons.star_border,
+                      size: 14,
+                      color: Colors.amber[700],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                if (review.title != null && review.title!.isNotEmpty)
+                  Expanded(
+                    child: Text(
+                      review.title!,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w600, fontSize: 13),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+              ],
+            ),
+            if (review.body != null && review.body!.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(
+                review.body!,
+                style: TextStyle(
+                    color: cs.onSurface.withValues(alpha: 0.75),
+                    fontSize: 13,
+                    height: 1.4),
+              ),
+            ],
+            const SizedBox(height: 4),
+            Text(
+              review.createdAt.toLocal().toString().split(' ')[0],
+              style: TextStyle(
+                  color: cs.onSurface.withValues(alpha: 0.45), fontSize: 11),
+            ),
+          ],
+        ),
       ),
     );
   }
