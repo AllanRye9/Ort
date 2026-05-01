@@ -71,6 +71,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   bool _locationPermissionDenied = false;
 
   StreamSubscription<ServiceStatus>? _serviceStatusSub;
+  bool _locationDialogVisible = false;
 
   @override
   void initState() {
@@ -80,7 +81,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       duration: const Duration(milliseconds: 600),
     )..forward();
     _fadeAnim = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeIn);
-    _initLocation();
+    _initLocation().then((_) {
+      if (mounted && _locationServiceOff) {
+        WidgetsBinding.instance
+            .addPostFrameCallback((_) => _showLocationDisabledPopup());
+      }
+    });
     // Listen for the device-level location service being toggled on/off.
     _serviceStatusSub =
         Geolocator.getServiceStatusStream().listen(_onServiceStatusChanged);
@@ -88,12 +94,64 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   void _onServiceStatusChanged(ServiceStatus status) {
     if (status == ServiceStatus.enabled) {
-      // Location services were turned on – retry immediately.
+      // Location services were turned on – retry immediately and refresh
+      // all home section listings so nearby data loads right away.
       setState(() => _locationServiceOff = false);
       _initLocation();
+      ref.invalidate(homePropertiesProvider);
+      ref.invalidate(homeAgricultureProvider);
+      ref.invalidate(homeMfgProvider);
     } else {
       setState(() => _locationServiceOff = true);
+      if (mounted) {
+        WidgetsBinding.instance
+            .addPostFrameCallback((_) => _showLocationDisabledPopup());
+      }
     }
+  }
+
+  /// Shows a dialog popup prompting the user to enable location services.
+  /// Guarded by [_locationDialogVisible] to prevent overlapping dialogs.
+  void _showLocationDisabledPopup() {
+    if (!mounted || _locationDialogVisible) return;
+    _locationDialogVisible = true;
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        icon: const Icon(Icons.location_off_outlined, size: 40),
+        title: const Text('Location Disabled'),
+        content: const Text('Enable location to find nearby listings'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              _locationDialogVisible = false;
+              Navigator.of(ctx).pop();
+            },
+            child: const Text('Not Now'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              _locationDialogVisible = false;
+              Navigator.of(ctx).pop();
+              try {
+                await Geolocator.openLocationSettings();
+              } catch (_) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Could not open location settings.'),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text('Open Settings'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _initLocation() async {
@@ -197,41 +255,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 child: Column(
                   children: [
                     _SearchBar(onTap: () => context.go('/search')),
-                    if (_locationServiceOff)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: MaterialBanner(
-                          content: const Text(
-                              'Location services are disabled. Enable them to find nearby listings.'),
-                          leading: const Icon(Icons.location_off_outlined),
-                          actions: [
-                            TextButton(
-                              onPressed: () async {
-                                try {
-                                  await Geolocator.openLocationSettings();
-                                } catch (_) {
-                                  if (mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                            'Could not open location settings.'),
-                                        behavior: SnackBarBehavior.floating,
-                                      ),
-                                    );
-                                  }
-                                }
-                              },
-                              child: const Text('Open Settings'),
-                            ),
-                            TextButton(
-                              onPressed: () =>
-                                  setState(() => _locationServiceOff = false),
-                              child: const Text('Dismiss'),
-                            ),
-                          ],
-                        ),
-                      )
-                    else if (_locationPermissionDenied)
+                    if (_locationPermissionDenied)
                       Padding(
                         padding: const EdgeInsets.only(top: 8),
                         child: MaterialBanner(
@@ -548,7 +572,7 @@ class _SearchBar extends StatelessWidget {
           child: Row(
             children: [
               Icon(Icons.search,
-                  color: Theme.of(context).colorScheme.primary, size: 20),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant, size: 20),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
