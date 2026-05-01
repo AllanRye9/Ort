@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/api_service.dart';
 import '../../core/listing_providers.dart';
+import '../../core/location_service.dart';
 import '../../widgets/media_picker_field.dart';
 
 class ManufacturingCreateScreen extends ConsumerStatefulWidget {
@@ -27,11 +28,20 @@ class _ManufacturingCreateScreenState
   final _leadTimeCtrl = TextEditingController();
   final _countryCtrl = TextEditingController();
   final _certCtrl = TextEditingController();
+  final _placeNameCtrl = TextEditingController();
 
   String _category = 'textiles';
   bool _isLocallyMade = false;
   List<String> _imageUrls = [];
   bool _submitting = false;
+
+  // Location state
+  double? _geocodedLat;
+  double? _geocodedLon;
+  String? _geocodedDisplayName;
+  bool _geocoding = false;
+  bool _gpsCapturing = false;
+  String? _locationError;
 
   static const _categories = [
     'textiles',
@@ -59,7 +69,82 @@ class _ManufacturingCreateScreenState
     _leadTimeCtrl.dispose();
     _countryCtrl.dispose();
     _certCtrl.dispose();
+    _placeNameCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _captureGpsLocation() async {
+    setState(() {
+      _gpsCapturing = true;
+      _locationError = null;
+    });
+    try {
+      final pos = await LocationService.instance.requestAndGetPosition();
+      if (!mounted) return;
+      if (pos == null) {
+        setState(() {
+          _locationError = 'Could not get GPS location. Check permissions.';
+          _gpsCapturing = false;
+        });
+        return;
+      }
+      setState(() {
+        _geocodedLat = pos.latitude;
+        _geocodedLon = pos.longitude;
+        _geocodedDisplayName =
+            '${pos.latitude.toStringAsFixed(5)}, ${pos.longitude.toStringAsFixed(5)}';
+        _locationError = null;
+        _gpsCapturing = false;
+      });
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _locationError = 'GPS capture failed. Please try again.';
+          _gpsCapturing = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _validatePlaceName() async {
+    final query = _placeNameCtrl.text.trim();
+    if (query.isEmpty) return;
+    setState(() {
+      _geocoding = true;
+      _locationError = null;
+      _geocodedLat = null;
+      _geocodedLon = null;
+      _geocodedDisplayName = null;
+    });
+    try {
+      final result =
+          await LocationService.instance.geocodeAddressDetailed(query);
+      if (!mounted) return;
+      if (result == null) {
+        setState(() {
+          _locationError =
+              "Place doesn't exist on Map. Please correct the spelling "
+              'or use a more recognised landmark.';
+          _geocoding = false;
+        });
+        return;
+      }
+      setState(() {
+        _geocodedLat = result.latitude;
+        _geocodedLon = result.longitude;
+        _geocodedDisplayName = result.displayName;
+        _locationError = null;
+        _geocoding = false;
+      });
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _locationError =
+              'Map service is unreachable. Please check your connection.';
+          _geocoding = false;
+        });
+      }
+    }
   }
 
   Future<void> _submit() async {
@@ -82,6 +167,8 @@ class _ManufacturingCreateScreenState
           'description': _descCtrl.text.trim(),
         if (_locationCtrl.text.trim().isNotEmpty)
           'location': _locationCtrl.text.trim(),
+        if (_geocodedLat != null) 'latitude': _geocodedLat,
+        if (_geocodedLon != null) 'longitude': _geocodedLon,
         if (_unitCtrl.text.trim().isNotEmpty) 'unit': _unitCtrl.text.trim(),
         if (_skuCtrl.text.trim().isNotEmpty) 'sku': _skuCtrl.text.trim(),
         if (_moqCtrl.text.trim().isNotEmpty)
@@ -189,6 +276,100 @@ class _ManufacturingCreateScreenState
               ),
 
               _sectionTitle('LOCATION'),
+              Text(
+                'Option A – Use my current GPS location',
+                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                icon: _gpsCapturing
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.my_location, size: 18),
+                label: Text(_gpsCapturing
+                    ? 'Getting location…'
+                    : 'Capture GPS Location'),
+                onPressed:
+                    (_gpsCapturing || _geocoding) ? null : _captureGpsLocation,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Option B – Enter place name',
+                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _placeNameCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Place name (e.g. "Kampala, Uganda")',
+                        isDense: true,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: FilledButton(
+                      onPressed:
+                          (_geocoding || _gpsCapturing) ? null : _validatePlaceName,
+                      child: _geocoding
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white),
+                            )
+                          : const Text('Validate'),
+                    ),
+                  ),
+                ],
+              ),
+              if (_geocodedDisplayName != null) ...[
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Icon(Icons.check_circle_outline,
+                        size: 14,
+                        color: Theme.of(context).colorScheme.primary),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        _geocodedDisplayName!,
+                        style: const TextStyle(fontSize: 12),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+              if (_locationError != null) ...[
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Icon(Icons.error_outline,
+                        size: 14,
+                        color: Theme.of(context).colorScheme.error),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        _locationError!,
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(context).colorScheme.error),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 12),
               TextFormField(
                 controller: _locationCtrl,
                 decoration: const InputDecoration(

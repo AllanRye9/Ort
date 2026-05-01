@@ -118,6 +118,9 @@ class PropertyBase(BaseModel):
     bedrooms: Optional[int] = None
     bathrooms: Optional[int] = None
     area_sqft: Optional[int] = None
+    country: Optional[str] = None
+    plot_length_m: Optional[float] = None
+    plot_width_m: Optional[float] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
 
@@ -130,6 +133,8 @@ class PropertyCreate(PropertyBase):
     bedrooms: Optional[int] = Field(None, ge=0)
     bathrooms: Optional[int] = Field(None, ge=0)
     area_sqft: Optional[int] = Field(None, gt=0)
+    plot_length_m: Optional[float] = Field(None, gt=0)
+    plot_width_m: Optional[float] = Field(None, gt=0)
     images: Optional[List[str]] = None
 
     @field_validator("title", "address", mode="before")
@@ -152,6 +157,9 @@ class PropertyUpdate(BaseModel):
     bedrooms: Optional[int] = Field(None, ge=0)
     bathrooms: Optional[int] = Field(None, ge=0)
     area_sqft: Optional[int] = Field(None, gt=0)
+    country: Optional[str] = None
+    plot_length_m: Optional[float] = Field(None, gt=0)
+    plot_width_m: Optional[float] = Field(None, gt=0)
     status: Optional[str] = Field(None, pattern="^(available|sold|rented|pending)$")
 
     @field_validator("title", "address", mode="before")
