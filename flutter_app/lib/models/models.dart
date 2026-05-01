@@ -114,6 +114,9 @@ class PropertyModel {
     this.agentId,
     this.latitude,
     this.longitude,
+    this.country,
+    this.plotLengthM,
+    this.plotWidthM,
   });
 
   final int id;
@@ -133,6 +136,22 @@ class PropertyModel {
   final double? latitude;
   final double? longitude;
 
+  /// Country name detected at listing creation time (e.g. "Uganda").
+  final String? country;
+
+  /// Plot length in metres (Uganda metric measurement).
+  final double? plotLengthM;
+
+  /// Plot width in metres (Uganda metric measurement).
+  final double? plotWidthM;
+
+  /// Whether this is a Uganda listing using metric L×W measurement.
+  bool get isUgandaMetric => plotLengthM != null && plotWidthM != null;
+
+  /// Computed total area in m² for Uganda listings.
+  double? get totalAreaM2 =>
+      isUgandaMetric ? plotLengthM! * plotWidthM! : null;
+
   factory PropertyModel.fromJson(Map<String, dynamic> j) => PropertyModel(
         id: j['id'] as int,
         title: j['title'] as String,
@@ -150,6 +169,9 @@ class PropertyModel {
         agentId: j['agent_id'] as int?,
         latitude: j['latitude'] != null ? double.parse(j['latitude'].toString()) : null,
         longitude: j['longitude'] != null ? double.parse(j['longitude'].toString()) : null,
+        country: j['country'] as String?,
+        plotLengthM: j['plot_length_m'] != null ? double.parse(j['plot_length_m'].toString()) : null,
+        plotWidthM: j['plot_width_m'] != null ? double.parse(j['plot_width_m'].toString()) : null,
       );
 }
 
