@@ -7,12 +7,25 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shimmer/shimmer.dart';
+import '../../core/api_service.dart';
 import '../../core/auth_provider.dart';
 import '../../core/listing_providers.dart';
 import '../../core/location_service.dart';
 import '../../core/responsive.dart';
 import '../../core/theme.dart';
 import '../../models/models.dart';
+
+// Provider for current user (for avatar in hero banner)
+final _homeUserProvider = FutureProvider.autoDispose<UserModel?>((ref) async {
+  final auth = ref.watch(authProvider);
+  if (!auth.isAuthenticated) return null;
+  try {
+    final data = await ref.read(apiServiceProvider).getMe();
+    return UserModel.fromJson(data);
+  } catch (_) {
+    return null;
+  }
+});
 
 // ─── Role-specific quick actions ──────────────────────────────────────────────
 
@@ -78,8 +91,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   // true when the device's location service (GPS toggle) is off
   bool _locationServiceOff = false;
-  // true when the user has denied the location permission
-  bool _locationPermissionDenied = false;
   // whether the user dismissed the location-service-off banner
   bool _locationBannerDismissed = false;
   // whether the one-time GPS-off dialog has been shown this session
@@ -132,10 +143,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!mounted) return;
     if (!serviceEnabled) {
-      setState(() {
-        _locationServiceOff = true;
-        _locationPermissionDenied = false;
-      });
+      setState(() => _locationServiceOff = true);
       // Show a one-time dialog prompting the user to enable GPS.
       if (!_locationDialogShown) {
         setState(() => _locationDialogShown = true);
@@ -151,17 +159,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       ref.read(userLocationProvider.notifier).state = loc;
       setState(() {
         _locationServiceOff = false;
-        _locationPermissionDenied = false;
         _lastSortedLoc = loc;
       });
       _startPositionTracking();
-    } else {
-      // Position came back null with service enabled → permission denied.
-      setState(() {
-        _locationServiceOff = false;
-        _locationPermissionDenied = true;
-      });
     }
+    // If permission denied, silently skip – no banner shown.
   }
 
   /// Shows a dialog when GPS is off, giving the user Cancel/Accept options.
@@ -256,6 +258,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final userLoc = ref.watch(userLocationProvider);
     final auth = ref.watch(authProvider);
     final role = auth.role ?? 'user';
+    final currentUser = ref.watch(_homeUserProvider).valueOrNull;
 
     final quickActions = switch (role) {
       'agent' => _agentQuickActions,
@@ -294,6 +297,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   greeting: auth.userId != null ? 'Welcome back!' : 'Welcome!',
                   subtitle: roleLabel,
                   role: role,
+                  avatarUrl: currentUser?.avatarUrl,
+                  onAvatarTap: () => context.go('/profile'),
                 ),
               ),
               actions: [
@@ -328,16 +333,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         },
                         onDismiss: () =>
                             setState(() => _locationBannerDismissed = true),
-                      ),
-                    // Permission denied – non-blocking dismissible banner
-                    if (_locationPermissionDenied)
-                      _LocationBanner(
-                        icon: Icons.location_off_outlined,
-                        message: 'Grant location permission to sort listings by proximity.',
-                        actionLabel: 'Enable',
-                        onAction: () => _initLocation(),
-                        onDismiss: () =>
-                            setState(() => _locationPermissionDenied = false),
                       ),
                     // Refresh results banner when user has moved >500 m
                     if (_showRefreshResults)
@@ -516,10 +511,14 @@ class _HeroBanner extends StatefulWidget {
     required this.greeting,
     required this.subtitle,
     required this.role,
+    this.avatarUrl,
+    this.onAvatarTap,
   });
   final String greeting;
   final String subtitle;
   final String role;
+  final String? avatarUrl;
+  final VoidCallback? onAvatarTap;
 
   @override
   State<_HeroBanner> createState() => _HeroBannerState();
@@ -561,7 +560,9 @@ class _HeroBannerState extends State<_HeroBanner>
   }
 
   @override
-  Widget build(BuildContext context) => Container(
+  Widget build(BuildContext context) {
+    final roleIcon = Icon(_roleIcon, color: Colors.white, size: 28);
+    return Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
@@ -599,29 +600,43 @@ class _HeroBannerState extends State<_HeroBanner>
                 ],
               ),
             ),
-            // Pulsing icon badge
+            // Profile image / pulsing icon badge
             AnimatedBuilder(
               animation: _pulseAnim,
               builder: (_, child) => Transform.scale(
                 scale: 0.92 + 0.08 * _pulseAnim.value,
                 child: child,
               ),
-              child: Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.4), width: 2),
+              child: GestureDetector(
+                onTap: widget.onAvatarTap,
+                child: Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.4), width: 2),
+                  ),
+                  child: widget.avatarUrl != null && widget.avatarUrl!.isNotEmpty
+                      ? ClipOval(
+                          child: CachedNetworkImage(
+                            imageUrl: widget.avatarUrl!,
+                            fit: BoxFit.cover,
+                            width: 52,
+                            height: 52,
+                            placeholder: (_, __) => roleIcon,
+                            errorWidget: (_, __, ___) => roleIcon,
+                          ),
+                        )
+                      : roleIcon,
                 ),
-                child: Icon(_roleIcon, color: Colors.white, size: 28),
               ),
             ),
           ],
         ),
       );
-}
+  }
 
 // ─── Search bar ───────────────────────────────────────────────────────────────
 
@@ -636,9 +651,9 @@ class _SearchBar extends StatelessWidget {
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: cs.surfaceContainerLow,
+          color: Colors.white,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: cs.outline.withValues(alpha: 0.45)),
+          border: Border.all(color: Colors.black.withValues(alpha: 0.12)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.06),
@@ -655,8 +670,8 @@ class _SearchBar extends StatelessWidget {
             Expanded(
               child: Text(
                 'Search properties, agriculture, goods…',
-                style: TextStyle(
-                  color: cs.onSurface.withValues(alpha: 0.65),
+                style: const TextStyle(
+                  color: Color(0xFF424242),
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
                 ),
