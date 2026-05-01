@@ -637,6 +637,7 @@ class _HeroBannerState extends State<_HeroBanner>
         ),
       );
   }
+}
 
 // ─── Search bar ───────────────────────────────────────────────────────────────
 
