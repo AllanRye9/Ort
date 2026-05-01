@@ -6,8 +6,35 @@
 import 'dart:math';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'api_service.dart';
 import '../models/models.dart';
+
+// ─── Currency formatting ──────────────────────────────────────────────────────
+
+/// Formats [amount] as a currency string.
+///
+/// When [country] is Uganda or United Arab Emirates, or when [currency] is
+/// 'UGX', the amount is displayed in Uganda Shillings (UGX) with no decimal
+/// places and thousand-separator commas.
+///
+/// All other amounts are displayed in USD using the `$` symbol with [decimals]
+/// decimal places. The [decimals] parameter has no effect for UGX amounts,
+/// which always use zero decimal places.
+String formatCurrency(
+  double amount, {
+  String? country,
+  String? currency,
+  int decimals = 0,
+}) {
+  final isUgx = currency?.toUpperCase() == 'UGX' ||
+      const ['uganda', 'united arab emirates']
+          .contains(country?.toLowerCase());
+  if (isUgx) {
+    return 'UGX ${NumberFormat('#,###', 'en_US').format(amount.round())}';
+  }
+  return '\$${amount.toStringAsFixed(decimals)}';
+}
 
 /// The user's last known GPS position as `(lat, lon)`. Null until the user
 /// grants location permission or manually sets a location.
