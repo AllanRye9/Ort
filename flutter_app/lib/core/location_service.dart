@@ -38,7 +38,8 @@ class LocationService {
   ));
 
   /// Strips characters that may confuse Nominatim (e.g. special symbols) while
-  /// preserving letters, digits, spaces, commas, hyphens, and periods.
+  /// preserving letters, digits, spaces, commas, hyphens, periods, and
+  /// apostrophes (useful for place names such as "Côte d'Ivoire").
   static String sanitizeQuery(String query) {
     return query.replaceAll(RegExp(r"[^\w\s,.\-']"), ' ').trim();
   }
