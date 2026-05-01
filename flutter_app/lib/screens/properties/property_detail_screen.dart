@@ -142,6 +142,20 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
   Future<void> _placeBid(PropertyModel p) async {
     final userId = ref.read(authProvider).userId;
     if (userId == null) return;
+
+    // Derive currency from the property's country if available.
+    final country = p.country?.toLowerCase();
+    final currencySymbol = country == 'uganda'
+        ? 'UGX '
+        : country == 'united arab emirates'
+            ? 'AED '
+            : '\$';
+    final currencyCode = country == 'uganda'
+        ? 'UGX'
+        : country == 'united arab emirates'
+            ? 'AED'
+            : 'USD';
+
     final bidCtrl =
         TextEditingController(text: p.price.toStringAsFixed(0));
     final notesCtrl = TextEditingController();
@@ -162,11 +176,11 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                 keyboardType: const TextInputType.numberWithOptions(
                     decimal: true),
                 decoration: InputDecoration(
-                  labelText: 'Your bid amount',
-                  prefixText: '\$',
+                  labelText: 'Your bid amount ($currencyCode)',
+                  prefixText: currencySymbol,
                   border: const OutlineInputBorder(),
                   helperText:
-                      'Listed at \$${p.price.toStringAsFixed(0)}',
+                      'Listed at $currencySymbol${p.price.toStringAsFixed(0)}',
                   isDense: true,
                 ),
                 onChanged: (_) => setDialog(() {}),
