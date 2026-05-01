@@ -300,7 +300,7 @@ def admin_delete_property(
     prop = db.query(Property).filter(Property.id == property_id).first()
     if not prop:
         raise HTTPException(status_code=404, detail="Property not found")
-    db.delete(prop)
+    prop.is_deleted = True
     _log_action(db, admin, "delete_property", "property", property_id)
     db.commit()
     return {"message": "Property deleted"}
@@ -360,7 +360,7 @@ def admin_delete_agriculture(
     listing = db.query(AgricultureListing).filter(AgricultureListing.id == listing_id).first()
     if not listing:
         raise HTTPException(status_code=404, detail="Agriculture listing not found")
-    db.delete(listing)
+    listing.is_deleted = True
     _log_action(db, admin, "delete_agriculture", "agriculture", listing_id)
     db.commit()
     return {"message": "Agriculture listing deleted"}
@@ -420,10 +420,106 @@ def admin_delete_manufacturing(
     product = db.query(ManufacturingProduct).filter(ManufacturingProduct.id == product_id).first()
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
-    db.delete(product)
+    product.is_deleted = True
     _log_action(db, admin, "delete_manufacturing", "manufacturing", product_id)
     db.commit()
     return {"message": "Manufacturing product deleted"}
+
+
+# ─── Deleted Items ────────────────────────────────────────────────────────────
+
+@router.get("/deleted/")
+def admin_list_deleted_items(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=200),
+    content_type: Optional[str] = Query(None),  # "properties", "agriculture", "manufacturing"
+    admin: User = Depends(_get_admin_user),
+    db: Session = Depends(get_db),
+):
+    """List all soft-deleted items across properties, agriculture and manufacturing."""
+    items = []
+    total = 0
+
+    if content_type in (None, "properties"):
+        q = db.query(Property).filter(Property.is_deleted == True)
+        props = q.offset(skip).limit(limit).all()
+        total += q.count()
+        items.extend([
+            {"id": p.id, "type": "properties", "title": p.title, "status": p.status, "created_at": p.created_at}
+            for p in props
+        ])
+
+    if content_type in (None, "agriculture"):
+        q = db.query(AgricultureListing).filter(AgricultureListing.is_deleted == True)
+        agri = q.offset(skip).limit(limit).all()
+        total += q.count()
+        items.extend([
+            {"id": a.id, "type": "agriculture", "title": a.title, "status": a.status, "created_at": a.created_at}
+            for a in agri
+        ])
+
+    if content_type in (None, "manufacturing"):
+        q = db.query(ManufacturingProduct).filter(ManufacturingProduct.is_deleted == True)
+        mfg = q.offset(skip).limit(limit).all()
+        total += q.count()
+        items.extend([
+            {"id": m.id, "type": "manufacturing", "title": m.title, "status": m.status, "created_at": m.created_at}
+            for m in mfg
+        ])
+
+    return {"total": total, "items": items}
+
+
+@router.delete("/deleted/{content_type}/{item_id}")
+def admin_purge_deleted_item(
+    content_type: str,
+    item_id: int,
+    admin: User = Depends(_get_admin_user),
+    db: Session = Depends(get_db),
+):
+    """Permanently delete a soft-deleted item from the database."""
+    if content_type == "properties":
+        obj = db.query(Property).filter(Property.id == item_id, Property.is_deleted == True).first()
+    elif content_type == "agriculture":
+        obj = db.query(AgricultureListing).filter(AgricultureListing.id == item_id, AgricultureListing.is_deleted == True).first()
+    elif content_type == "manufacturing":
+        obj = db.query(ManufacturingProduct).filter(ManufacturingProduct.id == item_id, ManufacturingProduct.is_deleted == True).first()
+    else:
+        raise HTTPException(status_code=400, detail="Invalid content type")
+
+    if not obj:
+        raise HTTPException(status_code=404, detail="Deleted item not found")
+
+    db.delete(obj)
+    _log_action(db, admin, "purge_deleted", content_type, item_id)
+    db.commit()
+    return {"message": "Item permanently deleted"}
+
+
+@router.patch("/deleted/{content_type}/{item_id}/restore")
+def admin_restore_deleted_item(
+    content_type: str,
+    item_id: int,
+    admin: User = Depends(_get_admin_user),
+    db: Session = Depends(get_db),
+):
+    """Restore a soft-deleted item."""
+    if content_type == "properties":
+        obj = db.query(Property).filter(Property.id == item_id, Property.is_deleted == True).first()
+    elif content_type == "agriculture":
+        obj = db.query(AgricultureListing).filter(AgricultureListing.id == item_id, AgricultureListing.is_deleted == True).first()
+    elif content_type == "manufacturing":
+        obj = db.query(ManufacturingProduct).filter(ManufacturingProduct.id == item_id, ManufacturingProduct.is_deleted == True).first()
+    else:
+        raise HTTPException(status_code=400, detail="Invalid content type")
+
+    if not obj:
+        raise HTTPException(status_code=404, detail="Deleted item not found")
+
+    obj.is_deleted = False
+    _log_action(db, admin, "restore_deleted", content_type, item_id)
+    db.commit()
+    return {"message": "Item restored"}
 
 
 # ─── Media Management ─────────────────────────────────────────────────────────

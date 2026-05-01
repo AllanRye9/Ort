@@ -34,7 +34,7 @@ def list_products(
     radius_km: Optional[float] = Query(None, gt=0),
     db: Session = Depends(get_db),
 ):
-    q = db.query(ManufacturingProduct)
+    q = db.query(ManufacturingProduct).filter(ManufacturingProduct.is_deleted == False)
     if category:
         q = q.filter(ManufacturingProduct.category == category)
     if status:
@@ -93,7 +93,7 @@ def update_product_status(
 
 @router.get("/{product_id}", response_model=ManufacturingProductResponse)
 def get_product(product_id: int, db: Session = Depends(get_db)):
-    obj = db.query(ManufacturingProduct).filter(ManufacturingProduct.id == product_id).first()
+    obj = db.query(ManufacturingProduct).filter(ManufacturingProduct.id == product_id, ManufacturingProduct.is_deleted == False).first()
     if not obj:
         raise HTTPException(status_code=404, detail="Manufacturing product not found")
     return obj
@@ -122,9 +122,9 @@ def update_product(product_id: int, payload: ManufacturingProductUpdate, db: Ses
 
 @router.delete("/{product_id}", status_code=status.HTTP_200_OK)
 def delete_product(product_id: int, db: Session = Depends(get_db)):
-    obj = db.query(ManufacturingProduct).filter(ManufacturingProduct.id == product_id).first()
+    obj = db.query(ManufacturingProduct).filter(ManufacturingProduct.id == product_id, ManufacturingProduct.is_deleted == False).first()
     if not obj:
         raise HTTPException(status_code=404, detail="Manufacturing product not found")
-    db.delete(obj)
+    obj.is_deleted = True
     db.commit()
     return {"message": "Manufacturing product deleted successfully"}

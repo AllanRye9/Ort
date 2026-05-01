@@ -154,6 +154,11 @@ _HTML = r"""<!DOCTYPE html>
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
             d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/>
         </svg>Broadcast</button>
+      <button class="sidebar-link" onclick="showSection('deleted')" aria-label="Deleted Items">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+        </svg>Deleted Items</button>
     </nav>
     <div class="px-3 py-4 border-t border-green-800">
       <button onclick="logout()"
@@ -386,6 +391,37 @@ _HTML = r"""<!DOCTYPE html>
       </div>
     </section>
 
+    <!-- ── Deleted Items section ──────────────────────────────────────── -->
+    <section id="sec-deleted" class="p-6 space-y-4 hidden">
+      <div class="flex gap-2 mb-4">
+        <button onclick="loadDeleted('all')"
+          class="px-4 py-2 bg-red-700 text-white rounded-lg text-sm hover:bg-red-800 transition-colors">All</button>
+        <button onclick="loadDeleted('properties')"
+          class="px-4 py-2 bg-red-100 text-red-800 rounded-lg text-sm hover:bg-red-200 transition-colors">Properties</button>
+        <button onclick="loadDeleted('agriculture')"
+          class="px-4 py-2 bg-red-100 text-red-800 rounded-lg text-sm hover:bg-red-200 transition-colors">Agriculture</button>
+        <button onclick="loadDeleted('manufacturing')"
+          class="px-4 py-2 bg-red-100 text-red-800 rounded-lg text-sm hover:bg-red-200 transition-colors">Manufacturing</button>
+      </div>
+      <p class="text-xs text-gray-500">Items shown here have been soft-deleted. You can restore them or permanently remove them from the database.</p>
+      <div class="bg-white rounded-2xl shadow overflow-hidden">
+        <table class="min-w-full text-sm">
+          <thead class="bg-gray-50 border-b">
+            <tr>
+              <th class="px-4 py-3 text-left font-semibold text-gray-600">ID</th>
+              <th class="px-4 py-3 text-left font-semibold text-gray-600">Type</th>
+              <th class="px-4 py-3 text-left font-semibold text-gray-600">Title</th>
+              <th class="px-4 py-3 text-left font-semibold text-gray-600">Status</th>
+              <th class="px-4 py-3 text-left font-semibold text-gray-600">Deleted On</th>
+              <th class="px-4 py-3 text-left font-semibold text-gray-600">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="deletedTable" class="divide-y"></tbody>
+        </table>
+        <div id="deletedEmpty" class="hidden px-4 py-8 text-center text-gray-400 text-sm">No deleted items found.</div>
+      </div>
+    </section>
+
   </main>
 </div>
 
@@ -548,7 +584,8 @@ function showSection(name) {
   document.getElementById('sec-' + name).classList.remove('hidden');
   const titles = {
     dashboard:'Dashboard', users:'User Management', content:'Content Moderation',
-    reports:'Reports & Analytics', tickets:'Support Tickets', logs:'Audit Logs', broadcast:'Broadcast Notification'
+    reports:'Reports & Analytics', tickets:'Support Tickets', logs:'Audit Logs',
+    broadcast:'Broadcast Notification', deleted:'Deleted Items'
   };
   document.getElementById('pageTitle').textContent = titles[name] || name;
   if (name === 'dashboard') loadDashboard();
@@ -557,6 +594,7 @@ function showSection(name) {
   else if (name === 'reports') loadReports();
   else if (name === 'tickets') { _ticketsOffset = 0; loadTickets(); }
   else if (name === 'logs') { _logsOffset = 0; loadLogs(); }
+  else if (name === 'deleted') loadDeleted('all');
 }
 
 // ── Fetch helper ───────────────────────────────────────────────────────────
@@ -888,6 +926,59 @@ async function loadLogs(offset) {
 }
 
 // ── Broadcast ──────────────────────────────────────────────────────────────
+// ── Deleted Items ──────────────────────────────────────────────────────────
+let _deletedFilter = 'all';
+async function loadDeleted(filter) {
+  _deletedFilter = filter;
+  const table = document.getElementById('deletedTable');
+  const emptyEl = document.getElementById('deletedEmpty');
+  table.innerHTML = '<tr><td colspan="6" class="px-4 py-6 text-center text-gray-400 text-sm">Loading…</td></tr>';
+  emptyEl.classList.add('hidden');
+  try {
+    const params = filter !== 'all' ? `?content_type=${filter}` : '';
+    const data = await apiFetch(`/admin/deleted/${params}`);
+    const items = data.items || [];
+    if (items.length === 0) {
+      table.innerHTML = '';
+      emptyEl.classList.remove('hidden');
+      return;
+    }
+    table.innerHTML = items.map(item => `
+      <tr class="hover:bg-gray-50">
+        <td class="px-4 py-3 text-gray-500">${esc(item.id)}</td>
+        <td class="px-4 py-3"><span class="badge bg-red-100 text-red-700">${esc(item.type)}</span></td>
+        <td class="px-4 py-3 font-medium">${esc(item.title)}</td>
+        <td class="px-4 py-3 text-gray-500">${esc(item.status)}</td>
+        <td class="px-4 py-3 text-gray-500 text-xs">${fmtDate(item.created_at)}</td>
+        <td class="px-4 py-3">
+          <button onclick="restoreDeletedItem('${item.type}',${item.id})"
+            class="text-xs text-green-700 hover:underline mr-2">Restore</button>
+          <button onclick="purgeDeletedItem('${item.type}',${item.id})"
+            class="text-xs text-red-600 hover:underline">Purge</button>
+        </td>
+      </tr>`).join('');
+  } catch(e) {
+    table.innerHTML = `<tr><td colspan="6" class="px-4 py-6 text-center text-red-500 text-sm">Error: ${esc(e.message)}</td></tr>`;
+  }
+}
+
+async function purgeDeletedItem(type, id) {
+  if (!confirm(`Permanently delete this ${type} item? This cannot be undone.`)) return;
+  try {
+    await apiFetch(`/admin/deleted/${type}/${id}`, {method:'DELETE'});
+    showToast('Item permanently deleted','green');
+    loadDeleted(_deletedFilter);
+  } catch(e) { showToast('Purge failed: '+e.message,'red'); }
+}
+
+async function restoreDeletedItem(type, id) {
+  try {
+    await apiFetch(`/admin/deleted/${type}/${id}/restore`, {method:'PATCH'});
+    showToast('Item restored','green');
+    loadDeleted(_deletedFilter);
+  } catch(e) { showToast('Restore failed: '+e.message,'red'); }
+}
+
 async function sendBroadcast() {
   const title = document.getElementById('bcTitle').value.trim();
   const body  = document.getElementById('bcBody').value.trim();

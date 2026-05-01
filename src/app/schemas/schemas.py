@@ -121,6 +121,8 @@ class PropertyBase(BaseModel):
     country: Optional[str] = None
     plot_length_m: Optional[float] = None
     plot_width_m: Optional[float] = None
+    land_category: Optional[str] = None
+    land_area_acres: Optional[float] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
 
@@ -135,6 +137,8 @@ class PropertyCreate(PropertyBase):
     area_sqft: Optional[int] = Field(None, gt=0)
     plot_length_m: Optional[float] = Field(None, gt=0)
     plot_width_m: Optional[float] = Field(None, gt=0)
+    land_category: Optional[str] = Field(None, pattern="^(farmland|residential|industrial|other)$")
+    land_area_acres: Optional[float] = Field(None, gt=0)
     images: Optional[List[str]] = None
 
     @field_validator("title", "address", mode="before")
@@ -160,7 +164,9 @@ class PropertyUpdate(BaseModel):
     country: Optional[str] = None
     plot_length_m: Optional[float] = Field(None, gt=0)
     plot_width_m: Optional[float] = Field(None, gt=0)
-    status: Optional[str] = Field(None, pattern="^(available|sold|rented|pending)$")
+    land_category: Optional[str] = Field(None, pattern="^(farmland|residential|industrial|other)$")
+    land_area_acres: Optional[float] = Field(None, gt=0)
+    status: Optional[str] = Field(None, pattern="^(available|sold|rented|pending|unavailable)$")
 
     @field_validator("title", "address", mode="before")
     @classmethod

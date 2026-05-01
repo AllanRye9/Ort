@@ -4,6 +4,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from passlib.context import CryptContext
 from jose import jwt, JWTError
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from typing import List, Optional
 
 from app.database.database import get_db
@@ -11,6 +12,7 @@ from app.models.models import (
     Appointment, Client, Inquiry, Listing, Payment,
     Property, PropertyImage, Transaction, User,
 )
+from app.models.marketplace_models import OrderItem
 from app.schemas.schemas import (
     AppointmentCreate, AppointmentResponse,
     ClientCreate, ClientResponse, ClientUpdate,
@@ -256,12 +258,13 @@ def get_properties(
     city: Optional[str] = Query(None),
     property_type: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
+    agent_id: Optional[int] = Query(None),
     lat: Optional[float] = Query(None),
     lon: Optional[float] = Query(None),
     radius_km: Optional[float] = Query(None, gt=0),
     db: Session = Depends(get_db),
 ):
-    q = db.query(Property)
+    q = db.query(Property).filter(Property.is_deleted == False)
     if keyword:
         like = f"%{keyword}%"
         q = q.filter(
@@ -277,6 +280,8 @@ def get_properties(
         q = q.filter(Property.city.ilike(f"%{city}%"))
     if property_type:
         q = q.filter(Property.property_type == property_type)
+    if agent_id is not None:
+        q = q.filter(Property.agent_id == agent_id)
     if status:
         q = q.filter(Property.status == status)
     elif lat is not None and lon is not None and radius_km is not None:
@@ -298,7 +303,7 @@ def get_properties(
 
 @router.get("/properties/{property_id}", response_model=PropertyResponse)
 def get_property(property_id: int, db: Session = Depends(get_db)):
-    prop = db.query(Property).filter(Property.id == property_id).first()
+    prop = db.query(Property).filter(Property.id == property_id, Property.is_deleted == False).first()
     if not prop:
         raise HTTPException(status_code=404, detail="Property not found")
     return PropertyResponse.from_orm_with_images(prop)
@@ -352,13 +357,24 @@ def update_property_status(
 
 @router.delete("/properties/{property_id}", status_code=status.HTTP_200_OK)
 def delete_property(property_id: int, db: Session = Depends(get_db)):
-    prop = db.query(Property).filter(Property.id == property_id).first()
+    prop = db.query(Property).filter(Property.id == property_id, Property.is_deleted == False).first()
     if not prop:
         raise HTTPException(status_code=404, detail="Property not found")
 
-    db.delete(prop)
+    prop.is_deleted = True
     db.commit()
     return {"message": "Property deleted successfully"}
+
+
+@router.get("/properties/{property_id}/bid-count")
+def get_property_bid_count(property_id: int, db: Session = Depends(get_db)):
+    """Return the number of bids (order items) for a given property."""
+    count = (
+        db.query(func.count(OrderItem.id))
+        .filter(OrderItem.property_id == property_id)
+        .scalar()
+    ) or 0
+    return {"property_id": property_id, "bid_count": count}
 
 
 # ========== PROPERTY IMAGE ENDPOINTS ==========

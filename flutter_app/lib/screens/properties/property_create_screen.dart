@@ -27,10 +27,18 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
   final _areaCtrl = TextEditingController();
   final _lengthCtrl = TextEditingController();
   final _widthCtrl = TextEditingController();
+  final _landAreaCtrl = TextEditingController();
 
   String _propertyType = 'house';
   List<String> _imageUrls = [];
   bool _submitting = false;
+
+  // Land category fields
+  String? _landCategory;     // farmland, residential, industrial, other
+  String _landAreaUnit = 'acres'; // acres or hectares
+  bool _landResidentialUseMetric = false; // use L×W in meters for residential land
+
+  static const _landCategories = ['farmland', 'residential', 'industrial', 'other'];
 
   // Location state
   double? _geocodedLat;
@@ -68,6 +76,7 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
     _areaCtrl.dispose();
     _lengthCtrl.dispose();
     _widthCtrl.dispose();
+    _landAreaCtrl.dispose();
     super.dispose();
   }
 
@@ -86,9 +95,10 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
         });
         return;
       }
-      // Reverse-geocode to get country and display name.
-      final result = await LocationService.instance.geocodeAddressDetailed(
-        '${pos.latitude},${pos.longitude}',
+      // Use Nominatim /reverse endpoint for accurate reverse geocoding.
+      final result = await LocationService.instance.reverseGeocodePosition(
+        pos.latitude,
+        pos.longitude,
       );
       if (!mounted) return;
       setState(() {
@@ -173,8 +183,28 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
       double? areaValue;
       double? lengthM;
       double? widthM;
+      double? landAreaAcres;
 
-      if (_isUganda) {
+      final isLand = _propertyType == 'land';
+
+      if (isLand && _landCategory != null) {
+        // Collect land area
+        if (_landCategory == 'residential' && _landResidentialUseMetric) {
+          // Use L×W in meters
+          final l = double.tryParse(_lengthCtrl.text.trim());
+          final w = double.tryParse(_widthCtrl.text.trim());
+          if (l != null && w != null) {
+            lengthM = l;
+            widthM = w;
+          }
+        } else {
+          // Use acres or hectares input
+          final val = double.tryParse(_landAreaCtrl.text.trim());
+          if (val != null) {
+            landAreaAcres = _landAreaUnit == 'hectares' ? val * 2.47105 : val;
+          }
+        }
+      } else if (_isUganda) {
         final l = double.tryParse(_lengthCtrl.text.trim());
         final w = double.tryParse(_widthCtrl.text.trim());
         if (l != null && w != null) {
@@ -200,13 +230,18 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
         if (_descCtrl.text.trim().isNotEmpty)
           'description': _descCtrl.text.trim(),
         if (_cityCtrl.text.trim().isNotEmpty) 'city': _cityCtrl.text.trim(),
-        if (_bedroomsCtrl.text.trim().isNotEmpty)
+        if (!isLand && _bedroomsCtrl.text.trim().isNotEmpty)
           'bedrooms': int.parse(_bedroomsCtrl.text.trim()),
-        if (_bathroomsCtrl.text.trim().isNotEmpty)
+        if (!isLand && _bathroomsCtrl.text.trim().isNotEmpty)
           'bathrooms': int.parse(_bathroomsCtrl.text.trim()),
-        if (!_isUganda && areaValue != null) 'area_sqft': areaValue.toInt(),
-        if (_isUganda && lengthM != null) 'plot_length_m': lengthM,
-        if (_isUganda && widthM != null) 'plot_width_m': widthM,
+        if (!isLand && !_isUganda && areaValue != null)
+          'area_sqft': areaValue.toInt(),
+        if (!isLand && _isUganda && lengthM != null) 'plot_length_m': lengthM,
+        if (!isLand && _isUganda && widthM != null) 'plot_width_m': widthM,
+        if (isLand && _landCategory != null) 'land_category': _landCategory,
+        if (isLand && landAreaAcres != null) 'land_area_acres': landAreaAcres,
+        if (isLand && lengthM != null) 'plot_length_m': lengthM,
+        if (isLand && widthM != null) 'plot_width_m': widthM,
         if (_imageUrls.isNotEmpty) 'images': _imageUrls,
       };
 
@@ -284,8 +319,33 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
                         child: Text(
                             t[0].toUpperCase() + t.substring(1))))
                     .toList(),
-                onChanged: (v) => setState(() => _propertyType = v!),
+                onChanged: (v) => setState(() {
+                    _propertyType = v!;
+                    // Reset land-specific fields when switching away from land
+                    if (v != 'land') {
+                      _landCategory = null;
+                    }
+                  }),
               ),
+              // ── Land category (shown only when property_type == 'land') ────
+              if (_propertyType == 'land') ...[
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  value: _landCategory,
+                  decoration: const InputDecoration(
+                    labelText: 'Land Category *',
+                  ),
+                  items: _landCategories
+                      .map((c) => DropdownMenuItem(
+                          value: c,
+                          child: Text(
+                              c[0].toUpperCase() + c.substring(1))))
+                      .toList(),
+                  onChanged: (v) => setState(() => _landCategory = v),
+                  validator: (v) =>
+                      v == null ? 'Please select a land category' : null,
+                ),
+              ],
               const SizedBox(height: 12),
               TextFormField(
                 controller: _descCtrl,
@@ -446,115 +506,132 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
 
               // ── Details ──────────────────────────────────────────────────────
               _sectionTitle('DETAILS'),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _bedroomsCtrl,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: 'Bedrooms'),
-                      validator: (v) {
-                        if (v == null || v.isEmpty) return null;
-                        if (int.tryParse(v) == null) return 'Invalid';
-                        return null;
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _bathroomsCtrl,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: 'Bathrooms'),
-                      validator: (v) {
-                        if (v == null || v.isEmpty) return null;
-                        if (int.tryParse(v) == null) return 'Invalid';
-                        return null;
-                      },
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              // Uganda: L × W measurement; everywhere else: area in sqft
-              if (_isUganda) ...[
-                Text(
-                  'PLOT DIMENSIONS (METRIC – UGANDA)',
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.8,
-                  ),
+              if (_propertyType == 'land' && _landCategory != null) ...[
+                // Land area measurement section
+                _LandAreaSection(
+                  landCategory: _landCategory!,
+                  landAreaUnit: _landAreaUnit,
+                  landAreaCtrl: _landAreaCtrl,
+                  lengthCtrl: _lengthCtrl,
+                  widthCtrl: _widthCtrl,
+                  residentialUseMetric: _landResidentialUseMetric,
+                  onUnitChanged: (u) => setState(() => _landAreaUnit = u),
+                  onMetricChanged: (v) =>
+                      setState(() => _landResidentialUseMetric = v),
+                  cs: cs,
                 ),
-                const SizedBox(height: 8),
+              ] else if (_propertyType != 'land') ...[
                 Row(
                   children: [
                     Expanded(
                       child: TextFormField(
-                        controller: _lengthCtrl,
-                        keyboardType:
-                            const TextInputType.numberWithOptions(decimal: true),
-                        decoration: const InputDecoration(
-                            labelText: 'Length (m)', suffixText: 'm'),
+                        controller: _bedroomsCtrl,
+                        keyboardType: TextInputType.number,
+                        decoration:
+                            const InputDecoration(labelText: 'Bedrooms'),
                         validator: (v) {
                           if (v == null || v.isEmpty) return null;
-                          if (double.tryParse(v) == null) return 'Invalid';
+                          if (int.tryParse(v) == null) return 'Invalid';
                           return null;
                         },
-                        onChanged: (_) => setState(() {}),
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: TextFormField(
-                        controller: _widthCtrl,
-                        keyboardType:
-                            const TextInputType.numberWithOptions(decimal: true),
-                        decoration: const InputDecoration(
-                            labelText: 'Width (m)', suffixText: 'm'),
+                        controller: _bathroomsCtrl,
+                        keyboardType: TextInputType.number,
+                        decoration:
+                            const InputDecoration(labelText: 'Bathrooms'),
                         validator: (v) {
                           if (v == null || v.isEmpty) return null;
-                          if (double.tryParse(v) == null) return 'Invalid';
+                          if (int.tryParse(v) == null) return 'Invalid';
                           return null;
                         },
-                        onChanged: (_) => setState(() {}),
                       ),
                     ),
                   ],
                 ),
-                // Live area preview
-                Builder(builder: (_) {
-                  final l = double.tryParse(_lengthCtrl.text);
-                  final w = double.tryParse(_widthCtrl.text);
-                  if (l != null && w != null) {
-                    return Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Text(
-                        'Dimensions: ${l.toStringAsFixed(0)}m × '
-                        '${w.toStringAsFixed(0)}m  |  '
-                        'Total Area: ${(l * w).toStringAsFixed(0)} m²',
-                        style: TextStyle(
-                            fontSize: 13,
-                            color: cs.primary,
-                            fontWeight: FontWeight.w600),
+                const SizedBox(height: 12),
+                // Uganda: L × W measurement; everywhere else: area in sqft
+                if (_isUganda) ...[
+                  Text(
+                    'PLOT DIMENSIONS (METRIC – UGANDA)',
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.8,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: _lengthCtrl,
+                          keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true),
+                          decoration: const InputDecoration(
+                              labelText: 'Length (m)', suffixText: 'm'),
+                          validator: (v) {
+                            if (v == null || v.isEmpty) return null;
+                            if (double.tryParse(v) == null) return 'Invalid';
+                            return null;
+                          },
+                          onChanged: (_) => setState(() {}),
+                        ),
                       ),
-                    );
-                  }
-                  return const SizedBox.shrink();
-                }),
-              ] else ...[
-                TextFormField(
-                  controller: _areaCtrl,
-                  keyboardType: TextInputType.number,
-                  decoration:
-                      const InputDecoration(labelText: 'Area (sqft, optional)'),
-                  validator: (v) {
-                    if (v == null || v.isEmpty) return null;
-                    if (int.tryParse(v) == null) return 'Invalid';
-                    return null;
-                  },
-                ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _widthCtrl,
+                          keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true),
+                          decoration: const InputDecoration(
+                              labelText: 'Width (m)', suffixText: 'm'),
+                          validator: (v) {
+                            if (v == null || v.isEmpty) return null;
+                            if (double.tryParse(v) == null) return 'Invalid';
+                            return null;
+                          },
+                          onChanged: (_) => setState(() {}),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Builder(builder: (_) {
+                    final l = double.tryParse(_lengthCtrl.text);
+                    final w = double.tryParse(_widthCtrl.text);
+                    if (l != null && w != null) {
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(
+                          'Dimensions: ${l.toStringAsFixed(0)}m × '
+                          '${w.toStringAsFixed(0)}m  |  '
+                          'Total Area: ${(l * w).toStringAsFixed(0)} m²',
+                          style: TextStyle(
+                              fontSize: 13,
+                              color: cs.primary,
+                              fontWeight: FontWeight.w600),
+                        ),
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  }),
+                ] else ...[
+                  TextFormField(
+                    controller: _areaCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                        labelText: 'Area (sqft, optional)'),
+                    validator: (v) {
+                      if (v == null || v.isEmpty) return null;
+                      if (int.tryParse(v) == null) return 'Invalid';
+                      return null;
+                    },
+                  ),
+                ],
               ],
 
               const SizedBox(height: 32),
@@ -574,6 +651,232 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+// ─── Land area section widget ────────────────────────────────────────────────
+
+class _LandAreaSection extends StatelessWidget {
+  const _LandAreaSection({
+    required this.landCategory,
+    required this.landAreaUnit,
+    required this.landAreaCtrl,
+    required this.lengthCtrl,
+    required this.widthCtrl,
+    required this.residentialUseMetric,
+    required this.onUnitChanged,
+    required this.onMetricChanged,
+    required this.cs,
+  });
+
+  final String landCategory;
+  final String landAreaUnit;
+  final TextEditingController landAreaCtrl;
+  final TextEditingController lengthCtrl;
+  final TextEditingController widthCtrl;
+  final bool residentialUseMetric;
+  final ValueChanged<String> onUnitChanged;
+  final ValueChanged<bool> onMetricChanged;
+  final ColorScheme cs;
+
+  double get _minAcres => landAreaUnit == 'hectares' ? 0.1 : 1.0;
+  String get _minLabel => landAreaUnit == 'hectares' ? '0.1 ha' : '1 acre';
+
+  @override
+  Widget build(BuildContext context) {
+    // Residential land can use L×W in meters OR acres/hectares
+    if (landCategory == 'residential') {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Text('Measurement mode:',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+              const SizedBox(width: 12),
+              ChoiceChip(
+                label: const Text('L × W (m)', style: TextStyle(fontSize: 12)),
+                selected: residentialUseMetric,
+                onSelected: (_) => onMetricChanged(true),
+                visualDensity: VisualDensity.compact,
+              ),
+              const SizedBox(width: 6),
+              ChoiceChip(
+                label: const Text('Acres/Hectares',
+                    style: TextStyle(fontSize: 12)),
+                selected: !residentialUseMetric,
+                onSelected: (_) => onMetricChanged(false),
+                visualDensity: VisualDensity.compact,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (residentialUseMetric)
+            _MetricDimensionsInput(
+                lengthCtrl: lengthCtrl, widthCtrl: widthCtrl, cs: cs)
+          else
+            _AcresHectaresInput(
+              ctrl: landAreaCtrl,
+              unit: landAreaUnit,
+              minValue: _minAcres,
+              minLabel: _minLabel,
+              onUnitChanged: onUnitChanged,
+            ),
+        ],
+      );
+    }
+
+    // Farmland / Industrial / Other → acres / hectares
+    return _AcresHectaresInput(
+      ctrl: landAreaCtrl,
+      unit: landAreaUnit,
+      minValue: _minAcres,
+      minLabel: _minLabel,
+      onUnitChanged: onUnitChanged,
+      isFarmland: landCategory == 'farmland',
+    );
+  }
+}
+
+class _AcresHectaresInput extends StatelessWidget {
+  const _AcresHectaresInput({
+    required this.ctrl,
+    required this.unit,
+    required this.minValue,
+    required this.minLabel,
+    required this.onUnitChanged,
+    this.isFarmland = false,
+  });
+
+  final TextEditingController ctrl;
+  final String unit;
+  final double minValue;
+  final String minLabel;
+  final ValueChanged<String> onUnitChanged;
+  final bool isFarmland;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Text('Unit:', style: TextStyle(fontSize: 13)),
+            const SizedBox(width: 8),
+            ChoiceChip(
+              label:
+                  const Text('Acres', style: TextStyle(fontSize: 12)),
+              selected: unit == 'acres',
+              onSelected: (_) => onUnitChanged('acres'),
+              visualDensity: VisualDensity.compact,
+            ),
+            const SizedBox(width: 6),
+            ChoiceChip(
+              label: const Text('Hectares',
+                  style: TextStyle(fontSize: 12)),
+              selected: unit == 'hectares',
+              onSelected: (_) => onUnitChanged('hectares'),
+              visualDensity: VisualDensity.compact,
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: ctrl,
+          keyboardType:
+              const TextInputType.numberWithOptions(decimal: true),
+          decoration: InputDecoration(
+            labelText: 'Land Area ($unit) *',
+            suffixText: unit == 'acres' ? 'ac' : 'ha',
+            helperText: isFarmland
+                ? 'Minimum: $minLabel  ·  step: 0.01'
+                : 'Minimum: $minLabel',
+          ),
+          validator: (v) {
+            if (v == null || v.trim().isEmpty) return 'Area is required';
+            final val = double.tryParse(v.trim());
+            if (val == null) return 'Enter a valid number';
+            if (val < minValue) {
+              return 'Minimum $minLabel';
+            }
+            return null;
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _MetricDimensionsInput extends StatelessWidget {
+  const _MetricDimensionsInput({
+    required this.lengthCtrl,
+    required this.widthCtrl,
+    required this.cs,
+  });
+
+  final TextEditingController lengthCtrl;
+  final TextEditingController widthCtrl;
+  final ColorScheme cs;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: TextFormField(
+                controller: lengthCtrl,
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(
+                    labelText: 'Length (m)', suffixText: 'm'),
+                validator: (v) {
+                  if (v == null || v.isEmpty) return null;
+                  if (double.tryParse(v) == null) return 'Invalid';
+                  return null;
+                },
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: TextFormField(
+                controller: widthCtrl,
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(
+                    labelText: 'Width (m)', suffixText: 'm'),
+                validator: (v) {
+                  if (v == null || v.isEmpty) return null;
+                  if (double.tryParse(v) == null) return 'Invalid';
+                  return null;
+                },
+              ),
+            ),
+          ],
+        ),
+        Builder(builder: (_) {
+          final l = double.tryParse(lengthCtrl.text);
+          final w = double.tryParse(widthCtrl.text);
+          if (l != null && w != null) {
+            return Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                '${l.toStringAsFixed(0)}m × ${w.toStringAsFixed(0)}m  |  '
+                '${(l * w).toStringAsFixed(0)} m²',
+                style: TextStyle(
+                    fontSize: 13,
+                    color: cs.primary,
+                    fontWeight: FontWeight.w600),
+              ),
+            );
+          }
+          return const SizedBox.shrink();
+        }),
+      ],
     );
   }
 }

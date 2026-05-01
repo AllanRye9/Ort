@@ -335,7 +335,7 @@ class ManufacturingProductResponse(ManufacturingProductBase):
 # ========== ORDER ==========
 
 class PropertyStatusUpdate(BaseModel):
-    status: str = Field(..., pattern="^(available|sold|rented|pending)$")
+    status: str = Field(..., pattern="^(available|sold|rented|pending|unavailable)$")
 
 
 class OrderItemCreate(BaseModel):
