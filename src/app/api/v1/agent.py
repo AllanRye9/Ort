@@ -112,7 +112,7 @@ def get_agent_clients(
     ]
 
     # user_id → set of action labels
-    user_actions: dict[int, set] = {}
+    user_actions: dict[int, set[str]] = {}
 
     if prop_ids:
         # Saved
