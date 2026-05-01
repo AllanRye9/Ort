@@ -19,7 +19,8 @@ import '../models/models.dart';
 /// places and thousand-separator commas.
 ///
 /// All other amounts are displayed in USD using the `$` symbol with [decimals]
-/// decimal places.
+/// decimal places. The [decimals] parameter has no effect for UGX amounts,
+/// which always use zero decimal places.
 String formatCurrency(
   double amount, {
   String? country,
@@ -27,8 +28,8 @@ String formatCurrency(
   int decimals = 0,
 }) {
   final isUgx = currency?.toUpperCase() == 'UGX' ||
-      country?.toLowerCase() == 'uganda' ||
-      country?.toLowerCase() == 'united arab emirates';
+      const ['uganda', 'united arab emirates']
+          .contains(country?.toLowerCase());
   if (isUgx) {
     return 'UGX ${NumberFormat('#,###', 'en_US').format(amount.round())}';
   }
