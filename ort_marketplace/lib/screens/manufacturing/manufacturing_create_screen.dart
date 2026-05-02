@@ -65,7 +65,7 @@ class _ManufacturingCreateScreenState
     'plastics',
     'metals',
     'automotive',
-    'food processing',
+    'food_processing',
     'other',
   ];
 
@@ -242,7 +242,7 @@ class _ManufacturingCreateScreenState
         final payload = <String, dynamic>{
           'title': _titleCtrl.text.trim(),
           'wholesale_price': double.parse(_priceCtrl.text.trim()),
-          'category': _category.replaceAll(' ', '_'),
+          'category': _category,
           'is_locally_made': _isLocallyMade,
           if (_descCtrl.text.trim().isNotEmpty)
             'description': _descCtrl.text.trim(),
@@ -426,7 +426,8 @@ class _ManufacturingCreateScreenState
             items: _categories
                 .map((c) => DropdownMenuItem(
                     value: c,
-                    child: Text(c[0].toUpperCase() + c.substring(1))))
+                    child: Text(c.replaceAll('_', ' ')[0].toUpperCase() +
+                        c.replaceAll('_', ' ').substring(1))))
                 .toList(),
             onChanged: (v) => setState(() => _category = v!),
           ),
