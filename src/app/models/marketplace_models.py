@@ -115,6 +115,7 @@ class AgricultureListing(Base):
 
     id = Column(Integer, primary_key=True)
     tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"))
+    owner_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     title = Column(String(255), nullable=False)
     description = Column(Text)
     category = Column(String(100))          # grains, livestock, produce, etc.
@@ -163,6 +164,7 @@ class ManufacturingProduct(Base):
 
     id = Column(Integer, primary_key=True)
     tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"))
+    owner_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     title = Column(String(255), nullable=False)
     description = Column(Text)
     category = Column(String(100))          # textiles, crafts, processed_foods, etc.

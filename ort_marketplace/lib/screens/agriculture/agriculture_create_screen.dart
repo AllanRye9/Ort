@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/api_service.dart';
+import '../../core/auth_provider.dart';
 import '../../core/listing_providers.dart';
 import '../../core/location_service.dart';
 import '../../widgets/media_picker_field.dart';
@@ -174,6 +175,9 @@ class _AgricultureCreateScreenState
         if (_imageUrls.isNotEmpty) 'images': _imageUrls,
       };
 
+      final userId = ref.read(authProvider).userId;
+      if (userId != null) payload['owner_user_id'] = userId;
+
       await ref.read(apiServiceProvider).createAgricultureListing(payload);
       invalidateHomeProviders(ref);
 
@@ -181,7 +185,7 @@ class _AgricultureCreateScreenState
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Listing created successfully!')),
         );
-        context.go('/agriculture');
+        context.go('/my-listings');
       }
     } catch (e) {
       if (mounted) {

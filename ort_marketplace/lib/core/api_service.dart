@@ -235,6 +235,7 @@ class ApiService {
     String? category,
     String? status,
     int? tenantId,
+    int? ownerUserId,
   }) async {
     final res = await _dio.get('/agriculture/', queryParameters: {
       'skip': skip,
@@ -242,6 +243,7 @@ class ApiService {
       if (category != null) 'category': category,
       if (status != null) 'status': status,
       if (tenantId != null) 'tenant_id': tenantId,
+      if (ownerUserId != null) 'owner_user_id': ownerUserId,
     });
     return res.data as List<dynamic>;
   }
@@ -276,6 +278,7 @@ class ApiService {
     String? category,
     String? status,
     int? tenantId,
+    int? ownerUserId,
   }) async {
     final res = await _dio.get('/manufacturing/', queryParameters: {
       'skip': skip,
@@ -283,6 +286,7 @@ class ApiService {
       if (category != null) 'category': category,
       if (status != null) 'status': status,
       if (tenantId != null) 'tenant_id': tenantId,
+      if (ownerUserId != null) 'owner_user_id': ownerUserId,
     });
     return res.data as List<dynamic>;
   }
