@@ -479,10 +479,12 @@ class ApiService {
     required int rating,
     String? title,
     String? body,
+    int? reviewerId,
   }) async {
     return createReview({
       'reviewed_agent_id': agentId,
       'rating': rating,
+      if (reviewerId != null) 'reviewer_id': reviewerId,
       if (title != null && title.isNotEmpty) 'title': title,
       if (body != null && body.isNotEmpty) 'body': body,
     });

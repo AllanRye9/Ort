@@ -341,11 +341,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         onDismiss: () =>
                             setState(() => _showRefreshResults = false),
                       ),
-                    // Radius filter chips (only shown when location is available)
-                    if (userLoc != null) ...[
-                      const SizedBox(height: 4),
-                      const _RadiusFilter(),
-                    ],
+                    // Radius filter logic runs in background; UI chips removed.
                   ],
                 ),
               ),
@@ -384,7 +380,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       subtitle: p.city ?? p.address,
                       price: formatCurrency(p.price, country: p.country),
                       badge: p.propertyType,
-                      distanceKm: _distKmFromUser(userLoc, p.latitude, p.longitude),
+                      distanceKm: null,
                       onTap: () => ctx.go('/properties/${p.id}'),
                     ),
                     emptyText: 'No properties listed yet.',
@@ -423,7 +419,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         price:
                             '${formatCurrency(a.pricePerUnit, currency: a.currency, decimals: 2)}/${a.unit ?? 'unit'}',
                         badge: a.category,
-                        distanceKm: _distKmFromUser(userLoc, a.latitude, a.longitude),
+                        distanceKm: null,
                         onTap: () => ctx.go('/agriculture/${a.id}'),
                       );
                     },
@@ -464,7 +460,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         price:
                             '${formatCurrency(m.wholesalePrice, currency: m.currency, decimals: 2)}/${m.unit ?? 'unit'}',
                         badge: m.category,
-                        distanceKm: _distKmFromUser(userLoc, m.latitude, m.longitude),
+                        distanceKm: null,
                         onTap: () => ctx.go('/manufacturing/${m.id}'),
                       );
                     },
@@ -504,7 +500,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         price:
                             '${formatCurrency(s.price, currency: s.currency, decimals: 2)}/${s.pricingUnit ?? 'service'}',
                         badge: s.serviceType,
-                        distanceKm: _distKmFromUser(userLoc, s.latitude, s.longitude),
+                        distanceKm: null,
                         onTap: () => ctx.go('/manufacturing/service/${s.id}'),
                       );
                     },
@@ -1332,9 +1328,84 @@ class _AiWidget extends ConsumerStatefulWidget {
   ConsumerState<_AiWidget> createState() => _AiWidgetState();
 }
 
-class _AiWidgetState extends ConsumerState<_AiWidget>
-    with TickerProviderStateMixin {
-  bool _expanded = false;
+class _AiWidgetState extends ConsumerState<_AiWidget> {
+  void _openDialog() {
+    showDialog<void>(
+      context: context,
+      builder: (_) => const _AiDialog(),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Card(
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: InkWell(
+        onTap: _openDialog,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: cs.primary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.auto_awesome, color: cs.primary, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Text('Ort AI',
+                            style: TextStyle(fontWeight: FontWeight.bold)),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.green.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text('Free',
+                              style: TextStyle(
+                                  fontSize: 10, color: Colors.green)),
+                        ),
+                      ],
+                    ),
+                    const Text('Tap to search listings with AI',
+                        style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  ],
+                ),
+              ),
+              Icon(Icons.open_in_new, size: 18, color: cs.primary),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── AI popup dialog ──────────────────────────────────────────────────────────
+
+class _AiDialog extends ConsumerStatefulWidget {
+  const _AiDialog();
+
+  @override
+  ConsumerState<_AiDialog> createState() => _AiDialogState();
+}
+
+class _AiDialogState extends ConsumerState<_AiDialog>
+    with SingleTickerProviderStateMixin {
   bool _scanning = false;
   final _ctrl = TextEditingController();
   late final AnimationController _radarCtrl;
@@ -1386,7 +1457,6 @@ class _AiWidgetState extends ConsumerState<_AiWidget>
     });
     _ctrl.clear();
 
-    // Play radar sweep animation
     _radarCtrl.repeat();
     await Future.delayed(_scanDuration);
     _radarCtrl
@@ -1395,23 +1465,19 @@ class _AiWidgetState extends ConsumerState<_AiWidget>
 
     if (!mounted) return;
 
-    // Scan current page listings
     final lower = text.toLowerCase();
     final props = ref.read(sortedHomePropertiesProvider).valueOrNull ?? [];
     final agri = ref.read(sortedHomeAgricultureProvider).valueOrNull ?? [];
     final mfg = ref.read(sortedHomeMfgProvider).valueOrNull ?? [];
     final svc = ref.read(sortedHomeServicesProvider).valueOrNull ?? [];
 
-    // Determine whether the query targets a specific section.
     final targetsProps = _sectionMatch(lower, ['propert']);
     final targetsAgri = _sectionMatch(lower, ['agricult', 'farm']);
     final targetsMfg = _sectionMatch(lower, ['manufactur', 'product']);
     final targetsSvc = _sectionMatch(lower, ['service']);
     final anySection = targetsProps || targetsAgri || targetsMfg || targetsSvc;
 
-    // Keywords after stripping known section words
     final keywords = _keywords(lower);
-
     final results = <String>[];
 
     if (targetsProps || (!anySection && keywords.isNotEmpty)) {
@@ -1461,11 +1527,9 @@ class _AiWidgetState extends ConsumerState<_AiWidget>
     });
   }
 
-  /// Returns true when [lower] contains any of the [prefixes] (section check).
   bool _sectionMatch(String lower, List<String> prefixes) =>
       prefixes.any((p) => lower.contains(p));
 
-  /// Extracts meaningful keywords by removing known section words.
   List<String> _keywords(String lower) {
     return lower
         .split(RegExp(r'\s+'))
@@ -1473,7 +1537,6 @@ class _AiWidgetState extends ConsumerState<_AiWidget>
         .toList();
   }
 
-  /// Returns true when any keyword appears in any field.
   bool _keywordMatch(List<String> keywords, List<String?> fields) {
     for (final field in fields) {
       if (field == null) continue;
@@ -1486,18 +1549,18 @@ class _AiWidgetState extends ConsumerState<_AiWidget>
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return Card(
-      margin: EdgeInsets.zero,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // ── Header ──────────────────────────────────────────────────────────
-          InkWell(
-            onTap: () => setState(() => _expanded = !_expanded),
-            borderRadius: BorderRadius.circular(16),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 40),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 520),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // ── Header ───────────────────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 8, 10),
               child: Row(
                 children: [
                   Container(
@@ -1532,23 +1595,23 @@ class _AiWidgetState extends ConsumerState<_AiWidget>
                             ),
                           ],
                         ),
-                        const Text('Scan this page for listings',
+                        const Text('Search listings with AI',
                             style: TextStyle(fontSize: 12, color: Colors.grey)),
                       ],
                     ),
                   ),
-                  Icon(
-                      _expanded ? Icons.expand_less : Icons.expand_more,
-                      color: Colors.grey),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.of(context).pop(),
+                    tooltip: 'Close',
+                  ),
                 ],
               ),
             ),
-          ),
 
-          if (_expanded) ...[
             const Divider(height: 1),
 
-            // ── Popular chips ────────────────────────────────────────────────
+            // ── Popular chips ─────────────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
               child: Wrap(
@@ -1569,10 +1632,10 @@ class _AiWidgetState extends ConsumerState<_AiWidget>
               ),
             ),
 
-            // ── Radar / Messages ─────────────────────────────────────────────
+            // ── Radar / Messages ──────────────────────────────────────────────
             if (_scanning)
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
+                padding: const EdgeInsets.symmetric(vertical: 16),
                 child: Column(
                   children: [
                     AnimatedBuilder(
@@ -1598,7 +1661,7 @@ class _AiWidgetState extends ConsumerState<_AiWidget>
               )
             else
               SizedBox(
-                height: 160,
+                height: 200,
                 child: ListView.builder(
                   padding: const EdgeInsets.all(12),
                   itemCount: _messages.length,
@@ -1631,9 +1694,9 @@ class _AiWidgetState extends ConsumerState<_AiWidget>
                 ),
               ),
 
-            // ── Input row ────────────────────────────────────────────────────
+            // ── Input row ─────────────────────────────────────────────────────
             Padding(
-              padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+              padding: const EdgeInsets.fromLTRB(12, 4, 12, 14),
               child: Row(
                 children: [
                   Expanded(
@@ -1661,7 +1724,7 @@ class _AiWidgetState extends ConsumerState<_AiWidget>
               ),
             ),
           ],
-        ],
+        ),
       ),
     );
   }
