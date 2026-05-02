@@ -370,17 +370,17 @@ class _ManufacturingDetailScreenState extends ConsumerState<ManufacturingDetailS
                               bgColor: Colors.blue.withValues(alpha: 0.08),
                               textColor: Colors.blue[700]!),
                         if (m.sku != null)
-                          _InfoChip(label: 'SKU: ${m.sku}'),
+                          _InfoChip(label: 'Product Code: ${m.sku}'),
                         if (m.moq != null)
                           _InfoChip(
                               label:
-                                  'MOQ: ${m.moq} ${m.unit ?? ''}'),
+                                  'Min Order: ${m.moq} ${m.unit ?? ''}'),
                         if (m.quantityAvailable != null)
-                          _InfoChip(label: 'Stock: ${m.quantityAvailable}'),
+                          _InfoChip(label: 'In Stock: ${m.quantityAvailable}'),
                         if (m.leadTimeDays != null)
                           _InfoChip(
                               label:
-                                  'Lead time: ${m.leadTimeDays} days'),
+                                  'Processing time: ${m.leadTimeDays} days'),
                         if (m.isLocallyMade)
                           _InfoChip(
                               label: '✓ Locally Made',

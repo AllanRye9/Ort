@@ -17,7 +17,11 @@ class ManufacturingScreen extends ConsumerStatefulWidget {
       _ManufacturingScreenState();
 }
 
-class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen> {
+class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabCtrl;
+
+  // ── Products state ─────────────────────────────────────────────────────────
   final _searchCtrl = TextEditingController();
   String _keyword = '';
   String? _category;
@@ -35,22 +39,43 @@ class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen> {
   bool _loading = true;
   String? _error;
 
+  // ── Services state ─────────────────────────────────────────────────────────
+  final _svcSearchCtrl = TextEditingController();
+  String _svcKeyword = '';
+  String? _svcType;
+  String? _svcStatus;
+
+  List<ManufacturingServiceModel>? _svcItems;
+  bool _svcLoading = true;
+  String? _svcError;
+
   static const _categories = [
     'textiles', 'electronics', 'furniture', 'food_processing',
     'packaging', 'chemicals', 'automotive', 'construction', 'other',
   ];
   static const _statuses = ['available', 'out_of_stock', 'discontinued'];
 
+  static const _serviceTypes = [
+    'machining', 'fabrication', 'welding', 'assembly',
+    'finishing', 'testing', 'printing', 'packaging',
+    'consultation', 'other',
+  ];
+  static const _serviceStatuses = ['available', 'fully_booked', 'discontinued'];
+
   @override
   void initState() {
     super.initState();
+    _tabCtrl = TabController(length: 2, vsync: this);
     _loadListings();
+    _loadServices();
   }
 
   @override
   void dispose() {
+    _tabCtrl.dispose();
     _searchCtrl.dispose();
     _customRadiusCtrl.dispose();
+    _svcSearchCtrl.dispose();
     super.dispose();
   }
 
@@ -122,6 +147,90 @@ class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen> {
           ),
         );
         _loadListings();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Delete failed: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  // ── Services methods ───────────────────────────────────────────────────────
+
+  Future<void> _loadServices() async {
+    setState(() {
+      _svcLoading = true;
+      _svcError = null;
+    });
+    try {
+      final data = await ref.read(apiServiceProvider).getManufacturingServices(
+            keyword: _svcKeyword.isNotEmpty ? _svcKeyword : null,
+            serviceType: _svcType,
+            status: _svcStatus,
+          );
+      if (mounted) {
+        setState(() {
+          _svcItems = data
+              .map((e) => ManufacturingServiceModel.fromJson(
+                  e as Map<String, dynamic>))
+              .toList();
+          _svcLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _svcError = e.toString();
+          _svcLoading = false;
+        });
+      }
+    }
+  }
+
+  void _applySvcSearch() {
+    setState(() => _svcKeyword = _svcSearchCtrl.text.trim());
+    _loadServices();
+  }
+
+  Future<void> _confirmDeleteService(ManufacturingServiceModel s) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Service'),
+        content: Text('Delete "${s.title}"? This cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red[700],
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      await ref.read(apiServiceProvider).deleteManufacturingService(s.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Service deleted.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        _loadServices();
       }
     } catch (e) {
       if (mounted) {
@@ -382,24 +491,43 @@ class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Wholesale Manufacturing'),
+        title: const Text('Manufacturing & Services'),
         actions: [
-          if (_hasActiveFilters)
+          if (_tabCtrl.index == 0 && _hasActiveFilters)
             IconButton(
               icon: const Icon(Icons.filter_list_off),
               tooltip: 'Clear Filters',
               onPressed: _clearFilters,
             ),
         ],
+        bottom: TabBar(
+          controller: _tabCtrl,
+          onTap: (_) => setState(() {}),
+          tabs: const [
+            Tab(icon: Icon(Icons.inventory_2_outlined), text: 'Products'),
+            Tab(icon: Icon(Icons.build_outlined), text: 'Services'),
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         icon: const Icon(Icons.add),
-        label: const Text('Add Product'),
+        label: const Text('Add Listing'),
         onPressed: () => context.go('/manufacturing/create'),
       ),
-      body: Column(
+      body: TabBarView(
+        controller: _tabCtrl,
         children: [
-          // ── Search bar ──────────────────────────────────────────────
+          _buildProductsTab(context),
+          _buildServicesTab(context),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProductsTab(BuildContext context) {
+    return Column(
+      children: [
+        // ── Search bar ──────────────────────────────────────────────
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             child: Row(
@@ -671,14 +799,14 @@ class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen> {
                                       price:
                                           '\$${m.wholesalePrice.toStringAsFixed(2)}/${m.unit ?? 'unit'}',
                                       extras: [
-                                        if (m.moq != null) 'MOQ: ${m.moq}',
+                                        if (m.moq != null) 'Min order: ${m.moq}',
                                         if (m.leadTimeDays != null)
-                                          'Lead: ${m.leadTimeDays}d',
-                                        if (m.isLocallyMade) 'Local',
+                                          '${m.leadTimeDays} day lead time',
+                                        if (m.isLocallyMade) 'Locally made',
                                       ],
                                       onTap: () =>
                                           ctx.go('/manufacturing/${m.id}'),
-                                      onLongPress: () =>
+                                      onDoubleTap: () =>
                                           _confirmDeleteManufacturing(m),
                                     );
                                   },
@@ -688,7 +816,171 @@ class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen> {
                           ),
           ),
         ],
-      ),
+      );
+  }
+
+  Widget _buildServicesTab(BuildContext context) {
+    return Column(
+      children: [
+        // ── Search bar ─────────────────────────────────────────────
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: ValueListenableBuilder<TextEditingValue>(
+            valueListenable: _svcSearchCtrl,
+            builder: (context, value, _) => TextField(
+              controller: _svcSearchCtrl,
+              textInputAction: TextInputAction.search,
+              decoration: InputDecoration(
+                hintText: 'Search services…',
+                prefixIcon: const Icon(Icons.search, size: 20),
+                suffixIcon: value.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, size: 18),
+                        onPressed: () {
+                          _svcSearchCtrl.clear();
+                          _applySvcSearch();
+                        },
+                      )
+                    : null,
+                isDense: true,
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              onSubmitted: (_) => _applySvcSearch(),
+            ),
+          ),
+        ),
+        // ── Service type filter chips ──────────────────────────────
+        Padding(
+          padding: const EdgeInsets.only(left: 12, right: 12, bottom: 6),
+          child: SizedBox(
+            height: 34,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              children: _serviceTypes
+                  .map((t) => Padding(
+                        padding: const EdgeInsets.only(right: 6),
+                        child: FilterChip(
+                          label: Text(
+                            t[0].toUpperCase() + t.substring(1),
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                          selected: _svcType == t,
+                          onSelected: (v) {
+                            setState(() => _svcType = v ? t : null);
+                            _loadServices();
+                          },
+                          visualDensity: VisualDensity.compact,
+                          padding: EdgeInsets.zero,
+                        ),
+                      ))
+                  .toList(),
+            ),
+          ),
+        ),
+        // ── Results ───────────────────────────────────────────────
+        Expanded(
+          child: _svcLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _svcError != null
+                  ? Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('Error: $_svcError'),
+                          const SizedBox(height: 8),
+                          ElevatedButton(
+                            onPressed: _loadServices,
+                            child: const Text('Retry'),
+                          ),
+                        ],
+                      ),
+                    )
+                  : _svcItems == null || _svcItems!.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.build_outlined,
+                                  size: 64, color: Colors.grey[300]),
+                              const SizedBox(height: 16),
+                              Text(
+                                'No services listed yet.',
+                                style: TextStyle(color: Colors.grey[500]),
+                              ),
+                              const SizedBox(height: 16),
+                              ElevatedButton.icon(
+                                icon: const Icon(Icons.add),
+                                label: const Text('Add First Service'),
+                                onPressed: () =>
+                                    context.go('/manufacturing/create'),
+                              ),
+                            ],
+                          ),
+                        )
+                      : RefreshIndicator(
+                          onRefresh: _loadServices,
+                          child: LayoutBuilder(
+                            builder: (ctx, _) {
+                              final cols = ctx.gridColumns;
+                              return GridView.builder(
+                                padding: EdgeInsets.fromLTRB(
+                                  ctx.contentPadding.left,
+                                  4,
+                                  ctx.contentPadding.right,
+                                  80,
+                                ),
+                                gridDelegate:
+                                    SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: cols,
+                                  childAspectRatio: 0.65,
+                                  crossAxisSpacing: 10,
+                                  mainAxisSpacing: 10,
+                                ),
+                                itemCount: _svcItems!.length,
+                                itemBuilder: (ctx, i) {
+                                  final s = _svcItems![i];
+                                  final imgUrl = (s.images != null &&
+                                          s.images!.isNotEmpty)
+                                      ? s.images!.first
+                                      : null;
+                                  final pricingLabel = s.pricingUnit != null
+                                      ? s.pricingUnit!.replaceAll('_', ' ')
+                                      : 'flat rate';
+                                  return ListingCard(
+                                    icon: Icons.build_rounded,
+                                    iconColor: const Color(0xFF1565C0),
+                                    imageUrl: imgUrl,
+                                    title: s.title,
+                                    subtitle:
+                                        s.location ?? s.serviceType ?? 'Service',
+                                    tag: s.serviceType != null
+                                        ? s.serviceType![0].toUpperCase() +
+                                            s.serviceType!.substring(1)
+                                        : 'Service',
+                                    status: s.status,
+                                    price:
+                                        '\$${s.price.toStringAsFixed(2)} / $pricingLabel',
+                                    extras: [
+                                      if (s.noticePeriodDays != null)
+                                        '${s.noticePeriodDays} day notice',
+                                    ],
+                                    onTap: () => ctx
+                                        .go('/manufacturing/service/${s.id}'),
+                                    onDoubleTap: () =>
+                                        _confirmDeleteService(s),
+                                  );
+                                },
+                              );
+                            },
+                          ),
+                        ),
+        ),
+      ],
     );
   }
 }
+
