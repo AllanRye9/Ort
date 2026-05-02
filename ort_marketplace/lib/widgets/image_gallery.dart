@@ -71,7 +71,25 @@ class _ImageGalleryState extends State<ImageGallery> {
               itemCount: urls.length,
               onPageChanged: (i) => setState(() => _current = i),
               itemBuilder: (ctx, i) => GestureDetector(
-                onTap: () => _openFullScreen(ctx, urls, i),
+                onDoubleTap: () => _openFullScreen(ctx, urls, i),
+                onTapDown: (details) {
+                  final screenWidth = MediaQuery.of(ctx).size.width;
+                  if (details.globalPosition.dx < screenWidth / 2) {
+                    if (_current > 0) {
+                      _pageController.previousPage(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
+                      );
+                    }
+                  } else {
+                    if (_current < urls.length - 1) {
+                      _pageController.nextPage(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
+                      );
+                    }
+                  }
+                },
                 child: CachedNetworkImage(
                   imageUrl: urls[i],
                   fit: BoxFit.cover,
