@@ -729,13 +729,14 @@ class _SearchBar extends StatelessWidget {
                   Icon(Icons.tune, color: cs.primary, size: 14),
                   const SizedBox(width: 4),
                   Text(
-                    'Filter',
-                    style: TextStyle(
-                      color: isDarkOrOcean ? Colors.white : Colors.grey[800],
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+  'Filter',
+  style: TextStyle(
+    // computeLuminance() < 0.5 means the background is dark
+    color: cs.surface.computeLuminance() < 0.5 ? Colors.white : Colors.grey[800],
+    fontSize: 11,
+    fontWeight: FontWeight.w600,
+  ),
+),
                 ],
               ),
             ),
