@@ -699,7 +699,7 @@ class _PropertyListingCard extends StatelessWidget {
                 )),
           ],
         ),
-        onTap: onEdit,
+        onTap: onView,
       ),
     );
   }
@@ -868,7 +868,7 @@ class _SimpleListingCard extends StatelessWidget {
                 )),
           ],
         ),
-        onTap: onEdit,
+        onTap: onView,
       ),
     );
   }
