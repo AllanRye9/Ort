@@ -128,6 +128,9 @@ _MIGRATIONS: list[tuple[str, str, str]] = [
     ("image_blobs",             "created_at", "TIMESTAMP"),
     # Bid tracking: link RFQs to the property they reference
     ("rfqs",                    "property_id", "INTEGER"),
+    # Owner user linkage for agent-created agri/mfg listings
+    ("agriculture_listings",    "owner_user_id", "INTEGER"),
+    ("manufacturing_products",  "owner_user_id", "INTEGER"),
 ]
 
 # Columns whose type needs widening on existing databases.

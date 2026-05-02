@@ -687,16 +687,19 @@ class _SearchBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: cs.surfaceContainerHighest,
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.08)
+              : Colors.white,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: cs.outline.withValues(alpha: 0.25)),
+          border: Border.all(color: cs.outline.withValues(alpha: 0.3)),
           boxShadow: [
             BoxShadow(
-              color: cs.shadow.withValues(alpha: 0.06),
+              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.06),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -711,7 +714,7 @@ class _SearchBar extends StatelessWidget {
               child: Text(
                 'Search properties, agriculture, goods…',
                 style: TextStyle(
-                  color: cs.onSurface.withValues(alpha: 0.7),
+                  color: isDark ? Colors.white70 : Colors.grey[600],
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
                 ),
@@ -729,14 +732,13 @@ class _SearchBar extends StatelessWidget {
                   Icon(Icons.tune, color: cs.primary, size: 14),
                   const SizedBox(width: 4),
                   Text(
-  'Filter',
-  style: TextStyle(
-    // computeLuminance() < 0.5 means the background is dark
-    color: cs.surface.computeLuminance() < 0.5 ? Colors.white : Colors.grey[800],
-    fontSize: 11,
-    fontWeight: FontWeight.w600,
-  ),
-),
+                    'Filter',
+                    style: TextStyle(
+                      color: isDark ? Colors.white70 : Colors.grey[700],
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -820,7 +822,7 @@ class _RadiusFilter extends ConsumerStatefulWidget {
 }
 
 class _RadiusFilterState extends ConsumerState<_RadiusFilter> {
-  static const _presets = [1.0, 5.0, 10.0, 20.0, 30.0, 40.0, 50.0];
+  static const _presets = [1.0, 5.0, 10.0, 20.0, 50.0];
   final _customCtrl = TextEditingController();
   bool _showCustom = false;
 
@@ -899,25 +901,43 @@ class _RadiusFilterState extends ConsumerState<_RadiusFilter> {
         ),
         if (_showCustom) ...[
           const SizedBox(height: 6),
-          SizedBox(
-            width: 160,
-            child: TextField(
-              controller: _customCtrl,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: InputDecoration(
-                hintText: 'e.g. 35',
-                suffixText: 'km',
-                isDense: true,
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8)),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: 120,
+                child: TextField(
+                  controller: _customCtrl,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: InputDecoration(
+                    hintText: 'e.g. 35',
+                    suffixText: 'km',
+                    isDense: true,
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                  ),
+                  onSubmitted: (v) {
+                    final km = double.tryParse(v);
+                    if (km != null && km > 0) _setRadius(km);
+                  },
+                ),
               ),
-              onSubmitted: (v) {
-                final km = double.tryParse(v);
-                if (km != null && km > 0) _setRadius(km);
-              },
-            ),
+              const SizedBox(width: 8),
+              ElevatedButton(
+                onPressed: () {
+                  final km = double.tryParse(_customCtrl.text);
+                  if (km != null && km > 0) _setRadius(km);
+                },
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: const Text('Go'),
+              ),
+            ],
           ),
         ],
       ],
