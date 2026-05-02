@@ -146,8 +146,91 @@ class _AgricultureCreateScreenState
     }
   }
 
+  // ── Perishable categories (auto-detected by AI fill) ────────────────────────
+  static const _perishableCategories = {
+    'vegetables', 'fruits', 'dairy', 'poultry', 'fish',
+  };
+
+  void _aiAutoFillDescription() {
+    final title = _titleCtrl.text.trim();
+    final category = _category;
+
+    // Auto-detect perishable from category
+    final shouldBePerishable = _perishableCategories.contains(category);
+    if (shouldBePerishable && !_isPerishable) {
+      setState(() => _isPerishable = true);
+    }
+
+    final categoryLabel =
+        category.replaceAll('_', ' ');
+    final categoryLabelCapitalized =
+        categoryLabel[0].toUpperCase() + categoryLabel.substring(1);
+
+    // Generate a smart description based on title and category
+    final desc = _generateDescription(title, categoryLabelCapitalized, shouldBePerishable);
+
+    setState(() => _descCtrl.text = desc);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(shouldBePerishable
+            ? 'Description auto-filled. Perishable toggle was enabled automatically.'
+            : 'Description auto-filled based on title and category.'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  String _generateDescription(
+      String title, String categoryLabel, bool perishable) {
+    final titlePart = title.isNotEmpty ? '"$title"' : 'this product';
+    final freshNote =
+        perishable ? ' Fresh stock available. Handle with care.' : '';
+    final qualityNote = _perishableCategories.contains(_category)
+        ? ' Grown with best practices to ensure top quality.'
+        : ' Produced to meet industry quality standards.';
+
+    final Map<String, String> categoryTemplates = {
+      'Grains': 'Premium quality $titlePart, sourced directly from local farms. '
+          'Ideal for households, retailers, and food processors.$qualityNote',
+      'Vegetables': 'Freshly harvested $titlePart, packed with essential nutrients. '
+          'Great for direct consumption, markets, and restaurants.$freshNote$qualityNote',
+      'Fruits': 'Sweet and nutritious $titlePart, handpicked at peak ripeness. '
+          'Perfect for retail, juicing, and export.$freshNote$qualityNote',
+      'Livestock': 'Well-bred $titlePart, raised under healthy conditions. '
+          'Suitable for meat production, breeding, or dairy.$qualityNote',
+      'Dairy': 'High-quality $titlePart sourced from healthy, well-fed animals. '
+          'Ideal for direct consumption and food manufacturing.$freshNote$qualityNote',
+      'Poultry': 'Farm-fresh $titlePart, raised under hygienic conditions. '
+          'Available for retail and bulk orders.$freshNote$qualityNote',
+      'Fish': 'Premium $titlePart, freshly caught and carefully handled. '
+          'Perfect for markets, restaurants, and processors.$freshNote$qualityNote',
+      'Spices': 'Aromatic and flavourful $titlePart, carefully dried and processed. '
+          'Ideal for culinary use, export, and spice blending.$qualityNote',
+      'Oil Seeds': 'High-yield $titlePart, suitable for oil extraction and direct sale. '
+          'Grown with sustainable farming methods.$qualityNote',
+      'Other': 'Quality $titlePart available for purchase. '
+          'Suitable for various commercial and household uses.$qualityNote',
+    };
+
+    return categoryTemplates[categoryLabel] ??
+        'Quality $titlePart available for purchase. '
+            'Contact seller for more details.$qualityNote';
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    // Location is mandatory – require at least option A (GPS) or option B (place name)
+    if (_geocodedLat == null || _geocodedLon == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              'Location is required. Use GPS (Option A) or enter a place name (Option B).'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
     setState(() => _submitting = true);
     try {
       final payload = <String, dynamic>{
@@ -159,8 +242,8 @@ class _AgricultureCreateScreenState
           'description': _descCtrl.text.trim(),
         if (_locationCtrl.text.trim().isNotEmpty)
           'location': _locationCtrl.text.trim(),
-        if (_geocodedLat != null) 'latitude': _geocodedLat,
-        if (_geocodedLon != null) 'longitude': _geocodedLon,
+        'latitude': _geocodedLat,
+        'longitude': _geocodedLon,
         if (_unitCtrl.text.trim().isNotEmpty) 'unit': _unitCtrl.text.trim(),
         if (_moqCtrl.text.trim().isNotEmpty)
           'moq': double.parse(_moqCtrl.text.trim()),
@@ -251,11 +334,25 @@ class _AgricultureCreateScreenState
                 onChanged: (v) => setState(() => _category = v!),
               ),
               const SizedBox(height: 12),
+              // ── AI Auto-fill description ──────────────────────────────────
               TextFormField(
                 controller: _descCtrl,
                 decoration:
                     const InputDecoration(labelText: 'Description (optional)'),
                 maxLines: 3,
+              ),
+              const SizedBox(height: 6),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: _aiAutoFillDescription,
+                  icon: const Icon(Icons.auto_awesome, size: 16),
+                  label: const Text('AI Auto-fill Description',
+                      style: TextStyle(fontSize: 12)),
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
               ),
               const SizedBox(height: 12),
               SwitchListTile(
@@ -267,7 +364,13 @@ class _AgricultureCreateScreenState
                 contentPadding: EdgeInsets.zero,
               ),
 
-              _sectionTitle('LOCATION'),
+              _sectionTitle('LOCATION *'),
+              if (_geocodedLat == null || _geocodedLon == null)
+                Text(
+                  'At least one location option is required.',
+                  style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.error),
+                ),
+              const SizedBox(height: 6),
               Text(
                 'Option A – Use my current GPS location',
                 style: TextStyle(
@@ -400,7 +503,9 @@ class _AgricultureCreateScreenState
                     child: TextFormField(
                       controller: _unitCtrl,
                       decoration: const InputDecoration(
-                          labelText: 'Unit (e.g. kg, ton)'),
+                          labelText: 'Unit (e.g. kg, ton) *'),
+                      validator: (v) =>
+                          v == null || v.trim().isEmpty ? 'Required' : null,
                     ),
                   ),
                 ],
