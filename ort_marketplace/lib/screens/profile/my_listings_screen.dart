@@ -133,6 +133,79 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen>
     }
   }
 
+  static String _formatStatus(String s) =>
+      s[0].toUpperCase() + s.substring(1).replaceAll('_', ' ');
+
+  Future<void> _changeAgriStatus(AgricultureListingModel a, int? tenantId) async {
+    // Agriculture supports 'reserved' (buyer hold); manufacturing does not.
+    const statuses = ['available', 'sold_out', 'reserved', 'out_of_stock', 'discontinued'];
+    final picked = await showDialog<String>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: const Text('Change Status'),
+        children: statuses
+            .map((s) => SimpleDialogOption(
+                  onPressed: () => Navigator.of(ctx).pop(s),
+                  child: Text(
+                    _formatStatus(s),
+                    style: TextStyle(
+                      fontWeight:
+                          s == a.status ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                ))
+            .toList(),
+      ),
+    );
+    if (picked == null || picked == a.status || !mounted) return;
+    try {
+      await ref.read(apiServiceProvider).patchAgriStatus(a.id, picked);
+      ref.invalidate(_myAgriListingsProvider(tenantId));
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to change status: $e'),
+              behavior: SnackBarBehavior.floating),
+        );
+      }
+    }
+  }
+
+  Future<void> _changeMfgStatus(ManufacturingProductModel m, int? tenantId) async {
+    // Manufacturing does not use 'reserved'; products go directly to out_of_stock/discontinued.
+    const statuses = ['available', 'sold_out', 'out_of_stock', 'discontinued'];
+    final picked = await showDialog<String>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: const Text('Change Status'),
+        children: statuses
+            .map((s) => SimpleDialogOption(
+                  onPressed: () => Navigator.of(ctx).pop(s),
+                  child: Text(
+                    _formatStatus(s),
+                    style: TextStyle(
+                      fontWeight:
+                          s == m.status ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                ))
+            .toList(),
+      ),
+    );
+    if (picked == null || picked == m.status || !mounted) return;
+    try {
+      await ref.read(apiServiceProvider).patchMfgStatus(m.id, picked);
+      ref.invalidate(_myMfgListingsProvider(tenantId));
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to change status: $e'),
+              behavior: SnackBarBehavior.floating),
+        );
+      }
+    }
+  }
+
   Future<void> _deleteAgriListing(AgricultureListingModel a, int? tenantId) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -325,6 +398,8 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen>
                           placeholderIcon: Icons.grass,
                           onView: () =>
                               context.push('/agriculture/${a.id}'),
+                          onChangeStatus: () =>
+                              _changeAgriStatus(a, tenantId),
                           onDelete: () =>
                               _deleteAgriListing(a, tenantId),
                         );
@@ -370,6 +445,8 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen>
                               Icons.precision_manufacturing,
                           onView: () =>
                               context.push('/manufacturing/${m.id}'),
+                          onChangeStatus: () =>
+                              _changeMfgStatus(m, tenantId),
                           onDelete: () =>
                               _deleteMfgListing(m, tenantId),
                         );
@@ -578,6 +655,7 @@ class _SimpleListingCard extends StatelessWidget {
     required this.imageUrl,
     required this.placeholderIcon,
     required this.onView,
+    required this.onChangeStatus,
     required this.onDelete,
   });
 
@@ -588,6 +666,7 @@ class _SimpleListingCard extends StatelessWidget {
   final String? imageUrl;
   final IconData placeholderIcon;
   final VoidCallback onView;
+  final VoidCallback onChangeStatus;
   final VoidCallback onDelete;
 
   Color _statusColor(String s) {
@@ -683,10 +762,12 @@ class _SimpleListingCard extends StatelessWidget {
         trailing: PopupMenuButton<String>(
           onSelected: (v) {
             if (v == 'view') onView();
+            if (v == 'status') onChangeStatus();
             if (v == 'delete') onDelete();
           },
           itemBuilder: (_) => const [
             PopupMenuItem(value: 'view', child: Text('View / Edit')),
+            PopupMenuItem(value: 'status', child: Text('Change Status')),
             PopupMenuItem(
                 value: 'delete',
                 child: Text('Delete',
