@@ -201,6 +201,45 @@ class ManufacturingProduct(Base):
 
 
 # ---------------------------------------------------------------------------
+# Manufacturing Services
+# ---------------------------------------------------------------------------
+
+class ManufacturingService(Base):
+    __tablename__ = "manufacturing_services"
+    __table_args__ = (
+        Index("ix_mfg_svc_tenant_id", "tenant_id"),
+        Index("ix_mfg_svc_status", "status"),
+        Index("ix_mfg_svc_service_type", "service_type"),
+    )
+
+    id = Column(Integer, primary_key=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=True)
+    owner_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    title = Column(String(255), nullable=False)
+    description = Column(Text)
+    service_type = Column(String(100))      # machining, fabrication, welding, etc.
+    price = Column(DECIMAL(12, 2), nullable=False)
+    pricing_unit = Column(String(50))       # per_hour, per_day, per_project, per_piece, fixed
+    currency = Column(String(10), default="USD", server_default="USD")
+    min_order_value = Column(DECIMAL(12, 2))
+    notice_period_days = Column(Integer)    # days notice required to engage service
+    certifications = Column(JSON)           # ["ISO 9001", "CE", ...]
+    images = Column(JSON)
+    location = Column(String(255))
+    latitude = Column(Float)
+    longitude = Column(Float)
+    is_deleted = Column(Boolean, default=False, server_default="false", nullable=False)
+    status = Column(
+        String(50),
+        default="available",
+        server_default="available",
+        nullable=False,
+    )
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+
+# ---------------------------------------------------------------------------
 # Order Management
 # ---------------------------------------------------------------------------
 

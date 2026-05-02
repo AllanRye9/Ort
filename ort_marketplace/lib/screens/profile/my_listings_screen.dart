@@ -29,8 +29,6 @@ final _myAgriListingsProvider =
   final data = await ref
       .read(apiServiceProvider)
       .getAgricultureListings(
-        // Companies/orgs are identified by tenantId; when present, filter by it.
-        // Agents (no tenant) are identified by ownerUserId instead.
         tenantId: key.tenantId,
         ownerUserId: key.tenantId == null ? key.ownerUserId : null,
         limit: 200,
@@ -44,13 +42,24 @@ final _myMfgListingsProvider =
   final data = await ref
       .read(apiServiceProvider)
       .getManufacturingProducts(
-        // Companies/orgs are identified by tenantId; when present, filter by it.
-        // Agents (no tenant) are identified by ownerUserId instead.
         tenantId: key.tenantId,
         ownerUserId: key.tenantId == null ? key.ownerUserId : null,
         limit: 200,
       );
   return data.map((j) => ManufacturingProductModel.fromJson(j as Map<String, dynamic>)).toList();
+});
+
+final _myMfgServicesProvider =
+    FutureProvider.autoDispose.family<List<ManufacturingServiceModel>, _MfgKey>((ref, key) async {
+  if (key.tenantId == null && key.ownerUserId == null) return const [];
+  final data = await ref
+      .read(apiServiceProvider)
+      .getManufacturingServices(
+        tenantId: key.tenantId,
+        ownerUserId: key.tenantId == null ? key.ownerUserId : null,
+        limit: 200,
+      );
+  return data.map((j) => ManufacturingServiceModel.fromJson(j as Map<String, dynamic>)).toList();
 });
 
 class MyListingsScreen extends ConsumerStatefulWidget {
@@ -68,7 +77,7 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen>
   @override
   void initState() {
     super.initState();
-    _tabCtrl = TabController(length: 3, vsync: this);
+    _tabCtrl = TabController(length: 4, vsync: this);
     // Force a fresh fetch when the screen mounts (e.g., after creating a listing).
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -298,6 +307,75 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen>
     }
   }
 
+  Future<void> _changeMfgSvcStatus(ManufacturingServiceModel s, _MfgKey key) async {
+    const statuses = ['available', 'fully_booked', 'discontinued'];
+    final picked = await showDialog<String>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: const Text('Change Status'),
+        children: statuses
+            .map((st) => SimpleDialogOption(
+                  onPressed: () => Navigator.of(ctx).pop(st),
+                  child: Text(
+                    _formatStatus(st),
+                    style: TextStyle(
+                      fontWeight:
+                          st == s.status ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                ))
+            .toList(),
+      ),
+    );
+    if (picked == null || picked == s.status || !mounted) return;
+    try {
+      await ref.read(apiServiceProvider).patchMfgServiceStatus(s.id, picked);
+      ref.invalidate(_myMfgServicesProvider(key));
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to change status: $e'),
+              behavior: SnackBarBehavior.floating),
+        );
+      }
+    }
+  }
+
+  Future<void> _deleteMfgService(ManufacturingServiceModel s, _MfgKey key) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Service'),
+        content: Text('Delete "${s.title}"?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => _deleting = true);
+    try {
+      await ref.read(apiServiceProvider).deleteManufacturingService(s.id);
+      ref.invalidate(_myMfgServicesProvider(key));
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to delete: $e'),
+              behavior: SnackBarBehavior.floating),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _deleting = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final userId = ref.watch(authProvider).userId;
@@ -310,23 +388,25 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen>
 
     final tenantAsync = ref.watch(_myTenantProvider(userId));
     final tenantId = tenantAsync.valueOrNull?.id;
-    // Use tenantId for company/organization users; ownerUserId for agents who have no tenant.
-    // The providers apply only one filter at a time: tenant_id takes precedence when set.
     final listingKey = (tenantId: tenantId, ownerUserId: userId);
 
     final propertyListings = ref.watch(_myListingsProvider(userId));
     final agriListings = ref.watch(_myAgriListingsProvider(listingKey));
     final mfgListings = ref.watch(_myMfgListingsProvider(listingKey));
+    final svcListings = ref.watch(_myMfgServicesProvider(listingKey));
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Listings'),
         bottom: TabBar(
           controller: _tabCtrl,
+          isScrollable: true,
+          tabAlignment: TabAlignment.start,
           tabs: const [
             Tab(icon: Icon(Icons.apartment_outlined), text: 'Properties'),
             Tab(icon: Icon(Icons.grass_outlined), text: 'Agriculture'),
-            Tab(icon: Icon(Icons.precision_manufacturing_outlined), text: 'Mfg'),
+            Tab(icon: Icon(Icons.inventory_2_outlined), text: 'Products'),
+            Tab(icon: Icon(Icons.build_outlined), text: 'Services'),
           ],
         ),
         actions: [
@@ -343,7 +423,7 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen>
                   child: Text('Add Agriculture')),
               PopupMenuItem(
                   value: '/manufacturing/create',
-                  child: Text('Add Manufacturing')),
+                  child: Text('Add Product or Service')),
             ],
           ),
         ],
@@ -436,7 +516,7 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen>
                 },
               ),
 
-              // ── Manufacturing tab ───────────────────────────────────────
+              // ── Manufacturing Products tab ──────────────────────────────
               mfgListings.when(
                 loading: () =>
                     const Center(child: CircularProgressIndicator()),
@@ -445,8 +525,8 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen>
                 data: (listings) {
                   if (listings.isEmpty) {
                     return _EmptyState(
-                      icon: Icons.precision_manufacturing_outlined,
-                      message: 'No manufacturing listings yet',
+                      icon: Icons.inventory_2_outlined,
+                      message: 'No products listed yet',
                       hint: 'Tap + to add a product',
                       onAdd: () => context.push('/manufacturing/create'),
                     );
@@ -477,6 +557,55 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen>
                               _changeMfgStatus(m, listingKey),
                           onDelete: () =>
                               _deleteMfgListing(m, listingKey),
+                        );
+                      },
+                    ),
+                  );
+                },
+              ),
+
+              // ── Manufacturing Services tab ──────────────────────────────
+              svcListings.when(
+                loading: () =>
+                    const Center(child: CircularProgressIndicator()),
+                error: (e, _) =>
+                    Center(child: Text('Error: $e')),
+                data: (listings) {
+                  if (listings.isEmpty) {
+                    return _EmptyState(
+                      icon: Icons.build_outlined,
+                      message: 'No services listed yet',
+                      hint: 'Tap + to add a service',
+                      onAdd: () => context.push('/manufacturing/create'),
+                    );
+                  }
+                  return RefreshIndicator(
+                    onRefresh: () async =>
+                        ref.invalidate(_myMfgServicesProvider(listingKey)),
+                    child: ListView.builder(
+                      padding: const EdgeInsets.all(12),
+                      itemCount: listings.length,
+                      itemBuilder: (_, i) {
+                        final s = listings[i];
+                        final pricingLabel = s.pricingUnit != null
+                            ? s.pricingUnit!.replaceAll('_', ' ')
+                            : '';
+                        return _SimpleListingCard(
+                          title: s.title,
+                          subtitle: s.location ?? s.serviceType ?? '',
+                          price: '\$${s.price.toStringAsFixed(2)}'
+                              '${pricingLabel.isNotEmpty ? ' / $pricingLabel' : ''}',
+                          status: s.status,
+                          imageUrl: s.images?.isNotEmpty == true
+                              ? s.images!.first
+                              : null,
+                          placeholderIcon: Icons.build,
+                          onView: () =>
+                              context.push('/manufacturing/service/${s.id}'),
+                          onChangeStatus: () =>
+                              _changeMfgSvcStatus(s, listingKey),
+                          onDelete: () =>
+                              _deleteMfgService(s, listingKey),
                         );
                       },
                     ),
