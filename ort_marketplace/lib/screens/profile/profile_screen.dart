@@ -377,11 +377,6 @@ class _ReadView extends StatelessWidget {
       case 'agent':
         return [
           _ProfileTile(
-            icon: Icons.apartment,
-            label: 'My Listings',
-            onTap: () => context.go('/my-listings'),
-          ),
-          _ProfileTile(
             icon: Icons.people,
             label: 'My Clients',
             onTap: () => context.go('/my-clients'),
@@ -432,11 +427,6 @@ class _ReadView extends StatelessWidget {
         ];
       case 'organization':
         return [
-          _ProfileTile(
-            icon: Icons.grass,
-            label: 'My Listings',
-            onTap: () => context.go('/agriculture'),
-          ),
           _ProfileTile(
             icon: Icons.business,
             label: 'My Organisation',
@@ -1359,11 +1349,13 @@ class _AgentReviewsSectionState extends ConsumerState<_AgentReviewsSection> {
   Future<void> _submit() async {
     setState(() => _submitting = true);
     try {
+      final reviewerId = ref.read(authProvider).userId;
       await ref.read(apiServiceProvider).createAgentReview(
             agentId: widget.agentId,
             rating: _draftRating,
             title: _titleCtrl.text.trim(),
             body: _bodyCtrl.text.trim(),
+            reviewerId: reviewerId,
           );
       ref.invalidate(_agentReviewsProvider(widget.agentId));
       if (mounted) {
