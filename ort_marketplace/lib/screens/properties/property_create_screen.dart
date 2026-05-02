@@ -318,7 +318,7 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Property listed successfully!')),
         );
-        context.go('/properties');
+        context.go('/my-listings');
       }
     } catch (e) {
       if (mounted) {

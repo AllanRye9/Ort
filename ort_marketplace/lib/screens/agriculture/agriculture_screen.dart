@@ -27,6 +27,8 @@ class _AgricultureScreenState extends ConsumerState<AgricultureScreen> {
   double? _lat;
   double? _lon;
   bool _locationLoading = false;
+  bool _showCustomRadius = false;
+  final _customRadiusCtrl = TextEditingController();
 
   List<AgricultureListingModel>? _items;
   bool _loading = true;
@@ -47,6 +49,7 @@ class _AgricultureScreenState extends ConsumerState<AgricultureScreen> {
   @override
   void dispose() {
     _searchCtrl.dispose();
+    _customRadiusCtrl.dispose();
     super.dispose();
   }
 
@@ -147,7 +150,9 @@ class _AgricultureScreenState extends ConsumerState<AgricultureScreen> {
       _radiusKm = null;
       _lat = null;
       _lon = null;
+      _showCustomRadius = false;
       _searchCtrl.clear();
+      _customRadiusCtrl.clear();
     });
     _loadListings();
   }
@@ -482,39 +487,100 @@ class _AgricultureScreenState extends ConsumerState<AgricultureScreen> {
           // ── Radius filter chips ───────────────────────────────────
           Padding(
             padding: const EdgeInsets.only(left: 12, right: 12, bottom: 4),
-            child: SizedBox(
-              height: 36,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(right: 6),
-                    child: _locationLoading
-                        ? const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 8),
-                            child: SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                    strokeWidth: 2)),
-                          )
-                        : const Icon(Icons.my_location_outlined,
-                            size: 16, color: Colors.grey),
-                  ),
-                  for (final km in [1.0, 5.0, 10.0, 20.0, 30.0, 40.0, 50.0])
-                    Padding(
-                      padding: const EdgeInsets.only(right: 6),
-                      child: FilterChip(
-                        label: Text('${km.toInt()} km',
-                            style: const TextStyle(fontSize: 12)),
-                        selected: _radiusKm == km,
-                        onSelected: (_) => _toggleRadius(km),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  height: 36,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(right: 6),
+                        child: _locationLoading
+                            ? const Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 8),
+                                child: SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2)),
+                              )
+                            : const Icon(Icons.my_location_outlined,
+                                size: 16, color: Colors.grey),
+                      ),
+                      for (final km in [1.0, 5.0, 10.0, 20.0, 50.0])
+                        Padding(
+                          padding: const EdgeInsets.only(right: 6),
+                          child: FilterChip(
+                            label: Text('${km.toInt()} km',
+                                style: const TextStyle(fontSize: 12)),
+                            selected: _radiusKm == km && !_showCustomRadius,
+                            onSelected: (_) {
+                              setState(() => _showCustomRadius = false);
+                              _toggleRadius(km);
+                            },
+                            visualDensity: VisualDensity.compact,
+                            padding: EdgeInsets.zero,
+                          ),
+                        ),
+                      FilterChip(
+                        label: const Text('Custom',
+                            style: TextStyle(fontSize: 12)),
+                        selected: _showCustomRadius,
+                        onSelected: (_) =>
+                            setState(() => _showCustomRadius = !_showCustomRadius),
                         visualDensity: VisualDensity.compact,
                         padding: EdgeInsets.zero,
                       ),
-                    ),
+                    ],
+                  ),
+                ),
+                if (_showCustomRadius) ...[
+                  const SizedBox(height: 6),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        width: 120,
+                        child: TextField(
+                          controller: _customRadiusCtrl,
+                          keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true),
+                          decoration: InputDecoration(
+                            hintText: 'e.g. 35',
+                            suffixText: 'km',
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 8),
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8)),
+                          ),
+                          onSubmitted: (v) {
+                            final km = double.tryParse(v);
+                            if (km != null && km > 0) _toggleRadius(km);
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        onPressed: () {
+                          final km =
+                              double.tryParse(_customRadiusCtrl.text);
+                          if (km != null && km > 0) _toggleRadius(km);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 8),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        child: const Text('Go'),
+                      ),
+                    ],
+                  ),
                 ],
-              ),
+              ],
             ),
           ),
           // ── Results ───────────────────────────────────────────────

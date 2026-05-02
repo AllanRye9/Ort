@@ -19,21 +19,32 @@ final _myTenantProvider =
   return TenantModel.fromJson(data);
 });
 
+typedef _AgriKey = ({int? tenantId, int? ownerUserId});
+typedef _MfgKey = ({int? tenantId, int? ownerUserId});
+
 final _myAgriListingsProvider =
-    FutureProvider.autoDispose.family<List<AgricultureListingModel>, int?>((ref, tenantId) async {
-  if (tenantId == null) return const [];
+    FutureProvider.autoDispose.family<List<AgricultureListingModel>, _AgriKey>((ref, key) async {
+  if (key.tenantId == null && key.ownerUserId == null) return const [];
   final data = await ref
       .read(apiServiceProvider)
-      .getAgricultureListings(tenantId: tenantId, limit: 200);
+      .getAgricultureListings(
+        tenantId: key.tenantId,
+        ownerUserId: key.tenantId == null ? key.ownerUserId : null,
+        limit: 200,
+      );
   return data.map((j) => AgricultureListingModel.fromJson(j as Map<String, dynamic>)).toList();
 });
 
 final _myMfgListingsProvider =
-    FutureProvider.autoDispose.family<List<ManufacturingProductModel>, int?>((ref, tenantId) async {
-  if (tenantId == null) return const [];
+    FutureProvider.autoDispose.family<List<ManufacturingProductModel>, _MfgKey>((ref, key) async {
+  if (key.tenantId == null && key.ownerUserId == null) return const [];
   final data = await ref
       .read(apiServiceProvider)
-      .getManufacturingProducts(tenantId: tenantId, limit: 200);
+      .getManufacturingProducts(
+        tenantId: key.tenantId,
+        ownerUserId: key.tenantId == null ? key.ownerUserId : null,
+        limit: 200,
+      );
   return data.map((j) => ManufacturingProductModel.fromJson(j as Map<String, dynamic>)).toList();
 });
 
@@ -53,6 +64,12 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen>
   void initState() {
     super.initState();
     _tabCtrl = TabController(length: 3, vsync: this);
+    // Force a fresh fetch when the screen mounts (e.g., after creating a listing).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final userId = ref.read(authProvider).userId;
+      if (userId != null) ref.invalidate(_myListingsProvider(userId));
+    });
   }
 
   @override
@@ -136,7 +153,7 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen>
   static String _formatStatus(String s) =>
       s[0].toUpperCase() + s.substring(1).replaceAll('_', ' ');
 
-  Future<void> _changeAgriStatus(AgricultureListingModel a, int? tenantId) async {
+  Future<void> _changeAgriStatus(AgricultureListingModel a, _AgriKey key) async {
     // Agriculture supports 'reserved' (buyer hold); manufacturing does not.
     const statuses = ['available', 'sold_out', 'reserved', 'out_of_stock', 'discontinued'];
     final picked = await showDialog<String>(
@@ -160,7 +177,7 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen>
     if (picked == null || picked == a.status || !mounted) return;
     try {
       await ref.read(apiServiceProvider).patchAgriStatus(a.id, picked);
-      ref.invalidate(_myAgriListingsProvider(tenantId));
+      ref.invalidate(_myAgriListingsProvider(key));
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -171,7 +188,7 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen>
     }
   }
 
-  Future<void> _changeMfgStatus(ManufacturingProductModel m, int? tenantId) async {
+  Future<void> _changeMfgStatus(ManufacturingProductModel m, _MfgKey key) async {
     // Manufacturing does not use 'reserved'; products go directly to out_of_stock/discontinued.
     const statuses = ['available', 'sold_out', 'out_of_stock', 'discontinued'];
     final picked = await showDialog<String>(
@@ -195,7 +212,7 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen>
     if (picked == null || picked == m.status || !mounted) return;
     try {
       await ref.read(apiServiceProvider).patchMfgStatus(m.id, picked);
-      ref.invalidate(_myMfgListingsProvider(tenantId));
+      ref.invalidate(_myMfgListingsProvider(key));
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -206,7 +223,7 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen>
     }
   }
 
-  Future<void> _deleteAgriListing(AgricultureListingModel a, int? tenantId) async {
+  Future<void> _deleteAgriListing(AgricultureListingModel a, _AgriKey key) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -228,7 +245,7 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen>
     setState(() => _deleting = true);
     try {
       await ref.read(apiServiceProvider).deleteAgricultureListing(a.id);
-      ref.invalidate(_myAgriListingsProvider(tenantId));
+      ref.invalidate(_myAgriListingsProvider(key));
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -241,7 +258,7 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen>
     }
   }
 
-  Future<void> _deleteMfgListing(ManufacturingProductModel m, int? tenantId) async {
+  Future<void> _deleteMfgListing(ManufacturingProductModel m, _MfgKey key) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -263,7 +280,7 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen>
     setState(() => _deleting = true);
     try {
       await ref.read(apiServiceProvider).deleteManufacturingProduct(m.id);
-      ref.invalidate(_myMfgListingsProvider(tenantId));
+      ref.invalidate(_myMfgListingsProvider(key));
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -288,10 +305,12 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen>
 
     final tenantAsync = ref.watch(_myTenantProvider(userId));
     final tenantId = tenantAsync.valueOrNull?.id;
+    final agriKey = (tenantId: tenantId, ownerUserId: userId);
+    final mfgKey = (tenantId: tenantId, ownerUserId: userId);
 
     final propertyListings = ref.watch(_myListingsProvider(userId));
-    final agriListings = ref.watch(_myAgriListingsProvider(tenantId));
-    final mfgListings = ref.watch(_myMfgListingsProvider(tenantId));
+    final agriListings = ref.watch(_myAgriListingsProvider(agriKey));
+    final mfgListings = ref.watch(_myMfgListingsProvider(mfgKey));
 
     return Scaffold(
       appBar: AppBar(
@@ -380,7 +399,7 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen>
                   }
                   return RefreshIndicator(
                     onRefresh: () async =>
-                        ref.invalidate(_myAgriListingsProvider(tenantId)),
+                        ref.invalidate(_myAgriListingsProvider(agriKey)),
                     child: ListView.builder(
                       padding: const EdgeInsets.all(12),
                       itemCount: listings.length,
@@ -399,9 +418,9 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen>
                           onView: () =>
                               context.push('/agriculture/${a.id}'),
                           onChangeStatus: () =>
-                              _changeAgriStatus(a, tenantId),
+                              _changeAgriStatus(a, agriKey),
                           onDelete: () =>
-                              _deleteAgriListing(a, tenantId),
+                              _deleteAgriListing(a, agriKey),
                         );
                       },
                     ),
@@ -426,7 +445,7 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen>
                   }
                   return RefreshIndicator(
                     onRefresh: () async =>
-                        ref.invalidate(_myMfgListingsProvider(tenantId)),
+                        ref.invalidate(_myMfgListingsProvider(mfgKey)),
                     child: ListView.builder(
                       padding: const EdgeInsets.all(12),
                       itemCount: listings.length,
@@ -446,9 +465,9 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen>
                           onView: () =>
                               context.push('/manufacturing/${m.id}'),
                           onChangeStatus: () =>
-                              _changeMfgStatus(m, tenantId),
+                              _changeMfgStatus(m, mfgKey),
                           onDelete: () =>
-                              _deleteMfgListing(m, tenantId),
+                              _deleteMfgListing(m, mfgKey),
                         );
                       },
                     ),
