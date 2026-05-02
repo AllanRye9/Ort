@@ -137,6 +137,17 @@ final homeMfgProvider = FutureProvider<List<ManufacturingProductModel>>(
   },
 );
 
+final homeServicesProvider = FutureProvider<List<ManufacturingServiceModel>>(
+  (ref) async {
+    final data =
+        await ref.read(apiServiceProvider).getManufacturingServices(limit: 8);
+    return data
+        .map((e) =>
+            ManufacturingServiceModel.fromJson(e as Map<String, dynamic>))
+        .toList();
+  },
+);
+
 // ─── Distance-sorted derived providers ───────────────────────────────────────
 // These re-sort when userLocationProvider or radiusFilterProvider changes
 // WITHOUT re-fetching from the API.
@@ -168,9 +179,19 @@ final sortedHomeMfgProvider =
       (items) => sortedByDistance(items, loc, (m) => m.latitude, (m) => m.longitude));
 });
 
+final sortedHomeServicesProvider =
+    Provider<AsyncValue<List<ManufacturingServiceModel>>>((ref) {
+  final data = ref.watch(homeServicesProvider);
+  final loc = ref.watch(userLocationProvider);
+  ref.watch(radiusFilterProvider);
+  return data.whenData(
+      (items) => sortedByDistance(items, loc, (s) => s.latitude, (s) => s.longitude));
+});
+
 /// Call this after creating any listing to ensure the home feed is refreshed.
 void invalidateHomeProviders(WidgetRef ref) {
   ref.invalidate(homePropertiesProvider);
   ref.invalidate(homeAgricultureProvider);
   ref.invalidate(homeMfgProvider);
+  ref.invalidate(homeServicesProvider);
 }
