@@ -799,10 +799,12 @@ class _PropertyReviewsSectionState
   Future<void> _submit() async {
     setState(() => _submitting = true);
     try {
+      final reviewerId = ref.read(authProvider).userId;
       await ref.read(apiServiceProvider).createReview({
         'reviewed_agent_id': widget.agentId,
         'property_id': widget.propertyId,
         'rating': _draftRating,
+        if (reviewerId != null) 'reviewer_id': reviewerId,
         if (_titleCtrl.text.trim().isNotEmpty) 'title': _titleCtrl.text.trim(),
         if (_bodyCtrl.text.trim().isNotEmpty) 'body': _bodyCtrl.text.trim(),
       });
