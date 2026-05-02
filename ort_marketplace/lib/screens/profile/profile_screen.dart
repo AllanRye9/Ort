@@ -10,6 +10,7 @@ import '../../core/constants.dart';
 import '../../core/theme.dart';
 import '../../core/theme_provider.dart';
 import '../../models/models.dart';
+import '../../widgets/quick_actions_grid.dart';
 
 final _meProvider = FutureProvider.autoDispose<UserModel>((ref) async {
   final data = await ref.read(apiServiceProvider).getMe();
@@ -289,6 +290,10 @@ class _ReadView extends StatelessWidget {
             children: [
               // ── XP / Level card ────────────────────────────────────────────
               _XpLevelCard(score: score, pct: pct),
+              const SizedBox(height: 16),
+
+              // ── Quick Actions ───────────────────────────────────────────────
+              _QuickActionsSection(role: auth.role ?? 'user'),
               const SizedBox(height: 16),
 
               // ── Info tiles ─────────────────────────────────────────────────
@@ -660,6 +665,46 @@ class _ReadView extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+// ─── Quick actions section ────────────────────────────────────────────────────
+
+class _QuickActionsSection extends StatelessWidget {
+  const _QuickActionsSection({required this.role});
+  final String role;
+
+  List<QuickAction> _actionsFor(String role) {
+    switch (role) {
+      case 'agent':
+        return agentQuickActions;
+      case 'company':
+        return companyQuickActions;
+      case 'organization':
+        return organizationQuickActions;
+      default:
+        return userQuickActions;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final actions = _actionsFor(role);
+    final cs = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Quick Actions',
+          style: Theme.of(context)
+              .textTheme
+              .titleSmall
+              ?.copyWith(fontWeight: FontWeight.bold, color: cs.onSurface),
+        ),
+        const SizedBox(height: 10),
+        QuickActionsGrid(actions: actions),
+      ],
     );
   }
 }
