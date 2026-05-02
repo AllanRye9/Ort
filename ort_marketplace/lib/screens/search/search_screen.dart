@@ -334,6 +334,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             tag: item.propertyType,
             status: item.status,
             price: '\$${item.price.toStringAsFixed(0)}',
+            imageUrl:
+                item.imageUrls.isNotEmpty ? item.imageUrls.first : null,
             extras: [
               if (item.bedrooms != null) '${item.bedrooms} bd',
               if (item.bathrooms != null) '${item.bathrooms} ba',
@@ -349,6 +351,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             status: item.status,
             price:
                 '\$${item.pricePerUnit.toStringAsFixed(2)}/${item.unit ?? 'unit'}',
+            imageUrl: (item.images?.isNotEmpty == true)
+                ? item.images!.first
+                : null,
             onTap: () => ctx.go('/agriculture/${item.id}'),
           ),
         _MfgResult(:final item) => ListingCard(
@@ -360,6 +365,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             status: item.status,
             price:
                 '\$${item.wholesalePrice.toStringAsFixed(2)}/${item.unit ?? 'unit'}',
+            imageUrl: (item.images?.isNotEmpty == true)
+                ? item.images!.first
+                : null,
             onTap: () => ctx.go('/manufacturing/${item.id}'),
           ),
       };
