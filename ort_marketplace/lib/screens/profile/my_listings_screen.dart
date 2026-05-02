@@ -602,6 +602,8 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen>
                           placeholderIcon: Icons.build,
                           onView: () =>
                               context.push('/manufacturing/service/${s.id}'),
+                          onEdit: () =>
+                              context.push('/manufacturing/service/${s.id}/edit'),
                           onChangeStatus: () =>
                               _changeMfgSvcStatus(s, listingKey),
                           onDelete: () =>

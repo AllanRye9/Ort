@@ -67,9 +67,6 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
   String get _currencyPrefix =>
       _isUganda ? 'UGX ' : (_isUAE ? 'AED ' : '\$');
 
-  bool get _isUAE =>
-      _geocodedCountry?.toLowerCase() == 'united arab emirates';
-
   String get _priceCurrencyCode {
     if (_isUganda) return 'UGX';
     if (_isUAE) return 'AED';
