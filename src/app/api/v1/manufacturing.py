@@ -25,6 +25,7 @@ def list_products(
     category: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
     tenant_id: Optional[int] = Query(None),
+    owner_user_id: Optional[int] = Query(None),
     keyword: Optional[str] = Query(None),
     min_price: Optional[float] = Query(None),
     max_price: Optional[float] = Query(None),
@@ -43,6 +44,8 @@ def list_products(
         q = q.filter(ManufacturingProduct.status == "available")
     if tenant_id:
         q = q.filter(ManufacturingProduct.tenant_id == tenant_id)
+    if owner_user_id is not None:
+        q = q.filter(ManufacturingProduct.owner_user_id == owner_user_id)
     if keyword:
         like = f"%{keyword}%"
         q = q.filter(
@@ -85,6 +88,8 @@ def update_product_status(
         tenant = db.query(Tenant).filter(Tenant.id == obj.tenant_id).first()
         if tenant is None or tenant.owner_user_id != current_user.id:
             raise HTTPException(status_code=403, detail="Not authorised to update this product")
+    elif obj.owner_user_id is not None and obj.owner_user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorised to update this product")
     obj.status = payload.status
     db.commit()
     db.refresh(obj)

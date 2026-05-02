@@ -1,7 +1,9 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/api_service.dart';
+import '../../core/listing_providers.dart';
 import '../../models/models.dart';
 import '../../widgets/listing_card.dart';
 
@@ -215,6 +217,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           decoration: InputDecoration(
             hintText: 'Search properties, agri, goods…',
             hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+            filled: false,
             border: InputBorder.none,
             prefixIcon:
                 Icon(Icons.search, color: Colors.white.withValues(alpha: 0.7)),
@@ -273,20 +276,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           // Results
           Expanded(
             child: (filter.query.isEmpty && !filter.hasFilters)
-                ? const Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.search, size: 64, color: Colors.grey),
-                        SizedBox(height: 16),
-                        Text(
-                          'Search or apply filters to discover listings',
-                          style: TextStyle(color: Colors.grey),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  )
+                ? _FeaturedPreview()
                 : resultsAsync.when(
                     loading: () =>
                         const Center(child: CircularProgressIndicator()),
@@ -371,6 +361,197 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             onTap: () => ctx.go('/manufacturing/${item.id}'),
           ),
       };
+}
+
+// ─── Featured preview (shown when no search query entered) ───────────────────
+
+class _FeaturedPreview extends ConsumerWidget {
+  const _FeaturedPreview();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final propertiesAsync = ref.watch(homePropertiesProvider);
+    final agriAsync = ref.watch(homeAgricultureProvider);
+    final mfgAsync = ref.watch(homeMfgProvider);
+
+    final properties = propertiesAsync.valueOrNull ?? const [];
+    final agri = agriAsync.valueOrNull ?? const [];
+    final mfg = mfgAsync.valueOrNull ?? const [];
+
+    if (properties.isEmpty && agri.isEmpty && mfg.isEmpty) {
+      return const Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.search, size: 64, color: Colors.grey),
+            SizedBox(height: 16),
+            Text(
+              'Search or apply filters to discover listings',
+              style: TextStyle(color: Colors.grey),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
+
+    final cs = Theme.of(context).colorScheme;
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Text(
+          'Discover Listings',
+          style: Theme.of(context)
+              .textTheme
+              .titleSmall
+              ?.copyWith(color: cs.onSurface.withValues(alpha: 0.6)),
+        ),
+        const SizedBox(height: 12),
+        if (properties.isNotEmpty) ...[
+          Text('Properties',
+              style: Theme.of(context)
+                  .textTheme
+                  .labelLarge
+                  ?.copyWith(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          _PreviewRow(
+            items: properties.take(5).map((p) => _PreviewItem(
+                  imageUrl: p.imageUrls.isNotEmpty ? p.imageUrls.first : null,
+                  title: p.title,
+                  subtitle: p.city ?? p.address,
+                  icon: Icons.apartment,
+                  iconColor: cs.primary,
+                  onTap: () => context.go('/properties/${p.id}'),
+                )).toList(),
+          ),
+          const SizedBox(height: 16),
+        ],
+        if (agri.isNotEmpty) ...[
+          Text('Agriculture',
+              style: Theme.of(context)
+                  .textTheme
+                  .labelLarge
+                  ?.copyWith(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          _PreviewRow(
+            items: agri.take(5).map((a) => _PreviewItem(
+                  imageUrl: a.images?.isNotEmpty == true ? a.images!.first : null,
+                  title: a.title,
+                  subtitle: a.location ?? a.category ?? '',
+                  icon: Icons.grass,
+                  iconColor: Colors.green,
+                  onTap: () => context.go('/agriculture/${a.id}'),
+                )).toList(),
+          ),
+          const SizedBox(height: 16),
+        ],
+        if (mfg.isNotEmpty) ...[
+          Text('Manufacturing',
+              style: Theme.of(context)
+                  .textTheme
+                  .labelLarge
+                  ?.copyWith(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          _PreviewRow(
+            items: mfg.take(5).map((m) => _PreviewItem(
+                  imageUrl: m.images?.isNotEmpty == true ? m.images!.first : null,
+                  title: m.title,
+                  subtitle: m.category ?? '',
+                  icon: Icons.factory,
+                  iconColor: Colors.orange,
+                  onTap: () => context.go('/manufacturing/${m.id}'),
+                )).toList(),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _PreviewItem {
+  const _PreviewItem({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.iconColor,
+    required this.onTap,
+    this.imageUrl,
+  });
+  final String? imageUrl;
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color iconColor;
+  final VoidCallback onTap;
+}
+
+class _PreviewRow extends StatelessWidget {
+  const _PreviewRow({required this.items});
+  final List<_PreviewItem> items;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 140,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: items.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 10),
+        itemBuilder: (_, i) {
+          final item = items[i];
+          return GestureDetector(
+            onTap: item.onTap,
+            child: SizedBox(
+              width: 120,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: item.imageUrl != null
+                        ? CachedNetworkImage(
+                            imageUrl: item.imageUrl!,
+                            width: 120,
+                            height: 90,
+                            fit: BoxFit.cover,
+                            errorWidget: (_, __, ___) => _iconPlaceholder(item),
+                            placeholder: (_, __) => _iconPlaceholder(item),
+                          )
+                        : _iconPlaceholder(item),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    item.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontSize: 11, fontWeight: FontWeight.w600),
+                  ),
+                  Text(
+                    item.subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _iconPlaceholder(_PreviewItem item) => Container(
+        width: 120,
+        height: 90,
+        decoration: BoxDecoration(
+          color: item.iconColor.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(item.icon, size: 36, color: item.iconColor.withValues(alpha: 0.5)),
+      );
 }
 
 // ─── Active filter chips ──────────────────────────────────────────────────────
