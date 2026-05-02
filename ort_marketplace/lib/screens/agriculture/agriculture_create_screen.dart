@@ -162,11 +162,12 @@ class _AgricultureCreateScreenState
     }
 
     final categoryLabel =
-        category.replaceAll('_', ' ')[0].toUpperCase() +
-            category.replaceAll('_', ' ').substring(1);
+        category.replaceAll('_', ' ');
+    final categoryLabelCapitalized =
+        categoryLabel[0].toUpperCase() + categoryLabel.substring(1);
 
     // Generate a smart description based on title and category
-    final desc = _generateDescription(title, categoryLabel, shouldBePerishable);
+    final desc = _generateDescription(title, categoryLabelCapitalized, shouldBePerishable);
 
     setState(() => _descCtrl.text = desc);
 
@@ -364,7 +365,7 @@ class _AgricultureCreateScreenState
               ),
 
               _sectionTitle('LOCATION *'),
-              if (_geocodedLat == null)
+              if (_geocodedLat == null || _geocodedLon == null)
                 Text(
                   'At least one location option is required.',
                   style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.error),
