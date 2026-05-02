@@ -28,6 +28,8 @@ final _myAgriListingsProvider =
   final data = await ref
       .read(apiServiceProvider)
       .getAgricultureListings(
+        // Companies/orgs are identified by tenantId; when present, filter by it.
+        // Agents (no tenant) are identified by ownerUserId instead.
         tenantId: key.tenantId,
         ownerUserId: key.tenantId == null ? key.ownerUserId : null,
         limit: 200,
@@ -41,6 +43,8 @@ final _myMfgListingsProvider =
   final data = await ref
       .read(apiServiceProvider)
       .getManufacturingProducts(
+        // Companies/orgs are identified by tenantId; when present, filter by it.
+        // Agents (no tenant) are identified by ownerUserId instead.
         tenantId: key.tenantId,
         ownerUserId: key.tenantId == null ? key.ownerUserId : null,
         limit: 200,
@@ -305,12 +309,13 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen>
 
     final tenantAsync = ref.watch(_myTenantProvider(userId));
     final tenantId = tenantAsync.valueOrNull?.id;
-    final agriKey = (tenantId: tenantId, ownerUserId: userId);
-    final mfgKey = (tenantId: tenantId, ownerUserId: userId);
+    // Use tenantId for company/organization users; ownerUserId for agents who have no tenant.
+    // The providers apply only one filter at a time: tenant_id takes precedence when set.
+    final listingKey = (tenantId: tenantId, ownerUserId: userId);
 
     final propertyListings = ref.watch(_myListingsProvider(userId));
-    final agriListings = ref.watch(_myAgriListingsProvider(agriKey));
-    final mfgListings = ref.watch(_myMfgListingsProvider(mfgKey));
+    final agriListings = ref.watch(_myAgriListingsProvider(listingKey));
+    final mfgListings = ref.watch(_myMfgListingsProvider(listingKey));
 
     return Scaffold(
       appBar: AppBar(
@@ -399,7 +404,7 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen>
                   }
                   return RefreshIndicator(
                     onRefresh: () async =>
-                        ref.invalidate(_myAgriListingsProvider(agriKey)),
+                        ref.invalidate(_myAgriListingsProvider(listingKey)),
                     child: ListView.builder(
                       padding: const EdgeInsets.all(12),
                       itemCount: listings.length,
@@ -418,9 +423,9 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen>
                           onView: () =>
                               context.push('/agriculture/${a.id}'),
                           onChangeStatus: () =>
-                              _changeAgriStatus(a, agriKey),
+                              _changeAgriStatus(a, listingKey),
                           onDelete: () =>
-                              _deleteAgriListing(a, agriKey),
+                              _deleteAgriListing(a, listingKey),
                         );
                       },
                     ),
@@ -445,7 +450,7 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen>
                   }
                   return RefreshIndicator(
                     onRefresh: () async =>
-                        ref.invalidate(_myMfgListingsProvider(mfgKey)),
+                        ref.invalidate(_myMfgListingsProvider(listingKey)),
                     child: ListView.builder(
                       padding: const EdgeInsets.all(12),
                       itemCount: listings.length,
@@ -465,9 +470,9 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen>
                           onView: () =>
                               context.push('/manufacturing/${m.id}'),
                           onChangeStatus: () =>
-                              _changeMfgStatus(m, mfgKey),
+                              _changeMfgStatus(m, listingKey),
                           onDelete: () =>
-                              _deleteMfgListing(m, mfgKey),
+                              _deleteMfgListing(m, listingKey),
                         );
                       },
                     ),
