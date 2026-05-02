@@ -312,6 +312,61 @@ class ApiService {
     return res.data as Map<String, dynamic>;
   }
 
+  // ─── Manufacturing Services ──────────────────────────────────────────────
+
+  Future<List<dynamic>> getManufacturingServices({
+    int skip = 0,
+    int limit = 100,
+    String? serviceType,
+    String? status,
+    int? tenantId,
+    int? ownerUserId,
+    String? keyword,
+    double? minPrice,
+    double? maxPrice,
+    double? lat,
+    double? lon,
+    double? radiusKm,
+  }) async {
+    final res = await _dio.get('/manufacturing/services/', queryParameters: {
+      'skip': skip,
+      'limit': limit,
+      if (serviceType != null) 'service_type': serviceType,
+      if (status != null) 'status': status,
+      if (tenantId != null) 'tenant_id': tenantId,
+      if (ownerUserId != null) 'owner_user_id': ownerUserId,
+      if (keyword != null) 'keyword': keyword,
+      if (minPrice != null) 'min_price': minPrice,
+      if (maxPrice != null) 'max_price': maxPrice,
+      if (lat != null) 'lat': lat,
+      if (lon != null) 'lon': lon,
+      if (radiusKm != null) 'radius_km': radiusKm,
+    });
+    return res.data as List<dynamic>;
+  }
+
+  Future<Map<String, dynamic>> getManufacturingService(int id) async {
+    final res = await _dio.get('/manufacturing/services/$id');
+    return res.data as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> createManufacturingService(
+      Map<String, dynamic> data) async {
+    final res = await _dio.post('/manufacturing/services/', data: data);
+    return res.data as Map<String, dynamic>;
+  }
+
+  Future<void> deleteManufacturingService(int id) async {
+    await _dio.delete('/manufacturing/services/$id');
+  }
+
+  Future<Map<String, dynamic>> patchMfgServiceStatus(
+      int id, String status) async {
+    final res = await _dio.patch('/manufacturing/services/$id/status',
+        data: {'status': status});
+    return res.data as Map<String, dynamic>;
+  }
+
   // ─── Orders ───────────────────────────────────────────────────────────────
 
   Future<List<dynamic>> getOrders({

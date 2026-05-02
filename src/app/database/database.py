@@ -131,6 +131,13 @@ _MIGRATIONS: list[tuple[str, str, str]] = [
     # Owner user linkage for agent-created agri/mfg listings
     ("agriculture_listings",    "owner_user_id", "INTEGER"),
     ("manufacturing_products",  "owner_user_id", "INTEGER"),
+    # Manufacturing services table (new table; column migrations for safety)
+    ("manufacturing_services",  "status",         "VARCHAR(50)  DEFAULT 'available'"),
+    ("manufacturing_services",  "currency",       "VARCHAR(10)  DEFAULT 'USD'"),
+    ("manufacturing_services",  "is_deleted",     "BOOLEAN DEFAULT 'false'"),
+    ("manufacturing_services",  "owner_user_id",  "INTEGER"),
+    ("manufacturing_services",  "latitude",       "FLOAT"),
+    ("manufacturing_services",  "longitude",      "FLOAT"),
 ]
 
 # Columns whose type needs widening on existing databases.

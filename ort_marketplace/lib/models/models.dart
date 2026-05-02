@@ -334,6 +334,74 @@ class ManufacturingProductModel {
       );
 }
 
+class ManufacturingServiceModel {
+  const ManufacturingServiceModel({
+    required this.id,
+    this.tenantId,
+    required this.title,
+    this.description,
+    this.serviceType,
+    required this.price,
+    this.pricingUnit,
+    this.currency = 'USD',
+    this.minOrderValue,
+    this.noticePeriodDays,
+    this.certifications,
+    this.images,
+    this.location,
+    this.latitude,
+    this.longitude,
+    required this.status,
+    required this.createdAt,
+  });
+
+  final int id;
+  final int? tenantId;
+  final String title;
+  final String? description;
+  final String? serviceType;
+  final double price;
+  final String? pricingUnit;
+  final String currency;
+  final double? minOrderValue;
+  final int? noticePeriodDays;
+  final List<String>? certifications;
+  final List<String>? images;
+  final String? location;
+  final double? latitude;
+  final double? longitude;
+  final String status;
+  final DateTime createdAt;
+
+  factory ManufacturingServiceModel.fromJson(Map<String, dynamic> j) =>
+      ManufacturingServiceModel(
+        id: j['id'] as int,
+        tenantId: j['tenant_id'] as int?,
+        title: j['title'] as String,
+        description: j['description'] as String?,
+        serviceType: j['service_type'] as String?,
+        price: double.parse(j['price'].toString()),
+        pricingUnit: j['pricing_unit'] as String?,
+        currency: j['currency'] as String? ?? 'USD',
+        minOrderValue: j['min_order_value'] != null
+            ? double.parse(j['min_order_value'].toString())
+            : null,
+        noticePeriodDays: j['notice_period_days'] as int?,
+        certifications:
+            (j['certifications'] as List<dynamic>?)?.cast<String>(),
+        images: (j['images'] as List<dynamic>?)?.cast<String>(),
+        location: j['location'] as String?,
+        latitude: j['latitude'] != null
+            ? double.parse(j['latitude'].toString())
+            : null,
+        longitude: j['longitude'] != null
+            ? double.parse(j['longitude'].toString())
+            : null,
+        status: (j['status'] as String?) ?? 'available',
+        createdAt: DateTime.parse(j['created_at'] as String),
+      );
+}
+
 class OrderModel {
   const OrderModel({
     required this.id,

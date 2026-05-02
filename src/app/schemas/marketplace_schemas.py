@@ -332,6 +332,67 @@ class ManufacturingProductResponse(ManufacturingProductBase):
     model_config = {"from_attributes": True}
 
 
+# ========== MANUFACTURING SERVICE ==========
+
+class ManufacturingServiceBase(BaseModel):
+    title: str
+    description: Optional[str] = None
+    service_type: Optional[str] = None
+    price: Decimal
+    pricing_unit: Optional[str] = None
+    currency: Optional[str] = "USD"
+    min_order_value: Optional[Decimal] = None
+    notice_period_days: Optional[int] = None
+    certifications: Optional[List[str]] = None
+    images: Optional[List[str]] = None
+    location: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+
+
+class ManufacturingServiceCreate(ManufacturingServiceBase):
+    tenant_id: Optional[int] = None
+    owner_user_id: Optional[int] = None
+    price: Decimal = Field(..., gt=0)
+
+    @field_validator("title", mode="before")
+    @classmethod
+    def no_blank(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("Field cannot be blank")
+        return v.strip()
+
+
+class ManufacturingServiceUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    service_type: Optional[str] = None
+    price: Optional[Decimal] = Field(None, gt=0)
+    pricing_unit: Optional[str] = None
+    currency: Optional[str] = None
+    min_order_value: Optional[Decimal] = None
+    notice_period_days: Optional[int] = None
+    certifications: Optional[List[str]] = None
+    images: Optional[List[str]] = None
+    location: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    status: Optional[str] = Field(None, pattern="^(available|fully_booked|discontinued)$")
+
+
+class MfgServiceStatusUpdate(BaseModel):
+    status: str = Field(..., pattern="^(available|fully_booked|discontinued)$")
+
+
+class ManufacturingServiceResponse(ManufacturingServiceBase):
+    id: int
+    tenant_id: Optional[int] = None
+    status: str
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
 # ========== ORDER ==========
 
 class PropertyStatusUpdate(BaseModel):

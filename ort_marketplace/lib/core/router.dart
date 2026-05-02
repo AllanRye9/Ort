@@ -16,6 +16,7 @@ import '../screens/agriculture/agriculture_create_screen.dart';
 import '../screens/manufacturing/manufacturing_screen.dart';
 import '../screens/manufacturing/manufacturing_detail_screen.dart';
 import '../screens/manufacturing/manufacturing_create_screen.dart';
+import '../screens/manufacturing/manufacturing_service_detail_screen.dart';
 import '../screens/orders/orders_screen.dart';
 import '../screens/orders/order_detail_screen.dart';
 import '../screens/messages/conversations_screen.dart';
@@ -174,6 +175,12 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'create',
                 builder: (_, __) => const ManufacturingCreateScreen(),
+              ),
+              GoRoute(
+                path: 'service/:id',
+                builder: (_, state) => ManufacturingServiceDetailScreen(
+                  id: int.parse(state.pathParameters['id']!),
+                ),
               ),
               GoRoute(
                 path: ':id',

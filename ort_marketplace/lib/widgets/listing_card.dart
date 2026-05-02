@@ -19,6 +19,7 @@ class ListingCard extends StatelessWidget {
     this.imageUrl,
     required this.onTap,
     this.onLongPress,
+    this.onDoubleTap,
   });
 
   final IconData icon;
@@ -32,6 +33,7 @@ class ListingCard extends StatelessWidget {
   final String? imageUrl;
   final VoidCallback onTap;
   final VoidCallback? onLongPress;
+  final VoidCallback? onDoubleTap;
 
   Color _statusColor(String s) {
     switch (s) {
@@ -57,6 +59,7 @@ class ListingCard extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         onLongPress: onLongPress,
+        onDoubleTap: onDoubleTap,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
