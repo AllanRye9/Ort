@@ -60,12 +60,10 @@
     <string>http</string>
   </array>
 
-  <!-- iOS 14+ background modes: fetch for background refresh,
-       remote-notification required for background push notifications -->
+  <!-- iOS 14+ background modes (optional – keep for future push / BG fetch) -->
   <key>UIBackgroundModes</key>
   <array>
     <string>fetch</string>
-    <string>remote-notification</string>
   </array>
 
   <!-- Appearance -->
