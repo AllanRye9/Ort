@@ -259,6 +259,12 @@ class ApiService {
     return res.data as Map<String, dynamic>;
   }
 
+  Future<Map<String, dynamic>> updateAgricultureListing(
+      int id, Map<String, dynamic> data) async {
+    final res = await _dio.put('/agriculture/$id', data: data);
+    return res.data as Map<String, dynamic>;
+  }
+
   Future<void> deleteAgricultureListing(int id) async {
     await _dio.delete('/agriculture/$id');
   }
@@ -299,6 +305,12 @@ class ApiService {
   Future<Map<String, dynamic>> createManufacturingProduct(
       Map<String, dynamic> data) async {
     final res = await _dio.post('/manufacturing/', data: data);
+    return res.data as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> updateManufacturingProduct(
+      int id, Map<String, dynamic> data) async {
+    final res = await _dio.put('/manufacturing/$id', data: data);
     return res.data as Map<String, dynamic>;
   }
 
