@@ -24,6 +24,9 @@ import '../screens/profile/profile_screen.dart';
 import '../screens/profile/my_listings_screen.dart';
 import '../screens/profile/my_clients_screen.dart';
 import '../screens/profile/analytics_screen.dart';
+import '../screens/agriculture/agriculture_edit_screen.dart';
+import '../screens/manufacturing/manufacturing_edit_screen.dart';
+import '../screens/properties/property_edit_screen.dart';
 import '../screens/notifications/notifications_screen.dart';
 import '../screens/search/search_screen.dart';
 import '../screens/settings/settings_screen.dart';
@@ -148,6 +151,14 @@ final routerProvider = Provider<GoRouter>((ref) {
                 builder: (_, state) => PropertyDetailScreen(
                   id: int.parse(state.pathParameters['id']!),
                 ),
+                routes: [
+                  GoRoute(
+                    path: 'edit',
+                    builder: (_, state) => PropertyEditScreen(
+                      id: int.parse(state.pathParameters['id']!),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -164,6 +175,14 @@ final routerProvider = Provider<GoRouter>((ref) {
                 builder: (_, state) => AgricultureDetailScreen(
                   id: int.parse(state.pathParameters['id']!),
                 ),
+                routes: [
+                  GoRoute(
+                    path: 'edit',
+                    builder: (_, state) => AgricultureEditScreen(
+                      id: int.parse(state.pathParameters['id']!),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -180,6 +199,14 @@ final routerProvider = Provider<GoRouter>((ref) {
                 builder: (_, state) => ManufacturingDetailScreen(
                   id: int.parse(state.pathParameters['id']!),
                 ),
+                routes: [
+                  GoRoute(
+                    path: 'edit',
+                    builder: (_, state) => ManufacturingEditScreen(
+                      id: int.parse(state.pathParameters['id']!),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

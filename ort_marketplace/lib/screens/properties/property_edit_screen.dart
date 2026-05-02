@@ -3,20 +3,23 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/api_service.dart';
-import '../../core/auth_provider.dart';
 import '../../core/listing_providers.dart';
 import '../../core/location_service.dart';
+import '../../models/models.dart';
 import '../../widgets/media_picker_field.dart';
+import '../properties/property_create_screen.dart'
+    show LandAreaSection, AcresHectaresInput, MetricDimensionsInput;
 
-class PropertyCreateScreen extends ConsumerStatefulWidget {
-  const PropertyCreateScreen({super.key});
+class PropertyEditScreen extends ConsumerStatefulWidget {
+  const PropertyEditScreen({super.key, required this.id});
+  final int id;
 
   @override
-  ConsumerState<PropertyCreateScreen> createState() =>
-      _PropertyCreateScreenState();
+  ConsumerState<PropertyEditScreen> createState() =>
+      _PropertyEditScreenState();
 }
 
-class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
+class _PropertyEditScreenState extends ConsumerState<PropertyEditScreen> {
   final _formKey = GlobalKey<FormState>();
   final _titleCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
@@ -34,11 +37,12 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
   String _propertyType = 'house';
   List<String> _imageUrls = [];
   bool _submitting = false;
+  bool _loading = true;
 
   // Land category fields
-  String? _landCategory;     // farmland, residential, industrial, other
-  String _landAreaUnit = 'acres'; // acres or hectares
-  bool _landResidentialUseMetric = false; // use L×W in meters for residential land
+  String? _landCategory;
+  String _landAreaUnit = 'acres';
+  bool _landResidentialUseMetric = false;
 
   static const _landCategories = ['farmland', 'residential', 'industrial', 'other'];
 
@@ -55,20 +59,10 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
   bool get _isUAE =>
       _geocodedCountry?.toLowerCase() == 'united arab emirates';
 
-  // Property types that have bedrooms / bathrooms
   static const _residentialTypes = ['house', 'apartment', 'villa'];
 
   bool get _showBedroomsBathrooms =>
       _residentialTypes.contains(_propertyType);
-
-  String get _currencyCode =>
-      _isUganda ? 'UGX' : (_isUAE ? 'AED' : 'USD');
-
-  String get _currencyPrefix =>
-      _isUganda ? 'UGX ' : (_isUAE ? 'AED ' : '\$');
-
-  bool get _isUAE =>
-      _geocodedCountry?.toLowerCase() == 'united arab emirates';
 
   String get _priceCurrencyCode {
     if (_isUganda) return 'UGX';
@@ -92,6 +86,53 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
     'warehouse',
     'other',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProperty();
+  }
+
+  Future<void> _loadProperty() async {
+    try {
+      final api = ref.read(apiServiceProvider);
+      final data = await api.getProperty(widget.id);
+      final p = PropertyModel.fromJson(data);
+
+      setState(() {
+        _titleCtrl.text = p.title;
+        _descCtrl.text = p.description ?? '';
+        _addressCtrl.text = p.address;
+        _cityCtrl.text = p.city ?? '';
+        _priceCtrl.text = p.price.toStringAsFixed(0);
+        _bedroomsCtrl.text = p.bedrooms?.toString() ?? '';
+        _bathroomsCtrl.text = p.bathrooms?.toString() ?? '';
+        _areaCtrl.text = p.areaSqft?.toString() ?? '';
+        _lengthCtrl.text = p.plotLengthM?.toStringAsFixed(0) ?? '';
+        _widthCtrl.text = p.plotWidthM?.toStringAsFixed(0) ?? '';
+        _landAreaCtrl.text = p.landAreaAcres?.toStringAsFixed(2) ?? '';
+        _propertyType =
+            _propertyTypes.contains(p.propertyType) ? p.propertyType : 'house';
+        _landCategory = p.landCategory;
+        _imageUrls = List<String>.from(p.imageUrls);
+        _geocodedLat = p.latitude;
+        _geocodedLon = p.longitude;
+        _geocodedCountry = p.country;
+        if (p.latitude != null && p.longitude != null) {
+          _geocodedDisplayName =
+              '${p.latitude!.toStringAsFixed(5)}, ${p.longitude!.toStringAsFixed(5)}';
+        }
+        _loading = false;
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() => _loading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load property: $e')),
+        );
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -120,12 +161,12 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
       if (!mounted) return;
       if (pos == null) {
         setState(() {
-          _locationError = 'Location unavailable. Check that GPS is enabled on your device and permissions are granted.';
+          _locationError =
+              'Location unavailable. Check that GPS is enabled and permissions are granted.';
           _gpsCapturing = false;
         });
         return;
       }
-      // Use Nominatim /reverse endpoint for accurate reverse geocoding.
       final result = await LocationService.instance.reverseGeocodePosition(
         pos.latitude,
         pos.longitude,
@@ -136,8 +177,7 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
         _geocodedLon = pos.longitude;
         _geocodedCountry = result?.country;
         _geocodedDisplayName = result?.displayName ??
-            '${pos.latitude.toStringAsFixed(5)}, '
-            '${pos.longitude.toStringAsFixed(5)}';
+            '${pos.latitude.toStringAsFixed(5)}, ${pos.longitude.toStringAsFixed(5)}';
         _locationError = null;
         _gpsCapturing = false;
       });
@@ -148,7 +188,6 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
               'Location permission is permanently denied. Open app settings to enable it.';
           _gpsCapturing = false;
         });
-        // Offer to open app settings
         final open = await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
@@ -189,10 +228,6 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
     setState(() {
       _geocoding = true;
       _locationError = null;
-      _geocodedLat = null;
-      _geocodedLon = null;
-      _geocodedCountry = null;
-      _geocodedDisplayName = null;
     });
     try {
       final result =
@@ -228,18 +263,6 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-
-    if (_geocodedLat == null || _geocodedLon == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-              'Please validate the listing location before publishing.'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-      return;
-    }
-
     setState(() => _submitting = true);
     try {
       double? areaValue;
@@ -250,9 +273,7 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
       final isLand = _propertyType == 'land';
 
       if (isLand && _landCategory != null) {
-        // Collect land area
         if (_landCategory == 'residential' && _landResidentialUseMetric) {
-          // Use L×W in meters
           final l = double.tryParse(_lengthCtrl.text.trim());
           final w = double.tryParse(_widthCtrl.text.trim());
           if (l != null && w != null) {
@@ -260,12 +281,11 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
             widthM = w;
           }
         } else {
-          // Use acres or hectares input
-          // Area conversion: 1 hectare = 2.47105 acres
           const double hectaresToAcres = 2.47105;
           final val = double.tryParse(_landAreaCtrl.text.trim());
           if (val != null) {
-            landAreaAcres = _landAreaUnit == 'hectares' ? val * hectaresToAcres : val;
+            landAreaAcres =
+                _landAreaUnit == 'hectares' ? val * hectaresToAcres : val;
           }
         }
       } else if (_isUganda) {
@@ -281,7 +301,6 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
             : null;
       }
 
-      final userId = ref.read(authProvider).userId;
       final payload = <String, dynamic>{
         'title': _titleCtrl.text.trim(),
         'address': _addressCtrl.text.trim().isNotEmpty
@@ -289,9 +308,8 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
             : (_geocodedDisplayName ?? 'Unknown'),
         'price': double.parse(_priceCtrl.text.trim()),
         'property_type': _propertyType,
-        'latitude': _geocodedLat,
-        'longitude': _geocodedLon,
-        if (userId != null) 'agent_id': userId,
+        if (_geocodedLat != null) 'latitude': _geocodedLat,
+        if (_geocodedLon != null) 'longitude': _geocodedLon,
         if (_geocodedCountry != null) 'country': _geocodedCountry,
         if (_descCtrl.text.trim().isNotEmpty)
           'description': _descCtrl.text.trim(),
@@ -311,19 +329,19 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
         if (_imageUrls.isNotEmpty) 'images': _imageUrls,
       };
 
-      await ref.read(apiServiceProvider).createProperty(payload);
+      await ref.read(apiServiceProvider).updateProperty(widget.id, payload);
       invalidateHomeProviders(ref);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Property listed successfully!')),
+          const SnackBar(content: Text('Property updated successfully!')),
         );
         context.go('/my-listings');
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to create listing: $e')),
+          SnackBar(content: Text('Failed to update property: $e')),
         );
       }
     } finally {
@@ -346,10 +364,17 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Edit Property')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('List a Property')),
+      appBar: AppBar(title: const Text('Edit Property')),
       body: Form(
         key: _formKey,
         child: SingleChildScrollView(
@@ -357,15 +382,16 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── Photos ─────────────────────────────────────────────────────
+              // ── Photos ────────────────────────────────────────────────────
               _sectionTitle('PHOTOS'),
               MediaPickerField(
                 label: 'Property Photos',
                 maxImages: 8,
-                onUrlsChanged: (urls) => _imageUrls = urls,
+                initialUrls: _imageUrls,
+                onUrlsChanged: (urls) => setState(() => _imageUrls = urls),
               ),
 
-              // ── Basic Info ─────────────────────────────────────────────────
+              // ── Basic Info ────────────────────────────────────────────────
               _sectionTitle('BASIC INFORMATION'),
               TextFormField(
                 controller: _titleCtrl,
@@ -382,18 +408,13 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
                 items: _propertyTypes
                     .map((t) => DropdownMenuItem(
                         value: t,
-                        child: Text(
-                            t[0].toUpperCase() + t.substring(1))))
+                        child: Text(t[0].toUpperCase() + t.substring(1))))
                     .toList(),
                 onChanged: (v) => setState(() {
-                    _propertyType = v!;
-                    // Reset land-specific fields when switching away from land
-                    if (v != 'land') {
-                      _landCategory = null;
-                    }
-                  }),
+                  _propertyType = v!;
+                  if (v != 'land') _landCategory = null;
+                }),
               ),
-              // ── Land category (shown only when property_type == 'land') ────
               if (_propertyType == 'land') ...[
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
@@ -404,8 +425,8 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
                   items: _landCategories
                       .map((c) => DropdownMenuItem(
                           value: c,
-                          child: Text(
-                              c[0].toUpperCase() + c.substring(1))))
+                          child:
+                              Text(c[0].toUpperCase() + c.substring(1))))
                       .toList(),
                   onChanged: (v) => setState(() => _landCategory = v),
                   validator: (v) =>
@@ -420,10 +441,39 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
                 maxLines: 3,
               ),
 
-              // ── Location ────────────────────────────────────────────────────
+              // ── Location ──────────────────────────────────────────────────
               _sectionTitle('LOCATION'),
+              if (_geocodedDisplayName != null) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: cs.primaryContainer.withValues(alpha: 0.4),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                        color: cs.primary.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.location_on, size: 16, color: cs.primary),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'Current: $_geocodedDisplayName',
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: cs.onSurface.withValues(alpha: 0.8)),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
+              ],
               Text(
-                'Option A – Use my current GPS location',
+                'Update location (optional)',
                 style: TextStyle(
                     fontSize: 12, color: cs.onSurface.withValues(alpha: 0.7)),
               ),
@@ -442,13 +492,7 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
                 onPressed:
                     (_gpsCapturing || _geocoding) ? null : _captureGpsLocation,
               ),
-              const SizedBox(height: 16),
-              Text(
-                'Option B – Enter place name',
-                style: TextStyle(
-                    fontSize: 12, color: cs.onSurface.withValues(alpha: 0.7)),
-              ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -456,7 +500,7 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
                     child: TextFormField(
                       controller: _placeNameCtrl,
                       decoration: const InputDecoration(
-                        labelText: 'Place name (e.g. "Mbarara, Uganda")',
+                        labelText: 'Or enter place name',
                         isDense: true,
                       ),
                     ),
@@ -479,51 +523,6 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
                   ),
                 ],
               ),
-              // Show validation result / error
-              if (_geocodedDisplayName != null) ...[
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: cs.primaryContainer.withValues(alpha: 0.4),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                        color: cs.primary.withValues(alpha: 0.3)),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.check_circle_outline,
-                          size: 16, color: cs.primary),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          _geocodedDisplayName!,
-                          style: TextStyle(
-                              fontSize: 12,
-                              color: cs.onSurface.withValues(alpha: 0.8)),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      if (_isUganda || _isUAE)
-                        Padding(
-                          padding: const EdgeInsets.only(left: 6),
-                          child: Chip(
-                            label: Text(
-                                _isUganda ? 'Uganda (UGX)' : 'UAE (AED)',
-                                style: const TextStyle(fontSize: 10)),
-                            backgroundColor:
-                                cs.secondary.withValues(alpha: 0.15),
-                            side: BorderSide.none,
-                            visualDensity: VisualDensity.compact,
-                            padding: EdgeInsets.zero,
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ],
               if (_locationError != null) ...[
                 const SizedBox(height: 8),
                 Row(
@@ -533,8 +532,7 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
                     Expanded(
                       child: Text(
                         _locationError!,
-                        style: TextStyle(
-                            fontSize: 12, color: cs.error),
+                        style: TextStyle(fontSize: 12, color: cs.error),
                       ),
                     ),
                   ],
@@ -553,11 +551,12 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
                     const InputDecoration(labelText: 'City (optional)'),
               ),
 
-              // ── Pricing ─────────────────────────────────────────────────────
+              // ── Pricing ───────────────────────────────────────────────────
               _sectionTitle('PRICING'),
               TextFormField(
                 controller: _priceCtrl,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
                 decoration: InputDecoration(
                   labelText: 'Price ($_priceCurrencyCode) *',
                   prefixText: _priceCurrencyPrefix,
@@ -576,10 +575,9 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
                 },
               ),
 
-              // ── Details ──────────────────────────────────────────────────────
+              // ── Details ───────────────────────────────────────────────────
               _sectionTitle('DETAILS'),
               if (_propertyType == 'land' && _landCategory != null) ...[
-                // Land area measurement section
                 LandAreaSection(
                   landCategory: _landCategory!,
                   landAreaUnit: _landAreaUnit,
@@ -594,7 +592,6 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
                   cs: cs,
                 ),
               ] else if (_propertyType != 'land') ...[
-                // Bedrooms/bathrooms only for residential types
                 if (_showBedroomsBathrooms) ...[
                   Row(
                     children: [
@@ -629,7 +626,6 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
                   ),
                   const SizedBox(height: 12),
                 ],
-                // Uganda: L × W measurement; everywhere else: area in sqft
                 if (_isUganda) ...[
                   Text(
                     'PLOT DIMENSIONS (METRIC – UGANDA)',
@@ -641,60 +637,12 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: _lengthCtrl,
-                          keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true),
-                          decoration: const InputDecoration(
-                              labelText: 'Length (m)', suffixText: 'm'),
-                          validator: (v) {
-                            if (v == null || v.isEmpty) return null;
-                            if (double.tryParse(v) == null) return 'Invalid';
-                            return null;
-                          },
-                          onChanged: (_) => setState(() {}),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextFormField(
-                          controller: _widthCtrl,
-                          keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true),
-                          decoration: const InputDecoration(
-                              labelText: 'Width (m)', suffixText: 'm'),
-                          validator: (v) {
-                            if (v == null || v.isEmpty) return null;
-                            if (double.tryParse(v) == null) return 'Invalid';
-                            return null;
-                          },
-                          onChanged: (_) => setState(() {}),
-                        ),
-                      ),
-                    ],
+                  MetricDimensionsInput(
+                    lengthCtrl: _lengthCtrl,
+                    widthCtrl: _widthCtrl,
+                    cs: cs,
+                    onChanged: () => setState(() {}),
                   ),
-                  Builder(builder: (_) {
-                    final l = double.tryParse(_lengthCtrl.text);
-                    final w = double.tryParse(_widthCtrl.text);
-                    if (l != null && w != null) {
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: Text(
-                          'Dimensions: ${l.toStringAsFixed(0)}m × '
-                          '${w.toStringAsFixed(0)}m  |  '
-                          'Total Area: ${(l * w).toStringAsFixed(0)} m²',
-                          style: TextStyle(
-                              fontSize: 13,
-                              color: cs.primary,
-                              fontWeight: FontWeight.w600),
-                        ),
-                      );
-                    }
-                    return const SizedBox.shrink();
-                  }),
                 ] else ...[
                   TextFormField(
                     controller: _areaCtrl,
@@ -711,260 +659,25 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
               ],
 
               const SizedBox(height: 32),
-              ElevatedButton(
-                onPressed: _submitting ? null : _submit,
-                child: _submitting
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white),
-                      )
-                    : const Text('Publish Listing'),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: _submitting ? null : _submit,
+                  child: _submitting
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Text('Update Listing'),
+                ),
               ),
               const SizedBox(height: 32),
             ],
           ),
         ),
       ),
-    );
-  }
-}
-
-// ─── Land area section widget ────────────────────────────────────────────────
-
-class LandAreaSection extends StatelessWidget {
-  const LandAreaSection({
-    super.key,
-    required this.landCategory,
-    required this.landAreaUnit,
-    required this.landAreaCtrl,
-    required this.lengthCtrl,
-    required this.widthCtrl,
-    required this.residentialUseMetric,
-    required this.onUnitChanged,
-    required this.onMetricChanged,
-    required this.onChanged,
-    required this.cs,
-  });
-
-  final String landCategory;
-  final String landAreaUnit;
-  final TextEditingController landAreaCtrl;
-  final TextEditingController lengthCtrl;
-  final TextEditingController widthCtrl;
-  final bool residentialUseMetric;
-  final ValueChanged<String> onUnitChanged;
-  final ValueChanged<bool> onMetricChanged;
-  final VoidCallback onChanged;
-  final ColorScheme cs;
-
-  double get _minAcres => landAreaUnit == 'hectares' ? 0.1 : 1.0;
-  String get _minLabel => landAreaUnit == 'hectares' ? '0.1 ha' : '1 acre';
-
-  @override
-  Widget build(BuildContext context) {
-    // Residential land can use L×W in meters OR acres/hectares
-    if (landCategory == 'residential') {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Text('Measurement mode:',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-              const SizedBox(width: 12),
-              ChoiceChip(
-                label: const Text('L × W (m)', style: TextStyle(fontSize: 12)),
-                selected: residentialUseMetric,
-                onSelected: (_) => onMetricChanged(true),
-                visualDensity: VisualDensity.compact,
-              ),
-              const SizedBox(width: 6),
-              ChoiceChip(
-                label: const Text('Acres/Hectares',
-                    style: TextStyle(fontSize: 12)),
-                selected: !residentialUseMetric,
-                onSelected: (_) => onMetricChanged(false),
-                visualDensity: VisualDensity.compact,
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          if (residentialUseMetric)
-            MetricDimensionsInput(
-                lengthCtrl: lengthCtrl,
-                widthCtrl: widthCtrl,
-                cs: cs,
-                onChanged: onChanged)
-          else
-            AcresHectaresInput(
-              ctrl: landAreaCtrl,
-              unit: landAreaUnit,
-              minValue: _minAcres,
-              minLabel: _minLabel,
-              onUnitChanged: onUnitChanged,
-            ),
-        ],
-      );
-    }
-
-    // Farmland / Industrial / Other → acres / hectares
-    return AcresHectaresInput(
-      ctrl: landAreaCtrl,
-      unit: landAreaUnit,
-      minValue: _minAcres,
-      minLabel: _minLabel,
-      onUnitChanged: onUnitChanged,
-      isFarmland: landCategory == 'farmland',
-    );
-  }
-}
-
-class AcresHectaresInput extends StatelessWidget {
-  const AcresHectaresInput({
-    super.key,
-    required this.ctrl,
-    required this.unit,
-    required this.minValue,
-    required this.minLabel,
-    required this.onUnitChanged,
-    this.isFarmland = false,
-  });
-
-  final TextEditingController ctrl;
-  final String unit;
-  final double minValue;
-  final String minLabel;
-  final ValueChanged<String> onUnitChanged;
-  final bool isFarmland;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            const Text('Unit:', style: TextStyle(fontSize: 13)),
-            const SizedBox(width: 8),
-            ChoiceChip(
-              label:
-                  const Text('Acres', style: TextStyle(fontSize: 12)),
-              selected: unit == 'acres',
-              onSelected: (_) => onUnitChanged('acres'),
-              visualDensity: VisualDensity.compact,
-            ),
-            const SizedBox(width: 6),
-            ChoiceChip(
-              label: const Text('Hectares',
-                  style: TextStyle(fontSize: 12)),
-              selected: unit == 'hectares',
-              onSelected: (_) => onUnitChanged('hectares'),
-              visualDensity: VisualDensity.compact,
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: ctrl,
-          keyboardType:
-              const TextInputType.numberWithOptions(decimal: true),
-          decoration: InputDecoration(
-            labelText: 'Land Area ($unit) *',
-            suffixText: unit == 'acres' ? 'ac' : 'ha',
-            helperText: isFarmland
-                ? 'Minimum: $minLabel  ·  step: 0.01'
-                : 'Minimum: $minLabel',
-          ),
-          validator: (v) {
-            if (v == null || v.trim().isEmpty) return 'Area is required';
-            final val = double.tryParse(v.trim());
-            if (val == null) return 'Enter a valid number';
-            if (val < minValue) {
-              return 'Minimum $minLabel';
-            }
-            return null;
-          },
-        ),
-      ],
-    );
-  }
-}
-
-class MetricDimensionsInput extends StatelessWidget {
-  const MetricDimensionsInput({
-    super.key,
-    required this.lengthCtrl,
-    required this.widthCtrl,
-    required this.cs,
-    required this.onChanged,
-  });
-
-  final TextEditingController lengthCtrl;
-  final TextEditingController widthCtrl;
-  final ColorScheme cs;
-  final VoidCallback onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: TextFormField(
-                controller: lengthCtrl,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(
-                    labelText: 'Length (m)', suffixText: 'm'),
-                validator: (v) {
-                  if (v == null || v.isEmpty) return null;
-                  if (double.tryParse(v) == null) return 'Invalid';
-                  return null;
-                },
-                onChanged: (_) => onChanged(),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: TextFormField(
-                controller: widthCtrl,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(
-                    labelText: 'Width (m)', suffixText: 'm'),
-                validator: (v) {
-                  if (v == null || v.isEmpty) return null;
-                  if (double.tryParse(v) == null) return 'Invalid';
-                  return null;
-                },
-                onChanged: (_) => onChanged(),
-              ),
-            ),
-          ],
-        ),
-        Builder(builder: (_) {
-          final l = double.tryParse(lengthCtrl.text);
-          final w = double.tryParse(widthCtrl.text);
-          if (l != null && w != null) {
-            return Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Text(
-                '${l.toStringAsFixed(0)}m × ${w.toStringAsFixed(0)}m  |  '
-                '${(l * w).toStringAsFixed(0)} m²',
-                style: TextStyle(
-                    fontSize: 13,
-                    color: cs.primary,
-                    fontWeight: FontWeight.w600),
-              ),
-            );
-          }
-          return const SizedBox.shrink();
-        }),
-      ],
     );
   }
 }

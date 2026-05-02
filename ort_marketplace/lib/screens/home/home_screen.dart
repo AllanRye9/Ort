@@ -27,44 +27,6 @@ final _homeUserProvider = FutureProvider.autoDispose<UserModel?>((ref) async {
   }
 });
 
-// ─── Role-specific quick actions ──────────────────────────────────────────────
-
-const _agentQuickActions = [
-  _QuickAction(Icons.add_business_outlined, 'New Listing', '/properties/create', Color(0xFF1B5E20)),
-  _QuickAction(Icons.people_outline, 'My Clients', '/my-clients', Color(0xFF1565C0)),
-  _QuickAction(Icons.bar_chart_outlined, 'Analytics', '/analytics', Color(0xFF6A1B9A)),
-  _QuickAction(Icons.star_border_outlined, 'Reviews', '/profile', Color(0xFFE65100)),
-];
-
-const _companyQuickActions = [
-  _QuickAction(Icons.storefront_outlined, 'My Products', '/manufacturing', Color(0xFFE65100)),
-  _QuickAction(Icons.request_quote_outlined, 'RFQs', '/orders', Color(0xFF1565C0)),
-  _QuickAction(Icons.people_outline, 'Customers', '/messages', Color(0xFF2E7D32)),
-  _QuickAction(Icons.analytics_outlined, 'Dashboard', '/orders', Color(0xFF6A1B9A)),
-];
-
-const _organizationQuickActions = [
-  _QuickAction(Icons.grass_outlined, 'My Listings', '/agriculture', Color(0xFF2E7D32)),
-  _QuickAction(Icons.handshake_outlined, 'Partnerships', '/messages', Color(0xFF1565C0)),
-  _QuickAction(Icons.campaign_outlined, 'Campaigns', '/notifications', Color(0xFFE65100)),
-  _QuickAction(Icons.analytics_outlined, 'Reports', '/orders', Color(0xFF6A1B9A)),
-];
-
-const _userQuickActions = [
-  _QuickAction(Icons.apartment_outlined, 'Properties', '/properties', Color(0xFF1B5E20)),
-  _QuickAction(Icons.grass_outlined, 'Agriculture', '/agriculture', Color(0xFF2E7D32)),
-  _QuickAction(Icons.precision_manufacturing_outlined, 'Products', '/manufacturing', Color(0xFFE65100)),
-  _QuickAction(Icons.calculate_outlined, 'Distance', '/distance-calculator', Color(0xFF1565C0)),
-];
-
-class _QuickAction {
-  const _QuickAction(this.icon, this.label, this.route, this.color);
-  final IconData icon;
-  final String label;
-  final String route;
-  final Color color;
-}
-
 // ─── Distance helper ──────────────────────────────────────────────────────────
 
 /// Returns the distance in km from [userLoc] to [lat]/[lon], or null if any
@@ -299,13 +261,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final role = auth.role ?? 'user';
     final currentUser = ref.watch(_homeUserProvider).valueOrNull;
 
-    final quickActions = switch (role) {
-      'agent' => _agentQuickActions,
-      'company' => _companyQuickActions,
-      'organization' => _organizationQuickActions,
-      _ => _userQuickActions,
-    };
-
     final roleLabel = switch (role) {
       'agent' => 'Agent Dashboard',
       'company' => 'Company Dashboard',
@@ -398,26 +353,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(0, 4, 0, 12),
                 child: _ContentWrapper(child: const _AiWidget()),
-              ),
-            ),
-
-            // ── Role-specific quick actions ──────────────────────────────────
-            SliverToBoxAdapter(
-              child: _ContentWrapper(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      role == 'user' ? 'Explore' : 'Quick Actions',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                    ),
-                    const SizedBox(height: 12),
-                    _QuickActionsGrid(actions: quickActions),
-                    const SizedBox(height: 24),
-                  ],
-                ),
               ),
             ),
 
@@ -945,113 +880,6 @@ class _RadiusFilterState extends ConsumerState<_RadiusFilter> {
   }
 }
 
-// ─── Quick-actions grid ───────────────────────────────────────────────────────
-
-class _QuickActionsGrid extends StatelessWidget {
-  const _QuickActionsGrid({required this.actions});
-  final List<_QuickAction> actions;
-
-  @override
-  Widget build(BuildContext context) {
-    // On wide screens show all actions in one row; on mobile cap at 4 per row.
-    final cols = context.isWide ? actions.length : 4;
-    return GridView.count(
-      crossAxisCount: cols,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 4,
-      crossAxisSpacing: 4,
-      childAspectRatio: 0.85,
-      children: List.generate(
-        actions.length,
-        (i) => _AnimatedEntry(
-          delay: Duration(milliseconds: 80 * i),
-          child: _QuickActionTile(action: actions[i]),
-        ),
-      ),
-    );
-  }
-}
-
-class _QuickActionTile extends StatefulWidget {
-  const _QuickActionTile({required this.action});
-  final _QuickAction action;
-
-  @override
-  State<_QuickActionTile> createState() => _QuickActionTileState();
-}
-
-class _QuickActionTileState extends State<_QuickActionTile>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _scaleCtrl;
-  late final Animation<double> _scaleAnim;
-
-  @override
-  void initState() {
-    super.initState();
-    _scaleCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 120),
-      lowerBound: 0.0,
-      upperBound: 0.08,
-    );
-    _scaleAnim = Tween<double>(begin: 1.0, end: 0.92).animate(
-      CurvedAnimation(parent: _scaleCtrl, curve: Curves.easeIn),
-    );
-  }
-
-  @override
-  void dispose() {
-    _scaleCtrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => GestureDetector(
-        onTapDown: (_) => _scaleCtrl.forward(),
-        onTapUp: (_) async {
-          await _scaleCtrl.reverse();
-          if (mounted) context.go(widget.action.route);
-        },
-        onTapCancel: () => _scaleCtrl.reverse(),
-        child: AnimatedBuilder(
-          animation: _scaleAnim,
-          builder: (_, child) =>
-              Transform.scale(scale: _scaleAnim.value, child: child),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  color: widget.action.color.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: widget.action.color.withValues(alpha: 0.18),
-                      blurRadius: 8,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
-                ),
-                child: Icon(widget.action.icon,
-                    color: widget.action.color, size: 26),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                widget.action.label,
-                textAlign: TextAlign.center,
-                style:
-                    const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
-        ),
-      );
-}
 
 // ─── Animated entry wrapper ───────────────────────────────────────────────────
 

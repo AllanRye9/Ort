@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/api_service.dart';
 import '../../core/auth_provider.dart';
+import '../../core/listing_providers.dart';
 import '../../models/models.dart';
 
 final _myListingsProvider =
@@ -378,6 +379,7 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen>
                         return _PropertyListingCard(
                           property: p,
                           onView: () => context.push('/properties/${p.id}'),
+                          onEdit: () => context.push('/properties/${p.id}/edit'),
                           onChangeStatus: () => _changeStatus(p),
                           onDelete: () => _deleteListing(p),
                         );
@@ -413,8 +415,7 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen>
                         return _SimpleListingCard(
                           title: a.title,
                           subtitle: a.location ?? a.category ?? '',
-                          price:
-                              '\$${a.pricePerUnit.toStringAsFixed(2)} / ${a.unit ?? 'unit'}',
+                          price: '${formatCurrency(a.pricePerUnit, currency: a.currency, decimals: 2)} / ${a.unit ?? 'unit'}',
                           status: a.status,
                           imageUrl: a.images?.isNotEmpty == true
                               ? a.images!.first
@@ -422,6 +423,8 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen>
                           placeholderIcon: Icons.grass,
                           onView: () =>
                               context.push('/agriculture/${a.id}'),
+                          onEdit: () =>
+                              context.push('/agriculture/${a.id}/edit'),
                           onChangeStatus: () =>
                               _changeAgriStatus(a, listingKey),
                           onDelete: () =>
@@ -459,8 +462,7 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen>
                         return _SimpleListingCard(
                           title: m.title,
                           subtitle: m.location ?? m.category ?? '',
-                          price:
-                              '\$${m.wholesalePrice.toStringAsFixed(2)}',
+                          price: formatCurrency(m.wholesalePrice, currency: m.currency, decimals: 2),
                           status: m.status,
                           imageUrl: m.images?.isNotEmpty == true
                               ? m.images!.first
@@ -469,6 +471,8 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen>
                               Icons.precision_manufacturing,
                           onView: () =>
                               context.push('/manufacturing/${m.id}'),
+                          onEdit: () =>
+                              context.push('/manufacturing/${m.id}/edit'),
                           onChangeStatus: () =>
                               _changeMfgStatus(m, listingKey),
                           onDelete: () =>
@@ -538,12 +542,14 @@ class _PropertyListingCard extends StatelessWidget {
   const _PropertyListingCard({
     required this.property,
     required this.onView,
+    required this.onEdit,
     required this.onChangeStatus,
     required this.onDelete,
   });
 
   final PropertyModel property;
   final VoidCallback onView;
+  final VoidCallback onEdit;
   final VoidCallback onChangeStatus;
   final VoidCallback onDelete;
 
@@ -618,7 +624,7 @@ class _PropertyListingCard extends StatelessWidget {
             Row(
               children: [
                 Text(
-                  '\$${p.price.toStringAsFixed(0)}',
+                  formatCurrency(p.price, country: p.country),
                   style: TextStyle(
                     fontSize: 13,
                     color: Theme.of(context).colorScheme.primary,
@@ -650,16 +656,47 @@ class _PropertyListingCard extends StatelessWidget {
         trailing: PopupMenuButton<String>(
           onSelected: (v) {
             if (v == 'view') onView();
+            if (v == 'edit') onEdit();
             if (v == 'status') onChangeStatus();
             if (v == 'delete') onDelete();
           },
           itemBuilder: (_) => const [
-            PopupMenuItem(value: 'view', child: Text('View / Edit')),
-            PopupMenuItem(value: 'status', child: Text('Change Status')),
+            PopupMenuItem(
+                value: 'edit',
+                child: Row(
+                  children: [
+                    Icon(Icons.edit_outlined, size: 18),
+                    SizedBox(width: 8),
+                    Text('Edit'),
+                  ],
+                )),
+            PopupMenuItem(
+                value: 'view',
+                child: Row(
+                  children: [
+                    Icon(Icons.visibility_outlined, size: 18),
+                    SizedBox(width: 8),
+                    Text('View'),
+                  ],
+                )),
+            PopupMenuItem(
+                value: 'status',
+                child: Row(
+                  children: [
+                    Icon(Icons.swap_horiz_outlined, size: 18),
+                    SizedBox(width: 8),
+                    Text('Change Status'),
+                  ],
+                )),
             PopupMenuItem(
                 value: 'delete',
-                child: Text('Delete',
-                    style: TextStyle(color: Colors.red))),
+                child: Row(
+                  children: [
+                    Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                    SizedBox(width: 8),
+                    Text('Delete', style: TextStyle(color: Colors.red)),
+                  ],
+                )),
           ],
         ),
         onTap: onView,
@@ -679,6 +716,7 @@ class _SimpleListingCard extends StatelessWidget {
     required this.imageUrl,
     required this.placeholderIcon,
     required this.onView,
+    required this.onEdit,
     required this.onChangeStatus,
     required this.onDelete,
   });
@@ -690,6 +728,7 @@ class _SimpleListingCard extends StatelessWidget {
   final String? imageUrl;
   final IconData placeholderIcon;
   final VoidCallback onView;
+  final VoidCallback onEdit;
   final VoidCallback onChangeStatus;
   final VoidCallback onDelete;
 
@@ -786,16 +825,47 @@ class _SimpleListingCard extends StatelessWidget {
         trailing: PopupMenuButton<String>(
           onSelected: (v) {
             if (v == 'view') onView();
+            if (v == 'edit') onEdit();
             if (v == 'status') onChangeStatus();
             if (v == 'delete') onDelete();
           },
           itemBuilder: (_) => const [
-            PopupMenuItem(value: 'view', child: Text('View / Edit')),
-            PopupMenuItem(value: 'status', child: Text('Change Status')),
+            PopupMenuItem(
+                value: 'edit',
+                child: Row(
+                  children: [
+                    Icon(Icons.edit_outlined, size: 18),
+                    SizedBox(width: 8),
+                    Text('Edit'),
+                  ],
+                )),
+            PopupMenuItem(
+                value: 'view',
+                child: Row(
+                  children: [
+                    Icon(Icons.visibility_outlined, size: 18),
+                    SizedBox(width: 8),
+                    Text('View'),
+                  ],
+                )),
+            PopupMenuItem(
+                value: 'status',
+                child: Row(
+                  children: [
+                    Icon(Icons.swap_horiz_outlined, size: 18),
+                    SizedBox(width: 8),
+                    Text('Change Status'),
+                  ],
+                )),
             PopupMenuItem(
                 value: 'delete',
-                child: Text('Delete',
-                    style: TextStyle(color: Colors.red))),
+                child: Row(
+                  children: [
+                    Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                    SizedBox(width: 8),
+                    Text('Delete', style: TextStyle(color: Colors.red)),
+                  ],
+                )),
           ],
         ),
         onTap: onView,
