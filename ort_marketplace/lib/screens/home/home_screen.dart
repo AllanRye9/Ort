@@ -731,7 +731,7 @@ class _SearchBar extends StatelessWidget {
                   Text(
                     'Filter',
                     style: TextStyle(
-                      cs.onSurface.withOpacity(0.85),
+                      color: isDarkOrOcean ? Colors.white : Colors.grey[800],
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
                     ),
