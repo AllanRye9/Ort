@@ -30,6 +30,14 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
   final _lengthCtrl = TextEditingController();
   final _widthCtrl = TextEditingController();
   final _landAreaCtrl = TextEditingController();
+  // Extended fields
+  final _buildingNameCtrl = TextEditingController();
+  final _floorsCtrl = TextEditingController();
+  final _parkingCtrl = TextEditingController();
+  final _propertyAgeCtrl = TextEditingController();
+  String? _furnishing;
+  String? _purpose;
+  final List<String> _selectedAmenities = [];
 
   String _propertyType = 'house';
   List<String> _imageUrls = [];
@@ -84,6 +92,14 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
     'other',
   ];
 
+  static const _kAmenities = [
+    'Swimming Pool', 'Gym', 'Parking', 'Security', 'CCTV',
+    'Generator', 'Borehole', 'Water Tank', 'Solar Power', 'Internet / Wi-Fi',
+    'Elevator / Lift', 'Garden', 'Playground', 'Balcony', 'Rooftop',
+    'Air Conditioning', 'Heating', 'Laundry', 'Servant Quarters',
+    'Store Room', 'DSTV / TV', 'Wheelchair Access',
+  ];
+
   @override
   void dispose() {
     _titleCtrl.dispose();
@@ -98,6 +114,10 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
     _lengthCtrl.dispose();
     _widthCtrl.dispose();
     _landAreaCtrl.dispose();
+    _buildingNameCtrl.dispose();
+    _floorsCtrl.dispose();
+    _parkingCtrl.dispose();
+    _propertyAgeCtrl.dispose();
     super.dispose();
   }
 
@@ -300,6 +320,17 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
         if (isLand && lengthM != null) 'plot_length_m': lengthM,
         if (isLand && widthM != null) 'plot_width_m': widthM,
         if (_imageUrls.isNotEmpty) 'images': _imageUrls,
+        if (_purpose != null) 'purpose': _purpose,
+        if (_furnishing != null) 'furnishing': _furnishing,
+        if (_buildingNameCtrl.text.trim().isNotEmpty)
+          'building_name': _buildingNameCtrl.text.trim(),
+        if (_floorsCtrl.text.trim().isNotEmpty)
+          'floors': int.tryParse(_floorsCtrl.text.trim()),
+        if (_parkingCtrl.text.trim().isNotEmpty)
+          'parking_spaces': int.tryParse(_parkingCtrl.text.trim()),
+        if (_propertyAgeCtrl.text.trim().isNotEmpty)
+          'property_age': int.tryParse(_propertyAgeCtrl.text.trim()),
+        if (_selectedAmenities.isNotEmpty) 'amenities': _selectedAmenities,
       };
 
       await ref.read(apiServiceProvider).createProperty(payload);
@@ -700,6 +731,101 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
                   ),
                 ],
               ],
+
+              // ── Extended Listing Info ─────────────────────────────────────
+              _sectionTitle('LISTING DETAILS'),
+              // Purpose
+              DropdownButtonFormField<String>(
+                value: _purpose,
+                decoration: const InputDecoration(labelText: 'Purpose'),
+                items: const [
+                  DropdownMenuItem(value: 'sale', child: Text('For Sale')),
+                  DropdownMenuItem(value: 'rent', child: Text('For Rent')),
+                ],
+                onChanged: (v) => setState(() => _purpose = v),
+              ),
+              const SizedBox(height: 12),
+              // Furnishing
+              DropdownButtonFormField<String>(
+                value: _furnishing,
+                decoration: const InputDecoration(labelText: 'Furnishing'),
+                items: const [
+                  DropdownMenuItem(value: 'unfurnished', child: Text('Unfurnished')),
+                  DropdownMenuItem(value: 'furnished', child: Text('Furnished')),
+                  DropdownMenuItem(value: 'semi_furnished', child: Text('Semi-Furnished')),
+                ],
+                onChanged: (v) => setState(() => _furnishing = v),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _buildingNameCtrl,
+                decoration: const InputDecoration(labelText: 'Building / Complex Name (optional)'),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _floorsCtrl,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(labelText: 'Total Floors'),
+                      validator: (v) {
+                        if (v == null || v.isEmpty) return null;
+                        if (int.tryParse(v) == null) return 'Invalid';
+                        return null;
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _parkingCtrl,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(labelText: 'Parking Spaces'),
+                      validator: (v) {
+                        if (v == null || v.isEmpty) return null;
+                        if (int.tryParse(v) == null) return 'Invalid';
+                        return null;
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _propertyAgeCtrl,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Property Age (years)',
+                  helperText: 'How old is this property?',
+                ),
+                validator: (v) {
+                  if (v == null || v.isEmpty) return null;
+                  if (int.tryParse(v) == null) return 'Invalid';
+                  return null;
+                },
+              ),
+
+              // ── Amenities ─────────────────────────────────────────────────
+              _sectionTitle('AMENITIES'),
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: _kAmenities.map((a) {
+                  final selected = _selectedAmenities.contains(a);
+                  return FilterChip(
+                    label: Text(a, style: const TextStyle(fontSize: 13)),
+                    selected: selected,
+                    onSelected: (v) => setState(() {
+                      if (v) {
+                        _selectedAmenities.add(a);
+                      } else {
+                        _selectedAmenities.remove(a);
+                      }
+                    }),
+                  );
+                }).toList(),
+              ),
 
               const SizedBox(height: 32),
               SizedBox(
