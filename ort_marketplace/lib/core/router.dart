@@ -34,6 +34,7 @@ import '../screens/settings/settings_screen.dart';
 import '../screens/saved/saved_screen.dart';
 import '../screens/search/distance_calculator_screen.dart';
 import '../screens/wallet/wallet_screen.dart';
+import '../screens/tracking/product_tracking_screen.dart';
 
 // ─── Auth-change listenable ──────────────────────────────────────────────────
 //
@@ -246,6 +247,12 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/profile',
             builder: (_, __) => const ProfileScreen(),
+          ),
+          GoRoute(
+            path: '/tracking/:orderId',
+            builder: (_, state) => ProductTrackingScreen(
+              orderId: int.parse(state.pathParameters['orderId']!),
+            ),
           ),
         ],
       ),

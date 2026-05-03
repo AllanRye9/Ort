@@ -490,6 +490,7 @@ class MessageCreate(BaseModel):
     sender_id: Optional[int] = None
     body: str = Field(..., min_length=1)
     attachment_url: Optional[str] = None
+    attachment_filename: Optional[str] = None
     message_type: Optional[str] = Field("text", pattern="^(text|file|voice)$")
 
     @field_validator("body", mode="before")
@@ -506,6 +507,7 @@ class MessageResponse(BaseModel):
     sender_id: Optional[int] = None
     body: str
     attachment_url: Optional[str] = None
+    attachment_filename: Optional[str] = None
     message_type: str
     is_read: bool
     is_deleted: bool = False
@@ -744,3 +746,33 @@ class AdPromotionResponse(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+# ========== PRODUCT TRACKING ==========
+
+class ProductTrackingCreate(BaseModel):
+    order_id: Optional[int] = None
+    listing_type: Optional[str] = None
+    listing_id: Optional[int] = None
+    status: str = Field(
+        ...,
+        pattern="^(order_placed|processing|packed|shipped|in_transit|out_for_delivery|delivered|cancelled)$",
+    )
+    location: Optional[str] = None
+    description: Optional[str] = None
+    created_by_user_id: Optional[int] = None
+
+
+class ProductTrackingResponse(BaseModel):
+    id: int
+    order_id: Optional[int] = None
+    listing_type: Optional[str] = None
+    listing_id: Optional[int] = None
+    status: str
+    location: Optional[str] = None
+    description: Optional[str] = None
+    created_by_user_id: Optional[int] = None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+

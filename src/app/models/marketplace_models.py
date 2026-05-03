@@ -348,6 +348,7 @@ class Message(Base):
     sender_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     body = Column(Text, nullable=False)
     attachment_url = Column(Text)
+    attachment_filename = Column(String(255), nullable=True)  # original filename for downloads
     message_type = Column(
         Enum("text", "file", "voice", name="message_types"),
         default="text",
@@ -608,3 +609,35 @@ class AdPromotion(Base):
     created_at = Column(DateTime, server_default=func.now())
 
     user = relationship("User", foreign_keys=[user_id])
+
+
+# ---------------------------------------------------------------------------
+# Product / Order Tracking
+# ---------------------------------------------------------------------------
+
+class ProductTracking(Base):
+    """Real-time transit updates posted by agents, companies, or organisations.
+
+    Can reference an Order (order_id) or any listing (listing_type + listing_id).
+    """
+
+    __tablename__ = "product_tracking"
+    __table_args__ = (
+        Index("ix_product_tracking_order_id", "order_id"),
+        Index("ix_product_tracking_listing", "listing_type", "listing_id"),
+        Index("ix_product_tracking_created_by", "created_by_user_id"),
+    )
+
+    id = Column(Integer, primary_key=True)
+    order_id = Column(Integer, ForeignKey("orders.id", ondelete="CASCADE"), nullable=True)
+    listing_type = Column(String(50), nullable=True)   # property, agriculture, manufacturing
+    listing_id = Column(Integer, nullable=True)
+    # e.g. "order_placed", "processing", "packed", "shipped", "in_transit",
+    #      "out_for_delivery", "delivered", "cancelled"
+    status = Column(String(50), nullable=False)
+    location = Column(String(255), nullable=True)
+    description = Column(Text, nullable=True)
+    created_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+
+    created_by = relationship("User", foreign_keys=[created_by_user_id])

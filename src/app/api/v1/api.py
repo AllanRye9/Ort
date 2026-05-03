@@ -1,4 +1,6 @@
 import os
+import random
+import string
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from passlib.context import CryptContext
@@ -44,6 +46,7 @@ from app.api.v1 import (
     saved_items as saved_items_router,
     wallet as wallet_router,
     promotions as promotions_router,
+    tracking as tracking_router,
 )
 
 router = APIRouter()
@@ -67,6 +70,7 @@ router.include_router(admin_module.user_tickets_router)
 router.include_router(saved_items_router.router)
 router.include_router(wallet_router.router)
 router.include_router(promotions_router.router)
+router.include_router(tracking_router.router)
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -264,6 +268,32 @@ def delete_client(client_id: int, db: Session = Depends(get_db)):
 
 # ========== PROPERTY ENDPOINTS ==========
 
+def _generate_listing_code(db: Session) -> str:
+    """Generate a unique listing tracking code, e.g. ORT-PROP-2024-AB1C."""
+    import datetime
+    year = datetime.datetime.now().year
+    for _ in range(20):
+        suffix = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+        code = f"ORT-PROP-{year}-{suffix}"
+        if not db.query(Property).filter(Property.listing_code == code).first():
+            return code
+    # Fallback: use longer random string to avoid collision
+    suffix = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
+    return f"ORT-PROP-{year}-{suffix}"
+
+
+@router.get("/properties/by-code/{listing_code}", response_model=PropertyResponse)
+def get_property_by_code(listing_code: str, db: Session = Depends(get_db)):
+    """Find a property by its unique listing tracking code."""
+    prop = db.query(Property).filter(
+        Property.listing_code == listing_code.upper(),
+        Property.is_deleted == False,
+    ).first()
+    if not prop:
+        raise HTTPException(status_code=404, detail="Property not found")
+    return PropertyResponse.from_orm_with_images(prop)
+
+
 @router.get("/properties/", response_model=List[PropertyResponse])
 def get_properties(
     skip: int = Query(0, ge=0),
@@ -328,6 +358,8 @@ def get_property(property_id: int, db: Session = Depends(get_db)):
 @router.post("/properties/", response_model=PropertyResponse, status_code=status.HTTP_201_CREATED)
 def create_property(prop: PropertyCreate, db: Session = Depends(get_db)):
     prop_data = prop.model_dump(exclude={"images"})
+    if not prop_data.get("listing_code"):
+        prop_data["listing_code"] = _generate_listing_code(db)
     db_property = Property(**prop_data)
     db.add(db_property)
     db.flush()  # assign id before creating images

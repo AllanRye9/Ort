@@ -444,6 +444,11 @@ class _PropertyDetailBody extends StatelessWidget {
                   spacing: 8,
                   runSpacing: 6,
                   children: [
+                    if (p.purpose != null)
+                      _SpecChip(
+                        icon: p.purpose == 'rent' ? Icons.key_outlined : Icons.sell_outlined,
+                        label: p.purpose == 'rent' ? 'For Rent' : 'For Sale',
+                      ),
                     if (p.landCategory != null)
                       _SpecChip(
                         icon: Icons.landscape_outlined,
@@ -474,6 +479,29 @@ class _PropertyDetailBody extends StatelessWidget {
                     _SpecChip(
                         icon: Icons.category_outlined,
                         label: p.propertyType.toUpperCase()),
+                    if (p.furnishing != null)
+                      _SpecChip(
+                        icon: Icons.chair_outlined,
+                        label: p.furnishing!.replaceAll('_', ' ')
+                            .split(' ')
+                            .map((w) => w.isEmpty ? '' : '${w[0].toUpperCase()}${w.substring(1)}')
+                            .join(' '),
+                      ),
+                    if (p.floors != null)
+                      _SpecChip(
+                        icon: Icons.layers_outlined,
+                        label: '${p.floors} Floor${p.floors! != 1 ? 's' : ''}',
+                      ),
+                    if (p.parkingSpaces != null)
+                      _SpecChip(
+                        icon: Icons.local_parking_outlined,
+                        label: '${p.parkingSpaces} Parking',
+                      ),
+                    if (p.propertyAge != null)
+                      _SpecChip(
+                        icon: Icons.access_time_outlined,
+                        label: '${p.propertyAge} yr${p.propertyAge! != 1 ? 's' : ''} old',
+                      ),
                   ],
                 ),
                 // Uganda metric dimensions detail row
@@ -488,6 +516,61 @@ class _PropertyDetailBody extends StatelessWidget {
                       color: Theme.of(context).colorScheme.primary,
                       fontWeight: FontWeight.w500,
                     ),
+                  ),
+                ],
+
+                // ── Building name ─────────────────────────────────────────────
+                if (p.buildingName != null && p.buildingName!.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(Icons.business_outlined,
+                          size: 15, color: Colors.grey[600]),
+                      const SizedBox(width: 4),
+                      Text(
+                        p.buildingName!,
+                        style: TextStyle(color: Colors.grey[700], fontSize: 13),
+                      ),
+                    ],
+                  ),
+                ],
+
+                // ── Listing tracking code ──────────────────────────────────────
+                if (p.listingCode != null) ...[
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Icon(Icons.qr_code_outlined,
+                          size: 14,
+                          color: Theme.of(context).colorScheme.primary),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Listing Code: ',
+                        style: TextStyle(
+                            fontSize: 12, color: Colors.grey[600]),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .primaryContainer,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          p.listingCode!,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onPrimaryContainer,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
 
@@ -518,6 +601,34 @@ class _PropertyDetailBody extends StatelessWidget {
                   },
                 ),
 
+                // ── Amenities ─────────────────────────────────────────────────
+                if (p.amenities != null && p.amenities!.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  const Divider(),
+                  const SizedBox(height: 8),
+                  Text('Amenities',
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium
+                          ?.copyWith(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 6,
+                    children: p.amenities!
+                        .map((a) => Chip(
+                              label: Text(a,
+                                  style: const TextStyle(fontSize: 12)),
+                              avatar: const Icon(
+                                  Icons.check_circle_outline,
+                                  size: 14),
+                              visualDensity: VisualDensity.compact,
+                              padding: EdgeInsets.zero,
+                            ))
+                        .toList(),
+                  ),
+                ],
+
                 // ── Description ───────────────────────────────────────────────
                 if (p.description != null) ...[
                   const SizedBox(height: 16),
@@ -532,6 +643,14 @@ class _PropertyDetailBody extends StatelessWidget {
                   Text(p.description!,
                       style: TextStyle(
                           color: Colors.grey[700], height: 1.5, fontSize: 14)),
+                ],
+
+                // ── Agent / Company / Org profile ─────────────────────────────
+                if (p.agentProfile != null) ...[
+                  const SizedBox(height: 16),
+                  const Divider(),
+                  const SizedBox(height: 8),
+                  _AgentProfileCard(agent: p.agentProfile!),
                 ],
 
                 // ── Map ───────────────────────────────────────────────────────
@@ -574,6 +693,117 @@ class _PropertyDetailBody extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ─── Agent / Company profile card ────────────────────────────────────────────
+
+class _AgentProfileCard extends StatelessWidget {
+  const _AgentProfileCard({required this.agent});
+  final AgentProfileModel agent;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    String roleLabel = agent.role;
+    if (roleLabel == 'agent') roleLabel = 'Agent';
+    if (roleLabel == 'company') roleLabel = 'Company';
+    if (roleLabel == 'organization') roleLabel = 'Organization';
+
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Listed by $roleLabel',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 26,
+                  backgroundColor: cs.primaryContainer,
+                  backgroundImage: agent.avatarUrl != null
+                      ? NetworkImage(agent.avatarUrl!)
+                      : null,
+                  child: agent.avatarUrl == null
+                      ? Icon(Icons.person, size: 26, color: cs.primary)
+                      : null,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        agent.fullName,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 15),
+                      ),
+                      if (agent.agencyName != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          agent.agencyName!,
+                          style: TextStyle(
+                              fontSize: 13, color: Colors.grey[600]),
+                        ),
+                      ],
+                      if (agent.phone != null) ...[
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            Icon(Icons.phone_outlined,
+                                size: 13, color: Colors.grey[500]),
+                            const SizedBox(width: 3),
+                            Text(agent.phone!,
+                                style: TextStyle(
+                                    fontSize: 12, color: Colors.grey[600])),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            if (agent.bio != null && agent.bio!.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                agent.bio!,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    fontSize: 13, color: Colors.grey[700], height: 1.4),
+              ),
+            ],
+            if (agent.licenseNumber != null) ...[
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  Icon(Icons.badge_outlined,
+                      size: 14, color: cs.primary),
+                  const SizedBox(width: 4),
+                  Text(
+                    'License: ${agent.licenseNumber}',
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: cs.primary,
+                        fontWeight: FontWeight.w500),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }

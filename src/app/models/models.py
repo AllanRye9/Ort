@@ -1,6 +1,6 @@
 from sqlalchemy import (
     Column, Integer, String, Text, Date, DateTime,
-    Enum, ForeignKey, Boolean, DECIMAL, Index, LargeBinary, Float
+    Enum, ForeignKey, Boolean, DECIMAL, Index, LargeBinary, Float, JSON, UniqueConstraint
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -81,6 +81,15 @@ class Property(Base):
     plot_width_m = Column(Float, nullable=True)
     land_category = Column(String(50), nullable=True)   # farmland, residential, industrial, other
     land_area_acres = Column(Float, nullable=True)       # area in acres for land properties
+    # Extended listing fields
+    property_age = Column(Integer, nullable=True)        # age in years
+    furnishing = Column(String(50), nullable=True)       # unfurnished, furnished, semi_furnished
+    purpose = Column(String(20), nullable=True)          # rent, sale
+    amenities = Column(JSON, nullable=True)              # list of strings e.g. ["pool","gym"]
+    floors = Column(Integer, nullable=True)              # total floors in building
+    building_name = Column(String(255), nullable=True)
+    parking_spaces = Column(Integer, nullable=True)
+    listing_code = Column(String(30), unique=True, nullable=True)  # e.g. ORT-PROP-2024-ABCD
     status = Column(Enum("available", "sold", "rented", "pending", "unavailable", name="property_status"), default="available", server_default="available", nullable=False)
     latitude = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)
