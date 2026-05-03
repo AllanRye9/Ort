@@ -42,6 +42,8 @@ from app.api.v1 import (
     upload as upload_router,
     admin as admin_module,
     saved_items as saved_items_router,
+    wallet as wallet_router,
+    promotions as promotions_router,
 )
 
 router = APIRouter()
@@ -63,6 +65,8 @@ router.include_router(upload_router.router)
 router.include_router(admin_module.router)
 router.include_router(admin_module.user_tickets_router)
 router.include_router(saved_items_router.router)
+router.include_router(wallet_router.router)
+router.include_router(promotions_router.router)
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -112,6 +116,15 @@ def get_users(
 @router.get("/users/me", response_model=UserResponse)
 def get_current_user_me(current_user: User = Depends(_get_current_user)):
     return current_user
+
+
+@router.get("/users/by-uid/{user_uid}", response_model=UserResponse)
+def get_user_by_uid(user_uid: str, db: Session = Depends(get_db)):
+    """Look up a user by their unique public identifier (e.g. ORT000001)."""
+    user = db.query(User).filter(User.user_uid == user_uid).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
 
 
 @router.patch("/users/me", response_model=UserResponse)

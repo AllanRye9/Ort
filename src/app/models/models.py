@@ -25,6 +25,11 @@ class User(Base):
     agency_name = Column(String(255), nullable=True)
     bio = Column(Text, nullable=True)
     avatar_url = Column(Text, nullable=True)
+    # Location / identity fields
+    nationality = Column(String(100), nullable=True)
+    residing_country = Column(String(100), nullable=True)
+    # Unique public identifier, e.g. "ORT000001"
+    user_uid = Column(String(20), unique=True, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
 
     properties = relationship("Property", back_populates="agent")

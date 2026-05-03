@@ -300,6 +300,10 @@ class _ReadView extends StatelessWidget {
               _InfoSection(user: user),
               const SizedBox(height: 16),
 
+              // ── Wallet tile ────────────────────────────────────────────────
+              _WalletTile(userId: user.id),
+              const SizedBox(height: 16),
+
               // ── Agent reviews section ──────────────────────────────────────
               if (user.role == 'agent') ...[
                 const Divider(),
@@ -329,6 +333,11 @@ class _ReadView extends StatelessWidget {
                 icon: Icons.bookmark_border,
                 label: 'Saved Items',
                 onTap: () => context.go('/saved'),
+              ),
+              _ProfileTile(
+                icon: Icons.account_balance_wallet_outlined,
+                label: 'My Wallet',
+                onTap: () => context.go('/wallet'),
               ),
               _ProfileTile(
                 icon: Icons.help_outline,
@@ -942,8 +951,14 @@ class _InfoSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final items = <(IconData, String, String)>[
+      if (user.userUid != null && user.userUid!.isNotEmpty)
+        (Icons.fingerprint_outlined, 'User ID', user.userUid!),
       if (user.phone != null && user.phone!.isNotEmpty)
         (Icons.phone_outlined, 'Phone', user.phone!),
+      if (user.nationality != null && user.nationality!.isNotEmpty)
+        (Icons.flag_outlined, 'Nationality', user.nationality!),
+      if (user.residingCountry != null && user.residingCountry!.isNotEmpty)
+        (Icons.location_city_outlined, 'Country of Residence', user.residingCountry!),
       if (user.licenseNumber != null && user.licenseNumber!.isNotEmpty)
         (Icons.badge_outlined, 'License', user.licenseNumber!),
       if (user.agencyName != null && user.agencyName!.isNotEmpty)
@@ -1005,6 +1020,68 @@ class _InfoSection extends StatelessWidget {
             ],
           );
         }).toList(),
+      ),
+    );
+  }
+}
+
+// ─── Wallet tile ──────────────────────────────────────────────────────────────
+
+final _profileWalletProvider = FutureProvider.autoDispose.family<int, int>((ref, userId) async {
+  final data = await ref.read(apiServiceProvider).getMyWallet();
+  return data['points'] as int? ?? 0;
+});
+
+class _WalletTile extends ConsumerWidget {
+  const _WalletTile({required this.userId});
+  final int userId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final walletAsync = ref.watch(_profileWalletProvider(userId));
+    final cs = Theme.of(context).colorScheme;
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: () => context.go('/wallet'),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: cs.primary.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: cs.primary.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.account_balance_wallet_rounded,
+                color: cs.primary, size: 28),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Wallet Points',
+                      style: TextStyle(
+                          fontSize: 13,
+                          color: cs.onSurface.withValues(alpha: 0.6))),
+                  walletAsync.when(
+                    data: (pts) => Text(
+                      '$pts pts',
+                      style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: cs.primary),
+                    ),
+                    loading: () => const Text('…'),
+                    error: (_, __) => const Text('—'),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded,
+                color: cs.onSurface.withValues(alpha: 0.4)),
+          ],
+        ),
       ),
     );
   }

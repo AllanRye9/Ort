@@ -8,6 +8,7 @@ import '../../core/auth_provider.dart';
 import '../../core/listing_providers.dart';
 import '../../models/models.dart';
 import '../../widgets/image_gallery.dart';
+import '../../widgets/promote_listing_button.dart';
 
 final _propertyDetailProvider =
     FutureProvider.autoDispose.family<PropertyModel, int>((ref, id) async {
@@ -493,6 +494,29 @@ class _PropertyDetailBody extends StatelessWidget {
                 // ── Bid count ─────────────────────────────────────────────────
                 const SizedBox(height: 12),
                 _AnimatedBidCount(propertyId: p.id),
+
+                // ── Promote button (visible to authenticated non-buyers) ──────
+                Consumer(
+                  builder: (ctx, ref, _) {
+                    final auth = ref.watch(authProvider);
+                    final isPromoter = auth.isAuthenticated &&
+                        (auth.role == 'agent' ||
+                            auth.role == 'company' ||
+                            auth.role == 'organization');
+                    if (!isPromoter) return const SizedBox.shrink();
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Row(
+                        children: [
+                          PromoteListingButton(
+                            listingType: 'property',
+                            listingId: p.id,
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
 
                 // ── Description ───────────────────────────────────────────────
                 if (p.description != null) ...[

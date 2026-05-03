@@ -56,6 +56,9 @@ class UserResponse(UserBase):
     agency_name: Optional[str] = None
     bio: Optional[str] = None
     avatar_url: Optional[str] = None
+    nationality: Optional[str] = None
+    residing_country: Optional[str] = None
+    user_uid: Optional[str] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}

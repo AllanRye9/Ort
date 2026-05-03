@@ -50,6 +50,10 @@ class RegisterRequest(BaseModel):
     agency_name: Optional[str] = Field(None, max_length=255)
     bio: Optional[str] = None
 
+    # ---- Location / identity fields (optional for all roles) ----
+    nationality: Optional[str] = Field(None, max_length=100)
+    residing_country: Optional[str] = Field(None, max_length=100)
+
     @field_validator("password", mode="after")
     @classmethod
     def password_max_bytes(cls, v: str) -> str:
@@ -504,6 +508,7 @@ class MessageResponse(BaseModel):
     attachment_url: Optional[str] = None
     message_type: str
     is_read: bool
+    is_deleted: bool = False
     sent_at: datetime
 
     model_config = {"from_attributes": True}
@@ -657,6 +662,85 @@ class SavedItemResponse(BaseModel):
     user_id: int
     item_type: str
     item_id: int
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+# ========== WALLET ==========
+
+class WalletResponse(BaseModel):
+    id: int
+    user_id: int
+    points: int
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class WalletTopupRequest(BaseModel):
+    """Request to load wallet points via mobile money or card.
+
+    The conversion rate is 1 cash unit = 1 point.
+    ``amount`` is the number of points to credit (== cash amount paid).
+    """
+    amount: int = Field(..., gt=0, description="Points to credit (1:1 cash ratio)")
+    payment_method: str = Field(
+        ..., pattern="^(mtn|airtel|card)$",
+        description="Payment method: mtn, airtel, or card"
+    )
+    reference: Optional[str] = Field(None, max_length=255, description="Phone number, card last-4, etc.")
+
+
+class WalletTransactionResponse(BaseModel):
+    id: int
+    wallet_id: int
+    transaction_type: str
+    amount: int
+    payment_method: Optional[str] = None
+    reference: Optional[str] = None
+    description: Optional[str] = None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+# ========== AD PROMOTIONS ==========
+
+# Duration options and their point costs (1 point = 1 cash unit)
+PROMOTION_PLANS = {
+    7: 10,    # 7 days costs 10 points
+    30: 26,   # 30 days costs 26 points
+    365: 300, # yearly costs 300 points
+}
+
+
+class AdPromotionCreate(BaseModel):
+    listing_type: str = Field(
+        ..., pattern="^(property|agriculture|manufacturing)$"
+    )
+    listing_id: int
+    duration_days: int = Field(..., description="Must be one of 7, 30, or 365")
+
+    @field_validator("duration_days")
+    @classmethod
+    def valid_duration(cls, v: int) -> int:
+        if v not in PROMOTION_PLANS:
+            raise ValueError("duration_days must be 7, 30, or 365")
+        return v
+
+
+class AdPromotionResponse(BaseModel):
+    id: int
+    user_id: int
+    listing_type: str
+    listing_id: int
+    duration_days: int
+    cost_points: int
+    start_date: datetime
+    end_date: datetime
+    status: str
     created_at: datetime
 
     model_config = {"from_attributes": True}

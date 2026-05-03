@@ -355,6 +355,7 @@ class Message(Base):
         nullable=False,
     )
     is_read = Column(Boolean, default=False)
+    is_deleted = Column(Boolean, default=False, server_default="false", nullable=False)
     sent_at = Column(DateTime, server_default=func.now())
 
     conversation = relationship("Conversation", back_populates="messages")
@@ -536,3 +537,74 @@ class SupportTicket(Base):
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
     user = relationship("User", foreign_keys=[user_id])
     assignee = relationship("User", foreign_keys=[assigned_to])
+
+
+# ---------------------------------------------------------------------------
+# Wallet & Wallet Transactions
+# ---------------------------------------------------------------------------
+
+class UserWallet(Base):
+    __tablename__ = "user_wallets"
+    __table_args__ = (
+        Index("ix_user_wallets_user_id", "user_id"),
+    )
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True)
+    points = Column(Integer, default=0, server_default="0", nullable=False)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    user = relationship("User", foreign_keys=[user_id])
+    transactions = relationship("WalletTransaction", back_populates="wallet", cascade="all, delete")
+
+
+class WalletTransaction(Base):
+    """Records every debit/credit to a user's wallet."""
+    __tablename__ = "wallet_transactions"
+    __table_args__ = (
+        Index("ix_wallet_transactions_wallet_id", "wallet_id"),
+    )
+
+    id = Column(Integer, primary_key=True)
+    wallet_id = Column(Integer, ForeignKey("user_wallets.id", ondelete="CASCADE"), nullable=False)
+    # "topup" | "spend"
+    transaction_type = Column(String(20), nullable=False, server_default="topup")
+    amount = Column(Integer, nullable=False)          # points credited or debited
+    # payment method for top-ups: "mtn" | "airtel" | "card"
+    payment_method = Column(String(30), nullable=True)
+    # free-text reference, e.g. phone number, card last-4, or promotion id
+    reference = Column(String(255), nullable=True)
+    description = Column(String(255), nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+
+    wallet = relationship("UserWallet", back_populates="transactions")
+
+
+# ---------------------------------------------------------------------------
+# Ad Promotions
+# ---------------------------------------------------------------------------
+
+class AdPromotion(Base):
+    """Tracks paid promotions that display listings at hotspot positions."""
+    __tablename__ = "ad_promotions"
+    __table_args__ = (
+        Index("ix_ad_promotions_user_id", "user_id"),
+        Index("ix_ad_promotions_listing", "listing_type", "listing_id"),
+        Index("ix_ad_promotions_end_date", "end_date"),
+    )
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    # "property" | "agriculture" | "manufacturing"
+    listing_type = Column(String(30), nullable=False)
+    listing_id = Column(Integer, nullable=False)
+    duration_days = Column(Integer, nullable=False)   # 7 | 30 | 365
+    cost_points = Column(Integer, nullable=False)     # 10 | 26 | 300
+    start_date = Column(DateTime, server_default=func.now(), nullable=False)
+    end_date = Column(DateTime, nullable=False)
+    # "active" | "expired" | "cancelled"
+    status = Column(String(20), default="active", server_default="active", nullable=False)
+    created_at = Column(DateTime, server_default=func.now())
+
+    user = relationship("User", foreign_keys=[user_id])
