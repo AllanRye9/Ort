@@ -270,7 +270,7 @@ def delete_client(client_id: int, db: Session = Depends(get_db)):
 # ========== PROPERTY ENDPOINTS ==========
 
 def _generate_listing_code(db: Session) -> str:
-    """Generate a unique listing tracking code, e.g. ORT-PROP-2024-AB1C."""
+    """Generate a unique listing tracking code, e.g. ORT-PROP-2024-AB1C2D."""
     year = _dt.now().year
     alphabet = string.ascii_uppercase + string.digits
     for _ in range(20):
