@@ -8,7 +8,7 @@ import '../../core/location_service.dart';
 import '../../models/models.dart';
 import '../../widgets/media_picker_field.dart';
 import '../properties/property_create_screen.dart'
-    show LandAreaSection, AcresHectaresInput, MetricDimensionsInput;
+    show LandAreaSection, MetricDimensionsInput;
 
 class PropertyEditScreen extends ConsumerStatefulWidget {
   const PropertyEditScreen({super.key, required this.id});
