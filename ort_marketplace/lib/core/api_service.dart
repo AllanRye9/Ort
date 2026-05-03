@@ -764,4 +764,76 @@ class ApiService {
     final res = await _dio.get('/agent/clients', queryParameters: {'agent_id': agentId});
     return res.data as Map<String, dynamic>;
   }
+
+  // ─── Messages: delete ─────────────────────────────────────────────────────
+
+  Future<void> deleteMessage(int messageId, int senderId) async {
+    await _dio.delete('/messages/$messageId', data: {'sender_id': senderId});
+  }
+
+  // ─── User lookup by UID ───────────────────────────────────────────────────
+
+  Future<Map<String, dynamic>> getUserByUid(String uid) async {
+    final res = await _dio.get('/users/by-uid/$uid');
+    return res.data as Map<String, dynamic>;
+  }
+
+  // ─── Wallet ───────────────────────────────────────────────────────────────
+
+  Future<Map<String, dynamic>> getMyWallet() async {
+    final res = await _dio.get('/wallet/me');
+    return res.data as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> topupWallet({
+    required int amount,
+    required String paymentMethod,
+    String? reference,
+  }) async {
+    final res = await _dio.post('/wallet/topup', data: {
+      'amount': amount,
+      'payment_method': paymentMethod,
+      if (reference != null) 'reference': reference,
+    });
+    return res.data as Map<String, dynamic>;
+  }
+
+  Future<List<dynamic>> getWalletTransactions({int skip = 0, int limit = 50}) async {
+    final res = await _dio.get('/wallet/transactions', queryParameters: {
+      'skip': skip,
+      'limit': limit,
+    });
+    return res.data as List<dynamic>;
+  }
+
+  // ─── Ad Promotions ────────────────────────────────────────────────────────
+
+  Future<Map<String, dynamic>> createPromotion({
+    required String listingType,
+    required int listingId,
+    required int durationDays,
+  }) async {
+    final res = await _dio.post('/promotions/', data: {
+      'listing_type': listingType,
+      'listing_id': listingId,
+      'duration_days': durationDays,
+    });
+    return res.data as Map<String, dynamic>;
+  }
+
+  Future<List<dynamic>> getMyPromotions() async {
+    final res = await _dio.get('/promotions/');
+    return res.data as List<dynamic>;
+  }
+
+  Future<List<dynamic>> getActivePromotions({
+    String? listingType,
+    int? listingId,
+  }) async {
+    final res = await _dio.get('/promotions/active', queryParameters: {
+      if (listingType != null) 'listing_type': listingType,
+      if (listingId != null) 'listing_id': listingId,
+    });
+    return res.data as List<dynamic>;
+  }
 }

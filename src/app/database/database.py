@@ -138,6 +138,15 @@ _MIGRATIONS: list[tuple[str, str, str]] = [
     ("manufacturing_services",  "owner_user_id",  "INTEGER"),
     ("manufacturing_services",  "latitude",       "FLOAT"),
     ("manufacturing_services",  "longitude",      "FLOAT"),
+    # User identity / location columns
+    ("users",                   "nationality",    "VARCHAR(100)"),
+    ("users",                   "residing_country","VARCHAR(100)"),
+    ("users",                   "user_uid",       "VARCHAR(20)"),
+    # Message soft-delete
+    ("messages",                "is_deleted",     "BOOLEAN DEFAULT 'false'"),
+    # Wallet tables (new tables; column migrations for robustness)
+    ("user_wallets",            "points",         "INTEGER DEFAULT '0'"),
+    ("ad_promotions",           "status",         "VARCHAR(20)  DEFAULT 'active'"),
 ]
 
 # Columns whose type needs widening on existing databases.

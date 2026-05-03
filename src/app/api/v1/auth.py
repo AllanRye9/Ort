@@ -143,6 +143,8 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
         license_number=payload.license_number,
         agency_name=payload.agency_name,
         bio=payload.bio,
+        nationality=payload.nationality,
+        residing_country=payload.residing_country,
     )
     db.add(db_user)
     try:
@@ -166,6 +168,14 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Registration failed due to a server error. Please try again.",
         )
+
+    # Generate a stable unique public identifier based on the auto-increment PK.
+    db_user.user_uid = f"ORT{db_user.id:06d}"
+
+    # Create an empty wallet for the new user.
+    from app.models.marketplace_models import UserWallet
+    db_wallet = UserWallet(user_id=db_user.id)
+    db.add(db_wallet)
 
     db_tenant = None
     if payload.role in ("company", "organization"):

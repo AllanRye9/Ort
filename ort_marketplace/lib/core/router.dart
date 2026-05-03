@@ -33,6 +33,7 @@ import '../screens/search/search_screen.dart';
 import '../screens/settings/settings_screen.dart';
 import '../screens/saved/saved_screen.dart';
 import '../screens/search/distance_calculator_screen.dart';
+import '../screens/wallet/wallet_screen.dart';
 
 // ─── Auth-change listenable ──────────────────────────────────────────────────
 //
@@ -131,6 +132,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
       GoRoute(path: '/saved', builder: (_, __) => const SavedScreen()),
+      GoRoute(path: '/wallet', builder: (_, __) => const WalletScreen()),
       GoRoute(path: '/my-listings', builder: (_, __) => const MyListingsScreen()),
       GoRoute(path: '/my-clients', builder: (_, __) => const MyClientsScreen()),
       GoRoute(path: '/analytics', builder: (_, __) => const AnalyticsScreen()),

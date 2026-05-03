@@ -7,6 +7,7 @@ import '../../core/api_service.dart';
 import '../../core/auth_provider.dart';
 import '../../models/models.dart';
 import '../../widgets/image_gallery.dart';
+import '../../widgets/promote_listing_button.dart';
 
 final _mfgDetailProvider =
     FutureProvider.autoDispose.family<ManufacturingProductModel, int>(
@@ -450,6 +451,17 @@ class _ManufacturingDetailScreenState extends ConsumerState<ManufacturingDetailS
                       ),
                     ],
                     const SizedBox(height: 96),
+                    // Promote button for owners
+                    if (isOwner)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Row(children: [
+                          PromoteListingButton(
+                            listingType: 'manufacturing',
+                            listingId: m.id,
+                          ),
+                        ]),
+                      ),
                   ],
                 ),
               ),
