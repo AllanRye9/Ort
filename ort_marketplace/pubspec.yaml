@@ -50,6 +50,9 @@ dependencies:
   # Date & time
   intl: ^0.20.0
 
+  # AI
+  google_generative_ai: ^0.4.6
+
   # JSON parsing
   json_annotation: ^4.9.0
   freezed_annotation: ^2.4.1
