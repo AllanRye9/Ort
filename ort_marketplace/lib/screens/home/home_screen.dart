@@ -1534,7 +1534,7 @@ class _AiDialogState extends ConsumerState<_AiDialog>
   };
 
   final List<_AiMessage> _messages = [
-    const _AiMessage(
+    _AiMessage(
         role: 'assistant',
         text: _kGeminiApiKey.isNotEmpty
             ? 'Hi! I\'m Ort AI, powered by Gemini 🤖✨\nAsk me anything — about listings, market trends, prices, or any topic you\'re curious about!'
