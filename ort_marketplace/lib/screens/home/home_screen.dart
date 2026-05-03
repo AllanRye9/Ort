@@ -1551,7 +1551,7 @@ class _AiDialogState extends ConsumerState<_AiDialog>
         if (keywords.isEmpty ||
             _keywordMatch(keywords, [p.title, p.city, p.address, p.propertyType])) {
           results.add(
-              '🏠 ${p.title} · ${p.city ?? p.address ?? ''} · ${formatCurrencyForMode(p.price, country: p.country, mode: mode)}');
+              '🏠 ${p.title} · ${p.city ?? p.address} · ${formatCurrencyForMode(p.price, country: p.country, mode: mode)}');
         }
       }
     }

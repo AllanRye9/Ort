@@ -61,12 +61,6 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
   bool get _showBedroomsBathrooms =>
       _residentialTypes.contains(_propertyType);
 
-  String get _currencyCode =>
-      _isUganda ? 'UGX' : (_isUAE ? 'AED' : 'USD');
-
-  String get _currencyPrefix =>
-      _isUganda ? 'UGX ' : (_isUAE ? 'AED ' : '\$');
-
   String get _priceCurrencyCode {
     if (_isUganda) return 'UGX';
     if (_isUAE) return 'AED';
@@ -708,16 +702,19 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
               ],
 
               const SizedBox(height: 32),
-              ElevatedButton(
-                onPressed: _submitting ? null : _submit,
-                child: _submitting
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white),
-                      )
-                    : const Text('Publish Listing'),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _submitting ? null : _submit,
+                  child: _submitting
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Text('Publish Listing'),
+                ),
               ),
               const SizedBox(height: 32),
             ],
