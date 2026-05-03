@@ -1,5 +1,6 @@
 """Messaging router (conversations & messages)."""
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
@@ -61,7 +62,7 @@ def list_messages(
 ):
     return (
         db.query(Message)
-        .filter(Message.conversation_id == conversation_id)
+        .filter(Message.conversation_id == conversation_id, Message.is_deleted == False)
         .order_by(Message.sent_at.asc())
         .offset(skip)
         .limit(limit)
@@ -111,3 +112,24 @@ def mark_as_read(message_id: int, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(obj)
     return obj
+
+
+class MessageDeleteRequest(BaseModel):
+    sender_id: int
+
+
+@router.delete("/{message_id}", status_code=status.HTTP_200_OK)
+def delete_message(
+    message_id: int,
+    payload: MessageDeleteRequest,
+    db: Session = Depends(get_db),
+):
+    """Soft-delete a message.  Only the original sender may delete it."""
+    obj = db.query(Message).filter(Message.id == message_id, Message.is_deleted == False).first()
+    if not obj:
+        raise HTTPException(status_code=404, detail="Message not found")
+    if obj.sender_id != payload.sender_id:
+        raise HTTPException(status_code=403, detail="You can only delete your own messages")
+    obj.is_deleted = True
+    db.commit()
+    return {"message": "Message deleted"}

@@ -13,6 +13,9 @@ class UserModel {
     this.avatarUrl,
     this.licenseNumber,
     this.agencyName,
+    this.nationality,
+    this.residingCountry,
+    this.userUid,
     required this.createdAt,
   });
 
@@ -26,6 +29,9 @@ class UserModel {
   final String? avatarUrl;
   final String? licenseNumber;
   final String? agencyName;
+  final String? nationality;
+  final String? residingCountry;
+  final String? userUid;
   final DateTime createdAt;
 
   String get fullName => '$firstName $lastName';
@@ -41,6 +47,9 @@ class UserModel {
         avatarUrl: j['avatar_url'] as String?,
         licenseNumber: j['license_number'] as String?,
         agencyName: j['agency_name'] as String?,
+        nationality: j['nationality'] as String?,
+        residingCountry: j['residing_country'] as String?,
+        userUid: j['user_uid'] as String?,
         createdAt: DateTime.parse(j['created_at'] as String),
       );
 }
@@ -642,6 +651,103 @@ class SavedItemModel {
         userId: j['user_id'] as int,
         itemType: j['item_type'] as String,
         itemId: j['item_id'] as int,
+        createdAt: DateTime.parse(j['created_at'] as String),
+      );
+}
+
+class WalletModel {
+  const WalletModel({
+    required this.id,
+    required this.userId,
+    required this.points,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  final int id;
+  final int userId;
+  final int points;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
+  factory WalletModel.fromJson(Map<String, dynamic> j) => WalletModel(
+        id: j['id'] as int,
+        userId: j['user_id'] as int,
+        points: j['points'] as int? ?? 0,
+        createdAt: DateTime.parse(j['created_at'] as String),
+        updatedAt: DateTime.parse(j['updated_at'] as String),
+      );
+}
+
+class WalletTransactionModel {
+  const WalletTransactionModel({
+    required this.id,
+    required this.walletId,
+    required this.transactionType,
+    required this.amount,
+    this.paymentMethod,
+    this.reference,
+    this.description,
+    required this.createdAt,
+  });
+
+  final int id;
+  final int walletId;
+  final String transactionType;
+  final int amount;
+  final String? paymentMethod;
+  final String? reference;
+  final String? description;
+  final DateTime createdAt;
+
+  factory WalletTransactionModel.fromJson(Map<String, dynamic> j) =>
+      WalletTransactionModel(
+        id: j['id'] as int,
+        walletId: j['wallet_id'] as int,
+        transactionType: j['transaction_type'] as String? ?? 'topup',
+        amount: j['amount'] as int,
+        paymentMethod: j['payment_method'] as String?,
+        reference: j['reference'] as String?,
+        description: j['description'] as String?,
+        createdAt: DateTime.parse(j['created_at'] as String),
+      );
+}
+
+class AdPromotionModel {
+  const AdPromotionModel({
+    required this.id,
+    required this.userId,
+    required this.listingType,
+    required this.listingId,
+    required this.durationDays,
+    required this.costPoints,
+    required this.startDate,
+    required this.endDate,
+    required this.status,
+    required this.createdAt,
+  });
+
+  final int id;
+  final int userId;
+  final String listingType;
+  final int listingId;
+  final int durationDays;
+  final int costPoints;
+  final DateTime startDate;
+  final DateTime endDate;
+  final String status;
+  final DateTime createdAt;
+
+  factory AdPromotionModel.fromJson(Map<String, dynamic> j) => AdPromotionModel(
+        id: j['id'] as int,
+        userId: j['user_id'] as int,
+        listingType: j['listing_type'] as String,
+        listingId: j['listing_id'] as int,
+        durationDays: j['duration_days'] as int,
+        costPoints: j['cost_points'] as int,
+        startDate: DateTime.parse(j['start_date'] as String),
+        endDate: DateTime.parse(j['end_date'] as String),
+        status: j['status'] as String? ?? 'active',
         createdAt: DateTime.parse(j['created_at'] as String),
       );
 }

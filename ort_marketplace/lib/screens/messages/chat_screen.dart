@@ -124,6 +124,45 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     });
   }
 
+  Future<void> _confirmDelete(int messageId) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete message?'),
+        content: const Text('This message will be permanently deleted.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(
+              'Delete',
+              style: TextStyle(color: Theme.of(ctx).colorScheme.error),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      final userId = ref.read(authProvider).userId;
+      await ref.read(apiServiceProvider).deleteMessage(messageId, userId!);
+      setState(() => _messages.removeWhere((m) => m.id == messageId));
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not delete message: ${e.toString()}'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _send() async {
     final text = _controller.text.trim();
     if (text.isEmpty || _sending) return;
@@ -209,7 +248,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                             itemBuilder: (ctx, i) {
                               final m = _messages[i];
                               final isMe = m.senderId == currentUserId;
-                              return Padding(
+                              final bubble = Padding(
                                 padding:
                                     const EdgeInsets.symmetric(vertical: 4),
                                 child: Row(
@@ -281,6 +320,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                     if (isMe) const SizedBox(width: 6),
                                   ],
                                 ),
+                              );
+                              if (!isMe) return bubble;
+                              // Own messages support delete via double-tap or long-press
+                              return GestureDetector(
+                                onDoubleTap: () => _confirmDelete(m.id),
+                                onLongPress: () => _confirmDelete(m.id),
+                                child: bubble,
                               );
                             },
                           ),
