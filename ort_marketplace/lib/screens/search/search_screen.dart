@@ -132,21 +132,21 @@ final _searchResultsProvider =
     switch (sections[i]) {
       case 'property':
         combined.addAll(
-          (results[i] as List<dynamic>)
+          results[i]
               .map((e) => _PropertyResult(PropertyModel.fromJson(e)))
-              .toList(), // Removed unnecessary cast: 'e as Map<String, dynamic>'
+              .toList(),
         );
       case 'agriculture':
         combined.addAll(
-          (results[i] as List<dynamic>)
+          results[i]
               .map((e) => _AgriResult(AgricultureListingModel.fromJson(e)))
-              .toList(), // Removed unnecessary cast: 'e as Map<String, dynamic>'
+              .toList(),
         );
       case 'manufacturing':
         combined.addAll(
-          (results[i] as List<dynamic>)
+          results[i]
               .map((e) => _MfgResult(ManufacturingProductModel.fromJson(e)))
-              .toList(), // Removed unnecessary cast: 'e as Map<String, dynamic>'
+              .toList(),
         );
     }
   }
