@@ -62,7 +62,7 @@ def list_messages(
 ):
     return (
         db.query(Message)
-        .filter(Message.conversation_id == conversation_id, Message.is_deleted == False)
+        .filter(Message.conversation_id == conversation_id, Message.is_deleted.is_(False))
         .order_by(Message.sent_at.asc())
         .offset(skip)
         .limit(limit)
@@ -125,7 +125,7 @@ def delete_message(
     db: Session = Depends(get_db),
 ):
     """Soft-delete a message.  Only the original sender may delete it."""
-    obj = db.query(Message).filter(Message.id == message_id, Message.is_deleted == False).first()
+    obj = db.query(Message).filter(Message.id == message_id, Message.is_deleted.is_(False)).first()
     if not obj:
         raise HTTPException(status_code=404, detail="Message not found")
     if obj.sender_id != payload.sender_id:
