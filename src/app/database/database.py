@@ -147,6 +147,25 @@ _MIGRATIONS: list[tuple[str, str, str]] = [
     # Wallet tables (new tables; column migrations for robustness)
     ("user_wallets",            "points",         "INTEGER DEFAULT '0'"),
     ("ad_promotions",           "status",         "VARCHAR(20)  DEFAULT 'active'"),
+    # Extended property fields
+    ("properties",              "property_age",   "INTEGER"),
+    ("properties",              "furnishing",     "VARCHAR(50)"),
+    ("properties",              "purpose",        "VARCHAR(20)"),
+    ("properties",              "amenities",      "TEXT"),
+    ("properties",              "floors",         "INTEGER"),
+    ("properties",              "building_name",  "VARCHAR(255)"),
+    ("properties",              "parking_spaces", "INTEGER"),
+    ("properties",              "listing_code",   "VARCHAR(30)"),
+    # Product tracking table
+    ("product_tracking",        "order_id",       "INTEGER"),
+    ("product_tracking",        "listing_type",   "VARCHAR(50)"),
+    ("product_tracking",        "listing_id",     "INTEGER"),
+    ("product_tracking",        "status",         "VARCHAR(50)"),
+    ("product_tracking",        "location",       "VARCHAR(255)"),
+    ("product_tracking",        "description",    "TEXT"),
+    ("product_tracking",        "created_by_user_id", "INTEGER"),
+    # Message attachments – store original filename for downloads
+    ("messages",                "attachment_filename", "VARCHAR(255)"),
 ]
 
 # Columns whose type needs widening on existing databases.

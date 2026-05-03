@@ -1,5 +1,5 @@
 from decimal import Decimal
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 from datetime import datetime, date
 
 from pydantic import BaseModel, Field, EmailStr, field_validator
@@ -128,6 +128,14 @@ class PropertyBase(BaseModel):
     land_area_acres: Optional[float] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
+    # Extended listing fields
+    property_age: Optional[int] = None
+    furnishing: Optional[str] = None
+    purpose: Optional[str] = None
+    amenities: Optional[List[str]] = None
+    floors: Optional[int] = None
+    building_name: Optional[str] = None
+    parking_spaces: Optional[int] = None
 
 
 class PropertyCreate(PropertyBase):
@@ -143,6 +151,14 @@ class PropertyCreate(PropertyBase):
     land_category: Optional[str] = Field(None, pattern="^(farmland|residential|industrial|other)$")
     land_area_acres: Optional[float] = Field(None, gt=0)
     images: Optional[List[str]] = None
+    # Extended fields
+    property_age: Optional[int] = Field(None, ge=0)
+    furnishing: Optional[str] = Field(None, pattern="^(unfurnished|furnished|semi_furnished)$")
+    purpose: Optional[str] = Field(None, pattern="^(rent|sale)$")
+    amenities: Optional[List[str]] = None
+    floors: Optional[int] = Field(None, ge=1)
+    building_name: Optional[str] = Field(None, max_length=255)
+    parking_spaces: Optional[int] = Field(None, ge=0)
 
     @field_validator("title", "address", mode="before")
     @classmethod
@@ -170,6 +186,14 @@ class PropertyUpdate(BaseModel):
     land_category: Optional[str] = Field(None, pattern="^(farmland|residential|industrial|other)$")
     land_area_acres: Optional[float] = Field(None, gt=0)
     status: Optional[str] = Field(None, pattern="^(available|sold|rented|pending|unavailable)$")
+    # Extended fields
+    property_age: Optional[int] = Field(None, ge=0)
+    furnishing: Optional[str] = Field(None, pattern="^(unfurnished|furnished|semi_furnished)$")
+    purpose: Optional[str] = Field(None, pattern="^(rent|sale)$")
+    amenities: Optional[List[str]] = None
+    floors: Optional[int] = Field(None, ge=1)
+    building_name: Optional[str] = Field(None, max_length=255)
+    parking_spaces: Optional[int] = Field(None, ge=0)
 
     @field_validator("title", "address", mode="before")
     @classmethod
@@ -179,17 +203,38 @@ class PropertyUpdate(BaseModel):
         return value.strip() if value else value
 
 
+class AgentProfileResponse(BaseModel):
+    """Minimal agent/company/organisation profile embedded in property responses."""
+    id: int
+    role: str
+    first_name: str
+    last_name: str
+    email: str
+    phone: Optional[str] = None
+    bio: Optional[str] = None
+    avatar_url: Optional[str] = None
+    license_number: Optional[str] = None
+    agency_name: Optional[str] = None
+    user_uid: Optional[str] = None
+
+    model_config = {"from_attributes": True}
+
+
 class PropertyResponse(PropertyBase):
     id: int
     agent_id: Optional[int] = None
     status: str
+    listing_code: Optional[str] = None
     created_at: datetime
     image_urls: List[str] = []
+    agent_profile: Optional[AgentProfileResponse] = None
 
     @classmethod
     def from_orm_with_images(cls, prop) -> "PropertyResponse":
         obj = cls.model_validate(prop)
         obj.image_urls = [img.image_url for img in (prop.images or [])]
+        if prop.agent is not None:
+            obj.agent_profile = AgentProfileResponse.model_validate(prop.agent)
         return obj
 
     model_config = {"from_attributes": True}

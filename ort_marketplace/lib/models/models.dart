@@ -105,6 +105,52 @@ class TenantModel {
       );
 }
 
+class AgentProfileModel {
+  const AgentProfileModel({
+    required this.id,
+    required this.role,
+    required this.firstName,
+    required this.lastName,
+    required this.email,
+    this.phone,
+    this.bio,
+    this.avatarUrl,
+    this.licenseNumber,
+    this.agencyName,
+    this.userUid,
+  });
+
+  final int id;
+  final String role;
+  final String firstName;
+  final String lastName;
+  final String email;
+  final String? phone;
+  final String? bio;
+  final String? avatarUrl;
+  final String? licenseNumber;
+  final String? agencyName;
+  final String? userUid;
+
+  String get fullName => '$firstName $lastName';
+
+  factory AgentProfileModel.fromJson(Map<String, dynamic> j) =>
+      AgentProfileModel(
+        id: j['id'] as int,
+        role: j['role'] as String,
+        firstName: j['first_name'] as String,
+        lastName: j['last_name'] as String,
+        email: j['email'] as String,
+        phone: j['phone'] as String?,
+        bio: j['bio'] as String?,
+        avatarUrl: j['avatar_url'] as String?,
+        licenseNumber: j['license_number'] as String?,
+        agencyName: j['agency_name'] as String?,
+        userUid: j['user_uid'] as String?,
+      );
+}
+
+
 class PropertyModel {
   const PropertyModel({
     required this.id,
@@ -128,6 +174,16 @@ class PropertyModel {
     this.plotWidthM,
     this.landCategory,
     this.landAreaAcres,
+    // Extended fields
+    this.propertyAge,
+    this.furnishing,
+    this.purpose,
+    this.amenities,
+    this.floors,
+    this.buildingName,
+    this.parkingSpaces,
+    this.listingCode,
+    this.agentProfile,
   });
 
   final int id;
@@ -162,6 +218,17 @@ class PropertyModel {
   /// Land area in acres for land type properties.
   final double? landAreaAcres;
 
+  // Extended listing fields
+  final int? propertyAge;
+  final String? furnishing;
+  final String? purpose;
+  final List<String>? amenities;
+  final int? floors;
+  final String? buildingName;
+  final int? parkingSpaces;
+  final String? listingCode;
+  final AgentProfileModel? agentProfile;
+
   /// Whether this is a Uganda listing using metric L×W measurement.
   bool get isUgandaMetric => plotLengthM != null && plotWidthM != null;
 
@@ -191,6 +258,17 @@ class PropertyModel {
         plotWidthM: j['plot_width_m'] != null ? double.parse(j['plot_width_m'].toString()) : null,
         landCategory: j['land_category'] as String?,
         landAreaAcres: j['land_area_acres'] != null ? double.parse(j['land_area_acres'].toString()) : null,
+        propertyAge: j['property_age'] as int?,
+        furnishing: j['furnishing'] as String?,
+        purpose: j['purpose'] as String?,
+        amenities: (j['amenities'] as List<dynamic>?)?.cast<String>(),
+        floors: j['floors'] as int?,
+        buildingName: j['building_name'] as String?,
+        parkingSpaces: j['parking_spaces'] as int?,
+        listingCode: j['listing_code'] as String?,
+        agentProfile: j['agent_profile'] != null
+            ? AgentProfileModel.fromJson(j['agent_profile'] as Map<String, dynamic>)
+            : null,
       );
 }
 
@@ -532,6 +610,7 @@ class MessageModel {
     this.senderId,
     required this.body,
     this.attachmentUrl,
+    this.attachmentFilename,
     required this.messageType,
     required this.isRead,
     required this.sentAt,
@@ -542,6 +621,7 @@ class MessageModel {
   final int? senderId;
   final String body;
   final String? attachmentUrl;
+  final String? attachmentFilename;
   final String messageType;
   final bool isRead;
   final DateTime sentAt;
@@ -552,6 +632,7 @@ class MessageModel {
         senderId: j['sender_id'] as int?,
         body: j['body'] as String,
         attachmentUrl: j['attachment_url'] as String?,
+        attachmentFilename: j['attachment_filename'] as String?,
         messageType: (j['message_type'] as String?) ?? 'text',
         isRead: j['is_read'] as bool? ?? false,
         sentAt: DateTime.parse(j['sent_at'] as String),
@@ -748,6 +829,44 @@ class AdPromotionModel {
         startDate: DateTime.parse(j['start_date'] as String),
         endDate: DateTime.parse(j['end_date'] as String),
         status: j['status'] as String? ?? 'active',
+        createdAt: DateTime.parse(j['created_at'] as String),
+      );
+}
+
+
+class ProductTrackingModel {
+  const ProductTrackingModel({
+    required this.id,
+    this.orderId,
+    this.listingType,
+    this.listingId,
+    required this.status,
+    this.location,
+    this.description,
+    this.createdByUserId,
+    required this.createdAt,
+  });
+
+  final int id;
+  final int? orderId;
+  final String? listingType;
+  final int? listingId;
+  final String status;
+  final String? location;
+  final String? description;
+  final int? createdByUserId;
+  final DateTime createdAt;
+
+  factory ProductTrackingModel.fromJson(Map<String, dynamic> j) =>
+      ProductTrackingModel(
+        id: j['id'] as int,
+        orderId: j['order_id'] as int?,
+        listingType: j['listing_type'] as String?,
+        listingId: j['listing_id'] as int?,
+        status: j['status'] as String,
+        location: j['location'] as String?,
+        description: j['description'] as String?,
+        createdByUserId: j['created_by_user_id'] as int?,
         createdAt: DateTime.parse(j['created_at'] as String),
       );
 }

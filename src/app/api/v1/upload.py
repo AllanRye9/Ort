@@ -585,3 +585,111 @@ async def delete_image(
                 logger.warning("Failed to remove UploadRecord for key %s: %s", lookup_key, exc)
 
     return {"message": "Image deleted"}
+
+
+# ---------------------------------------------------------------------------
+# Generic file upload (for message attachments etc.)
+# ---------------------------------------------------------------------------
+
+_ALLOWED_FILE_CONTENT_TYPES = _ALLOWED_CONTENT_TYPES | {
+    "application/pdf",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.ms-excel",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "text/plain",
+    "text/csv",
+    "application/zip",
+    "application/octet-stream",
+}
+_MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024  # 25 MB
+
+
+async def _process_file_upload(
+    file: UploadFile, db: Session, uploader_user_id: Optional[int] = None
+) -> dict:
+    """Validate, upload any file type, and return ``{"url": ..., "filename": ...}``."""
+    if file.content_type not in _ALLOWED_FILE_CONTENT_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unsupported file type '{file.content_type}'.",
+        )
+
+    contents = await file.read()
+    if len(contents) > _MAX_FILE_SIZE_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"File too large. Maximum size is {_MAX_FILE_SIZE_BYTES // 1024 // 1024} MB.",
+        )
+
+    original_filename = file.filename or "attachment"
+    ext = original_filename.rsplit(".", 1)[-1].lower() if "." in original_filename else "bin"
+    file_uuid = uuid.uuid4()
+    object_key = f"attachments/{file_uuid}.{ext}"
+
+    s3, bucket, public_base = _get_s3_client()
+
+    if s3 and bucket:
+        try:
+            try:
+                s3.upload_fileobj(
+                    io.BytesIO(contents),
+                    bucket,
+                    object_key,
+                    ExtraArgs={"ContentType": file.content_type, "ACL": "public-read"},
+                )
+            except Exception:
+                s3.upload_fileobj(
+                    io.BytesIO(contents),
+                    bucket,
+                    object_key,
+                    ExtraArgs={"ContentType": file.content_type},
+                )
+            _explicit_public_base = os.getenv("S3_PUBLIC_BASE_URL", "").rstrip("/")
+            if _explicit_public_base:
+                url = f"{_explicit_public_base}/{object_key}"
+            else:
+                app_base = os.getenv("APP_BASE_URL", "https://ort.up.railway.app").rstrip("/")
+                url = f"{app_base}/api/v1/upload/proxy/{object_key}"
+            _record_upload(db, key=object_key, user_id=uploader_user_id)
+            return {"url": url, "filename": original_filename}
+        except Exception as exc:
+            logger.error("File upload to S3 failed: %s", exc)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="File upload failed. Please try again.",
+            ) from exc
+    else:
+        # Stub/db mode: store as ImageBlob with appropriate content_type
+        from app.models.models import ImageBlob
+        blob_id = str(file_uuid)
+        content_type = file.content_type or "application/octet-stream"
+        try:
+            blob = ImageBlob(id=blob_id, data=contents, content_type=content_type)
+            db.add(blob)
+            db.commit()
+        except SQLAlchemyError as exc:
+            db.rollback()
+            logger.error("Failed to save file to database: %s", exc)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="File upload failed.",
+            ) from exc
+        _record_upload(db, key=blob_id, user_id=uploader_user_id)
+        base_url = os.getenv("APP_BASE_URL", "https://ort.up.railway.app")
+        return {"url": f"{base_url}/api/v1/upload/image/{blob_id}", "filename": original_filename}
+
+
+@router.post("/file", status_code=status.HTTP_200_OK)
+async def upload_file(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    uploader_user_id: Optional[int] = Depends(_get_optional_user_id),
+):
+    """Upload a single file (image, PDF, document, etc.) and return its public URL.
+
+    Accepts up to 25 MB.  Returns ``{"url": "...", "filename": "original name"}``.
+    The URL can be used as ``attachment_url`` when sending a message.
+    The ``filename`` should be stored in ``attachment_filename`` for download labelling.
+    """
+    return await _process_file_upload(file, db, uploader_user_id=uploader_user_id)
