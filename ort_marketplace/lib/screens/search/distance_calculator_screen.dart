@@ -461,8 +461,8 @@ class _ItemPickerSheetState extends ConsumerState<_ItemPickerSheet>
       if (mounted) {
         setState(() => _loading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to load listings: $e'),
+          const SnackBar(
+            content: Text('Failed to load listings. Please try again.'),
             behavior: SnackBarBehavior.floating,
           ),
         );
