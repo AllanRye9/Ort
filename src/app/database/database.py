@@ -151,7 +151,7 @@ _MIGRATIONS: list[tuple[str, str, str]] = [
     ("properties",              "property_age",   "INTEGER"),
     ("properties",              "furnishing",     "VARCHAR(50)"),
     ("properties",              "purpose",        "VARCHAR(20)"),
-    ("properties",              "amenities",      "TEXT"),
+    ("properties",              "amenities",      "JSON"),
     ("properties",              "floors",         "INTEGER"),
     ("properties",              "building_name",  "VARCHAR(255)"),
     ("properties",              "parking_spaces", "INTEGER"),
@@ -207,7 +207,7 @@ def run_schema_migrations() -> None:
     # All values come from the hardcoded _MIGRATIONS constant, but we validate
     # defensively so that an accidental edit cannot produce an injection.
     _COL_TYPE_RE = re.compile(
-        r"^(?:VARCHAR|TEXT|INTEGER|DECIMAL|FLOAT|BOOLEAN|DATE|DATETIME|TIMESTAMP)"
+        r"^(?:VARCHAR|TEXT|INTEGER|DECIMAL|FLOAT|BOOLEAN|DATE|DATETIME|TIMESTAMP|JSON)"
         r"(?:\s*\(\s*\d+(?:\s*,\s*\d+)?\s*\))?"   # optional (len) or (p,s)
         r"(?:\s+DEFAULT\s+'[A-Za-z0-9_]+')?$",      # optional DEFAULT clause
         re.IGNORECASE,

@@ -283,7 +283,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       'txt' => 'text/plain',
       'csv' => 'text/csv',
       'zip' => 'application/zip',
-      _ => 'application/octet-stream',
+      _ => 'application/pdf',  // safe fallback: treated as document
     };
   }
 

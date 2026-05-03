@@ -1,6 +1,7 @@
 import os
-import random
+import secrets
 import string
+from datetime import datetime as _dt
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from passlib.context import CryptContext
@@ -270,15 +271,15 @@ def delete_client(client_id: int, db: Session = Depends(get_db)):
 
 def _generate_listing_code(db: Session) -> str:
     """Generate a unique listing tracking code, e.g. ORT-PROP-2024-AB1C."""
-    import datetime
-    year = datetime.datetime.now().year
+    year = _dt.now().year
+    alphabet = string.ascii_uppercase + string.digits
     for _ in range(20):
-        suffix = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+        suffix = ''.join(secrets.choice(alphabet) for _ in range(6))
         code = f"ORT-PROP-{year}-{suffix}"
         if not db.query(Property).filter(Property.listing_code == code).first():
             return code
-    # Fallback: use longer random string to avoid collision
-    suffix = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
+    # Fallback: use longer token to avoid collision
+    suffix = ''.join(secrets.choice(alphabet) for _ in range(10))
     return f"ORT-PROP-{year}-{suffix}"
 
 

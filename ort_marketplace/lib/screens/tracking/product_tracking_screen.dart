@@ -54,11 +54,21 @@ class _ProductTrackingScreenState extends ConsumerState<ProductTrackingScreen>
   @override
   void initState() {
     super.initState();
-    // Poll every 10 seconds for real-time updates
+    // Poll every 10 seconds for real-time updates.
+    // Stops automatically when a terminal status is reached.
     _refreshTimer = Timer.periodic(const Duration(seconds: 10), (_) {
-      if (mounted) {
-        ref.invalidate(_trackingProvider(widget.orderId));
+      if (!mounted) return;
+      // Read last known events without triggering a rebuild
+      final async = ref.read(_trackingProvider(widget.orderId));
+      final events = async.valueOrNull;
+      if (events != null && events.isNotEmpty) {
+        final lastStatus = events.last.status;
+        if (lastStatus == 'delivered' || lastStatus == 'cancelled') {
+          _refreshTimer?.cancel();
+          return;
+        }
       }
+      ref.invalidate(_trackingProvider(widget.orderId));
     });
   }
 

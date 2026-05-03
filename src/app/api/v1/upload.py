@@ -600,7 +600,6 @@ _ALLOWED_FILE_CONTENT_TYPES = _ALLOWED_CONTENT_TYPES | {
     "text/plain",
     "text/csv",
     "application/zip",
-    "application/octet-stream",
 }
 _MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024  # 25 MB
 

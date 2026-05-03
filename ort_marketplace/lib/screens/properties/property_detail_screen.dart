@@ -484,7 +484,7 @@ class _PropertyDetailBody extends StatelessWidget {
                         icon: Icons.chair_outlined,
                         label: p.furnishing!.replaceAll('_', ' ')
                             .split(' ')
-                            .map((w) => w.isEmpty ? '' : '${w[0].toUpperCase()}${w.substring(1)}')
+                            .map((w) => w.isEmpty ? '' : '${w[0].toUpperCase()}${w.length > 1 ? w.substring(1) : ''}')
                             .join(' '),
                       ),
                     if (p.floors != null)
