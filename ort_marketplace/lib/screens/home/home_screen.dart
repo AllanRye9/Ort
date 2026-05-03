@@ -33,7 +33,7 @@ final _homeUserProvider = FutureProvider.autoDispose<UserModel?>((ref) async {
 
 /// Returns the distance in km from [userLoc] to [lat]/[lon], or null if any
 /// value is missing.
-double? _distKmFromUser(
+double? _distanceFromUser(
     (double, double)? userLoc, double? lat, double? lon) {
   if (userLoc == null || lat == null || lon == null) return null;
   return haversineKm(userLoc.$1, userLoc.$2, lat, lon);
@@ -407,7 +407,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       subtitle: p.city ?? p.address,
                       price: formatCurrencyForMode(p.price, country: p.country, mode: marketplaceMode),
                       badge: p.propertyType,
-                      distanceKm: _distKmFromUser(userLoc, p.latitude, p.longitude),
+                      distanceKm: _distanceFromUser(userLoc, p.latitude, p.longitude),
                       distanceUnit: distanceUnit,
                       onTap: () => ctx.go('/properties/${p.id}'),
                     ),
@@ -447,7 +447,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         price:
                             '${formatCurrencyForMode(a.pricePerUnit, currency: a.currency, decimals: 2, mode: marketplaceMode)}/${a.unit ?? 'unit'}',
                         badge: a.category,
-                        distanceKm: _distKmFromUser(userLoc, a.latitude, a.longitude),
+                        distanceKm: _distanceFromUser(userLoc, a.latitude, a.longitude),
                         distanceUnit: distanceUnit,
                         onTap: () => ctx.go('/agriculture/${a.id}'),
                       );
@@ -489,7 +489,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         price:
                             '${formatCurrencyForMode(m.wholesalePrice, currency: m.currency, decimals: 2, mode: marketplaceMode)}/${m.unit ?? 'unit'}',
                         badge: m.category,
-                        distanceKm: _distKmFromUser(userLoc, m.latitude, m.longitude),
+                        distanceKm: _distanceFromUser(userLoc, m.latitude, m.longitude),
                         distanceUnit: distanceUnit,
                         onTap: () => ctx.go('/manufacturing/${m.id}'),
                       );
@@ -530,7 +530,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         price:
                             '${formatCurrencyForMode(s.price, currency: s.currency, decimals: 2, mode: marketplaceMode)}/${s.pricingUnit ?? 'service'}',
                         badge: s.serviceType,
-                        distanceKm: _distKmFromUser(userLoc, s.latitude, s.longitude),
+                        distanceKm: _distanceFromUser(userLoc, s.latitude, s.longitude),
                         distanceUnit: distanceUnit,
                         onTap: () => ctx.go('/manufacturing/service/${s.id}'),
                       );
@@ -2004,7 +2004,7 @@ class _ModeSelectionDialogState extends State<_ModeSelectionDialog>
                       iconColor: AppTheme.primary,
                       title: 'Local',
                       subtitle:
-                          'Browse your local market.\nPrices in UGX, AED or USD based on your location.',
+                          'Browse your local market. Prices in UGX, AED or USD based on your location.',
                       flag: '🇺🇬',
                     ),
                     const SizedBox(height: 16),
@@ -2019,7 +2019,7 @@ class _ModeSelectionDialogState extends State<_ModeSelectionDialog>
                       iconColor: const Color(0xFF0288D1),
                       title: 'International',
                       subtitle:
-                          'Import & export between Uganda and UAE.\nAll prices shown in US Dollars (USD).',
+                          'Import & export between Uganda and UAE. All prices shown in US Dollars (USD).',
                       flag: '🇺🇬 ↔ 🇦🇪',
                     ),
                     const Spacer(),
