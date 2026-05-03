@@ -9,6 +9,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shimmer/shimmer.dart';
 import '../../core/api_service.dart';
+import '../../core/app_preferences.dart';
 import '../../core/auth_provider.dart';
 import '../../core/listing_providers.dart';
 import '../../core/location_service.dart';
@@ -77,6 +78,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     _fadeAnim = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeIn);
     // Request location exactly once at startup.
     _initLocation();
+    // Show marketplace-mode selection the first time the user reaches the home
+    // screen (i.e. they have never chosen local vs international before).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final notifier = ref.read(marketplaceModeProvider.notifier);
+      if (!notifier.everSelected) {
+        _showModeSelectionDialog();
+      }
+    });
     // Listen for the device-level location service being toggled on/off.
     // getServiceStatusStream is not supported on web.
     if (!kIsWeb) {
@@ -244,6 +254,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     }
   }
 
+  /// Shows the marketplace-mode selection dialog.  Called once on first login
+  /// and also available via the settings screen.
+  void _showModeSelectionDialog() {
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => _ModeSelectionDialog(
+        onSelected: (mode) {
+          ref.read(marketplaceModeProvider.notifier).setMode(mode);
+        },
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _serviceStatusSub?.cancel();
@@ -262,6 +286,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final auth = ref.watch(authProvider);
     final role = auth.role ?? 'user';
     final currentUser = ref.watch(_homeUserProvider).valueOrNull;
+    final marketplaceMode = ref.watch(marketplaceModeProvider);
+    final distanceUnit = ref.watch(distanceUnitProvider);
 
     final roleLabel = switch (role) {
       'agent' => 'Agent Dashboard',
@@ -296,6 +322,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   role: role,
                   avatarUrl: currentUser?.avatarUrl,
                   onAvatarTap: () => context.go('/profile'),
+                  marketplaceMode: marketplaceMode,
                 ),
               ),
               actions: [
@@ -378,9 +405,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       iconColor: AppTheme.primary,
                       title: p.title,
                       subtitle: p.city ?? p.address,
-                      price: formatCurrency(p.price, country: p.country),
+                      price: formatCurrencyForMode(p.price, country: p.country, mode: marketplaceMode),
                       badge: p.propertyType,
-                      distanceKm: null,
+                      distanceKm: _distKmFromUser(userLoc, p.latitude, p.longitude),
+                      distanceUnit: distanceUnit,
                       onTap: () => ctx.go('/properties/${p.id}'),
                     ),
                     emptyText: 'No properties listed yet.',
@@ -417,9 +445,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         title: a.title,
                         subtitle: a.location ?? a.category ?? '',
                         price:
-                            '${formatCurrency(a.pricePerUnit, currency: a.currency, decimals: 2)}/${a.unit ?? 'unit'}',
+                            '${formatCurrencyForMode(a.pricePerUnit, currency: a.currency, decimals: 2, mode: marketplaceMode)}/${a.unit ?? 'unit'}',
                         badge: a.category,
-                        distanceKm: null,
+                        distanceKm: _distKmFromUser(userLoc, a.latitude, a.longitude),
+                        distanceUnit: distanceUnit,
                         onTap: () => ctx.go('/agriculture/${a.id}'),
                       );
                     },
@@ -458,9 +487,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         subtitle:
                             m.category ?? (m.isLocallyMade ? 'Locally Made' : ''),
                         price:
-                            '${formatCurrency(m.wholesalePrice, currency: m.currency, decimals: 2)}/${m.unit ?? 'unit'}',
+                            '${formatCurrencyForMode(m.wholesalePrice, currency: m.currency, decimals: 2, mode: marketplaceMode)}/${m.unit ?? 'unit'}',
                         badge: m.category,
-                        distanceKm: null,
+                        distanceKm: _distKmFromUser(userLoc, m.latitude, m.longitude),
+                        distanceUnit: distanceUnit,
                         onTap: () => ctx.go('/manufacturing/${m.id}'),
                       );
                     },
@@ -498,9 +528,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         title: s.title,
                         subtitle: s.serviceType ?? s.location ?? '',
                         price:
-                            '${formatCurrency(s.price, currency: s.currency, decimals: 2)}/${s.pricingUnit ?? 'service'}',
+                            '${formatCurrencyForMode(s.price, currency: s.currency, decimals: 2, mode: marketplaceMode)}/${s.pricingUnit ?? 'service'}',
                         badge: s.serviceType,
-                        distanceKm: null,
+                        distanceKm: _distKmFromUser(userLoc, s.latitude, s.longitude),
+                        distanceUnit: distanceUnit,
                         onTap: () => ctx.go('/manufacturing/service/${s.id}'),
                       );
                     },
@@ -526,12 +557,14 @@ class _HeroBanner extends StatefulWidget {
     required this.role,
     this.avatarUrl,
     this.onAvatarTap,
+    this.marketplaceMode,
   });
   final String greeting;
   final String subtitle;
   final String role;
   final String? avatarUrl;
   final VoidCallback? onAvatarTap;
+  final MarketplaceMode? marketplaceMode;
 
   @override
   State<_HeroBanner> createState() => _HeroBannerState();
@@ -610,6 +643,42 @@ class _HeroBannerState extends State<_HeroBanner>
                       height: 1.2,
                     ),
                   ),
+                  if (widget.marketplaceMode != null) ...[
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.35), width: 1),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            widget.marketplaceMode == MarketplaceMode.international
+                                ? Icons.public
+                                : Icons.place,
+                            color: Colors.white,
+                            size: 11,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            widget.marketplaceMode == MarketplaceMode.international
+                                ? 'International · USD'
+                                : 'Local',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -1148,6 +1217,7 @@ class _FeaturedCard extends StatelessWidget {
     required this.price,
     this.badge,
     this.distanceKm,
+    this.distanceUnit = DistanceUnit.km,
     this.onTap,
   });
 
@@ -1160,16 +1230,11 @@ class _FeaturedCard extends StatelessWidget {
   final String? badge;
   /// Distance in km from user location. Null when location is not available.
   final double? distanceKm;
+  /// Unit to display the distance in.
+  final DistanceUnit distanceUnit;
   final VoidCallback? onTap;
 
-  String get _distanceLabel {
-    const metersPerKm = 1000;
-    if (distanceKm == null) return '';
-    if (distanceKm! < 1.0) {
-      return '${(distanceKm! * metersPerKm).toStringAsFixed(0)} m';
-    }
-    return '${distanceKm!.toStringAsFixed(2)} km';
-  }
+  String get _distanceLabel => formatDistance(distanceKm, distanceUnit);
 
   @override
   Widget build(BuildContext context) {
@@ -1470,6 +1535,7 @@ class _AiDialogState extends ConsumerState<_AiDialog>
     final agri = ref.read(sortedHomeAgricultureProvider).valueOrNull ?? [];
     final mfg = ref.read(sortedHomeMfgProvider).valueOrNull ?? [];
     final svc = ref.read(sortedHomeServicesProvider).valueOrNull ?? [];
+    final mode = ref.read(marketplaceModeProvider);
 
     final targetsProps = _sectionMatch(lower, ['propert']);
     final targetsAgri = _sectionMatch(lower, ['agricult', 'farm']);
@@ -1485,7 +1551,7 @@ class _AiDialogState extends ConsumerState<_AiDialog>
         if (keywords.isEmpty ||
             _keywordMatch(keywords, [p.title, p.city, p.address, p.propertyType])) {
           results.add(
-              '🏠 ${p.title} · ${p.city ?? p.address ?? ''} · ${formatCurrency(p.price, country: p.country)}');
+              '🏠 ${p.title} · ${p.city ?? p.address ?? ''} · ${formatCurrencyForMode(p.price, country: p.country, mode: mode)}');
         }
       }
     }
@@ -1494,7 +1560,7 @@ class _AiDialogState extends ConsumerState<_AiDialog>
         if (keywords.isEmpty ||
             _keywordMatch(keywords, [a.title, a.category, a.location])) {
           results.add(
-              '🌾 ${a.title} · ${a.location ?? a.category ?? ''} · ${formatCurrency(a.pricePerUnit, currency: a.currency, decimals: 2)}/${a.unit ?? 'unit'}');
+              '🌾 ${a.title} · ${a.location ?? a.category ?? ''} · ${formatCurrencyForMode(a.pricePerUnit, currency: a.currency, decimals: 2, mode: mode)}/${a.unit ?? 'unit'}');
         }
       }
     }
@@ -1503,7 +1569,7 @@ class _AiDialogState extends ConsumerState<_AiDialog>
         if (keywords.isEmpty ||
             _keywordMatch(keywords, [m.title, m.category])) {
           results.add(
-              '🏭 ${m.title} · ${m.category ?? ''} · ${formatCurrency(m.wholesalePrice, currency: m.currency, decimals: 2)}/${m.unit ?? 'unit'}');
+              '🏭 ${m.title} · ${m.category ?? ''} · ${formatCurrencyForMode(m.wholesalePrice, currency: m.currency, decimals: 2, mode: mode)}/${m.unit ?? 'unit'}');
         }
       }
     }
@@ -1512,7 +1578,7 @@ class _AiDialogState extends ConsumerState<_AiDialog>
         if (keywords.isEmpty ||
             _keywordMatch(keywords, [s.title, s.serviceType, s.location])) {
           results.add(
-              '🔧 ${s.title} · ${s.serviceType ?? s.location ?? ''} · ${formatCurrency(s.price, currency: s.currency, decimals: 2)}/${s.pricingUnit ?? 'service'}');
+              '🔧 ${s.title} · ${s.serviceType ?? s.location ?? ''} · ${formatCurrencyForMode(s.price, currency: s.currency, decimals: 2, mode: mode)}/${s.pricingUnit ?? 'service'}');
         }
       }
     }
@@ -1832,4 +1898,254 @@ class _RadarPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_RadarPainter old) => old.progress != progress;
+}
+
+// ─── Mode selection dialog ────────────────────────────────────────────────────
+
+/// Full-screen dialog shown on first login to let the user choose between
+/// Local and International marketplace mode.
+class _ModeSelectionDialog extends StatefulWidget {
+  const _ModeSelectionDialog({required this.onSelected});
+
+  final ValueChanged<MarketplaceMode> onSelected;
+
+  @override
+  State<_ModeSelectionDialog> createState() => _ModeSelectionDialogState();
+}
+
+class _ModeSelectionDialogState extends State<_ModeSelectionDialog>
+    with SingleTickerProviderStateMixin {
+  MarketplaceMode? _selected;
+  late final AnimationController _ctrl;
+  late final Animation<double> _fade;
+  late final Animation<Offset> _slide;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    )..forward();
+    _fade = CurvedAnimation(parent: _ctrl, curve: Curves.easeOut);
+    _slide = Tween<Offset>(
+      begin: const Offset(0, 0.15),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  void _confirm() {
+    if (_selected == null) return;
+    widget.onSelected(_selected!);
+    Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isLocal = _selected == MarketplaceMode.local;
+    final isIntl = _selected == MarketplaceMode.international;
+
+    return Dialog.fullscreen(
+      child: FadeTransition(
+        opacity: _fade,
+        child: SlideTransition(
+          position: _slide,
+          child: Scaffold(
+            body: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // ── Logo + title ──────────────────────────────────────────
+                    Center(
+                      child: Container(
+                        width: 64,
+                        height: 64,
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary.withValues(alpha: 0.12),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.storefront_rounded,
+                            size: 34, color: AppTheme.primary),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      'Choose your marketplace',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'You can change this anytime in Settings.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          fontSize: 13,
+                          color: cs.onSurface.withValues(alpha: 0.55)),
+                    ),
+                    const SizedBox(height: 36),
+
+                    // ── Local card ─────────────────────────────────────────────
+                    _ModeCard(
+                      selected: isLocal,
+                      onTap: () => setState(() => _selected = MarketplaceMode.local),
+                      icon: Icons.place_rounded,
+                      iconBgColor: AppTheme.primary.withValues(alpha: 0.12),
+                      iconColor: AppTheme.primary,
+                      title: 'Local',
+                      subtitle:
+                          'Browse your local market.\nPrices in UGX, AED or USD based on your location.',
+                      flag: '🇺🇬',
+                    ),
+                    const SizedBox(height: 16),
+
+                    // ── International card ─────────────────────────────────────
+                    _ModeCard(
+                      selected: isIntl,
+                      onTap: () => setState(
+                          () => _selected = MarketplaceMode.international),
+                      icon: Icons.public_rounded,
+                      iconBgColor: const Color(0xFF0288D1).withValues(alpha: 0.12),
+                      iconColor: const Color(0xFF0288D1),
+                      title: 'International',
+                      subtitle:
+                          'Import & export between Uganda and UAE.\nAll prices shown in US Dollars (USD).',
+                      flag: '🇺🇬 ↔ 🇦🇪',
+                    ),
+                    const Spacer(),
+
+                    // ── Confirm button ─────────────────────────────────────────
+                    ElevatedButton(
+                      onPressed: _selected != null ? _confirm : null,
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(52),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: const Text('Continue',
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.w600)),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ModeCard extends StatelessWidget {
+  const _ModeCard({
+    required this.selected,
+    required this.onTap,
+    required this.icon,
+    required this.iconBgColor,
+    required this.iconColor,
+    required this.title,
+    required this.subtitle,
+    required this.flag,
+  });
+
+  final bool selected;
+  final VoidCallback onTap;
+  final IconData icon;
+  final Color iconBgColor;
+  final Color iconColor;
+  final String title;
+  final String subtitle;
+  final String flag;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: selected ? cs.primary : cs.outlineVariant,
+          width: selected ? 2.5 : 1.5,
+        ),
+        color: selected
+            ? cs.primary.withValues(alpha: 0.06)
+            : cs.surface,
+        boxShadow: selected
+            ? [
+                BoxShadow(
+                  color: cs.primary.withValues(alpha: 0.15),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ]
+            : [],
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: iconBgColor,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(icon, color: iconColor, size: 26),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          title,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: cs.onSurface,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(flag, style: const TextStyle(fontSize: 16)),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: cs.onSurface.withValues(alpha: 0.6),
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (selected)
+                Icon(Icons.check_circle_rounded, color: cs.primary, size: 22),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

@@ -1,0 +1,195 @@
+/// App-wide user preferences that are not theme-specific:
+///   - Distance unit (km / miles) with auto-detect
+///   - Marketplace mode (local / international)
+///
+/// Both are persisted via [SharedPreferences] so they survive restarts.
+
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'location_service.dart';
+
+// ─── Distance unit ────────────────────────────────────────────────────────────
+
+enum DistanceUnit {
+  km,
+  miles;
+
+  String get label {
+    switch (this) {
+      case DistanceUnit.km:
+        return 'Kilometres (km)';
+      case DistanceUnit.miles:
+        return 'Miles (mi)';
+    }
+  }
+
+  String get shortLabel {
+    switch (this) {
+      case DistanceUnit.km:
+        return 'km';
+      case DistanceUnit.miles:
+        return 'mi';
+    }
+  }
+}
+
+const _kDistanceUnitKey = 'distance_unit';
+
+class DistanceUnitNotifier extends StateNotifier<DistanceUnit> {
+  DistanceUnitNotifier() : super(DistanceUnit.km) {
+    _load();
+  }
+
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString(_kDistanceUnitKey);
+    if (saved != null) {
+      state = DistanceUnit.values.firstWhere(
+        (e) => e.name == saved,
+        orElse: () => DistanceUnit.km,
+      );
+    }
+  }
+
+  Future<void> setUnit(DistanceUnit unit) async {
+    state = unit;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_kDistanceUnitKey, unit.name);
+  }
+
+  /// Detects the appropriate distance unit from the current device GPS position
+  /// using reverse-geocoding.  Countries that primarily use miles (US, UK,
+  /// Myanmar, Liberia) get [DistanceUnit.miles]; everything else gets [DistanceUnit.km].
+  ///
+  /// Returns the auto-detected unit (or [DistanceUnit.km] on failure).
+  Future<DistanceUnit> autoDetect() async {
+    try {
+      final position = await LocationService.instance.requestAndGetPosition();
+      if (position == null) return DistanceUnit.km;
+      final result = await LocationService.instance.reverseGeocodePosition(
+        position.latitude,
+        position.longitude,
+      );
+      if (result == null) return DistanceUnit.km;
+      final detected = _unitForCountry(result.country);
+      await setUnit(detected);
+      return detected;
+    } catch (_) {
+      return DistanceUnit.km;
+    }
+  }
+
+  static DistanceUnit _unitForCountry(String? country) {
+    const milesCountries = {
+      'united states',
+      'united kingdom',
+      'myanmar',
+      'liberia',
+    };
+    final lower = country?.toLowerCase() ?? '';
+    return milesCountries.contains(lower) ? DistanceUnit.miles : DistanceUnit.km;
+  }
+}
+
+final distanceUnitProvider =
+    StateNotifierProvider<DistanceUnitNotifier, DistanceUnit>(
+  (_) => DistanceUnitNotifier(),
+);
+
+// ─── Marketplace mode ──────────────────────────────────────────────────────────
+
+enum MarketplaceMode {
+  local,
+  international;
+
+  String get label {
+    switch (this) {
+      case MarketplaceMode.local:
+        return 'Local';
+      case MarketplaceMode.international:
+        return 'International (UG ↔ UAE)';
+    }
+  }
+
+  String get description {
+    switch (this) {
+      case MarketplaceMode.local:
+        return 'Browse listings in your local market. '
+            'Prices shown in your local currency (UGX / AED / USD).';
+      case MarketplaceMode.international:
+        return 'Browse import & export listings between Uganda and the UAE. '
+            'All prices shown in US Dollars (USD).';
+    }
+  }
+}
+
+const _kMarketplaceModeKey = 'marketplace_mode';
+const _kModeEverSelectedKey = 'mode_ever_selected';
+
+class MarketplaceModeNotifier extends StateNotifier<MarketplaceMode> {
+  MarketplaceModeNotifier() : super(MarketplaceMode.local) {
+    _load();
+  }
+
+  bool _everSelected = false;
+  bool get everSelected => _everSelected;
+
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString(_kMarketplaceModeKey);
+    if (saved != null) {
+      state = MarketplaceMode.values.firstWhere(
+        (e) => e.name == saved,
+        orElse: () => MarketplaceMode.local,
+      );
+    }
+    _everSelected = prefs.getBool(_kModeEverSelectedKey) ?? false;
+  }
+
+  Future<void> setMode(MarketplaceMode mode) async {
+    state = mode;
+    _everSelected = true;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_kMarketplaceModeKey, mode.name);
+    await prefs.setBool(_kModeEverSelectedKey, true);
+  }
+}
+
+final marketplaceModeProvider =
+    StateNotifierProvider<MarketplaceModeNotifier, MarketplaceMode>(
+  (_) => MarketplaceModeNotifier(),
+);
+
+/// Separate bool provider that flips to `true` once the user has chosen a mode.
+/// Used to decide whether to show the on-boarding mode-selection dialog.
+final modeEverSelectedProvider = Provider<bool>((ref) {
+  // Trigger re-reads whenever the mode is changed so the dialog is dismissed.
+  ref.watch(marketplaceModeProvider);
+  return ref.read(marketplaceModeProvider.notifier).everSelected;
+});
+
+// ─── Distance formatting helper ───────────────────────────────────────────────
+
+const _kmToMiles = 0.621371;
+
+/// Formats a distance for display.
+///
+/// * [km] – the raw distance in kilometres.
+/// * [unit] – the unit to display.
+///
+/// Returns an empty string when [km] is null.
+String formatDistance(double? km, DistanceUnit unit) {
+  if (km == null) return '';
+  if (unit == DistanceUnit.miles) {
+    final miles = km * _kmToMiles;
+    if (miles < 0.1) {
+      return '${(miles * 5280).toStringAsFixed(0)} ft';
+    }
+    return '${miles.toStringAsFixed(2)} mi';
+  } else {
+    if (km < 1.0) {
+      return '${(km * 1000).toStringAsFixed(0)} m';
+    }
+    return '${km.toStringAsFixed(2)} km';
+  }
+}
