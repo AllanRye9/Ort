@@ -1534,7 +1534,7 @@ class _AiDialogState extends ConsumerState<_AiDialog>
   };
 
   final List<_AiMessage> _messages = [
-    _AiMessage(
+    const _AiMessage(
         role: 'assistant',
         text: _kGeminiApiKey.isNotEmpty
             ? 'Hi! I\'m Ort AI, powered by Gemini 🤖✨\nAsk me anything — about listings, market trends, prices, or any topic you\'re curious about!'
@@ -1630,7 +1630,7 @@ class _AiDialogState extends ConsumerState<_AiDialog>
         history: _messages
             .skip(1) // skip the initial greeting
             .map((m) => Content(
-                  m.role == 'user' ? 'user' : 'model',
+                  m.role == 'user' ? 'user' : 'model', // 'assistant' → 'model'
                   [TextPart(m.text)],
                 ))
             .toList(),

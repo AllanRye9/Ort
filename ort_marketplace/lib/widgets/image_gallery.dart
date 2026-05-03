@@ -239,12 +239,10 @@ class _FullscreenGalleryState extends State<_FullscreenGallery> {
   @override
   Widget build(BuildContext context) {
     final urls = widget.imageUrls;
-    return GestureDetector(
-      onTap: () => Navigator.of(context).pop(),
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        extendBodyBehindAppBar: true,
-        appBar: AppBar(
+    return Scaffold(
+      backgroundColor: Colors.black87,
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
           backgroundColor: Colors.black54,
           foregroundColor: Colors.white,
           elevation: 0,
@@ -281,7 +279,6 @@ class _FullscreenGalleryState extends State<_FullscreenGallery> {
             ),
           ),
         ),
-      ),
-    );
+      );
   }
 }
