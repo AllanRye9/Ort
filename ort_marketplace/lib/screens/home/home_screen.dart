@@ -731,10 +731,10 @@ class _HeroBannerState extends State<_HeroBanner>
               ),
             ),
             // Profile image / spinning wheel badge
-            RotationTransition(
-              turns: _spinCtrl,
-              child: GestureDetector(
-                onTap: widget.onAvatarTap,
+            GestureDetector(
+              onTap: widget.onAvatarTap,
+              child: RotationTransition(
+                turns: _spinCtrl,
                 child: Container(
                   width: 52,
                   height: 52,
