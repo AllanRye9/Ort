@@ -29,92 +29,393 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
   Future<void> _showTopupDialog() async {
     String? selectedMethod;
     final amountCtrl = TextEditingController();
-    final refCtrl = TextEditingController();
+    // Mobile money fields
+    final phoneCtrl = TextEditingController();
+    // Card fields
+    final cardNumberCtrl = TextEditingController();
+    final cardHolderCtrl = TextEditingController();
+    final expiryCtrl = TextEditingController();
+    final cvvCtrl = TextEditingController();
 
     await showDialog<void>(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('Top Up Wallet'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+        builder: (ctx, setDialogState) {
+          final isMtn = selectedMethod == 'mtn';
+          final isAirtel = selectedMethod == 'airtel';
+          final isCard = selectedMethod == 'card';
+          final isMobile = isMtn || isAirtel;
+
+          final Color methodColor = isMtn
+              ? const Color(0xFFFFC200)
+              : isAirtel
+                  ? const Color(0xFFE02020)
+                  : Theme.of(ctx).colorScheme.primary;
+
+          return AlertDialog(
+            title: Row(
               children: [
-                const Text(
-                  'Conversion rate: 1 cash unit = 1 point',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: amountCtrl,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Amount (points)',
-                    prefixIcon: Icon(Icons.account_balance_wallet_outlined),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                DropdownButtonFormField<String>(
-                  value: selectedMethod,
-                  decoration: const InputDecoration(
-                    labelText: 'Payment Method',
-                    prefixIcon: Icon(Icons.payment_outlined),
-                  ),
-                  items: const [
-                    DropdownMenuItem(
-                      value: 'mtn',
-                      child: Text('MTN Mobile Money'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'airtel',
-                      child: Text('Airtel Money'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'card',
-                      child: Text('Credit / Debit Card'),
-                    ),
-                  ],
-                  onChanged: (v) => setDialogState(() => selectedMethod = v),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: refCtrl,
-                  decoration: InputDecoration(
-                    labelText: selectedMethod == 'card'
-                        ? 'Card last 4 digits (optional)'
-                        : 'Phone number (optional)',
-                    prefixIcon: const Icon(Icons.tag_outlined),
-                  ),
-                ),
+                Icon(Icons.account_balance_wallet_rounded,
+                    color: Theme.of(ctx).colorScheme.primary),
+                const SizedBox(width: 8),
+                const Text('Top Up Wallet'),
               ],
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Conversion rate banner
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Theme.of(ctx)
+                          .colorScheme
+                          .primaryContainer
+                          .withValues(alpha: 0.4),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.info_outline,
+                            size: 14,
+                            color:
+                                Theme.of(ctx).colorScheme.primary),
+                        const SizedBox(width: 6),
+                        Text(
+                          '1 cash unit = 1 wallet point',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(ctx).colorScheme.primary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Amount field
+                  TextField(
+                    controller: amountCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: 'Amount',
+                      hintText: 'e.g. 50',
+                      prefixIcon: const Icon(
+                          Icons.account_balance_wallet_outlined),
+                      suffixText: 'pts',
+                      border: const OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Payment method selector
+                  DropdownButtonFormField<String>(
+                    value: selectedMethod,
+                    decoration: const InputDecoration(
+                      labelText: 'Payment Method',
+                      prefixIcon: Icon(Icons.payment_outlined),
+                      border: OutlineInputBorder(),
+                    ),
+                    items: [
+                      DropdownMenuItem(
+                        value: 'mtn',
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 12,
+                              height: 12,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFFFC200),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Text('MTN Mobile Money'),
+                          ],
+                        ),
+                      ),
+                      DropdownMenuItem(
+                        value: 'airtel',
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 12,
+                              height: 12,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFE02020),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Text('Airtel Money'),
+                          ],
+                        ),
+                      ),
+                      DropdownMenuItem(
+                        value: 'card',
+                        child: Row(
+                          children: [
+                            const Icon(Icons.credit_card, size: 16),
+                            const SizedBox(width: 8),
+                            const Text('Credit / Debit Card'),
+                          ],
+                        ),
+                      ),
+                    ],
+                    onChanged: (v) =>
+                        setDialogState(() => selectedMethod = v),
+                  ),
+
+                  // ── Method-specific fields ──────────────────────────
+                  if (isMobile) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: methodColor.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                            color: methodColor.withValues(alpha: 0.3)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.phone_android,
+                                  size: 16, color: methodColor),
+                              const SizedBox(width: 6),
+                              Text(
+                                isMtn
+                                    ? 'MTN Mobile Money'
+                                    : 'Airtel Money',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: methodColor,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          TextField(
+                            controller: phoneCtrl,
+                            keyboardType: TextInputType.phone,
+                            decoration: InputDecoration(
+                              labelText: 'Mobile Money Number',
+                              hintText:
+                                  isMtn ? '077XXXXXXX' : '075XXXXXXX',
+                              prefixText: '+256 ',
+                              prefixIcon: const Icon(Icons.call_outlined),
+                              border: const OutlineInputBorder(),
+                              filled: true,
+                              fillColor: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            isMtn
+                                ? 'You will receive an MTN USSD prompt to authorise the payment.'
+                                : 'You will receive an Airtel USSD prompt to authorise the payment.',
+                            style: TextStyle(
+                                fontSize: 11, color: Colors.grey[600]),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+
+                  if (isCard) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Theme.of(ctx)
+                            .colorScheme
+                            .surfaceContainerHighest
+                            .withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                            color: Theme.of(ctx)
+                                .colorScheme
+                                .outline
+                                .withValues(alpha: 0.3)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.credit_card,
+                                  size: 16,
+                                  color: Theme.of(ctx)
+                                      .colorScheme
+                                      .primary),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Card Details',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: Theme.of(ctx)
+                                      .colorScheme
+                                      .primary,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          TextField(
+                            controller: cardNumberCtrl,
+                            keyboardType: TextInputType.number,
+                            maxLength: 19,
+                            decoration: const InputDecoration(
+                              labelText: 'Card Number',
+                              hintText: 'XXXX XXXX XXXX XXXX',
+                              prefixIcon: Icon(Icons.credit_card_outlined),
+                              border: OutlineInputBorder(),
+                              filled: true,
+                              fillColor: Colors.white,
+                              counterText: '',
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          TextField(
+                            controller: cardHolderCtrl,
+                            textCapitalization: TextCapitalization.words,
+                            decoration: const InputDecoration(
+                              labelText: 'Cardholder Name',
+                              hintText: 'As printed on card',
+                              prefixIcon: Icon(Icons.person_outline),
+                              border: OutlineInputBorder(),
+                              filled: true,
+                              fillColor: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: expiryCtrl,
+                                  keyboardType: TextInputType.number,
+                                  maxLength: 5,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Expiry',
+                                    hintText: 'MM/YY',
+                                    prefixIcon:
+                                        Icon(Icons.calendar_today_outlined),
+                                    border: OutlineInputBorder(),
+                                    filled: true,
+                                    fillColor: Colors.white,
+                                    counterText: '',
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: TextField(
+                                  controller: cvvCtrl,
+                                  keyboardType: TextInputType.number,
+                                  maxLength: 4,
+                                  obscureText: true,
+                                  decoration: const InputDecoration(
+                                    labelText: 'CVV',
+                                    hintText: '•••',
+                                    prefixIcon: Icon(Icons.lock_outline),
+                                    border: OutlineInputBorder(),
+                                    filled: true,
+                                    fillColor: Colors.white,
+                                    counterText: '',
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              const Icon(Icons.lock,
+                                  size: 12, color: Colors.grey),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Your card details are encrypted and secure.',
+                                style: TextStyle(
+                                    fontSize: 10, color: Colors.grey[600]),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
-            FilledButton(
-              onPressed: selectedMethod == null
-                  ? null
-                  : () async {
-                      final amt = int.tryParse(amountCtrl.text.trim()) ?? 0;
-                      if (amt <= 0) return;
-                      Navigator.pop(ctx);
-                      await _doTopup(
-                        amount: amt,
-                        method: selectedMethod!,
-                        reference:
-                            refCtrl.text.trim().isEmpty ? null : refCtrl.text.trim(),
-                      );
-                    },
-              child: const Text('Top Up'),
-            ),
-          ],
-        ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
+              ),
+              FilledButton.icon(
+                icon: Icon(
+                  isCard
+                      ? Icons.lock_outline
+                      : isMobile
+                          ? Icons.phone_android
+                          : Icons.add,
+                  size: 16,
+                ),
+                label: const Text('Top Up'),
+                style: selectedMethod != null
+                    ? FilledButton.styleFrom(
+                        backgroundColor: methodColor,
+                        foregroundColor: isMtn ? Colors.black87 : Colors.white,
+                      )
+                    : null,
+                onPressed: selectedMethod == null
+                    ? null
+                    : () async {
+                        final amt =
+                            int.tryParse(amountCtrl.text.trim()) ?? 0;
+                        if (amt <= 0) return;
+                        // Build a reference from the method-specific fields
+                        String? reference;
+                        if (isMobile && phoneCtrl.text.trim().isNotEmpty) {
+                          reference = phoneCtrl.text.trim();
+                        } else if (isCard &&
+                            cardNumberCtrl.text.trim().isNotEmpty) {
+                          // Store only last 4 digits for reference
+                          final digits =
+                              cardNumberCtrl.text.replaceAll(' ', '');
+                          reference = digits.length >= 4
+                              ? digits.substring(digits.length - 4)
+                              : digits;
+                        }
+                        Navigator.pop(ctx);
+                        await _doTopup(
+                          amount: amt,
+                          method: selectedMethod!,
+                          reference: reference,
+                        );
+                      },
+              ),
+            ],
+          );
+        },
       ),
     );
+
+    amountCtrl.dispose();
+    phoneCtrl.dispose();
+    cardNumberCtrl.dispose();
+    cardHolderCtrl.dispose();
+    expiryCtrl.dispose();
+    cvvCtrl.dispose();
   }
 
   Future<void> _doTopup({
