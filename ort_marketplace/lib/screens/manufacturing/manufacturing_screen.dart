@@ -60,8 +60,6 @@ class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen>
     'finishing', 'testing', 'printing', 'packaging',
     'consultation', 'other',
   ];
-  static const _serviceStatuses = ['available', 'fully_booked', 'discontinued'];
-
   @override
   void initState() {
     super.initState();

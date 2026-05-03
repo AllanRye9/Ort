@@ -445,21 +445,28 @@ class _ItemPickerSheetState extends ConsumerState<_ItemPickerSheet>
       ]);
       if (mounted) {
         setState(() {
-          // Removed unnecessary casts: 'as List' and 'as Map<String, dynamic>'
-          _props = (r[0] as List<dynamic>)
+          _props = r[0]
               .map((e) => PropertyModel.fromJson(e))
               .toList();
-          _agri = (r[1] as List<dynamic>)
+          _agri = r[1]
               .map((e) => AgricultureListingModel.fromJson(e))
               .toList();
-          _mfg = (r[2] as List<dynamic>)
+          _mfg = r[2]
               .map((e) => ManufacturingProductModel.fromJson(e))
               .toList();
           _loading = false;
         });
       }
-    } catch (_) {
-      if (mounted) setState(() => _loading = false);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _loading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to load listings. Please try again.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     }
   }
 

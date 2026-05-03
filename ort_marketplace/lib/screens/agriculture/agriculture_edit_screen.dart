@@ -36,7 +36,6 @@ class _AgricultureEditScreenState
   List<String> _imageUrls = [];
   bool _submitting = false;
   bool _loading = true;
-  AgricultureListingModel? _original;
 
   // Location state
   double? _geocodedLat;
@@ -71,7 +70,6 @@ class _AgricultureEditScreenState
           await ref.read(apiServiceProvider).getAgricultureListing(widget.id);
       final m = AgricultureListingModel.fromJson(data);
       setState(() {
-        _original = m;
         _titleCtrl.text = m.title;
         _descCtrl.text = m.description ?? '';
         _locationCtrl.text = m.location ?? '';
