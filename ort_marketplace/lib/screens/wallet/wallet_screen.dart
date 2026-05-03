@@ -272,10 +272,10 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                           TextField(
                             controller: cardNumberCtrl,
                             keyboardType: TextInputType.number,
-                            maxLength: 19,
+                            maxLength: 16,
                             decoration: const InputDecoration(
                               labelText: 'Card Number',
-                              hintText: 'XXXX XXXX XXXX XXXX',
+                              hintText: '16-digit card number',
                               prefixIcon: Icon(Icons.credit_card_outlined),
                               border: OutlineInputBorder(),
                               filled: true,
@@ -325,7 +325,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                                   obscureText: true,
                                   decoration: const InputDecoration(
                                     labelText: 'CVV',
-                                    hintText: '•••',
+                                    hintText: '3–4 digits',
                                     prefixIcon: Icon(Icons.lock_outline),
                                     border: OutlineInputBorder(),
                                     filled: true,
