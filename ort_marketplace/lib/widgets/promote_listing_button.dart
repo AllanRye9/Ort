@@ -151,6 +151,13 @@ class _PromoteListingButtonState extends ConsumerState<PromoteListingButton> {
   @override
   Widget build(BuildContext context) {
     return OutlinedButton.icon(
+      // Override the global theme's `minimumSize: Size(double.infinity, 52)`.
+      // This is an inline compact button, not a full-width form button, so it
+      // should size to its content. Without this override, the infinite minimum
+      // width propagates as BoxConstraints(w=Infinity) inside unconstrained
+      // contexts (e.g. Row → SingleChildScrollView), crashing layout.
+      // Height 44 matches kMinInteractiveDimension (Flutter tap-target default).
+      style: OutlinedButton.styleFrom(minimumSize: const Size(0, 44)),
       onPressed: _loading ? null : _openPortal,
       icon: _loading
           ? const SizedBox(
