@@ -70,9 +70,7 @@ class _ImageGalleryState extends State<ImageGallery> {
               controller: _pageController,
               itemCount: urls.length,
               onPageChanged: (i) => setState(() => _current = i),
-              itemBuilder: (ctx, i) => GestureDetector(
-                onTap: () => _openFullScreen(ctx, urls, i),
-                child: CachedNetworkImage(
+              itemBuilder: (ctx, i) => CachedNetworkImage(
                   imageUrl: urls[i],
                   fit: BoxFit.cover,
                   width: double.infinity,
@@ -89,7 +87,6 @@ class _ImageGalleryState extends State<ImageGallery> {
                     borderRadius: 0,
                   ),
                 ),
-              ),
             ),
           ),
 
@@ -144,17 +141,6 @@ class _ImageGalleryState extends State<ImageGallery> {
       ),
     );
   }
-
-  void _openFullScreen(
-      BuildContext context, List<String> urls, int initialIndex) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        fullscreenDialog: true,
-        builder: (_) =>
-            _FullScreenGallery(urls: urls, initialIndex: initialIndex),
-      ),
-    );
-  }
 }
 
 // ─── Placeholder ─────────────────────────────────────────────────────────────
@@ -195,66 +181,6 @@ class _Placeholder extends StatelessWidget {
               color: color == Colors.white
                   ? Colors.grey[400]
                   : color.withValues(alpha: 0.6),
-            ),
-          ),
-        ),
-      );
-}
-
-// ─── Full-screen gallery ──────────────────────────────────────────────────────
-
-class _FullScreenGallery extends StatefulWidget {
-  const _FullScreenGallery(
-      {required this.urls, required this.initialIndex});
-  final List<String> urls;
-  final int initialIndex;
-
-  @override
-  State<_FullScreenGallery> createState() => _FullScreenGalleryState();
-}
-
-class _FullScreenGalleryState extends State<_FullScreenGallery> {
-  late int _current;
-  late final PageController _ctrl;
-
-  @override
-  void initState() {
-    super.initState();
-    _current = widget.initialIndex;
-    _ctrl = PageController(initialPage: widget.initialIndex);
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => Scaffold(
-        backgroundColor: Colors.black,
-        appBar: AppBar(
-          backgroundColor: Colors.black,
-          foregroundColor: Colors.white,
-          title: Text(
-            '${_current + 1} / ${widget.urls.length}',
-            style: const TextStyle(color: Colors.white),
-          ),
-        ),
-        body: PageView.builder(
-          controller: _ctrl,
-          itemCount: widget.urls.length,
-          onPageChanged: (i) => setState(() => _current = i),
-          itemBuilder: (ctx, i) => InteractiveViewer(
-            child: Center(
-              child: CachedNetworkImage(
-                imageUrl: widget.urls[i],
-                fit: BoxFit.contain,
-                placeholder: (_, __) => const Center(
-                    child: CircularProgressIndicator(color: Colors.white)),
-                errorWidget: (_, __, ___) => const Icon(
-                    Icons.broken_image, color: Colors.white, size: 64),
-              ),
             ),
           ),
         ),
