@@ -9,7 +9,7 @@ listings at hotspot position in the app for a chosen duration:
 All endpoints require a valid JWT.
 """
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -68,7 +68,7 @@ def create_promotion(
             detail=f"Insufficient wallet points. Required: {cost}, available: {wallet.points if wallet else 0}",
         )
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     end_date = now + timedelta(days=payload.duration_days)
 
     promotion = AdPromotion(
@@ -133,7 +133,7 @@ def list_active_promotions(
 
 def _expire_old_promotions(db: Session) -> None:
     """Mark promotions whose end_date has passed as 'expired'."""
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     expired = (
         db.query(AdPromotion)
         .filter(AdPromotion.status == "active", AdPromotion.end_date < now)
