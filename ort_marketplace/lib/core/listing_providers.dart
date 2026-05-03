@@ -75,7 +75,7 @@ String formatCurrencyForMode(
   MarketplaceMode mode = MarketplaceMode.local,
 }) {
   if (mode == MarketplaceMode.international) {
-    return '\$${amount.toStringAsFixed(decimals == 0 ? 2 : decimals)}';
+    return '\$${amount.toStringAsFixed(decimals)}';
   }
   return formatCurrency(amount, country: country, currency: currency, decimals: decimals);
 }
