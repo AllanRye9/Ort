@@ -402,6 +402,10 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen>
           controller: _tabCtrl,
           isScrollable: true,
           tabAlignment: TabAlignment.start,
+          labelColor: Theme.of(context).colorScheme.onPrimary,
+          unselectedLabelColor:
+              Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.6),
+          indicatorColor: Theme.of(context).colorScheme.onPrimary,
           tabs: const [
             Tab(icon: Icon(Icons.apartment_outlined), text: 'Properties'),
             Tab(icon: Icon(Icons.grass_outlined), text: 'Agriculture'),
@@ -710,17 +714,21 @@ class _PropertyListingCard extends StatelessWidget {
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         leading: p.imageUrls.isNotEmpty
-            ? ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.network(
-                  p.imageUrls.first,
-                  width: 56,
-                  height: 56,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const SizedBox(
+            ? GestureDetector(
+                onTap: () => _SimpleListingCard._openImagePreview(
+                    context, p.imageUrls.first, p.title),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.network(
+                    p.imageUrls.first,
                     width: 56,
                     height: 56,
-                    child: Icon(Icons.broken_image_outlined),
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const SizedBox(
+                      width: 56,
+                      height: 56,
+                      child: Icon(Icons.broken_image_outlined),
+                    ),
                   ),
                 ),
               )
@@ -887,17 +895,20 @@ class _SimpleListingCard extends StatelessWidget {
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         leading: imageUrl != null
-            ? ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.network(
-                  imageUrl!,
-                  width: 56,
-                  height: 56,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const SizedBox(
-                      width: 56,
-                      height: 56,
-                      child: Icon(Icons.broken_image_outlined)),
+            ? GestureDetector(
+                onTap: () => _openImagePreview(context, imageUrl!, title),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.network(
+                    imageUrl!,
+                    width: 56,
+                    height: 56,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const SizedBox(
+                        width: 56,
+                        height: 56,
+                        child: Icon(Icons.broken_image_outlined)),
+                  ),
                 ),
               )
             : Container(
@@ -1000,6 +1011,37 @@ class _SimpleListingCard extends StatelessWidget {
           ],
         ),
         onTap: onView,
+      ),
+    );
+  }
+
+  static void _openImagePreview(
+      BuildContext context, String url, String label) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.black,
+            foregroundColor: Colors.white,
+            title: Text(label,
+                style:
+                    const TextStyle(color: Colors.white, fontSize: 15)),
+          ),
+          body: Center(
+            child: InteractiveViewer(
+              child: Image.network(
+                url,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => const Icon(
+                    Icons.broken_image,
+                    color: Colors.white,
+                    size: 64),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
