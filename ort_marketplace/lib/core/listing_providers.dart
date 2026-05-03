@@ -8,6 +8,7 @@ import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'api_service.dart';
+import 'app_preferences.dart';
 import '../models/models.dart';
 
 // ─── Currency formatting ──────────────────────────────────────────────────────
@@ -59,6 +60,24 @@ String currencyPrefixForCountry(String? country) {
     default:
       return '\$';
   }
+}
+
+/// Like [formatCurrency] but respects the current [MarketplaceMode].
+///
+/// In [MarketplaceMode.international] the currency is always USD regardless
+/// of country/currency arguments.  In [MarketplaceMode.local] the existing
+/// country/currency logic applies.
+String formatCurrencyForMode(
+  double amount, {
+  String? country,
+  String? currency,
+  int decimals = 0,
+  MarketplaceMode mode = MarketplaceMode.local,
+}) {
+  if (mode == MarketplaceMode.international) {
+    return '\$${amount.toStringAsFixed(decimals)}';
+  }
+  return formatCurrency(amount, country: country, currency: currency, decimals: decimals);
 }
 
 /// The user's last known GPS position as `(lat, lon)`. Null until the user

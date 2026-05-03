@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/api_service.dart';
+import '../../core/app_preferences.dart';
 import '../../core/auth_provider.dart';
 import '../../core/theme.dart';
 import '../../core/theme_provider.dart';
@@ -103,6 +104,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = ref.watch(themeProvider);
+    final distanceUnit = ref.watch(distanceUnitProvider);
+    final marketplaceMode = ref.watch(marketplaceModeProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
@@ -116,6 +119,50 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             subtitle: Text(theme.label),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => _showThemePicker(context),
+          ),
+
+          // ── Marketplace Mode ─────────────────────────────────────────────
+          _SectionHeader('Marketplace'),
+          ListTile(
+            leading: Icon(
+              marketplaceMode == MarketplaceMode.international
+                  ? Icons.public
+                  : Icons.place_rounded,
+              color: marketplaceMode == MarketplaceMode.international
+                  ? const Color(0xFF0288D1)
+                  : AppTheme.primary,
+            ),
+            title: const Text('Marketplace Mode'),
+            subtitle: Text(marketplaceMode.label),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _showModePicker(context),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(72, 0, 16, 8),
+            child: Text(
+              marketplaceMode.description,
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
+              ),
+            ),
+          ),
+
+          // ── Distance & Units ─────────────────────────────────────────────
+          _SectionHeader('Distance & Units'),
+          ListTile(
+            leading: const Icon(Icons.straighten_outlined),
+            title: const Text('Distance Unit'),
+            subtitle: Text(distanceUnit.label),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => _showDistanceUnitPicker(context),
+          ),
+          ListTile(
+            leading: const Icon(Icons.my_location_outlined),
+            title: const Text('Auto-detect unit from location'),
+            subtitle: const Text('Detects km or miles based on your country'),
+            trailing: const Icon(Icons.gps_fixed, size: 18),
+            onTap: () => _autoDetectDistanceUnit(context),
           ),
 
           // ── Notifications ───────────────────────────────────────────────
@@ -288,6 +335,107 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
       ),
     );
+  }
+
+  void _showModePicker(BuildContext context) {
+    final current = ref.read(marketplaceModeProvider);
+    showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Padding(
+                padding: EdgeInsets.only(bottom: 4),
+                child: Text(
+                  'Choose Marketplace Mode',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.fromLTRB(16, 0, 16, 12),
+                child: Text(
+                  'International mode shows all prices in USD and is designed for Uganda ↔ UAE import & export.',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              ...MarketplaceMode.values.map(
+                (mode) => RadioListTile<MarketplaceMode>(
+                  value: mode,
+                  groupValue: current,
+                  title: Text(mode.label),
+                  subtitle: Text(mode.description,
+                      style: const TextStyle(fontSize: 11)),
+                  onChanged: (v) {
+                    if (v != null) {
+                      ref.read(marketplaceModeProvider.notifier).setMode(v);
+                    }
+                    Navigator.of(ctx).pop();
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showDistanceUnitPicker(BuildContext context) {
+    final current = ref.read(distanceUnitProvider);
+    showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Padding(
+                padding: EdgeInsets.only(bottom: 12),
+                child: Text(
+                  'Choose Distance Unit',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                ),
+              ),
+              ...DistanceUnit.values.map(
+                (unit) => RadioListTile<DistanceUnit>(
+                  value: unit,
+                  groupValue: current,
+                  title: Text(unit.label),
+                  onChanged: (v) {
+                    if (v != null) {
+                      ref.read(distanceUnitProvider.notifier).setUnit(v);
+                    }
+                    Navigator.of(ctx).pop();
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _autoDetectDistanceUnit(BuildContext context) async {
+    _showSnack('Detecting your location…');
+    final detected = await ref.read(distanceUnitProvider.notifier).autoDetect();
+    if (mounted) {
+      _showSnack(
+        'Distance unit set to ${detected.label}',
+        success: true,
+      );
+    }
   }
 }
 
