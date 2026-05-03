@@ -29,6 +29,18 @@ final _homeUserProvider = FutureProvider.autoDispose<UserModel?>((ref) async {
   }
 });
 
+// Provider for wallet points displayed in the app bar
+final _homeWalletPointsProvider = FutureProvider.autoDispose<int?>((ref) async {
+  final auth = ref.watch(authProvider);
+  if (!auth.isAuthenticated) return null;
+  try {
+    final data = await ref.read(apiServiceProvider).getMyWallet();
+    return WalletModel.fromJson(data).points;
+  } catch (_) {
+    return null;
+  }
+});
+
 // ─── Distance helper ──────────────────────────────────────────────────────────
 
 /// Returns the distance in km from [userLoc] to [lat]/[lon], or null if any
@@ -286,6 +298,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final auth = ref.watch(authProvider);
     final role = auth.role ?? 'user';
     final currentUser = ref.watch(_homeUserProvider).valueOrNull;
+    final walletPoints = ref.watch(_homeWalletPointsProvider).valueOrNull;
     final marketplaceMode = ref.watch(marketplaceModeProvider);
     final distanceUnit = ref.watch(distanceUnitProvider);
 
@@ -326,6 +339,44 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 ),
               ),
               actions: [
+                // ── Wallet points badge ──────────────────────────────────
+                if (auth.isAuthenticated)
+                  GestureDetector(
+                    onTap: () => context.go('/wallet'),
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(
+                          vertical: 8, horizontal: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.35),
+                            width: 1),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                              Icons.account_balance_wallet_rounded,
+                              color: Colors.white,
+                              size: 14),
+                          const SizedBox(width: 4),
+                          Text(
+                            walletPoints != null
+                                ? '$walletPoints pts'
+                                : '— pts',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 IconButton(
                   icon: const Icon(Icons.notifications_outlined,
                       color: Colors.white),
@@ -572,23 +623,20 @@ class _HeroBanner extends StatefulWidget {
 
 class _HeroBannerState extends State<_HeroBanner>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _pulseCtrl;
-  late final Animation<double> _pulseAnim;
+  late final AnimationController _spinCtrl;
 
   @override
   void initState() {
     super.initState();
-    _pulseCtrl = AnimationController(
+    _spinCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 2),
-    )..repeat(reverse: true);
-    _pulseAnim =
-        CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut);
+      duration: const Duration(seconds: 6),
+    )..repeat();
   }
 
   @override
   void dispose() {
-    _pulseCtrl.dispose();
+    _spinCtrl.dispose();
     super.dispose();
   }
 
@@ -682,13 +730,9 @@ class _HeroBannerState extends State<_HeroBanner>
                 ],
               ),
             ),
-            // Profile image / pulsing icon badge
-            AnimatedBuilder(
-              animation: _pulseAnim,
-              builder: (_, child) => Transform.scale(
-                scale: 0.92 + 0.08 * _pulseAnim.value,
-                child: child,
-              ),
+            // Profile image / spinning wheel badge
+            RotationTransition(
+              turns: _spinCtrl,
               child: GestureDetector(
                 onTap: widget.onAvatarTap,
                 child: Container(
@@ -1236,6 +1280,35 @@ class _FeaturedCard extends StatelessWidget {
 
   String get _distanceLabel => formatDistance(distanceKm, distanceUnit);
 
+  void _openImagePreview(BuildContext context, String url) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.black,
+            foregroundColor: Colors.white,
+            title: Text(title,
+                style: const TextStyle(color: Colors.white, fontSize: 15)),
+          ),
+          body: Center(
+            child: InteractiveViewer(
+              child: CachedNetworkImage(
+                imageUrl: url,
+                fit: BoxFit.contain,
+                placeholder: (_, __) => const Center(
+                    child: CircularProgressIndicator(color: Colors.white)),
+                errorWidget: (_, __, ___) =>
+                    const Icon(Icons.broken_image, color: Colors.white, size: 64),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -1251,24 +1324,29 @@ class _FeaturedCard extends StatelessWidget {
             // Image / placeholder
             Stack(
               children: [
-                SizedBox(
-                  height: 120,
-                  width: double.infinity,
-                  child: imageUrl != null
-                      ? CachedNetworkImage(
-                          imageUrl: imageUrl!,
-                          fit: BoxFit.cover,
-                          placeholder: (_, __) => Shimmer.fromColors(
-                            baseColor: Colors.grey[200]!,
-                            highlightColor: Colors.grey[100]!,
-                            child: Container(color: Colors.white),
-                          ),
-                          errorWidget: (_, __, ___) => _PlaceholderBox(
-                            icon: icon,
-                            iconColor: iconColor,
-                          ),
-                        )
-                      : _PlaceholderBox(icon: icon, iconColor: iconColor),
+                GestureDetector(
+                  onTap: imageUrl != null
+                      ? () => _openImagePreview(context, imageUrl!)
+                      : onTap,
+                  child: SizedBox(
+                    height: 120,
+                    width: double.infinity,
+                    child: imageUrl != null
+                        ? CachedNetworkImage(
+                            imageUrl: imageUrl!,
+                            fit: BoxFit.cover,
+                            placeholder: (_, __) => Shimmer.fromColors(
+                              baseColor: Colors.grey[200]!,
+                              highlightColor: Colors.grey[100]!,
+                              child: Container(color: Colors.white),
+                            ),
+                            errorWidget: (_, __, ___) => _PlaceholderBox(
+                              icon: icon,
+                              iconColor: iconColor,
+                            ),
+                          )
+                        : _PlaceholderBox(icon: icon, iconColor: iconColor),
+                  ),
                 ),
                 // Category badge (bottom-right)
                 if (badge != null && badge!.isNotEmpty)
