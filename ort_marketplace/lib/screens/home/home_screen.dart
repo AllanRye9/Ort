@@ -1280,35 +1280,6 @@ class _FeaturedCard extends StatelessWidget {
 
   String get _distanceLabel => formatDistance(distanceKm, distanceUnit);
 
-  void _openImagePreview(BuildContext context, String url) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        fullscreenDialog: true,
-        builder: (_) => Scaffold(
-          backgroundColor: Colors.black,
-          appBar: AppBar(
-            backgroundColor: Colors.black,
-            foregroundColor: Colors.white,
-            title: Text(title,
-                style: const TextStyle(color: Colors.white, fontSize: 15)),
-          ),
-          body: Center(
-            child: InteractiveViewer(
-              child: CachedNetworkImage(
-                imageUrl: url,
-                fit: BoxFit.contain,
-                placeholder: (_, __) => const Center(
-                    child: CircularProgressIndicator(color: Colors.white)),
-                errorWidget: (_, __, ___) =>
-                    const Icon(Icons.broken_image, color: Colors.white, size: 64),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -1324,29 +1295,24 @@ class _FeaturedCard extends StatelessWidget {
             // Image / placeholder
             Stack(
               children: [
-                GestureDetector(
-                  onTap: imageUrl != null
-                      ? () => _openImagePreview(context, imageUrl!)
-                      : onTap,
-                  child: SizedBox(
-                    height: 120,
-                    width: double.infinity,
-                    child: imageUrl != null
-                        ? CachedNetworkImage(
-                            imageUrl: imageUrl!,
-                            fit: BoxFit.cover,
-                            placeholder: (_, __) => Shimmer.fromColors(
-                              baseColor: Colors.grey[200]!,
-                              highlightColor: Colors.grey[100]!,
-                              child: Container(color: Colors.white),
-                            ),
-                            errorWidget: (_, __, ___) => _PlaceholderBox(
-                              icon: icon,
-                              iconColor: iconColor,
-                            ),
-                          )
-                        : _PlaceholderBox(icon: icon, iconColor: iconColor),
-                  ),
+                SizedBox(
+                  height: 120,
+                  width: double.infinity,
+                  child: imageUrl != null
+                      ? CachedNetworkImage(
+                          imageUrl: imageUrl!,
+                          fit: BoxFit.cover,
+                          placeholder: (_, __) => Shimmer.fromColors(
+                            baseColor: Colors.grey[200]!,
+                            highlightColor: Colors.grey[100]!,
+                            child: Container(color: Colors.white),
+                          ),
+                          errorWidget: (_, __, ___) => _PlaceholderBox(
+                            icon: icon,
+                            iconColor: iconColor,
+                          ),
+                        )
+                      : _PlaceholderBox(icon: icon, iconColor: iconColor),
                 ),
                 // Category badge (bottom-right)
                 if (badge != null && badge!.isNotEmpty)
