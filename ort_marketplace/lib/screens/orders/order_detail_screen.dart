@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/api_service.dart';
 import '../../models/models.dart';
 
@@ -63,6 +64,16 @@ class OrderDetailScreen extends ConsumerWidget {
                               '${o.createdAt.day}/${o.createdAt.month}/${o.createdAt.year}'),
                     ],
                   ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              // Track order button
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.local_shipping_outlined),
+                  label: const Text('Track Order'),
+                  onPressed: () => context.push('/tracking/${o.id}'),
                 ),
               ),
               const SizedBox(height: 16),

@@ -836,4 +836,63 @@ class ApiService {
     });
     return res.data as List<dynamic>;
   }
+
+  // ─── File upload (attachments) ────────────────────────────────────────────
+
+  /// Upload any file (image, PDF, doc, etc.) for use as a message attachment.
+  /// Returns a record with 'url' and 'filename'.
+  Future<Map<String, dynamic>> uploadFile({
+    required List<int> bytes,
+    required String filename,
+    required String mimeType,
+  }) async {
+    final formData = FormData.fromMap({
+      'file': MultipartFile.fromBytes(
+        bytes,
+        filename: filename,
+        contentType: MediaType.parse(mimeType),
+      ),
+    });
+    final res = await _dio.post(
+      '/upload/file',
+      data: formData,
+      options: Options(contentType: Headers.multipartFormDataContentType),
+    );
+    return res.data as Map<String, dynamic>;
+  }
+
+  // ─── Property by tracking code ────────────────────────────────────────────
+
+  Future<Map<String, dynamic>> getPropertyByCode(String code) async {
+    final res = await _dio.get('/properties/by-code/$code');
+    return res.data as Map<String, dynamic>;
+  }
+
+  // ─── User profile ─────────────────────────────────────────────────────────
+
+  Future<Map<String, dynamic>> getUser(int userId) async {
+    final res = await _dio.get('/users/$userId');
+    return res.data as Map<String, dynamic>;
+  }
+
+  // ─── Product Tracking ─────────────────────────────────────────────────────
+
+  Future<List<dynamic>> getTrackingEvents({
+    int? orderId,
+    String? listingType,
+    int? listingId,
+  }) async {
+    final res = await _dio.get('/tracking/', queryParameters: {
+      if (orderId != null) 'order_id': orderId,
+      if (listingType != null) 'listing_type': listingType,
+      if (listingId != null) 'listing_id': listingId,
+    });
+    return res.data as List<dynamic>;
+  }
+
+  Future<Map<String, dynamic>> createTrackingEvent(
+      Map<String, dynamic> data) async {
+    final res = await _dio.post('/tracking/', data: data);
+    return res.data as Map<String, dynamic>;
+  }
 }
