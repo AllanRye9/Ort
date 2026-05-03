@@ -151,6 +151,10 @@ class _PromoteListingButtonState extends ConsumerState<PromoteListingButton> {
   @override
   Widget build(BuildContext context) {
     return OutlinedButton.icon(
+      // Override the global theme's `minimumSize: Size(double.infinity, 52)`
+      // so the button sizes to its content when placed in unconstrained contexts
+      // (e.g. inside a Row inside a SingleChildScrollView).
+      style: OutlinedButton.styleFrom(minimumSize: const Size(0, 44)),
       onPressed: _loading ? null : _openPortal,
       icon: _loading
           ? const SizedBox(
