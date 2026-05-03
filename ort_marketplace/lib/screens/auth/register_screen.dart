@@ -22,6 +22,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
   final _emailCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
+  final _nationalityCtrl = TextEditingController();
+  final _residingCountryCtrl = TextEditingController();
 
   // ── agent fields ────────────────────────────────────────────────────────────
   final _licenseNumberCtrl = TextEditingController();
@@ -58,6 +60,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
     _emailCtrl.dispose();
     _phoneCtrl.dispose();
     _passCtrl.dispose();
+    _nationalityCtrl.dispose();
+    _residingCountryCtrl.dispose();
     _licenseNumberCtrl.dispose();
     _agencyNameCtrl.dispose();
     _bioCtrl.dispose();
@@ -74,6 +78,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
       'email': _emailCtrl.text.trim(),
       'password': _passCtrl.text,
       if (_phoneCtrl.text.trim().isNotEmpty) 'phone': _phoneCtrl.text.trim(),
+      if (_nationalityCtrl.text.trim().isNotEmpty)
+        'nationality': _nationalityCtrl.text.trim(),
+      if (_residingCountryCtrl.text.trim().isNotEmpty)
+        'residing_country': _residingCountryCtrl.text.trim(),
     };
 
     if (_role == 'agent') {
@@ -173,6 +181,25 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
           decoration: const InputDecoration(
             labelText: 'Phone (optional)',
             prefixIcon: Icon(Icons.phone_outlined),
+          ),
+        ),
+        const SizedBox(height: 4),
+        _sectionHeader('Location & Identity', Icons.public_outlined),
+        TextFormField(
+          controller: _nationalityCtrl,
+          maxLength: 100,
+          decoration: const InputDecoration(
+            labelText: 'Nationality (optional)',
+            prefixIcon: Icon(Icons.flag_outlined),
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: _residingCountryCtrl,
+          maxLength: 100,
+          decoration: const InputDecoration(
+            labelText: 'Country of Residence (optional)',
+            prefixIcon: Icon(Icons.location_city_outlined),
           ),
         ),
       ];
