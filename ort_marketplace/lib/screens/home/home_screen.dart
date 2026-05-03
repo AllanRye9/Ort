@@ -1703,6 +1703,7 @@ class _AiDialogState extends ConsumerState<_AiDialog>
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     AnimatedBuilder(
                       animation: _radarCtrl,
