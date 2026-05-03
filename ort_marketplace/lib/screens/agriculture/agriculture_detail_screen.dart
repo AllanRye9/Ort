@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 import '../../core/api_service.dart';
 import '../../core/auth_provider.dart';
+import '../../core/listing_providers.dart';
 import '../../models/models.dart';
 import '../../widgets/image_gallery.dart';
 import '../../widgets/promote_listing_button.dart';
@@ -365,7 +366,7 @@ class _AgricultureDetailScreenState extends ConsumerState<AgricultureDetailScree
                     ],
                     const SizedBox(height: 10),
                     Text(
-                      '\$${a.pricePerUnit.toStringAsFixed(2)} / ${a.unit ?? 'unit'}',
+                      '${formatCurrency(a.pricePerUnit, currency: a.currency, decimals: 2)} / ${a.unit ?? 'unit'}',
                       style:
                           Theme.of(context).textTheme.headlineMedium?.copyWith(
                                 color: const Color(0xFF2E7D32),

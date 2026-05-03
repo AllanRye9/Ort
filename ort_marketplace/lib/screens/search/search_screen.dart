@@ -323,7 +323,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             subtitle: item.city ?? item.address,
             tag: item.propertyType,
             status: item.status,
-            price: '\$${item.price.toStringAsFixed(0)}',
+            price: formatCurrency(item.price, country: item.country),
             imageUrl:
                 item.imageUrls.isNotEmpty ? item.imageUrls.first : null,
             extras: [
@@ -340,7 +340,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             tag: item.category ?? 'Agriculture',
             status: item.status,
             price:
-                '\$${item.pricePerUnit.toStringAsFixed(2)}/${item.unit ?? 'unit'}',
+                '${formatCurrency(item.pricePerUnit, currency: item.currency, decimals: 2)}/${item.unit ?? 'unit'}',
             imageUrl: (item.images?.isNotEmpty == true)
                 ? item.images!.first
                 : null,
@@ -354,7 +354,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             tag: item.category ?? 'Manufacturing',
             status: item.status,
             price:
-                '\$${item.wholesalePrice.toStringAsFixed(2)}/${item.unit ?? 'unit'}',
+                '${formatCurrency(item.wholesalePrice, currency: item.currency, decimals: 2)}/${item.unit ?? 'unit'}',
             imageUrl: (item.images?.isNotEmpty == true)
                 ? item.images!.first
                 : null,
