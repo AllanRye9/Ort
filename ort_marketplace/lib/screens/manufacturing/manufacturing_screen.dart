@@ -961,7 +961,7 @@ class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen>
                                         : 'Service',
                                     status: s.status,
                                     price:
-                                        '\$${s.price.toStringAsFixed(2)} / $pricingLabel',
+                                        '${formatCurrency(s.price, currency: s.currency, decimals: 2)} / $pricingLabel',
                                     extras: [
                                       if (s.noticePeriodDays != null)
                                         '${s.noticePeriodDays} day notice',

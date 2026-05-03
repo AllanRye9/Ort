@@ -597,7 +597,7 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen>
                         return _SimpleListingCard(
                           title: s.title,
                           subtitle: s.location ?? s.serviceType ?? '',
-                          price: '\$${s.price.toStringAsFixed(2)}'
+                          price: '${formatCurrency(s.price, currency: s.currency, decimals: 2)}'
                               '${pricingLabel.isNotEmpty ? ' / $pricingLabel' : ''}',
                           status: s.status,
                           imageUrl: s.images?.isNotEmpty == true

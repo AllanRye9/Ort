@@ -44,6 +44,20 @@ class _ImageGalleryState extends State<ImageGallery> {
   bool get _hasImages =>
       widget.imageUrls != null && widget.imageUrls!.isNotEmpty;
 
+  void _openFullscreen(BuildContext context, List<String> urls, int initialIndex) {
+    Navigator.of(context).push(
+      PageRouteBuilder<void>(
+        opaque: false,
+        barrierColor: Colors.black87,
+        barrierDismissible: true,
+        pageBuilder: (_, __, ___) => _FullscreenGallery(
+          imageUrls: urls,
+          initialIndex: initialIndex,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final color = widget.placeholderColor ??
@@ -70,23 +84,26 @@ class _ImageGalleryState extends State<ImageGallery> {
               controller: _pageController,
               itemCount: urls.length,
               onPageChanged: (i) => setState(() => _current = i),
-              itemBuilder: (ctx, i) => CachedNetworkImage(
-                  imageUrl: urls[i],
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                  placeholder: (_, __) => Shimmer.fromColors(
-                    baseColor: color,
-                    highlightColor:
-                        Theme.of(ctx).colorScheme.surfaceContainerHighest,
-                    child: Container(color: Colors.white),
+              itemBuilder: (ctx, i) => GestureDetector(
+                onTap: () => _openFullscreen(ctx, urls, i),
+                child: CachedNetworkImage(
+                    imageUrl: urls[i],
+                    fit: BoxFit.cover,
+                    width: double.infinity,
+                    placeholder: (_, __) => Shimmer.fromColors(
+                      baseColor: color,
+                      highlightColor:
+                          Theme.of(ctx).colorScheme.surfaceContainerHighest,
+                      child: Container(color: Colors.white),
+                    ),
+                    errorWidget: (_, __, ___) => _Placeholder(
+                      height: widget.height,
+                      color: color,
+                      icon: widget.placeholderIcon ?? Icons.broken_image_outlined,
+                      borderRadius: 0,
+                    ),
                   ),
-                  errorWidget: (_, __, ___) => _Placeholder(
-                    height: widget.height,
-                    color: color,
-                    icon: widget.placeholderIcon ?? Icons.broken_image_outlined,
-                    borderRadius: 0,
-                  ),
-                ),
+              ),
             ),
           ),
 
@@ -185,4 +202,86 @@ class _Placeholder extends StatelessWidget {
           ),
         ),
       );
+}
+
+// ─── Fullscreen gallery ───────────────────────────────────────────────────────
+
+class _FullscreenGallery extends StatefulWidget {
+  const _FullscreenGallery({
+    required this.imageUrls,
+    required this.initialIndex,
+  });
+
+  final List<String> imageUrls;
+  final int initialIndex;
+
+  @override
+  State<_FullscreenGallery> createState() => _FullscreenGalleryState();
+}
+
+class _FullscreenGalleryState extends State<_FullscreenGallery> {
+  late int _current;
+  late final PageController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _current = widget.initialIndex;
+    _ctrl = PageController(initialPage: widget.initialIndex);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final urls = widget.imageUrls;
+    return GestureDetector(
+      onTap: () => Navigator.of(context).pop(),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        extendBodyBehindAppBar: true,
+        appBar: AppBar(
+          backgroundColor: Colors.black54,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          title: urls.length > 1
+              ? Text(
+                  '${_current + 1} / ${urls.length}',
+                  style: const TextStyle(fontSize: 14),
+                )
+              : null,
+          leading: IconButton(
+            icon: const Icon(Icons.close),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ),
+        body: PageView.builder(
+          controller: _ctrl,
+          itemCount: urls.length,
+          onPageChanged: (i) => setState(() => _current = i),
+          itemBuilder: (_, i) => InteractiveViewer(
+            minScale: 1.0,
+            maxScale: 4.0,
+            child: Center(
+              child: CachedNetworkImage(
+                imageUrl: urls[i],
+                fit: BoxFit.contain,
+                placeholder: (_, __) => const Center(
+                  child: CircularProgressIndicator(color: Colors.white),
+                ),
+                errorWidget: (_, __, ___) => const Center(
+                  child: Icon(Icons.broken_image_outlined,
+                      color: Colors.white54, size: 64),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
