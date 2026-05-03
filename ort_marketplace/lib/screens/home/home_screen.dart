@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:shimmer/shimmer.dart';
 import '../../core/api_service.dart';
 import '../../core/app_preferences.dart';
@@ -16,6 +17,8 @@ import '../../core/location_service.dart';
 import '../../core/responsive.dart';
 import '../../core/theme.dart';
 import '../../models/models.dart';
+
+const _kGeminiApiKey = String.fromEnvironment('GEMINI_API_KEY');
 
 // Provider for current user (for avatar in hero banner)
 final _homeUserProvider = FutureProvider.autoDispose<UserModel?>((ref) async {
@@ -1490,8 +1493,11 @@ class _AiWidgetState extends ConsumerState<_AiWidget> {
                         ),
                       ],
                     ),
-                    const Text('Tap to search listings with AI',
-                        style: TextStyle(fontSize: 12, color: Colors.grey)),
+                    Text(
+                        _kGeminiApiKey.isNotEmpty
+                            ? 'Powered by Gemini — ask anything'
+                            : 'Tap to search listings with AI',
+                        style: const TextStyle(fontSize: 12, color: Colors.grey)),
                   ],
                 ),
               ),
@@ -1530,7 +1536,9 @@ class _AiDialogState extends ConsumerState<_AiDialog>
   final List<_AiMessage> _messages = [
     const _AiMessage(
         role: 'assistant',
-        text: 'Hi! I\'m your Ort AI assistant 🤖\nTap a popular topic or ask me anything about listings on this page.'),
+        text: _kGeminiApiKey.isNotEmpty
+            ? 'Hi! I\'m Ort AI, powered by Gemini 🤖✨\nAsk me anything — about listings, market trends, prices, or any topic you\'re curious about!'
+            : 'Hi! I\'m your Ort AI assistant 🤖\nTap a popular topic or ask me anything about listings on this page.'),
   ];
 
   static const _popularQueries = [
@@ -1567,20 +1575,119 @@ class _AiDialogState extends ConsumerState<_AiDialog>
     _ctrl.clear();
 
     _radarCtrl.repeat();
-    await Future.delayed(_scanDuration);
-    _radarCtrl
-      ..stop()
-      ..reset();
 
-    if (!mounted) return;
-
-    final lower = text.toLowerCase();
     final props = ref.read(sortedHomePropertiesProvider).valueOrNull ?? [];
     final agri = ref.read(sortedHomeAgricultureProvider).valueOrNull ?? [];
     final mfg = ref.read(sortedHomeMfgProvider).valueOrNull ?? [];
     final svc = ref.read(sortedHomeServicesProvider).valueOrNull ?? [];
     final mode = ref.read(marketplaceModeProvider);
 
+    String response;
+
+    if (_kGeminiApiKey.isNotEmpty) {
+      response = await _sendWithGemini(text, props, agri, mfg, svc, mode);
+    } else {
+      await Future.delayed(_scanDuration);
+      response = _searchListingsLocally(text, props, agri, mfg, svc, mode);
+    }
+
+    _radarCtrl
+      ..stop()
+      ..reset();
+
+    if (!mounted) return;
+
+    setState(() {
+      _scanning = false;
+      _messages.add(_AiMessage(role: 'assistant', text: response));
+    });
+  }
+
+  Future<String> _sendWithGemini(
+    String userText,
+    List<PropertyModel> props,
+    List<AgricultureListingModel> agri,
+    List<ManufacturingProductModel> mfg,
+    List<ManufacturingServiceModel> svc,
+    MarketplaceMode mode,
+  ) async {
+    try {
+      final listingContext = _buildListingContext(props, agri, mfg, svc, mode);
+      final model = GenerativeModel(
+        model: 'gemini-1.5-flash',
+        apiKey: _kGeminiApiKey,
+        systemInstruction: Content.system(
+          'You are Ort AI, a helpful assistant for the Ort marketplace — '
+          'a unified commerce platform for properties, agriculture, and manufacturing in Uganda and the UAE. '
+          'Answer user questions concisely and helpfully. '
+          'When relevant, reference the current listings provided below. '
+          'For listing searches mention specific items from the context. '
+          'Use local currencies: UGX for Uganda, AED for UAE, USD otherwise.\n\n'
+          '$listingContext',
+        ),
+      );
+      final chat = model.startChat(
+        history: _messages
+            .skip(1) // skip the initial greeting
+            .map((m) => Content(
+                  m.role == 'user' ? 'user' : 'model', // 'assistant' → 'model'
+                  [TextPart(m.text)],
+                ))
+            .toList(),
+      );
+      final result = await chat.sendMessage(Content.text(userText));
+      return result.text ?? '⚠️ No response from Gemini.';
+    } catch (e) {
+      // Fall back to local search on error
+      return _searchListingsLocally(
+          userText,
+          props,
+          agri,
+          mfg,
+          svc,
+          mode,
+          errorNote: '(Gemini unavailable — showing local results)\n\n');
+    }
+  }
+
+  String _buildListingContext(
+    List<PropertyModel> props,
+    List<AgricultureListingModel> agri,
+    List<ManufacturingProductModel> mfg,
+    List<ManufacturingServiceModel> svc,
+    MarketplaceMode mode,
+  ) {
+    final lines = <String>['Current listings on this page:'];
+    for (final p in props.take(10)) {
+      lines.add('• [Property] ${p.title} — ${p.city ?? p.address} — '
+          '${formatCurrencyForMode(p.price, country: p.country, mode: mode)} — ${p.status}');
+    }
+    for (final a in agri.take(8)) {
+      lines.add('• [Agriculture] ${a.title} — ${a.location ?? a.category ?? ''} — '
+          '${formatCurrencyForMode(a.pricePerUnit, currency: a.currency, decimals: 2, mode: mode)}/${a.unit ?? 'unit'} — ${a.status}');
+    }
+    for (final m in mfg.take(8)) {
+      lines.add('• [Manufacturing] ${m.title} — ${m.category ?? ''} — '
+          '${formatCurrencyForMode(m.wholesalePrice, currency: m.currency, decimals: 2, mode: mode)}/${m.unit ?? 'unit'} — ${m.status}');
+    }
+    for (final s in svc.take(8)) {
+      lines.add('• [Service] ${s.title} — ${s.serviceType ?? s.location ?? ''} — '
+          '${formatCurrencyForMode(s.price, currency: s.currency, decimals: 2, mode: mode)}/${s.pricingUnit ?? 'service'} — ${s.status}');
+    }
+    if (lines.length == 1) lines.add('(No listings loaded yet)');
+    return lines.join('\n');
+  }
+
+  String _searchListingsLocally(
+    String text,
+    List<PropertyModel> props,
+    List<AgricultureListingModel> agri,
+    List<ManufacturingProductModel> mfg,
+    List<ManufacturingServiceModel> svc,
+    MarketplaceMode mode, {
+    String errorNote = '',
+  }) {
+    final lower = text.toLowerCase();
     final targetsProps = _sectionMatch(lower, ['propert']);
     final targetsAgri = _sectionMatch(lower, ['agricult', 'farm']);
     final targetsMfg = _sectionMatch(lower, ['manufactur', 'product']);
@@ -1627,14 +1734,9 @@ class _AiDialogState extends ConsumerState<_AiDialog>
       }
     }
 
-    final response = results.isNotEmpty
-        ? 'Found ${results.length} match${results.length == 1 ? '' : 'es'} on this page:\n\n${results.take(5).join('\n')}'
-        : '💡 No matches found for "$text". Try "properties", "agriculture", "manufacturing", or "services".';
-
-    setState(() {
-      _scanning = false;
-      _messages.add(_AiMessage(role: 'assistant', text: response));
-    });
+    return results.isNotEmpty
+        ? '${errorNote}Found ${results.length} match${results.length == 1 ? '' : 'es'} on this page:\n\n${results.take(5).join('\n')}'
+        : '${errorNote}💡 No matches found for "$text". Try "properties", "agriculture", "manufacturing", or "services".';
   }
 
   bool _sectionMatch(String lower, List<String> prefixes) =>
@@ -1705,8 +1807,11 @@ class _AiDialogState extends ConsumerState<_AiDialog>
                             ),
                           ],
                         ),
-                        const Text('Search listings with AI',
-                            style: TextStyle(fontSize: 12, color: Colors.grey)),
+                        Text(
+                            _kGeminiApiKey.isNotEmpty
+                                ? 'Powered by Gemini — ask anything'
+                                : 'Search listings with AI',
+                            style: const TextStyle(fontSize: 12, color: Colors.grey)),
                       ],
                     ),
                   ),

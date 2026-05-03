@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 import '../../core/api_service.dart';
 import '../../core/auth_provider.dart';
+import '../../core/listing_providers.dart';
 import '../../models/models.dart';
 import '../../widgets/image_gallery.dart';
 
@@ -278,7 +279,7 @@ class _ManufacturingServiceDetailScreenState
 
                     // ── Price ────────────────────────────────────────
                     Text(
-                      '\$${s.price.toStringAsFixed(2)}'
+                      '${formatCurrency(s.price, currency: s.currency, decimals: 2)}'
                       '${s.pricingUnit != null ? ' / ${s.pricingUnit!.replaceAll('_', ' ')}' : ''}',
                       style: Theme.of(context)
                           .textTheme
