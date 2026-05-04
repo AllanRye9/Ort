@@ -360,7 +360,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           slivers: [
             // ── Hero app bar ────────────────────────────────────────────────
             SliverAppBar(
-              expandedHeight: 160,
+              expandedHeight: 200,
               floating: false,
               pinned: true,
               backgroundColor: AppTheme.primary,
@@ -727,6 +727,7 @@ class _HeroBannerState extends State<_HeroBanner>
   Widget build(BuildContext context) {
     final roleIcon = Icon(_roleIcon, color: Colors.white, size: 28);
     return Container(
+        clipBehavior: Clip.hardEdge,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
@@ -735,7 +736,7 @@ class _HeroBannerState extends State<_HeroBanner>
           ),
         ),
         padding:
-            const EdgeInsets.only(left: 20, right: 20, top: 60, bottom: 20),
+            const EdgeInsets.only(left: 20, right: 20, top: 64, bottom: 20),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
