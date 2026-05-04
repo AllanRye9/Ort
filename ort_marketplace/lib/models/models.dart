@@ -452,6 +452,7 @@ class ManufacturingServiceModel {
     this.certifications,
     this.images,
     this.location,
+    this.country,
     this.latitude,
     this.longitude,
     required this.status,
@@ -473,6 +474,7 @@ class ManufacturingServiceModel {
   final List<String>? certifications;
   final List<String>? images;
   final String? location;
+  final String? country;
   final double? latitude;
   final double? longitude;
   final String status;
@@ -498,6 +500,7 @@ class ManufacturingServiceModel {
             (j['certifications'] as List<dynamic>?)?.cast<String>(),
         images: (j['images'] as List<dynamic>?)?.cast<String>(),
         location: j['location'] as String?,
+        country: j['country'] as String?,
         latitude: j['latitude'] != null
             ? double.parse(j['latitude'].toString())
             : null,
