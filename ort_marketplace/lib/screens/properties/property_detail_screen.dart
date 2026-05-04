@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 import '../../core/api_service.dart';
+import '../../core/app_preferences.dart';
 import '../../core/auth_provider.dart';
 import '../../core/listing_providers.dart';
 import '../../models/models.dart';
@@ -80,7 +81,17 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
 
   Future<void> _placeBid(PropertyModel p) async {
     final userId = ref.read(authProvider).userId;
-    if (userId == null) return;
+    if (userId == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please sign in to place a bid.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      return;
+    }
 
     // Derive currency from the property's country if available.
     final country = p.country?.toLowerCase();
@@ -263,7 +274,17 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
   Future<void> _contactAgent(PropertyModel p) async {
     final agentId = p.agentId;
     final userId = ref.read(authProvider).userId;
-    if (userId == null) return;
+    if (userId == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please sign in to contact the agent.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      return;
+    }
     if (agentId == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -423,13 +444,14 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
   }
 }
 
-class _PropertyDetailBody extends StatelessWidget {
+class _PropertyDetailBody extends ConsumerWidget {
   const _PropertyDetailBody({required this.property});
   final PropertyModel property;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final p = property;
+    final mode = ref.watch(marketplaceModeProvider);
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -485,7 +507,7 @@ class _PropertyDetailBody extends StatelessWidget {
 
                 // ── Price ─────────────────────────────────────────────────────
                 Text(
-                  formatCurrency(p.price, country: p.country),
+                  formatCurrencyForMode(p.price, country: p.country, mode: mode),
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                         color: Theme.of(context).colorScheme.primary,
                         fontWeight: FontWeight.bold,

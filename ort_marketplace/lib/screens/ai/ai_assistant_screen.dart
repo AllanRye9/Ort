@@ -24,15 +24,18 @@ class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen> {
   static const _welcomeText =
       'Hello! I\'m ORT AI, your intelligent assistant for the Ort marketplace. '
       'I can help you with:\n'
-      '• Finding the right products, properties or services\n'
-      '• Understanding pricing and orders\n'
-      '• Navigating listings and filters\n'
-      '• General marketplace questions\n\n'
+      '• Searching listings by keyword, category, location or price\n'
+      '• Finding properties, agriculture commodities or MFG products\n'
+      '• Understanding pricing, orders, bids and quotes\n'
+      '• Navigating listings, filters and marketplace modes\n\n'
+      'Try: "Cheap land in Kampala" or "Maize listings under \$500"\n\n'
       'How can I assist you today?';
 
   static const _suggestedPrompts = [
-    'How do I list a product?',
-    'How do I contact a seller?',
+    'Find cheap land in Kampala',
+    'Show maize listings under \$500',
+    'Apartments for rent in UAE',
+    'How do I place a bid?',
     'What is a listing code?',
     'How do I switch to international view?',
   ];
