@@ -513,6 +513,10 @@ class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen>
     );
   }
 
+  /// Returns a [TextStyle] with white text when [selected] is true, else default.
+  static TextStyle _chipLabelStyle(bool selected) =>
+      TextStyle(fontSize: 12, color: selected ? Colors.white : null);
+
   @override
   Widget build(BuildContext context) {
     final auth = ref.watch(authProvider);
@@ -552,9 +556,15 @@ class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen>
         bottom: TabBar(
           controller: _tabCtrl,
           onTap: (_) => setState(() {}),
+          indicatorSize: TabBarIndicatorSize.tab,
+          indicatorWeight: 3,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
+          labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal, fontSize: 13),
           tabs: const [
-            Tab(icon: Icon(Icons.inventory_2_outlined), text: 'Products'),
-            Tab(icon: Icon(Icons.build_outlined), text: 'Services'),
+            Tab(icon: Icon(Icons.inventory_2_outlined, size: 20), text: 'Products'),
+            Tab(icon: Icon(Icons.build_outlined, size: 20), text: 'Services'),
           ],
         ),
       ),
@@ -694,8 +704,10 @@ class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen>
                           padding: const EdgeInsets.only(right: 6),
                           child: FilterChip(
                             label: Text('${km.toInt()} km',
-                                style: const TextStyle(fontSize: 12)),
+                                style: _chipLabelStyle(_radiusKm == km && !_showCustomRadius)),
                             selected: _radiusKm == km && !_showCustomRadius,
+                            selectedColor: const Color(0xFFE65100),
+                            checkmarkColor: Colors.white,
                             onSelected: (_) {
                               setState(() => _showCustomRadius = false);
                               _toggleRadius(km);
@@ -705,9 +717,11 @@ class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen>
                           ),
                         ),
                       FilterChip(
-                        label: const Text('Custom',
-                            style: TextStyle(fontSize: 12)),
+                        label: Text('Custom',
+                            style: _chipLabelStyle(_showCustomRadius)),
                         selected: _showCustomRadius,
+                        selectedColor: const Color(0xFFE65100),
+                        checkmarkColor: Colors.white,
                         onSelected: (_) =>
                             setState(() => _showCustomRadius = !_showCustomRadius),
                         visualDensity: VisualDensity.compact,
@@ -848,7 +862,7 @@ class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen>
                                       tag: m.category ?? 'Manufacturing',
                                       status: m.status,
                                       price:
-                                          '\$${m.wholesalePrice.toStringAsFixed(2)}/${m.unit ?? 'unit'}',
+                                          '${formatCurrencyForMode(m.wholesalePrice, currency: m.currency, decimals: 2, mode: mode)}/${m.unit ?? 'unit'}',
                                       extras: [
                                         if (m.moq != null) 'Min order: ${m.moq}',
                                         if (m.leadTimeDays != null)
@@ -917,9 +931,11 @@ class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen>
                         child: FilterChip(
                           label: Text(
                             t[0].toUpperCase() + t.substring(1),
-                            style: const TextStyle(fontSize: 12),
+                            style: _chipLabelStyle(_svcType == t),
                           ),
                           selected: _svcType == t,
+                          selectedColor: const Color(0xFF1565C0),
+                          checkmarkColor: Colors.white,
                           onSelected: (v) {
                             setState(() => _svcType = v ? t : null);
                             _loadServices();

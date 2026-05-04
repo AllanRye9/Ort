@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 import '../../core/api_service.dart';
+import '../../core/app_preferences.dart';
 import '../../core/auth_provider.dart';
 import '../../core/listing_providers.dart';
 import '../../models/models.dart';
@@ -85,7 +86,17 @@ class _ManufacturingServiceDetailScreenState
 
   Future<void> _contactProvider(ManufacturingServiceModel s) async {
     final userId = ref.read(authProvider).userId;
-    if (userId == null) return;
+    if (userId == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please sign in to contact the provider.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      return;
+    }
     if (s.tenantId == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -204,6 +215,7 @@ class _ManufacturingServiceDetailScreenState
   Widget build(BuildContext context) {
     final async = ref.watch(_svcDetailProvider(widget.id));
     final auth = ref.watch(authProvider);
+    final mode = ref.watch(marketplaceModeProvider);
     final isOwner = auth.isAuthenticated &&
         (auth.role == 'company' ||
             auth.role == 'organization' ||
@@ -329,7 +341,7 @@ class _ManufacturingServiceDetailScreenState
 
                     // ── Price ────────────────────────────────────────
                     Text(
-                      '${formatCurrency(s.price, currency: s.currency, decimals: 2)}'
+                      '${formatCurrencyForMode(s.price, currency: s.currency, decimals: 2, mode: mode)}'
                       '${s.pricingUnit != null ? ' / ${s.pricingUnit!.replaceAll('_', ' ')}' : ''}',
                       style: Theme.of(context)
                           .textTheme

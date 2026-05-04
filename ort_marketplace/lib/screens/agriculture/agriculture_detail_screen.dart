@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 import '../../core/api_service.dart';
+import '../../core/app_preferences.dart';
 import '../../core/auth_provider.dart';
 import '../../core/listing_providers.dart';
 import '../../models/models.dart';
@@ -75,7 +76,17 @@ class _AgricultureDetailScreenState extends ConsumerState<AgricultureDetailScree
 
   Future<void> _contactAgent(AgricultureListingModel a) async {
     final userId = ref.read(authProvider).userId;
-    if (userId == null) return;
+    if (userId == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please sign in to contact the seller.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      return;
+    }
     if (a.tenantId == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -184,7 +195,17 @@ class _AgricultureDetailScreenState extends ConsumerState<AgricultureDetailScree
 
   Future<void> _requestQuote(AgricultureListingModel a) async {
     final userId = ref.read(authProvider).userId;
-    if (userId == null) return;
+    if (userId == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please sign in to request a quote.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      return;
+    }
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (ctx) => _RfqDialog(
@@ -226,7 +247,17 @@ class _AgricultureDetailScreenState extends ConsumerState<AgricultureDetailScree
 
   Future<void> _orderNow(AgricultureListingModel a) async {
     final userId = ref.read(authProvider).userId;
-    if (userId == null) return;
+    if (userId == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please sign in to place an order.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      return;
+    }
     if (a.tenantId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -284,6 +315,7 @@ class _AgricultureDetailScreenState extends ConsumerState<AgricultureDetailScree
   Widget build(BuildContext context) {
     final async = ref.watch(_agriDetailProvider(widget.id));
     final auth = ref.watch(authProvider);
+    final mode = ref.watch(marketplaceModeProvider);
     final isOwner = auth.isAuthenticated &&
         (auth.role == 'company' ||
             auth.role == 'organization' ||
@@ -423,7 +455,7 @@ class _AgricultureDetailScreenState extends ConsumerState<AgricultureDetailScree
                     ],
                     const SizedBox(height: 10),
                     Text(
-                      '${formatCurrency(a.pricePerUnit, currency: a.currency, decimals: 2)} / ${a.unit ?? 'unit'}',
+                      '${formatCurrencyForMode(a.pricePerUnit, currency: a.currency, decimals: 2, mode: mode)} / ${a.unit ?? 'unit'}',
                       style:
                           Theme.of(context).textTheme.headlineMedium?.copyWith(
                                 color: const Color(0xFF2E7D32),
