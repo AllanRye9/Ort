@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 import '../../core/api_service.dart';
+import '../../core/app_preferences.dart';
 import '../../core/auth_provider.dart';
 import '../../core/listing_providers.dart';
 import '../../models/models.dart';
@@ -76,7 +77,17 @@ class _ManufacturingDetailScreenState extends ConsumerState<ManufacturingDetailS
 
   Future<void> _contactAgent(ManufacturingProductModel m) async {
     final userId = ref.read(authProvider).userId;
-    if (userId == null) return;
+    if (userId == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please sign in to contact the seller.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      return;
+    }
     if (m.tenantId == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -185,7 +196,17 @@ class _ManufacturingDetailScreenState extends ConsumerState<ManufacturingDetailS
 
   Future<void> _requestQuote(ManufacturingProductModel m) async {
     final userId = ref.read(authProvider).userId;
-    if (userId == null) return;
+    if (userId == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please sign in to request a quote.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      return;
+    }
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (ctx) => _RfqDialog(
@@ -227,7 +248,17 @@ class _ManufacturingDetailScreenState extends ConsumerState<ManufacturingDetailS
 
   Future<void> _orderNow(ManufacturingProductModel m) async {
     final userId = ref.read(authProvider).userId;
-    if (userId == null) return;
+    if (userId == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please sign in to place an order.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      return;
+    }
     if (m.tenantId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -285,6 +316,7 @@ class _ManufacturingDetailScreenState extends ConsumerState<ManufacturingDetailS
   Widget build(BuildContext context) {
     final async = ref.watch(_mfgDetailProvider(widget.id));
     final auth = ref.watch(authProvider);
+    final mode = ref.watch(marketplaceModeProvider);
     final isOwner = auth.isAuthenticated &&
         (auth.role == 'company' ||
             auth.role == 'organization' ||
@@ -406,7 +438,7 @@ class _ManufacturingDetailScreenState extends ConsumerState<ManufacturingDetailS
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      '\$${m.wholesalePrice.toStringAsFixed(2)} / ${m.unit ?? 'unit'}',
+                      '${formatCurrencyForMode(m.wholesalePrice, currency: m.currency, decimals: 2, mode: mode)} / ${m.unit ?? 'unit'}',
                       style:
                           Theme.of(context).textTheme.headlineMedium?.copyWith(
                                 color: const Color(0xFFE65100),
