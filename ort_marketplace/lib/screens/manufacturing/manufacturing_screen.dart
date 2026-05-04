@@ -4,6 +4,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/api_service.dart';
 import '../../core/app_preferences.dart';
+import '../../core/auth_provider.dart';
 import '../../core/listing_providers.dart';
 import '../../core/location_service.dart';
 import '../../core/responsive.dart';
@@ -514,6 +515,8 @@ class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen>
 
   @override
   Widget build(BuildContext context) {
+    final auth = ref.watch(authProvider);
+    final canList = auth.role != 'user';
     final mode = ref.watch(marketplaceModeProvider);
     final userCountry = ref.watch(userCountryProvider);
     final intlFilter = ref.watch(intlCountryFilterProvider);
@@ -555,22 +558,24 @@ class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen>
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        icon: const Icon(Icons.add),
-        label: const Text('Add Listing'),
-        onPressed: () => context.go('/manufacturing/create'),
-      ),
+      floatingActionButton: canList
+          ? FloatingActionButton.extended(
+              icon: const Icon(Icons.add),
+              label: const Text('Add Listing'),
+              onPressed: () => context.go('/manufacturing/create'),
+            )
+          : null,
       body: TabBarView(
         controller: _tabCtrl,
         children: [
-          _buildProductsTab(context),
-          _buildServicesTab(context),
+          _buildProductsTab(context, canList: canList),
+          _buildServicesTab(context, canList: canList),
         ],
       ),
     );
   }
 
-  Widget _buildProductsTab(BuildContext context) {
+  Widget _buildProductsTab(BuildContext context, {required bool canList}) {
     return Column(
       children: [
         // ── Search bar ──────────────────────────────────────────────
@@ -791,14 +796,14 @@ class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen>
                                   style: TextStyle(color: Colors.grey[500]),
                                 ),
                                 const SizedBox(height: 16),
-                                if (!_hasActiveFilters)
+                                if (!_hasActiveFilters && canList)
                                   ElevatedButton.icon(
                                     icon: const Icon(Icons.add),
                                     label: const Text('Add First Product'),
                                     onPressed: () =>
                                         context.go('/manufacturing/create'),
                                   )
-                                else
+                                else if (_hasActiveFilters)
                                   TextButton(
                                     onPressed: _clearFilters,
                                     child: const Text('Clear Filters'),
@@ -865,7 +870,7 @@ class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen>
       );
   }
 
-  Widget _buildServicesTab(BuildContext context) {
+  Widget _buildServicesTab(BuildContext context, {required bool canList}) {
     return Column(
       children: [
         // ── Search bar ─────────────────────────────────────────────
@@ -958,6 +963,7 @@ class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen>
                                 style: TextStyle(color: Colors.grey[500]),
                               ),
                               const SizedBox(height: 16),
+                              if (canList)
                               ElevatedButton.icon(
                                 icon: const Icon(Icons.add),
                                 label: const Text('Add First Service'),

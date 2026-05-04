@@ -412,9 +412,13 @@ class _AgricultureDetailScreenState extends ConsumerState<AgricultureDetailScree
                             size: 16,
                             color: const Color(0xFF388E3C)),
                         const SizedBox(width: 4),
-                        Text(a.location!,
-                            style: TextStyle(
-                                color: Colors.grey[600], fontSize: 14)),
+                        Expanded(
+                          child: Text(a.location!,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                  color: Colors.grey[600], fontSize: 14)),
+                        ),
                       ]),
                     ],
                     const SizedBox(height: 10),

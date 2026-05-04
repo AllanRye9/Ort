@@ -153,6 +153,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         // Mark location as granted so Local mode is allowed.
         ref.read(locationAvailabilityProvider.notifier).state =
             LocationAvailabilityStatus.granted;
+        // Reverse-geocode the position to update the user's country so that
+        // Local mode filters listings for the correct country (e.g. UAE users
+        // see UAE listings, not Uganda's default).
+        LocationService.instance
+            .reverseGeocodePosition(pos.latitude, pos.longitude)
+            .then((result) {
+          if (!mounted) return;
+          if (result?.country != null && result!.country!.isNotEmpty) {
+            ref.read(userCountryProvider.notifier).setCountry(result.country!);
+          }
+        });
         setState(() {
           _locationServiceOff = false;
           _lastSortedLoc = loc;
@@ -2267,12 +2278,15 @@ class _ModeCard extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        Text(
-                          title,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: cs.onSurface,
+                        Flexible(
+                          child: Text(
+                            title,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: cs.onSurface,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 8),
