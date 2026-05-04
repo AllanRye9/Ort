@@ -53,6 +53,7 @@ class _ManufacturingCreateScreenState
   double? _geocodedLat;
   double? _geocodedLon;
   String? _geocodedDisplayName;
+  String? _geocodedCountry;
   bool _geocoding = false;
   bool _gpsCapturing = false;
   String? _locationError;
@@ -187,6 +188,7 @@ class _ManufacturingCreateScreenState
         _geocodedLat = result.latitude;
         _geocodedLon = result.longitude;
         _geocodedDisplayName = result.displayName;
+        _geocodedCountry = result.country;
         _locationError = null;
         _geocoding = false;
       });
@@ -226,6 +228,7 @@ class _ManufacturingCreateScreenState
             'location': _locationCtrl.text.trim(),
           if (_geocodedLat != null) 'latitude': _geocodedLat,
           if (_geocodedLon != null) 'longitude': _geocodedLon,
+          if (_geocodedCountry != null) 'country': _geocodedCountry,
           if (_minOrderCtrl.text.trim().isNotEmpty)
             'min_order_value':
                 double.parse(_minOrderCtrl.text.trim()),

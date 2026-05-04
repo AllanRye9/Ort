@@ -195,6 +195,39 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     }
   }
 
+  Future<void> _deleteListing(PropertyModel p) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Listing'),
+        content: Text(
+            'Delete "${p.title}"? This cannot be undone.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      await ref.read(apiServiceProvider).deleteProperty(p.id);
+      if (mounted) context.pop();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to delete: $e'),
+              behavior: SnackBarBehavior.floating),
+        );
+      }
+    }
+  }
+
   Future<void> _updateStatus(PropertyModel p) async {
     const statuses = ['available', 'sold', 'rented', 'pending', 'unavailable'];
     final picked = await showDialog<String>(
@@ -312,18 +345,36 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
         actions: [
           if (isOwner)
             async.maybeWhen(
-              data: (p) => Container(
-                margin: const EdgeInsets.only(right: 4),
-                decoration: const BoxDecoration(
-                  color: Colors.black26,
-                  shape: BoxShape.circle,
-                ),
-                child: IconButton(
-                  icon: const Icon(Icons.edit_outlined,
-                      color: Colors.white, size: 18),
-                  onPressed: () => _updateStatus(p),
-                  tooltip: 'Update status',
-                ),
+              data: (p) => Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    margin: const EdgeInsets.only(right: 4),
+                    decoration: const BoxDecoration(
+                      color: Colors.black26,
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.edit_outlined,
+                          color: Colors.white, size: 18),
+                      onPressed: () => _updateStatus(p),
+                      tooltip: 'Update status',
+                    ),
+                  ),
+                  Container(
+                    margin: const EdgeInsets.only(right: 4),
+                    decoration: const BoxDecoration(
+                      color: Colors.black26,
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.delete_outline,
+                          color: Colors.white, size: 18),
+                      onPressed: () => _deleteListing(p),
+                      tooltip: 'Delete listing',
+                    ),
+                  ),
+                ],
               ),
               orElse: () => const SizedBox.shrink(),
             ),

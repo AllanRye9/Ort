@@ -217,8 +217,27 @@ final homeMfgProvider = FutureProvider<List<ManufacturingProductModel>>(
 
 final homeServicesProvider = FutureProvider<List<ManufacturingServiceModel>>(
   (ref) async {
-    final data =
-        await ref.read(apiServiceProvider).getManufacturingServices(limit: 8);
+    final mode = ref.watch(marketplaceModeProvider);
+    final userCountry = ref.watch(userCountryProvider);
+    final intlFilter = ref.watch(intlCountryFilterProvider);
+
+    String? country;
+    String? excludeCountry;
+    if (mode == MarketplaceMode.local) {
+      country = userCountry;
+    } else {
+      if (intlFilter.isNotEmpty) {
+        country = intlFilter;
+      } else {
+        excludeCountry = userCountry;
+      }
+    }
+
+    final data = await ref.read(apiServiceProvider).getManufacturingServices(
+          limit: 8,
+          country: country,
+          excludeCountry: excludeCountry,
+        );
     return data
         .map((e) =>
             ManufacturingServiceModel.fromJson(e as Map<String, dynamic>))

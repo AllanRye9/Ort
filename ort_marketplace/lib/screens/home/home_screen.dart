@@ -1410,6 +1410,8 @@ class _FeaturedCard extends StatelessWidget {
                   const SizedBox(height: 6),
                   Text(
                     price,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: cs.primary,
                       fontWeight: FontWeight.bold,

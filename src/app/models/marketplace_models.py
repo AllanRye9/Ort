@@ -230,6 +230,7 @@ class ManufacturingService(Base):
     certifications = Column(JSON)           # ["ISO 9001", "CE", ...]
     images = Column(JSON)
     location = Column(String(255))
+    country = Column(String(100))
     latitude = Column(Float)
     longitude = Column(Float)
     listing_code = Column(String(30), unique=True, nullable=True)   # e.g. ORT-SVC-2024-AB1C2D
