@@ -50,6 +50,8 @@ class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen> {
     super.dispose();
   }
 
+  bool get _hasOnlyWelcomeMessage => _messages.length == 1;
+
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollCtrl.hasClients) {
@@ -153,7 +155,7 @@ class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen> {
             ),
           ),
           // Suggested prompts – shown only while no user message has been sent yet.
-          if (!_sending && _messages.length == 1)
+          if (!_sending && _hasOnlyWelcomeMessage)
             _SuggestedPrompts(
               prompts: _suggestedPrompts,
               onSelected: (text) {
