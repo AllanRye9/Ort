@@ -30,6 +30,13 @@ class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen> {
       '• General marketplace questions\n\n'
       'How can I assist you today?';
 
+  static const _suggestedPrompts = [
+    'How do I list a product?',
+    'How do I contact a seller?',
+    'What is a listing code?',
+    'How do I switch to international view?',
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -145,6 +152,15 @@ class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen> {
               },
             ),
           ),
+          // Suggested prompts – shown only while no user message has been sent yet.
+          if (!_sending && _messages.length == 1)
+            _SuggestedPrompts(
+              prompts: _suggestedPrompts,
+              onSelected: (text) {
+                _inputCtrl.text = text;
+                _send();
+              },
+            ),
           if (_sending)
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -223,6 +239,43 @@ class _MessageBubble extends StatelessWidget {
           ),
           if (isMe) const SizedBox(width: 8),
         ],
+      ),
+    );
+  }
+}
+
+class _SuggestedPrompts extends StatelessWidget {
+  const _SuggestedPrompts({
+    required this.prompts,
+    required this.onSelected,
+  });
+
+  final List<String> prompts;
+  final void Function(String) onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: prompts
+              .map(
+                (p) => Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: ActionChip(
+                    label: Text(p, style: const TextStyle(fontSize: 12)),
+                    backgroundColor: cs.primaryContainer,
+                    labelStyle: TextStyle(color: cs.onPrimaryContainer),
+                    side: BorderSide.none,
+                    onPressed: () => onSelected(p),
+                  ),
+                ),
+              )
+              .toList(),
+        ),
       ),
     );
   }

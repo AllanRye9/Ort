@@ -46,6 +46,7 @@ dependencies:
   # File handling
   image_picker: ^1.1.1
   file_picker: ^8.0.3
+  path_provider: ^2.1.5
 
   # Date & time
   intl: ^0.20.0

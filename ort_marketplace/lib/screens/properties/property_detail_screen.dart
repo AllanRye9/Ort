@@ -8,6 +8,7 @@ import '../../core/auth_provider.dart';
 import '../../core/listing_providers.dart';
 import '../../models/models.dart';
 import '../../widgets/image_gallery.dart';
+import '../../widgets/listing_widgets.dart';
 import '../../widgets/promote_listing_button.dart';
 
 final _propertyDetailProvider =
@@ -538,40 +539,7 @@ class _PropertyDetailBody extends StatelessWidget {
                 // ── Listing tracking code ──────────────────────────────────────
                 if (p.listingCode != null) ...[
                   const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Icon(Icons.qr_code_outlined,
-                          size: 14,
-                          color: Theme.of(context).colorScheme.primary),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Listing Code: ',
-                        style: TextStyle(
-                            fontSize: 12, color: Colors.grey[600]),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .primaryContainer,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          p.listingCode!,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onPrimaryContainer,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                  ListingCodeBadge(code: p.listingCode!),
                 ],
 
                 // ── Bid count ─────────────────────────────────────────────────
