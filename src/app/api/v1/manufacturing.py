@@ -241,7 +241,7 @@ def list_services(
         q = q.filter(ManufacturingService.country.ilike(country))
     if exclude_country:
         q = q.filter(
-            (ManufacturingService.country == None) |
+            (ManufacturingService.country.is_(None)) |
             (~ManufacturingService.country.ilike(exclude_country))
         )
 
