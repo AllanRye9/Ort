@@ -146,11 +146,25 @@ class MarketplaceModeNotifier extends StateNotifier<MarketplaceMode> {
     _everSelected = prefs.getBool(_kModeEverSelectedKey) ?? false;
   }
 
-  Future<void> setMode(MarketplaceMode mode) async {
-    state = mode;
+  /// Sets the active marketplace mode.
+  ///
+  /// If [locationStatus] is [LocationAvailabilityStatus.denied] and the
+  /// requested mode is [MarketplaceMode.local], the mode is silently forced
+  /// to [MarketplaceMode.international] to respect the location-gating rule.
+  Future<void> setMode(
+    MarketplaceMode mode, {
+    LocationAvailabilityStatus locationStatus =
+        LocationAvailabilityStatus.unknown,
+  }) async {
+    final effectiveMode =
+        (mode == MarketplaceMode.local &&
+                locationStatus == LocationAvailabilityStatus.denied)
+            ? MarketplaceMode.international
+            : mode;
+    state = effectiveMode;
     _everSelected = true;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_kMarketplaceModeKey, mode.name);
+    await prefs.setString(_kMarketplaceModeKey, effectiveMode.name);
     await prefs.setBool(_kModeEverSelectedKey, true);
   }
 }
@@ -193,6 +207,24 @@ String formatDistance(double? km, DistanceUnit unit) {
     return '${km.toStringAsFixed(2)} km';
   }
 }
+
+// ─── Location availability ────────────────────────────────────────────────────
+
+/// Tracks whether the user has granted, denied, or not yet responded to the
+/// location permission request.  Used to gate Local mode.
+enum LocationAvailabilityStatus {
+  /// Initial state – permission has not been checked yet.
+  unknown,
+
+  /// Location permission was granted and a GPS position was obtained.
+  granted,
+
+  /// Location permission was permanently denied or GPS is disabled.
+  denied,
+}
+
+final locationAvailabilityProvider =
+    StateProvider<LocationAvailabilityStatus>((_) => LocationAvailabilityStatus.unknown);
 
 // ─── User country ─────────────────────────────────────────────────────────────
 

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/api_service.dart';
+import '../../core/app_preferences.dart';
 import '../../core/listing_providers.dart';
 import '../../core/location_service.dart';
 import '../../core/responsive.dart';
@@ -30,6 +31,11 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
   bool _showCustomRadius = false;
   final _customRadiusCtrl = TextEditingController();
 
+  // Track the last loaded filter state to detect changes and trigger reloads.
+  MarketplaceMode? _lastMode;
+  String? _lastUserCountry;
+  String? _lastIntlFilter;
+
   List<PropertyModel>? _items;
   bool _loading = true;
   String? _error;
@@ -53,12 +59,28 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
     super.dispose();
   }
 
+  /// Resolves country/excludeCountry based on the active marketplace mode.
+  ({String? country, String? excludeCountry}) _countryFilter() {
+    final mode = ref.read(marketplaceModeProvider);
+    final userCountry = ref.read(userCountryProvider);
+    final intlFilter = ref.read(intlCountryFilterProvider);
+    if (mode == MarketplaceMode.local) {
+      return (country: userCountry, excludeCountry: null);
+    } else {
+      if (intlFilter.isNotEmpty) {
+        return (country: intlFilter, excludeCountry: null);
+      }
+      return (country: null, excludeCountry: userCountry);
+    }
+  }
+
   Future<void> _loadListings() async {
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
+      final (:country, :excludeCountry) = _countryFilter();
       final data = await ref.read(apiServiceProvider).getPropertiesFiltered(
             keyword: _keyword.isNotEmpty ? _keyword : null,
             propertyType: _propertyType,
@@ -68,6 +90,8 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
             lat: _lat,
             lon: _lon,
             radiusKm: _radiusKm,
+            country: country,
+            excludeCountry: excludeCountry,
           );
       if (mounted) {
         setState(() {
@@ -374,6 +398,23 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Watch mode/country providers so we reload if they change while this
+    // screen is active (e.g., user switches mode from Settings).
+    final mode = ref.watch(marketplaceModeProvider);
+    final userCountry = ref.watch(userCountryProvider);
+    final intlFilter = ref.watch(intlCountryFilterProvider);
+    if (_lastMode != null &&
+        (_lastMode != mode ||
+            _lastUserCountry != userCountry ||
+            _lastIntlFilter != intlFilter)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _loadListings();
+      });
+    }
+    _lastMode = mode;
+    _lastUserCountry = userCountry;
+    _lastIntlFilter = intlFilter;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Properties'),
