@@ -48,6 +48,7 @@ from app.api.v1 import (
     wallet as wallet_router,
     promotions as promotions_router,
     tracking as tracking_router,
+    ai as ai_router,
 )
 
 router = APIRouter()
@@ -72,6 +73,7 @@ router.include_router(saved_items_router.router)
 router.include_router(wallet_router.router)
 router.include_router(promotions_router.router)
 router.include_router(tracking_router.router)
+router.include_router(ai_router.router)
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -306,6 +308,8 @@ def get_properties(
     property_type: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
     agent_id: Optional[int] = Query(None),
+    country: Optional[str] = Query(None),
+    exclude_country: Optional[str] = Query(None),
     lat: Optional[float] = Query(None),
     lon: Optional[float] = Query(None),
     radius_km: Optional[float] = Query(None, gt=0),
@@ -333,6 +337,13 @@ def get_properties(
         q = q.filter(Property.status == status)
     elif lat is not None and lon is not None and radius_km is not None:
         q = q.filter(Property.status == "available")
+    if country:
+        q = q.filter(Property.country.ilike(country))
+    if exclude_country:
+        q = q.filter(
+            (Property.country == None) |
+            (~Property.country.ilike(exclude_country))
+        )
     props = q.offset(skip).limit(limit).all()
 
     if lat is not None and lon is not None and radius_km is not None:

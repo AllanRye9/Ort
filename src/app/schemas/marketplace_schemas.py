@@ -8,6 +8,25 @@ from datetime import datetime, date
 from pydantic import BaseModel, Field, EmailStr, field_validator, model_validator
 
 
+# ========== SHARED PROFILE ==========
+
+class OwnerProfileResponse(BaseModel):
+    """Minimal owner/agent/company profile embedded in listing responses."""
+    id: int
+    role: str
+    first_name: str
+    last_name: str
+    email: str
+    phone: Optional[str] = None
+    bio: Optional[str] = None
+    avatar_url: Optional[str] = None
+    license_number: Optional[str] = None
+    agency_name: Optional[str] = None
+    user_uid: Optional[str] = None
+
+    model_config = {"from_attributes": True}
+
+
 # ========== AUTH ==========
 
 class LoginRequest(BaseModel):
@@ -213,6 +232,7 @@ class AgricultureListingBase(BaseModel):
 
 class AgricultureListingCreate(AgricultureListingBase):
     tenant_id: Optional[int] = None
+    owner_user_id: Optional[int] = None
     price_per_unit: Decimal = Field(..., gt=0)
 
     @field_validator("title", mode="before")
@@ -254,6 +274,8 @@ class AgricultureListingUpdate(BaseModel):
 class AgricultureListingResponse(AgricultureListingBase):
     id: int
     tenant_id: Optional[int] = None
+    listing_code: Optional[str] = None
+    owner_profile: Optional[OwnerProfileResponse] = None
     status: str
     created_at: datetime
 
@@ -288,6 +310,7 @@ class ManufacturingProductBase(BaseModel):
 
 class ManufacturingProductCreate(ManufacturingProductBase):
     tenant_id: Optional[int] = None
+    owner_user_id: Optional[int] = None
     wholesale_price: Decimal = Field(..., gt=0)
 
     @field_validator("title", mode="before")
@@ -330,6 +353,8 @@ class MfgStatusUpdate(BaseModel):
 class ManufacturingProductResponse(ManufacturingProductBase):
     id: int
     tenant_id: Optional[int] = None
+    listing_code: Optional[str] = None
+    owner_profile: Optional[OwnerProfileResponse] = None
     status: str
     created_at: datetime
 
@@ -391,6 +416,8 @@ class MfgServiceStatusUpdate(BaseModel):
 class ManufacturingServiceResponse(ManufacturingServiceBase):
     id: int
     tenant_id: Optional[int] = None
+    listing_code: Optional[str] = None
+    owner_profile: Optional[OwnerProfileResponse] = None
     status: str
     created_at: datetime
 

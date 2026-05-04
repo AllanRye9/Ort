@@ -193,3 +193,97 @@ String formatDistance(double? km, DistanceUnit unit) {
     return '${km.toStringAsFixed(2)} km';
   }
 }
+
+// ─── User country ─────────────────────────────────────────────────────────────
+
+/// The user's current country, auto-detected by GPS or manually set.
+/// Defaults to "Uganda" since that is the primary market.
+const _kUserCountryKey = 'user_country';
+
+class UserCountryNotifier extends StateNotifier<String> {
+  UserCountryNotifier() : super('Uganda') {
+    _load();
+  }
+
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString(_kUserCountryKey);
+    if (saved != null && saved.isNotEmpty) state = saved;
+  }
+
+  Future<void> setCountry(String country) async {
+    state = country;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_kUserCountryKey, country);
+  }
+
+  /// Auto-detect the user's country from GPS.
+  Future<void> autoDetect() async {
+    try {
+      final position = await LocationService.instance.requestAndGetPosition();
+      if (position == null) return;
+      final result = await LocationService.instance.reverseGeocodePosition(
+        position.latitude,
+        position.longitude,
+      );
+      if (result?.country != null && result!.country!.isNotEmpty) {
+        await setCountry(result.country!);
+      }
+    } catch (_) {}
+  }
+}
+
+final userCountryProvider =
+    StateNotifierProvider<UserCountryNotifier, String>(
+  (_) => UserCountryNotifier(),
+);
+
+// ─── International country filter ─────────────────────────────────────────────
+
+/// When in international mode, the user can optionally filter to a specific
+/// foreign country. Empty string means "show all international listings".
+/// Default target market is Uganda (so UAE/other users see Uganda goods).
+const _kIntlCountryFilterKey = 'intl_country_filter';
+
+class IntlCountryFilterNotifier extends StateNotifier<String> {
+  IntlCountryFilterNotifier() : super('') {
+    _load();
+  }
+
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    state = prefs.getString(_kIntlCountryFilterKey) ?? '';
+  }
+
+  Future<void> setFilter(String country) async {
+    state = country;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_kIntlCountryFilterKey, country);
+  }
+
+  void clear() => setFilter('');
+}
+
+final intlCountryFilterProvider =
+    StateNotifierProvider<IntlCountryFilterNotifier, String>(
+  (_) => IntlCountryFilterNotifier(),
+);
+
+/// A curated list of countries available as filter options.
+const kInternationalCountries = [
+  'Uganda',
+  'Kenya',
+  'Tanzania',
+  'Rwanda',
+  'Ethiopia',
+  'United Arab Emirates',
+  'United States',
+  'United Kingdom',
+  'China',
+  'India',
+  'Germany',
+  'France',
+  'South Africa',
+  'Nigeria',
+  'Egypt',
+];

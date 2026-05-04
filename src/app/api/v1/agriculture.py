@@ -1,4 +1,8 @@
 """Agriculture listings router."""
+import secrets
+import string
+from datetime import datetime as _dt
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
@@ -12,10 +16,30 @@ from app.schemas.marketplace_schemas import (
     AgricultureListingUpdate,
     AgricultureListingResponse,
     AgriStatusUpdate,
+    OwnerProfileResponse,
 )
 from app.utils.geo import haversine_km
 
 router = APIRouter(prefix="/agriculture", tags=["agriculture"])
+
+_ALPHABET = string.ascii_uppercase + string.digits
+
+
+def _generate_agri_listing_code(db: Session) -> str:
+    year = _dt.now().year
+    for _ in range(20):
+        suffix = ''.join(secrets.choice(_ALPHABET) for _ in range(6))
+        code = f"ORT-AGRI-{year}-{suffix}"
+        if not db.query(AgricultureListing).filter(AgricultureListing.listing_code == code).first():
+            return code
+    return f"ORT-AGRI-{year}-{''.join(secrets.choice(_ALPHABET) for _ in range(10))}"
+
+
+def _enrich(obj: AgricultureListing) -> AgricultureListingResponse:
+    resp = AgricultureListingResponse.model_validate(obj)
+    if obj.owner is not None:
+        resp.owner_profile = OwnerProfileResponse.model_validate(obj.owner)
+    return resp
 
 
 @router.get("/", response_model=List[AgricultureListingResponse])
@@ -30,6 +54,8 @@ def list_listings(
     min_price: Optional[float] = Query(None),
     max_price: Optional[float] = Query(None),
     location: Optional[str] = Query(None),
+    country: Optional[str] = Query(None),
+    exclude_country: Optional[str] = Query(None),
     lat: Optional[float] = Query(None),
     lon: Optional[float] = Query(None),
     radius_km: Optional[float] = Query(None, gt=0),
@@ -41,7 +67,6 @@ def list_listings(
     if status:
         q = q.filter(AgricultureListing.status == status)
     elif lat is not None and lon is not None and radius_km is not None:
-        # Default to available-only when doing a geo search
         q = q.filter(AgricultureListing.status == "available")
     if tenant_id:
         q = q.filter(AgricultureListing.tenant_id == tenant_id)
@@ -59,10 +84,16 @@ def list_listings(
         q = q.filter(AgricultureListing.price_per_unit <= max_price)
     if location:
         q = q.filter(AgricultureListing.location.ilike(f"%{location}%"))
+    if country:
+        q = q.filter(AgricultureListing.location.ilike(f"%{country}%"))
+    if exclude_country:
+        q = q.filter(
+            (AgricultureListing.location == None) |
+            (~AgricultureListing.location.ilike(f"%{exclude_country}%"))
+        )
 
     items = q.order_by(AgricultureListing.created_at.desc()).offset(skip).limit(limit).all()
 
-    # Apply in-memory geo radius filter + sort by distance
     if lat is not None and lon is not None and radius_km is not None:
         with_dist = []
         for item in items:
@@ -73,8 +104,7 @@ def list_listings(
         with_dist.sort(key=lambda x: x[0])
         items = [i for _, i in with_dist]
 
-    return items
-
+    return [_enrich(i) for i in items]
 
 
 @router.patch("/{listing_id}/status", response_model=AgricultureListingResponse)
@@ -96,7 +126,7 @@ def update_listing_status(
     obj.status = payload.status
     db.commit()
     db.refresh(obj)
-    return obj
+    return _enrich(obj)
 
 
 @router.get("/{listing_id}", response_model=AgricultureListingResponse)
@@ -104,16 +134,19 @@ def get_listing(listing_id: int, db: Session = Depends(get_db)):
     obj = db.query(AgricultureListing).filter(AgricultureListing.id == listing_id, AgricultureListing.is_deleted == False).first()
     if not obj:
         raise HTTPException(status_code=404, detail="Agriculture listing not found")
-    return obj
+    return _enrich(obj)
 
 
 @router.post("/", response_model=AgricultureListingResponse, status_code=status.HTTP_201_CREATED)
 def create_listing(payload: AgricultureListingCreate, db: Session = Depends(get_db)):
-    obj = AgricultureListing(**payload.model_dump())
+    data = payload.model_dump()
+    if not data.get("listing_code"):
+        data["listing_code"] = _generate_agri_listing_code(db)
+    obj = AgricultureListing(**data)
     db.add(obj)
     db.commit()
     db.refresh(obj)
-    return obj
+    return _enrich(obj)
 
 
 @router.put("/{listing_id}", response_model=AgricultureListingResponse)
@@ -125,7 +158,7 @@ def update_listing(listing_id: int, payload: AgricultureListingUpdate, db: Sessi
         setattr(obj, k, v)
     db.commit()
     db.refresh(obj)
-    return obj
+    return _enrich(obj)
 
 
 @router.delete("/{listing_id}", status_code=status.HTTP_200_OK)
@@ -136,3 +169,4 @@ def delete_listing(listing_id: int, db: Session = Depends(get_db)):
     obj.is_deleted = True
     db.commit()
     return {"message": "Agriculture listing deleted successfully"}
+
