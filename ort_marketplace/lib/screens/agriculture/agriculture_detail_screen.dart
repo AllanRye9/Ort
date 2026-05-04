@@ -118,6 +118,38 @@ class _AgricultureDetailScreenState extends ConsumerState<AgricultureDetailScree
     }
   }
 
+  Future<void> _deleteListing(AgricultureListingModel a) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Listing'),
+        content: Text('Delete "${a.title}"? This cannot be undone.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      await ref.read(apiServiceProvider).deleteAgricultureListing(a.id);
+      if (mounted) context.pop();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to delete: $e'),
+              behavior: SnackBarBehavior.floating),
+        );
+      }
+    }
+  }
+
   Future<void> _updateStatus(AgricultureListingModel a) async {
     const statuses = ['available', 'sold_out', 'reserved', 'expired'];
     final picked = await showDialog<String>(
@@ -275,18 +307,36 @@ class _AgricultureDetailScreenState extends ConsumerState<AgricultureDetailScree
         actions: [
           if (isOwner)
             async.maybeWhen(
-              data: (a) => Container(
-                margin: const EdgeInsets.only(right: 4),
-                decoration: const BoxDecoration(
-                  color: Colors.black26,
-                  shape: BoxShape.circle,
-                ),
-                child: IconButton(
-                  icon: const Icon(Icons.edit_outlined,
-                      color: Colors.white, size: 18),
-                  onPressed: () => _updateStatus(a),
-                  tooltip: 'Update status',
-                ),
+              data: (a) => Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    margin: const EdgeInsets.only(right: 4),
+                    decoration: const BoxDecoration(
+                      color: Colors.black26,
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.edit_outlined,
+                          color: Colors.white, size: 18),
+                      onPressed: () => _updateStatus(a),
+                      tooltip: 'Update status',
+                    ),
+                  ),
+                  Container(
+                    margin: const EdgeInsets.only(right: 4),
+                    decoration: const BoxDecoration(
+                      color: Colors.black26,
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.delete_outline,
+                          color: Colors.white, size: 18),
+                      onPressed: () => _deleteListing(a),
+                      tooltip: 'Delete listing',
+                    ),
+                  ),
+                ],
               ),
               orElse: () => const SizedBox.shrink(),
             ),

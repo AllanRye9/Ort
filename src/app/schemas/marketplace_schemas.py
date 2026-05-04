@@ -375,6 +375,7 @@ class ManufacturingServiceBase(BaseModel):
     certifications: Optional[List[str]] = None
     images: Optional[List[str]] = None
     location: Optional[str] = None
+    country: Optional[str] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
 
@@ -404,6 +405,7 @@ class ManufacturingServiceUpdate(BaseModel):
     certifications: Optional[List[str]] = None
     images: Optional[List[str]] = None
     location: Optional[str] = None
+    country: Optional[str] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
     status: Optional[str] = Field(None, pattern="^(available|fully_booked|discontinued)$")

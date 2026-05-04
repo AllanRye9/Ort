@@ -339,6 +339,8 @@ class ApiService {
     double? lat,
     double? lon,
     double? radiusKm,
+    String? country,
+    String? excludeCountry,
   }) async {
     final res = await _dio.get('/manufacturing/services/', queryParameters: {
       'skip': skip,
@@ -353,6 +355,8 @@ class ApiService {
       if (lat != null) 'lat': lat,
       if (lon != null) 'lon': lon,
       if (radiusKm != null) 'radius_km': radiusKm,
+      if (country != null) 'country': country,
+      if (excludeCountry != null) 'exclude_country': excludeCountry,
     });
     return res.data as List<dynamic>;
   }

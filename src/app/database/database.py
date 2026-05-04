@@ -170,6 +170,8 @@ _MIGRATIONS: list[tuple[str, str, str]] = [
     ("agriculture_listings",    "listing_code",       "VARCHAR(30)"),
     ("manufacturing_products",  "listing_code",       "VARCHAR(30)"),
     ("manufacturing_services",  "listing_code",       "VARCHAR(30)"),
+    # Country field for manufacturing services (for geolocation filtering)
+    ("manufacturing_services",  "country",            "VARCHAR(100)"),
 ]
 
 # Columns whose type needs widening on existing databases.
