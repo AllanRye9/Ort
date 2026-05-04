@@ -34,6 +34,7 @@ class _AgricultureScreenState extends ConsumerState<AgricultureScreen> {
   MarketplaceMode? _lastMode;
   String? _lastUserCountry;
   String? _lastIntlFilter;
+  bool _reloadPending = false;
 
   List<AgricultureListingModel>? _items;
   bool _loading = true;
@@ -405,11 +406,16 @@ class _AgricultureScreenState extends ConsumerState<AgricultureScreen> {
     final userCountry = ref.watch(userCountryProvider);
     final intlFilter = ref.watch(intlCountryFilterProvider);
     if (_lastMode != null &&
+        !_reloadPending &&
         (_lastMode != mode ||
             _lastUserCountry != userCountry ||
             _lastIntlFilter != intlFilter)) {
+      _reloadPending = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _loadListings();
+        if (mounted) {
+          _reloadPending = false;
+          _loadListings();
+        }
       });
     }
     _lastMode = mode;

@@ -111,7 +111,7 @@ String formatCurrencyForMode(
         ? currency
         : currencyCodeForCountry(country);
     final usdAmount = convertToUsd(amount, cur);
-    return '\$${usdAmount.toStringAsFixed(2)}';
+    return '\$${usdAmount.toStringAsFixed(decimals)}';
   }
   return formatCurrency(amount, country: country, currency: currency, decimals: decimals);
 }
@@ -350,24 +350,31 @@ const _kMaxRecentlyViewed = 100;
 /// Tracks recently viewed listing IDs across all categories.  IDs are stored
 /// as strings in SharedPreferences in the form `"<type>:<id>"`, e.g.
 /// `"property:42"`, `"agriculture:7"`, `"manufacturing:15"`.
-class RecentlyViewedNotifier extends StateNotifier<Set<String>> {
-  RecentlyViewedNotifier() : super({}) {
+///
+/// The list is ordered most-recently-viewed first; index 0 = the most recent.
+class RecentlyViewedNotifier extends StateNotifier<List<String>> {
+  RecentlyViewedNotifier() : super([]) {
     _load();
   }
 
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getStringList(_kRecentlyViewedKey) ?? [];
-    state = saved.toSet();
+    state = prefs.getStringList(_kRecentlyViewedKey) ?? [];
   }
 
   /// Records that the user has viewed a listing of [type] with the given [id].
+  ///
+  /// The entry is moved to the front (most recent) and the history is capped
+  /// at [_kMaxRecentlyViewed] entries.
   Future<void> recordView(String type, int id) async {
     final key = '$type:$id';
-    final updated = {key, ...state}.take(_kMaxRecentlyViewed).toSet();
+    // Remove any existing occurrence so we don't get duplicates, then prepend.
+    final updated = [key, ...state.where((k) => k != key)]
+        .take(_kMaxRecentlyViewed)
+        .toList();
     state = updated;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList(_kRecentlyViewedKey, updated.toList());
+    await prefs.setStringList(_kRecentlyViewedKey, updated);
   }
 
   /// Returns `true` when the listing has been previously viewed.
@@ -375,27 +382,45 @@ class RecentlyViewedNotifier extends StateNotifier<Set<String>> {
 }
 
 final recentlyViewedProvider =
-    StateNotifierProvider<RecentlyViewedNotifier, Set<String>>(
+    StateNotifierProvider<RecentlyViewedNotifier, List<String>>(
   (_) => RecentlyViewedNotifier(),
 );
 
-/// Re-orders [items] so that previously-viewed listings appear first (most
-/// recently viewed last viewed wins), while preserving the existing order
-/// within each group.  Call this **after** distance-based sorting.
+/// Re-orders [items] so that previously-viewed listings appear first, with
+/// the most-recently-viewed item at the top.  Items not in the history keep
+/// their original relative order after the viewed group.
+///
+/// Call this **after** distance-based sorting so the order within each group
+/// still respects proximity.
 List<T> applyPersonalization<T>(
   List<T> items,
-  Set<String> recentlyViewed,
+  List<String> recentlyViewed,
   String type,
   int Function(T) getId,
 ) {
+  // Build a lookup: key → recency rank (lower = more recent).
+  final recencyRank = <String, int>{};
+  for (var i = 0; i < recentlyViewed.length; i++) {
+    recencyRank[recentlyViewed[i]] = i;
+  }
+
   final viewed = <T>[];
   final rest = <T>[];
   for (final item in items) {
-    if (recentlyViewed.contains('$type:${getId(item)}')) {
+    final key = '$type:${getId(item)}';
+    if (recencyRank.containsKey(key)) {
       viewed.add(item);
     } else {
       rest.add(item);
     }
   }
+
+  // Sort viewed items by recency (index 0 = most recent → first).
+  viewed.sort((a, b) {
+    final rankA = recencyRank['$type:${getId(a)}'] ?? _kMaxRecentlyViewed;
+    final rankB = recencyRank['$type:${getId(b)}'] ?? _kMaxRecentlyViewed;
+    return rankA.compareTo(rankB);
+  });
+
   return [...viewed, ...rest];
 }
