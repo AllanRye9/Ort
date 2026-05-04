@@ -35,6 +35,8 @@ class _AgricultureDetailScreenState extends ConsumerState<AgricultureDetailScree
   void initState() {
     super.initState();
     _loadSavedState();
+    // Record this listing as viewed for personalization ranking.
+    ref.read(recentlyViewedProvider.notifier).recordView('agriculture', widget.id);
   }
 
   Future<void> _loadSavedState() async {
