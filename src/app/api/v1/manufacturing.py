@@ -1,4 +1,8 @@
 """Manufacturing / wholesale products and services router."""
+import secrets
+import string
+from datetime import datetime as _dt
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
@@ -16,10 +20,48 @@ from app.schemas.marketplace_schemas import (
     ManufacturingServiceUpdate,
     ManufacturingServiceResponse,
     MfgServiceStatusUpdate,
+    OwnerProfileResponse,
 )
 from app.utils.geo import haversine_km
 
 router = APIRouter(prefix="/manufacturing", tags=["manufacturing"])
+
+_ALPHABET = string.ascii_uppercase + string.digits
+
+
+def _generate_mfg_listing_code(db: Session) -> str:
+    year = _dt.now().year
+    for _ in range(20):
+        suffix = ''.join(secrets.choice(_ALPHABET) for _ in range(6))
+        code = f"ORT-MFG-{year}-{suffix}"
+        if not db.query(ManufacturingProduct).filter(ManufacturingProduct.listing_code == code).first():
+            return code
+    return f"ORT-MFG-{year}-{''.join(secrets.choice(_ALPHABET) for _ in range(10))}"
+
+
+def _generate_svc_listing_code(db: Session) -> str:
+    year = _dt.now().year
+    for _ in range(20):
+        suffix = ''.join(secrets.choice(_ALPHABET) for _ in range(6))
+        code = f"ORT-SVC-{year}-{suffix}"
+        if not db.query(ManufacturingService).filter(ManufacturingService.listing_code == code).first():
+            return code
+    return f"ORT-SVC-{year}-{''.join(secrets.choice(_ALPHABET) for _ in range(10))}"
+
+
+def _enrich_product(obj: ManufacturingProduct) -> ManufacturingProductResponse:
+    """Build a response with owner_profile populated from the owner relationship."""
+    resp = ManufacturingProductResponse.model_validate(obj)
+    if obj.owner is not None:
+        resp.owner_profile = OwnerProfileResponse.model_validate(obj.owner)
+    return resp
+
+
+def _enrich_service(obj: ManufacturingService) -> ManufacturingServiceResponse:
+    resp = ManufacturingServiceResponse.model_validate(obj)
+    if obj.owner is not None:
+        resp.owner_profile = OwnerProfileResponse.model_validate(obj.owner)
+    return resp
 
 
 @router.get("/", response_model=List[ManufacturingProductResponse])
@@ -34,6 +76,8 @@ def list_products(
     min_price: Optional[float] = Query(None),
     max_price: Optional[float] = Query(None),
     location: Optional[str] = Query(None),
+    country: Optional[str] = Query(None),
+    exclude_country: Optional[str] = Query(None),
     lat: Optional[float] = Query(None),
     lon: Optional[float] = Query(None),
     radius_km: Optional[float] = Query(None, gt=0),
@@ -62,6 +106,13 @@ def list_products(
         q = q.filter(ManufacturingProduct.wholesale_price <= max_price)
     if location:
         q = q.filter(ManufacturingProduct.location.ilike(f"%{location}%"))
+    if country:
+        q = q.filter(ManufacturingProduct.country_of_origin.ilike(country))
+    if exclude_country:
+        q = q.filter(
+            (ManufacturingProduct.country_of_origin == None) |
+            (~ManufacturingProduct.country_of_origin.ilike(exclude_country))
+        )
 
     items = q.order_by(ManufacturingProduct.created_at.desc()).offset(skip).limit(limit).all()
 
@@ -75,7 +126,7 @@ def list_products(
         with_dist.sort(key=lambda x: x[0])
         items = [i for _, i in with_dist]
 
-    return items
+    return [_enrich_product(i) for i in items]
 
 
 @router.patch("/{product_id}/status", response_model=ManufacturingProductResponse)
@@ -97,7 +148,7 @@ def update_product_status(
     obj.status = payload.status
     db.commit()
     db.refresh(obj)
-    return obj
+    return _enrich_product(obj)
 
 
 @router.get("/{product_id}", response_model=ManufacturingProductResponse)
@@ -105,16 +156,19 @@ def get_product(product_id: int, db: Session = Depends(get_db)):
     obj = db.query(ManufacturingProduct).filter(ManufacturingProduct.id == product_id, ManufacturingProduct.is_deleted == False).first()
     if not obj:
         raise HTTPException(status_code=404, detail="Manufacturing product not found")
-    return obj
+    return _enrich_product(obj)
 
 
 @router.post("/", response_model=ManufacturingProductResponse, status_code=status.HTTP_201_CREATED)
 def create_product(payload: ManufacturingProductCreate, db: Session = Depends(get_db)):
-    obj = ManufacturingProduct(**payload.model_dump())
+    data = payload.model_dump()
+    if not data.get("listing_code"):
+        data["listing_code"] = _generate_mfg_listing_code(db)
+    obj = ManufacturingProduct(**data)
     db.add(obj)
     db.commit()
     db.refresh(obj)
-    return obj
+    return _enrich_product(obj)
 
 
 @router.put("/{product_id}", response_model=ManufacturingProductResponse)
@@ -126,7 +180,7 @@ def update_product(product_id: int, payload: ManufacturingProductUpdate, db: Ses
         setattr(obj, k, v)
     db.commit()
     db.refresh(obj)
-    return obj
+    return _enrich_product(obj)
 
 
 @router.delete("/{product_id}", status_code=status.HTTP_200_OK)
@@ -194,7 +248,7 @@ def list_services(
         with_dist.sort(key=lambda x: x[0])
         items = [i for _, i in with_dist]
 
-    return items
+    return [_enrich_service(i) for i in items]
 
 
 @services_router.get("/{service_id}", response_model=ManufacturingServiceResponse)
@@ -205,16 +259,19 @@ def get_service(service_id: int, db: Session = Depends(get_db)):
     ).first()
     if not obj:
         raise HTTPException(status_code=404, detail="Manufacturing service not found")
-    return obj
+    return _enrich_service(obj)
 
 
 @services_router.post("/", response_model=ManufacturingServiceResponse, status_code=status.HTTP_201_CREATED)
 def create_service(payload: ManufacturingServiceCreate, db: Session = Depends(get_db)):
-    obj = ManufacturingService(**payload.model_dump())
+    data = payload.model_dump()
+    if not data.get("listing_code"):
+        data["listing_code"] = _generate_svc_listing_code(db)
+    obj = ManufacturingService(**data)
     db.add(obj)
     db.commit()
     db.refresh(obj)
-    return obj
+    return _enrich_service(obj)
 
 
 @services_router.patch("/{service_id}/status", response_model=ManufacturingServiceResponse)
@@ -236,7 +293,7 @@ def update_service_status(
     obj.status = payload.status
     db.commit()
     db.refresh(obj)
-    return obj
+    return _enrich_service(obj)
 
 
 @services_router.put("/{service_id}", response_model=ManufacturingServiceResponse)
@@ -248,7 +305,7 @@ def update_service(service_id: int, payload: ManufacturingServiceUpdate, db: Ses
         setattr(obj, k, v)
     db.commit()
     db.refresh(obj)
-    return obj
+    return _enrich_service(obj)
 
 
 @services_router.delete("/{service_id}", status_code=status.HTTP_200_OK)
@@ -262,3 +319,5 @@ def delete_service(service_id: int, db: Session = Depends(get_db)):
     obj.is_deleted = True
     db.commit()
     return {"message": "Manufacturing service deleted successfully"}
+
+

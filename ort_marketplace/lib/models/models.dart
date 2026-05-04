@@ -295,6 +295,8 @@ class AgricultureListingModel {
     this.storageConditions,
     required this.status,
     required this.createdAt,
+    this.listingCode,
+    this.ownerProfile,
   });
 
   final int id;
@@ -318,6 +320,8 @@ class AgricultureListingModel {
   final String? storageConditions;
   final String status;
   final DateTime createdAt;
+  final String? listingCode;
+  final AgentProfileModel? ownerProfile;
 
   factory AgricultureListingModel.fromJson(Map<String, dynamic> j) =>
       AgricultureListingModel(
@@ -344,6 +348,10 @@ class AgricultureListingModel {
         storageConditions: j['storage_conditions'] as String?,
         status: (j['status'] as String?) ?? 'available',
         createdAt: DateTime.parse(j['created_at'] as String),
+        listingCode: j['listing_code'] as String?,
+        ownerProfile: j['owner_profile'] != null
+            ? AgentProfileModel.fromJson(j['owner_profile'] as Map<String, dynamic>)
+            : null,
       );
 }
 
@@ -370,6 +378,8 @@ class ManufacturingProductModel {
     this.longitude,
     required this.status,
     required this.createdAt,
+    this.listingCode,
+    this.ownerProfile,
   });
 
   final int id;
@@ -393,6 +403,8 @@ class ManufacturingProductModel {
   final double? longitude;
   final String status;
   final DateTime createdAt;
+  final String? listingCode;
+  final AgentProfileModel? ownerProfile;
 
   factory ManufacturingProductModel.fromJson(Map<String, dynamic> j) =>
       ManufacturingProductModel(
@@ -418,6 +430,10 @@ class ManufacturingProductModel {
         longitude: j['longitude'] != null ? double.parse(j['longitude'].toString()) : null,
         status: (j['status'] as String?) ?? 'available',
         createdAt: DateTime.parse(j['created_at'] as String),
+        listingCode: j['listing_code'] as String?,
+        ownerProfile: j['owner_profile'] != null
+            ? AgentProfileModel.fromJson(j['owner_profile'] as Map<String, dynamic>)
+            : null,
       );
 }
 
@@ -440,6 +456,8 @@ class ManufacturingServiceModel {
     this.longitude,
     required this.status,
     required this.createdAt,
+    this.listingCode,
+    this.ownerProfile,
   });
 
   final int id;
@@ -459,6 +477,8 @@ class ManufacturingServiceModel {
   final double? longitude;
   final String status;
   final DateTime createdAt;
+  final String? listingCode;
+  final AgentProfileModel? ownerProfile;
 
   factory ManufacturingServiceModel.fromJson(Map<String, dynamic> j) =>
       ManufacturingServiceModel(
@@ -486,6 +506,10 @@ class ManufacturingServiceModel {
             : null,
         status: (j['status'] as String?) ?? 'available',
         createdAt: DateTime.parse(j['created_at'] as String),
+        listingCode: j['listing_code'] as String?,
+        ownerProfile: j['owner_profile'] != null
+            ? AgentProfileModel.fromJson(j['owner_profile'] as Map<String, dynamic>)
+            : null,
       );
 }
 

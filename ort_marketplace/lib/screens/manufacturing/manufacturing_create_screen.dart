@@ -5,6 +5,7 @@ import '../../core/api_service.dart';
 import '../../core/auth_provider.dart';
 import '../../core/listing_providers.dart';
 import '../../core/location_service.dart';
+import '../../widgets/ai_description_button.dart';
 import '../../widgets/media_picker_field.dart';
 
 class ManufacturingCreateScreen extends ConsumerStatefulWidget {
@@ -696,8 +697,19 @@ class _ManufacturingCreateScreenState
               const SizedBox(height: 12),
               TextFormField(
                 controller: _descCtrl,
-                decoration: const InputDecoration(
-                    labelText: 'Description (optional)'),
+                decoration: InputDecoration(
+                  labelText: 'Description (optional)',
+                  suffixIcon: AiDescriptionButton(
+                    controller: _descCtrl,
+                    listingType: _isService
+                        ? 'manufacturing_service'
+                        : 'manufacturing_product',
+                    getTitle: () => _titleCtrl.text,
+                    getCategory: () =>
+                        _isService ? _serviceType : _category,
+                    getLocation: () => _locationCtrl.text,
+                  ),
+                ),
                 maxLines: 3,
               ),
 

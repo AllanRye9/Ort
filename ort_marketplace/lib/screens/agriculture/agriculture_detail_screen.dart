@@ -8,6 +8,7 @@ import '../../core/auth_provider.dart';
 import '../../core/listing_providers.dart';
 import '../../models/models.dart';
 import '../../widgets/image_gallery.dart';
+import '../../widgets/listing_widgets.dart';
 import '../../widgets/promote_listing_button.dart';
 
 final _agriDetailProvider =
@@ -413,6 +414,11 @@ class _AgricultureDetailScreenState extends ConsumerState<AgricultureDetailScree
                           style: TextStyle(
                               color: Colors.grey[700], height: 1.5)),
                     ],
+                    // ── Listing code ────────────────────────────────────────
+                    if (a.listingCode != null) ...[
+                      const SizedBox(height: 12),
+                      ListingCodeBadge(code: a.listingCode!),
+                    ],
                     if (a.description != null) ...[
                       const SizedBox(height: 14),
                       const Divider(),
@@ -426,6 +432,19 @@ class _AgricultureDetailScreenState extends ConsumerState<AgricultureDetailScree
                       Text(a.description!,
                           style: TextStyle(
                               color: Colors.grey[700], height: 1.5)),
+                    ],
+                    // ── Owner / company / org profile ────────────────────────
+                    if (a.ownerProfile != null) ...[
+                      const SizedBox(height: 14),
+                      const Divider(),
+                      const SizedBox(height: 8),
+                      Text('Seller',
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleSmall
+                              ?.copyWith(fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 8),
+                      ListingOwnerCard(owner: a.ownerProfile!),
                     ],
                     if (a.latitude != null && a.longitude != null) ...[
                       const SizedBox(height: 14),

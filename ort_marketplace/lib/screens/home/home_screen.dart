@@ -381,6 +381,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     ),
                   ),
                 IconButton(
+                  icon: const Icon(Icons.auto_awesome_outlined,
+                      color: Colors.white),
+                  onPressed: () => context.push('/ai-assistant'),
+                  tooltip: 'ORT AI Assistant',
+                ),
+                IconButton(
                   icon: const Icon(Icons.notifications_outlined,
                       color: Colors.white),
                   onPressed: () => context.go('/notifications'),
@@ -435,6 +441,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 child: _ContentWrapper(child: const _AiWidget()),
               ),
             ),
+
+            // ── International country filter ──────────────────────────────────
+            if (marketplaceMode == MarketplaceMode.international)
+              SliverToBoxAdapter(
+                child: _ContentWrapper(
+                  child: _InternationalFilterBar(),
+                ),
+              ),
 
             // ── Featured Properties ─────────────────────────────────────────
             SliverToBoxAdapter(
@@ -2296,6 +2310,71 @@ class _ModeCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+// ─── International country filter bar ────────────────────────────────────────
+
+/// Horizontal scrolling filter chips shown when in international mode.
+/// Lets users show goods from a specific country or all countries.
+class _InternationalFilterBar extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final selected = ref.watch(intlCountryFilterProvider);
+    final notifier = ref.read(intlCountryFilterProvider.notifier);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Showing listings from:',
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey[600],
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 6),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              // "All countries" chip
+              Padding(
+                padding: const EdgeInsets.only(right: 6),
+                child: FilterChip(
+                  label: const Text('All countries'),
+                  selected: selected.isEmpty,
+                  onSelected: (_) {
+                    notifier.clear();
+                    ref.invalidate(homePropertiesProvider);
+                    ref.invalidate(homeAgricultureProvider);
+                    ref.invalidate(homeMfgProvider);
+                  },
+                ),
+              ),
+              // Country chips
+              ...kInternationalCountries.map((country) {
+                return Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: FilterChip(
+                    label: Text(country),
+                    selected: selected == country,
+                    onSelected: (_) {
+                      notifier.setFilter(country);
+                      ref.invalidate(homePropertiesProvider);
+                      ref.invalidate(homeAgricultureProvider);
+                      ref.invalidate(homeMfgProvider);
+                    },
+                  ),
+                );
+              }),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+      ],
     );
   }
 }
