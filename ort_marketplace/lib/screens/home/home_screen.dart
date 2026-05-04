@@ -735,6 +735,8 @@ class _HeroBannerState extends State<_HeroBanner>
             colors: [AppTheme.primary, Color(0xFF388E3C)],
           ),
         ),
+        // Top padding pushes content below the collapsed app bar height (~56px)
+        // plus an extra 8px gutter; bottom/side padding provides visual breathing room.
         padding:
             const EdgeInsets.only(left: 20, right: 20, top: 64, bottom: 20),
         child: Row(
