@@ -39,6 +39,7 @@ class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen>
   MarketplaceMode? _lastMode;
   String? _lastUserCountry;
   String? _lastIntlFilter;
+  bool _reloadPending = false;
 
   List<ManufacturingProductModel>? _items;
   bool _loading = true;
@@ -517,11 +518,14 @@ class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen>
     final userCountry = ref.watch(userCountryProvider);
     final intlFilter = ref.watch(intlCountryFilterProvider);
     if (_lastMode != null &&
+        !_reloadPending &&
         (_lastMode != mode ||
             _lastUserCountry != userCountry ||
             _lastIntlFilter != intlFilter)) {
+      _reloadPending = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
+          _reloadPending = false;
           _loadListings();
           _loadServices();
         }
