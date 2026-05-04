@@ -118,13 +118,18 @@ class ListingCard extends StatelessWidget {
                     Row(
                       children: [
                         _TagChip(label: tag, color: iconColor),
-                        const Spacer(),
-                        Text(
-                          price,
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.primary,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            price,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.primary,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.end,
                           ),
                         ),
                       ],

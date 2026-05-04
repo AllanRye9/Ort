@@ -212,6 +212,8 @@ def list_services(
     lat: Optional[float] = Query(None),
     lon: Optional[float] = Query(None),
     radius_km: Optional[float] = Query(None, gt=0),
+    country: Optional[str] = Query(None),
+    exclude_country: Optional[str] = Query(None),
     db: Session = Depends(get_db),
 ):
     q = db.query(ManufacturingService).filter(ManufacturingService.is_deleted == False)
@@ -235,6 +237,13 @@ def list_services(
         q = q.filter(ManufacturingService.price >= min_price)
     if max_price is not None:
         q = q.filter(ManufacturingService.price <= max_price)
+    if country:
+        q = q.filter(ManufacturingService.country.ilike(country))
+    if exclude_country:
+        q = q.filter(
+            (ManufacturingService.country == None) |
+            (~ManufacturingService.country.ilike(exclude_country))
+        )
 
     items = q.order_by(ManufacturingService.created_at.desc()).offset(skip).limit(limit).all()
 
