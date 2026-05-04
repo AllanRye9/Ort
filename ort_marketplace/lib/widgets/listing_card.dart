@@ -116,10 +116,10 @@ class ListingCard extends StatelessWidget {
                     ],
                     const SizedBox(height: 4),
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         _TagChip(label: tag, color: iconColor),
-                        const SizedBox(width: 4),
-                        Expanded(
+                        Flexible(
                           child: Text(
                             price,
                             style: TextStyle(
