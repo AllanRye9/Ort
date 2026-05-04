@@ -117,6 +117,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       _initLocation();
     } else {
       setState(() => _locationServiceOff = true);
+      // Mark location as denied so the mode is forced to International.
+      ref.read(locationAvailabilityProvider.notifier).state =
+          LocationAvailabilityStatus.denied;
+      ref.read(marketplaceModeProvider.notifier).setMode(
+        MarketplaceMode.international,
+        locationStatus: LocationAvailabilityStatus.denied,
+      );
     }
   }
 
@@ -143,6 +150,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       if (pos != null) {
         final loc = (pos.latitude, pos.longitude);
         ref.read(userLocationProvider.notifier).state = loc;
+        // Mark location as granted so Local mode is allowed.
+        ref.read(locationAvailabilityProvider.notifier).state =
+            LocationAvailabilityStatus.granted;
         setState(() {
           _locationServiceOff = false;
           _lastSortedLoc = loc;
@@ -151,8 +161,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       }
       // If permission denied (once), silently skip – no banner shown.
     } on LocationPermissionDeniedException {
-      // Permission permanently denied – show a one-time dialog to open settings.
+      // Permission permanently denied – switch to International mode and show dialog.
       if (!mounted) return;
+      ref.read(locationAvailabilityProvider.notifier).state =
+          LocationAvailabilityStatus.denied;
+      ref.read(marketplaceModeProvider.notifier).setMode(
+        MarketplaceMode.international,
+        locationStatus: LocationAvailabilityStatus.denied,
+      );
       if (!_locationDialogShown) {
         setState(() => _locationDialogShown = true);
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -164,8 +180,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               title: const Text('Location Permission Required'),
               content: const Text(
                 'Location permission has been permanently denied. '
-                'To see listings near you, open app settings and allow location access.\n\n'
-                'Listings will be shown in default order until permission is granted.',
+                'Local listings are disabled until location access is granted.\n\n'
+                'You have been switched to International mode. '
+                'Open app settings to enable location and access Local listings.',
               ),
               actions: [
                 TextButton(
@@ -269,12 +286,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   /// Shows the marketplace-mode selection dialog.  Called once on first login
   /// and also available via the settings screen.
   void _showModeSelectionDialog() {
+    final locationStatus = ref.read(locationAvailabilityProvider);
     showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => _ModeSelectionDialog(
+        locationStatus: locationStatus,
         onSelected: (mode) {
-          ref.read(marketplaceModeProvider.notifier).setMode(mode);
+          ref.read(marketplaceModeProvider.notifier).setMode(
+            mode,
+            locationStatus: ref.read(locationAvailabilityProvider),
+          );
         },
       ),
     );
@@ -301,6 +323,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final walletPoints = ref.watch(_homeWalletPointsProvider).valueOrNull;
     final marketplaceMode = ref.watch(marketplaceModeProvider);
     final distanceUnit = ref.watch(distanceUnitProvider);
+    final locationStatus = ref.watch(locationAvailabilityProvider);
+    final locationDenied = locationStatus == LocationAvailabilityStatus.denied;
 
     final roleLabel = switch (role) {
       'agent' => 'Agent Dashboard',
@@ -401,8 +425,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   children: [
                     _SearchBar(onTap: () => context.go('/search')),
                     const SizedBox(height: 8),
+                    // Location denied – Local mode unavailable, forced to International
+                    if (locationDenied)
+                      _LocationBanner(
+                        icon: Icons.location_disabled_outlined,
+                        message:
+                            'Location access is disabled. Local listings are unavailable. '
+                            'Grant location access to browse your local market.',
+                        actionLabel: 'Enable Location',
+                        onAction: () async {
+                          try {
+                            await Geolocator.openAppSettings();
+                          } catch (_) {}
+                        },
+                        onDismiss: () {
+                          // Dismissing hides the banner but does not change the mode.
+                          ref.read(locationAvailabilityProvider.notifier).state =
+                              LocationAvailabilityStatus.unknown;
+                        },
+                      ),
                     // Location service is OFF – non-blocking dismissible banner
-                    if (_locationServiceOff && !_locationBannerDismissed)
+                    if (_locationServiceOff && !_locationBannerDismissed && !locationDenied)
                       _LocationBanner(
                         icon: Icons.location_off_outlined,
                         message: 'Turn on GPS to find listings near you.',
@@ -1455,8 +1498,10 @@ class _AiWidget extends ConsumerStatefulWidget {
 
 class _AiWidgetState extends ConsumerState<_AiWidget> {
   void _openDialog() {
+    // barrierDismissible: false ensures only the explicit X button closes the dialog.
     showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (_) => const _AiDialog(),
     );
   }
@@ -1988,9 +2033,14 @@ class _RadarPainter extends CustomPainter {
 /// Full-screen dialog shown on first login to let the user choose between
 /// Local and International marketplace mode.
 class _ModeSelectionDialog extends StatefulWidget {
-  const _ModeSelectionDialog({required this.onSelected});
+  const _ModeSelectionDialog({
+    required this.onSelected,
+    this.locationStatus = LocationAvailabilityStatus.unknown,
+  });
 
   final ValueChanged<MarketplaceMode> onSelected;
+  /// When [LocationAvailabilityStatus.denied], the Local option is disabled.
+  final LocationAvailabilityStatus locationStatus;
 
   @override
   State<_ModeSelectionDialog> createState() => _ModeSelectionDialogState();
@@ -2032,6 +2082,8 @@ class _ModeSelectionDialogState extends State<_ModeSelectionDialog>
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final locationDenied =
+        widget.locationStatus == LocationAvailabilityStatus.denied;
     final isLocal = _selected == MarketplaceMode.local;
     final isIntl = _selected == MarketplaceMode.international;
 
@@ -2079,16 +2131,32 @@ class _ModeSelectionDialogState extends State<_ModeSelectionDialog>
                     const SizedBox(height: 36),
 
                     // ── Local card ─────────────────────────────────────────────
-                    _ModeCard(
-                      selected: isLocal,
-                      onTap: () => setState(() => _selected = MarketplaceMode.local),
-                      icon: Icons.place_rounded,
-                      iconBgColor: AppTheme.primary.withValues(alpha: 0.12),
-                      iconColor: AppTheme.primary,
-                      title: 'Local',
-                      subtitle:
-                          'Browse your local market. Prices in UGX, AED or USD based on your location.',
-                      flag: '🇺🇬',
+                    Opacity(
+                      opacity: locationDenied ? 0.45 : 1.0,
+                      child: _ModeCard(
+                        selected: isLocal && !locationDenied,
+                        onTap: locationDenied
+                            ? () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Local mode requires location access. '
+                                      'Enable location in Settings.',
+                                    ),
+                                    behavior: SnackBarBehavior.floating,
+                                  ),
+                                );
+                              }
+                            : () => setState(() => _selected = MarketplaceMode.local),
+                        icon: Icons.place_rounded,
+                        iconBgColor: AppTheme.primary.withValues(alpha: 0.12),
+                        iconColor: AppTheme.primary,
+                        title: 'Local',
+                        subtitle: locationDenied
+                            ? 'Requires location access. Enable location to use this mode.'
+                            : 'Browse your local market. Prices in UGX, AED or USD based on your location.',
+                        flag: '🇺🇬',
+                      ),
                     ),
                     const SizedBox(height: 16),
 

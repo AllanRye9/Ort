@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 import '../../core/api_service.dart';
 import '../../core/auth_provider.dart';
+import '../../core/listing_providers.dart';
 import '../../models/models.dart';
 import '../../widgets/image_gallery.dart';
 import '../../widgets/listing_widgets.dart';
@@ -35,6 +36,8 @@ class _ManufacturingDetailScreenState extends ConsumerState<ManufacturingDetailS
   void initState() {
     super.initState();
     _loadSavedState();
+    // Record this listing as viewed for personalization ranking.
+    ref.read(recentlyViewedProvider.notifier).recordView('manufacturing', widget.id);
   }
 
   Future<void> _loadSavedState() async {

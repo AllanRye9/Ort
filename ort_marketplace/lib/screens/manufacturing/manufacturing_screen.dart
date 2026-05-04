@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/api_service.dart';
+import '../../core/app_preferences.dart';
 import '../../core/listing_providers.dart';
 import '../../core/location_service.dart';
 import '../../core/responsive.dart';
@@ -35,6 +36,10 @@ class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen>
   bool _showCustomRadius = false;
   final _customRadiusCtrl = TextEditingController();
 
+  MarketplaceMode? _lastMode;
+  String? _lastUserCountry;
+  String? _lastIntlFilter;
+
   List<ManufacturingProductModel>? _items;
   bool _loading = true;
   String? _error;
@@ -60,6 +65,7 @@ class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen>
     'finishing', 'testing', 'printing', 'packaging',
     'consultation', 'other',
   ];
+
   @override
   void initState() {
     super.initState();
@@ -77,12 +83,27 @@ class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen>
     super.dispose();
   }
 
+  ({String? country, String? excludeCountry}) _countryFilter() {
+    final mode = ref.read(marketplaceModeProvider);
+    final userCountry = ref.read(userCountryProvider);
+    final intlFilter = ref.read(intlCountryFilterProvider);
+    if (mode == MarketplaceMode.local) {
+      return (country: userCountry, excludeCountry: null);
+    } else {
+      if (intlFilter.isNotEmpty) {
+        return (country: intlFilter, excludeCountry: null);
+      }
+      return (country: null, excludeCountry: userCountry);
+    }
+  }
+
   Future<void> _loadListings() async {
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
+      final (:country, :excludeCountry) = _countryFilter();
       final data = await ref.read(apiServiceProvider).getManufacturingFiltered(
             keyword: _keyword.isNotEmpty ? _keyword : null,
             category: _category,
@@ -92,6 +113,8 @@ class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen>
             lat: _lat,
             lon: _lon,
             radiusKm: _radiusKm,
+            country: country,
+            excludeCountry: excludeCountry,
           );
       if (mounted) {
         setState(() {
@@ -167,10 +190,13 @@ class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen>
       _svcError = null;
     });
     try {
+      final (:country, :excludeCountry) = _countryFilter();
       final data = await ref.read(apiServiceProvider).getManufacturingServices(
             keyword: _svcKeyword.isNotEmpty ? _svcKeyword : null,
             serviceType: _svcType,
             status: _svcStatus,
+            country: country,
+            excludeCountry: excludeCountry,
           );
       if (mounted) {
         setState(() {
@@ -487,6 +513,24 @@ class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen>
 
   @override
   Widget build(BuildContext context) {
+    final mode = ref.watch(marketplaceModeProvider);
+    final userCountry = ref.watch(userCountryProvider);
+    final intlFilter = ref.watch(intlCountryFilterProvider);
+    if (_lastMode != null &&
+        (_lastMode != mode ||
+            _lastUserCountry != userCountry ||
+            _lastIntlFilter != intlFilter)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _loadListings();
+          _loadServices();
+        }
+      });
+    }
+    _lastMode = mode;
+    _lastUserCountry = userCountry;
+    _lastIntlFilter = intlFilter;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Manufacturing & Services'),
