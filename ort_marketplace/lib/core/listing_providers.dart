@@ -127,7 +127,28 @@ List<T> sortedByDistance<T>(
 
 final homePropertiesProvider = FutureProvider<List<PropertyModel>>(
   (ref) async {
-    final data = await ref.read(apiServiceProvider).getProperties(limit: 20);
+    final mode = ref.watch(marketplaceModeProvider);
+    final userCountry = ref.watch(userCountryProvider);
+    final intlFilter = ref.watch(intlCountryFilterProvider);
+
+    String? country;
+    String? excludeCountry;
+    if (mode == MarketplaceMode.local) {
+      country = userCountry;
+    } else {
+      // International: exclude user's country; optionally filter to a target country
+      if (intlFilter.isNotEmpty) {
+        country = intlFilter;
+      } else {
+        excludeCountry = userCountry;
+      }
+    }
+
+    final data = await ref.read(apiServiceProvider).getPropertiesFiltered(
+          limit: 20,
+          country: country,
+          excludeCountry: excludeCountry,
+        );
     return data
         .map((e) => PropertyModel.fromJson(e as Map<String, dynamic>))
         .toList();
@@ -136,8 +157,27 @@ final homePropertiesProvider = FutureProvider<List<PropertyModel>>(
 
 final homeAgricultureProvider = FutureProvider<List<AgricultureListingModel>>(
   (ref) async {
-    final data =
-        await ref.read(apiServiceProvider).getAgricultureListings(limit: 8);
+    final mode = ref.watch(marketplaceModeProvider);
+    final userCountry = ref.watch(userCountryProvider);
+    final intlFilter = ref.watch(intlCountryFilterProvider);
+
+    String? country;
+    String? excludeCountry;
+    if (mode == MarketplaceMode.local) {
+      country = userCountry;
+    } else {
+      if (intlFilter.isNotEmpty) {
+        country = intlFilter;
+      } else {
+        excludeCountry = userCountry;
+      }
+    }
+
+    final data = await ref.read(apiServiceProvider).getAgricultureFiltered(
+          limit: 8,
+          country: country,
+          excludeCountry: excludeCountry,
+        );
     return data
         .map((e) =>
             AgricultureListingModel.fromJson(e as Map<String, dynamic>))
@@ -147,8 +187,27 @@ final homeAgricultureProvider = FutureProvider<List<AgricultureListingModel>>(
 
 final homeMfgProvider = FutureProvider<List<ManufacturingProductModel>>(
   (ref) async {
-    final data =
-        await ref.read(apiServiceProvider).getManufacturingProducts(limit: 8);
+    final mode = ref.watch(marketplaceModeProvider);
+    final userCountry = ref.watch(userCountryProvider);
+    final intlFilter = ref.watch(intlCountryFilterProvider);
+
+    String? country;
+    String? excludeCountry;
+    if (mode == MarketplaceMode.local) {
+      country = userCountry;
+    } else {
+      if (intlFilter.isNotEmpty) {
+        country = intlFilter;
+      } else {
+        excludeCountry = userCountry;
+      }
+    }
+
+    final data = await ref.read(apiServiceProvider).getManufacturingFiltered(
+          limit: 8,
+          country: country,
+          excludeCountry: excludeCountry,
+        );
     return data
         .map((e) =>
             ManufacturingProductModel.fromJson(e as Map<String, dynamic>))

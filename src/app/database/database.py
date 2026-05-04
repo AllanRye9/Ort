@@ -166,6 +166,10 @@ _MIGRATIONS: list[tuple[str, str, str]] = [
     ("product_tracking",        "created_by_user_id", "INTEGER"),
     # Message attachments – store original filename for downloads
     ("messages",                "attachment_filename", "VARCHAR(255)"),
+    # Listing codes for agriculture, manufacturing products and services
+    ("agriculture_listings",    "listing_code",       "VARCHAR(30)"),
+    ("manufacturing_products",  "listing_code",       "VARCHAR(30)"),
+    ("manufacturing_services",  "listing_code",       "VARCHAR(30)"),
 ]
 
 # Columns whose type needs widening on existing databases.

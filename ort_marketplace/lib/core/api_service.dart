@@ -668,6 +668,8 @@ class ApiService {
     String? propertyType,
     String? status,
     int? agentId,
+    String? country,
+    String? excludeCountry,
     double? lat,
     double? lon,
     double? radiusKm,
@@ -682,6 +684,8 @@ class ApiService {
       if (propertyType != null && propertyType.isNotEmpty) 'property_type': propertyType,
       if (status != null && status.isNotEmpty) 'status': status,
       if (agentId != null) 'agent_id': agentId,
+      if (country != null && country.isNotEmpty) 'country': country,
+      if (excludeCountry != null && excludeCountry.isNotEmpty) 'exclude_country': excludeCountry,
       if (lat != null) 'lat': lat,
       if (lon != null) 'lon': lon,
       if (radiusKm != null) 'radius_km': radiusKm,
@@ -698,6 +702,8 @@ class ApiService {
     String? category,
     String? location,
     String? status,
+    String? country,
+    String? excludeCountry,
     double? lat,
     double? lon,
     double? radiusKm,
@@ -711,6 +717,8 @@ class ApiService {
       if (category != null && category.isNotEmpty) 'category': category,
       if (location != null && location.isNotEmpty) 'location': location,
       if (status != null && status.isNotEmpty) 'status': status,
+      if (country != null && country.isNotEmpty) 'country': country,
+      if (excludeCountry != null && excludeCountry.isNotEmpty) 'exclude_country': excludeCountry,
       if (lat != null) 'lat': lat,
       if (lon != null) 'lon': lon,
       if (radiusKm != null) 'radius_km': radiusKm,
@@ -727,6 +735,8 @@ class ApiService {
     String? category,
     String? location,
     String? status,
+    String? country,
+    String? excludeCountry,
     double? lat,
     double? lon,
     double? radiusKm,
@@ -740,6 +750,8 @@ class ApiService {
       if (category != null && category.isNotEmpty) 'category': category,
       if (location != null && location.isNotEmpty) 'location': location,
       if (status != null && status.isNotEmpty) 'status': status,
+      if (country != null && country.isNotEmpty) 'country': country,
+      if (excludeCountry != null && excludeCountry.isNotEmpty) 'exclude_country': excludeCountry,
       if (lat != null) 'lat': lat,
       if (lon != null) 'lon': lon,
       if (radiusKm != null) 'radius_km': radiusKm,
@@ -894,5 +906,33 @@ class ApiService {
       Map<String, dynamic> data) async {
     final res = await _dio.post('/tracking/', data: data);
     return res.data as Map<String, dynamic>;
+  }
+
+  // ─── AI ───────────────────────────────────────────────────────────────────
+
+  /// Ask the backend AI to generate a listing description.
+  Future<String> generateAiDescription({
+    required String listingType,
+    required String title,
+    String? category,
+    String? location,
+    String? extraContext,
+  }) async {
+    final res = await _dio.post('/ai/generate-description', data: {
+      'listing_type': listingType,
+      'title': title,
+      if (category != null) 'category': category,
+      if (location != null) 'location': location,
+      if (extraContext != null) 'extra_context': extraContext,
+    });
+    return (res.data as Map<String, dynamic>)['description'] as String;
+  }
+
+  /// Send a chat message to the ORT AI support assistant.
+  Future<String> aiChat(List<Map<String, String>> messages) async {
+    final res = await _dio.post('/ai/chat', data: {
+      'messages': messages,
+    });
+    return (res.data as Map<String, dynamic>)['reply'] as String;
   }
 }

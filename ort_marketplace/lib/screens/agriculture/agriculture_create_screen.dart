@@ -5,6 +5,7 @@ import '../../core/api_service.dart';
 import '../../core/auth_provider.dart';
 import '../../core/listing_providers.dart';
 import '../../core/location_service.dart';
+import '../../widgets/ai_description_button.dart';
 import '../../widgets/media_picker_field.dart';
 
 class AgricultureCreateScreen extends ConsumerStatefulWidget {
@@ -337,22 +338,17 @@ class _AgricultureCreateScreenState
               // ── AI Auto-fill description ──────────────────────────────────
               TextFormField(
                 controller: _descCtrl,
-                decoration:
-                    const InputDecoration(labelText: 'Description (optional)'),
-                maxLines: 3,
-              ),
-              const SizedBox(height: 6),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton.icon(
-                  onPressed: _aiAutoFillDescription,
-                  icon: const Icon(Icons.auto_awesome, size: 16),
-                  label: const Text('AI Auto-fill Description',
-                      style: TextStyle(fontSize: 12)),
-                  style: TextButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
+                decoration: InputDecoration(
+                  labelText: 'Description (optional)',
+                  suffixIcon: AiDescriptionButton(
+                    controller: _descCtrl,
+                    listingType: 'agriculture',
+                    getTitle: () => _titleCtrl.text,
+                    getCategory: () => _category,
+                    getLocation: () => _locationCtrl.text,
                   ),
                 ),
+                maxLines: 3,
               ),
               const SizedBox(height: 12),
               SwitchListTile(

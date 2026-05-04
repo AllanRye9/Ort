@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -481,8 +482,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   }
 }
 
-/// Small widget that renders a file attachment inside a chat bubble with a
-/// download (open in browser) button.
+/// Small widget that renders a file attachment inside a chat bubble.
+/// Images are displayed as inline previews with a fullscreen tap gesture.
+/// Non-image files open in an in-app web viewer.
 class _FileBubble extends StatelessWidget {
   const _FileBubble({
     required this.filename,
@@ -494,11 +496,16 @@ class _FileBubble extends StatelessWidget {
   final String url;
   final bool isMe;
 
+  static const _imageExts = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'};
+
+  static bool _isImage(String name) {
+    final ext = name.split('.').last.toLowerCase();
+    return _imageExts.contains(ext);
+  }
+
   static IconData _iconForFilename(String name) {
     final ext = name.split('.').last.toLowerCase();
-    if (['jpg', 'jpeg', 'png', 'gif', 'webp'].contains(ext)) {
-      return Icons.image_outlined;
-    }
+    if (_imageExts.contains(ext)) return Icons.image_outlined;
     if (ext == 'pdf') return Icons.picture_as_pdf_outlined;
     if (['doc', 'docx'].contains(ext)) return Icons.description_outlined;
     if (['xls', 'xlsx'].contains(ext)) return Icons.table_chart_outlined;
@@ -506,20 +513,91 @@ class _FileBubble extends StatelessWidget {
     return Icons.attach_file_outlined;
   }
 
-  Future<void> _download() async {
+  Future<void> _openInApp(BuildContext context) async {
     final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
+    // Try in-app browser first; fall back to external if not possible
+    final launched = await launchUrl(uri, mode: LaunchMode.inAppWebView);
+    if (!launched && context.mounted) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
   }
 
+  void _showImageFullscreen(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        fullscreenDialog: true,
+        builder: (_) => Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.black,
+            foregroundColor: Colors.white,
+            title: Text(
+              filename,
+              style: const TextStyle(fontSize: 14),
+              overflow: TextOverflow.ellipsis,
+            ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.open_in_browser_outlined),
+                onPressed: () => launchUrl(
+                  Uri.parse(url),
+                  mode: LaunchMode.externalApplication,
+                ),
+                tooltip: 'Open in browser',
+              ),
+            ],
+          ),
+          body: Center(
+            child: InteractiveViewer(
+              child: CachedNetworkImage(
+                imageUrl: url,
+                fit: BoxFit.contain,
+                placeholder: (_, __) =>
+                    const CircularProgressIndicator(color: Colors.white),
+                errorWidget: (_, __, ___) =>
+                    const Icon(Icons.broken_image, color: Colors.white, size: 64),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_isImage(filename)) {
+      return GestureDetector(
+        onTap: () => _showImageFullscreen(context),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: CachedNetworkImage(
+            imageUrl: url,
+            width: 200,
+            height: 200,
+            fit: BoxFit.cover,
+            placeholder: (_, __) => Container(
+              width: 200,
+              height: 200,
+              color: Colors.grey[300],
+              child: const Center(child: CircularProgressIndicator()),
+            ),
+            errorWidget: (_, __, ___) => Container(
+              width: 200,
+              height: 100,
+              color: Colors.grey[200],
+              child: const Icon(Icons.broken_image, size: 40),
+            ),
+          ),
+        ),
+      );
+    }
+
     final textColor = isMe ? Colors.white : Colors.black87;
     final subColor = isMe ? Colors.white70 : Colors.black45;
 
     return InkWell(
-      onTap: _download,
+      onTap: () => _openInApp(context),
       borderRadius: BorderRadius.circular(8),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -540,14 +618,14 @@ class _FileBubble extends StatelessWidget {
                       fontSize: 13),
                 ),
                 Text(
-                  'Tap to download',
+                  'Tap to open',
                   style: TextStyle(color: subColor, fontSize: 10),
                 ),
               ],
             ),
           ),
           const SizedBox(width: 6),
-          Icon(Icons.download_outlined, color: textColor, size: 18),
+          Icon(Icons.open_in_new_outlined, color: textColor, size: 18),
         ],
       ),
     );
