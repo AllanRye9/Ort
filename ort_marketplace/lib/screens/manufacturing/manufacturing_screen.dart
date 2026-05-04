@@ -513,6 +513,10 @@ class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen>
     );
   }
 
+  /// Returns a [TextStyle] with white text when [selected] is true, else default.
+  static TextStyle _chipLabelStyle(bool selected) =>
+      TextStyle(fontSize: 12, color: selected ? Colors.white : null);
+
   @override
   Widget build(BuildContext context) {
     final auth = ref.watch(authProvider);
@@ -700,12 +704,7 @@ class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen>
                           padding: const EdgeInsets.only(right: 6),
                           child: FilterChip(
                             label: Text('${km.toInt()} km',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: (_radiusKm == km && !_showCustomRadius)
-                                      ? Colors.white
-                                      : null,
-                                )),
+                                style: _chipLabelStyle(_radiusKm == km && !_showCustomRadius)),
                             selected: _radiusKm == km && !_showCustomRadius,
                             selectedColor: const Color(0xFFE65100),
                             checkmarkColor: Colors.white,
@@ -719,10 +718,7 @@ class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen>
                         ),
                       FilterChip(
                         label: Text('Custom',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: _showCustomRadius ? Colors.white : null,
-                            )),
+                            style: _chipLabelStyle(_showCustomRadius)),
                         selected: _showCustomRadius,
                         selectedColor: const Color(0xFFE65100),
                         checkmarkColor: Colors.white,
@@ -935,12 +931,7 @@ class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen>
                         child: FilterChip(
                           label: Text(
                             t[0].toUpperCase() + t.substring(1),
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: _svcType == t
-                                  ? Colors.white
-                                  : null,
-                            ),
+                            style: _chipLabelStyle(_svcType == t),
                           ),
                           selected: _svcType == t,
                           selectedColor: const Color(0xFF1565C0),
