@@ -1,8 +1,12 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/api_service.dart';
 import '../../core/auth_provider.dart';
@@ -484,8 +488,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
 
 /// Small widget that renders a file attachment inside a chat bubble.
 /// Images are displayed as inline previews with a fullscreen tap gesture.
-/// Non-image files open in an in-app web viewer.
-class _FileBubble extends StatelessWidget {
+/// Non-image files show a Download button that saves the file to the
+/// device's local storage (or triggers a browser download on web).
+class _FileBubble extends StatefulWidget {
   const _FileBubble({
     required this.filename,
     required this.url,
@@ -513,14 +518,13 @@ class _FileBubble extends StatelessWidget {
     return Icons.attach_file_outlined;
   }
 
-  Future<void> _openInApp(BuildContext context) async {
-    final uri = Uri.parse(url);
-    // Try in-app browser first; fall back to external if not possible
-    final launched = await launchUrl(uri, mode: LaunchMode.inAppWebView);
-    if (!launched && context.mounted) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
-  }
+  @override
+  State<_FileBubble> createState() => _FileBubbleState();
+}
+
+class _FileBubbleState extends State<_FileBubble> {
+  double? _progress; // null = idle, 0..1 = downloading
+  bool _done = false;
 
   void _showImageFullscreen(BuildContext context) {
     Navigator.of(context).push(
@@ -532,25 +536,22 @@ class _FileBubble extends StatelessWidget {
             backgroundColor: Colors.black,
             foregroundColor: Colors.white,
             title: Text(
-              filename,
+              widget.filename,
               style: const TextStyle(fontSize: 14),
               overflow: TextOverflow.ellipsis,
             ),
             actions: [
               IconButton(
-                icon: const Icon(Icons.open_in_browser_outlined),
-                onPressed: () => launchUrl(
-                  Uri.parse(url),
-                  mode: LaunchMode.externalApplication,
-                ),
-                tooltip: 'Open in browser',
+                icon: const Icon(Icons.download_outlined),
+                onPressed: () => _download(context),
+                tooltip: 'Download',
               ),
             ],
           ),
           body: Center(
             child: InteractiveViewer(
               child: CachedNetworkImage(
-                imageUrl: url,
+                imageUrl: widget.url,
                 fit: BoxFit.contain,
                 placeholder: (_, __) =>
                     const CircularProgressIndicator(color: Colors.white),
@@ -564,15 +565,81 @@ class _FileBubble extends StatelessWidget {
     );
   }
 
+  Future<void> _download(BuildContext context) async {
+    if (_progress != null) return; // already in progress
+
+    // On web, fall back to opening the URL in a new tab.
+    if (kIsWeb) {
+      await launchUrl(Uri.parse(widget.url), mode: LaunchMode.externalApplication);
+      return;
+    }
+
+    setState(() {
+      _progress = 0;
+      _done = false;
+    });
+
+    try {
+      // Pick a writable directory available on all platforms.
+      late Directory dir;
+      if (Platform.isAndroid) {
+        // getExternalStorageDirectory returns the app-specific external dir
+        // (e.g. /sdcard/Android/data/<pkg>/files) which doesn't need WRITE
+        // permission on Android 10+.
+        final ext = await getExternalStorageDirectory();
+        dir = ext ?? await getApplicationDocumentsDirectory();
+      } else {
+        dir = await getApplicationDocumentsDirectory();
+      }
+
+      final savePath = '${dir.path}/${widget.filename}';
+      final dio = Dio();
+      await dio.download(
+        widget.url,
+        savePath,
+        onReceiveProgress: (received, total) {
+          if (total > 0 && mounted) {
+            setState(() => _progress = received / total);
+          }
+        },
+      );
+
+      if (mounted) {
+        setState(() {
+          _progress = null;
+          _done = true;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Saved: ${widget.filename}'),
+            duration: const Duration(seconds: 3),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _progress = null);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Download failed: $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (_isImage(filename)) {
+    if (_FileBubble._isImage(widget.filename)) {
       return GestureDetector(
         onTap: () => _showImageFullscreen(context),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(8),
           child: CachedNetworkImage(
-            imageUrl: url,
+            imageUrl: widget.url,
             width: 200,
             height: 200,
             fit: BoxFit.cover,
@@ -593,41 +660,68 @@ class _FileBubble extends StatelessWidget {
       );
     }
 
-    final textColor = isMe ? Colors.white : Colors.black87;
-    final subColor = isMe ? Colors.white70 : Colors.black45;
+    final textColor = widget.isMe ? Colors.white : Colors.black87;
+    final subColor = widget.isMe ? Colors.white70 : Colors.black45;
 
-    return InkWell(
-      onTap: () => _openInApp(context),
-      borderRadius: BorderRadius.circular(8),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(_iconForFilename(filename), color: textColor, size: 22),
-          const SizedBox(width: 8),
-          Flexible(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  filename,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(_FileBubble._iconForFilename(widget.filename), color: textColor, size: 22),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                widget.filename,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    color: textColor,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 13),
+              ),
+              if (_progress != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: SizedBox(
+                    width: 120,
+                    child: LinearProgressIndicator(
+                      value: _progress,
+                      backgroundColor: textColor.withValues(alpha: 0.2),
                       color: textColor,
-                      fontWeight: FontWeight.w500,
-                      fontSize: 13),
-                ),
+                    ),
+                  ),
+                )
+              else
                 Text(
-                  'Tap to open',
+                  _done ? 'Downloaded ✓' : 'Tap to download',
                   style: TextStyle(color: subColor, fontSize: 10),
                 ),
-              ],
+            ],
+          ),
+        ),
+        const SizedBox(width: 6),
+        if (_progress != null)
+          SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              value: _progress,
+              color: textColor,
+            ),
+          )
+        else
+          GestureDetector(
+            onTap: () => _download(context),
+            child: Icon(
+              _done ? Icons.check_circle_outline : Icons.download_outlined,
+              color: textColor,
+              size: 20,
             ),
           ),
-          const SizedBox(width: 6),
-          Icon(Icons.open_in_new_outlined, color: textColor, size: 18),
-        ],
-      ),
+      ],
     );
   }
 }
