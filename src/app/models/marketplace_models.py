@@ -136,6 +136,7 @@ class AgricultureListing(Base):
     map_link = Column(Text)
     is_perishable = Column(Boolean, default=False)
     images = Column(JSON)                   # list of image URLs
+    listing_code = Column(String(30), unique=True, nullable=True)   # e.g. ORT-AGRI-2024-AB1C2D
     is_deleted = Column(Boolean, default=False, server_default="false", nullable=False)
     status = Column(
         Enum("available", "sold_out", "reserved", "expired", name="agri_listing_status"),
@@ -147,6 +148,7 @@ class AgricultureListing(Base):
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
     tenant = relationship("Tenant", back_populates="agriculture_listings")
+    owner = relationship("User", foreign_keys=[owner_user_id])
     order_items = relationship("OrderItem", back_populates="agriculture_listing")
 
 
@@ -186,6 +188,7 @@ class ManufacturingProduct(Base):
     latitude = Column(Float)
     longitude = Column(Float)
     map_link = Column(Text)
+    listing_code = Column(String(30), unique=True, nullable=True)   # e.g. ORT-MFG-2024-AB1C2D
     is_deleted = Column(Boolean, default=False, server_default="false", nullable=False)
     status = Column(
         Enum("available", "out_of_stock", "discontinued", name="mfg_product_status"),
@@ -197,6 +200,7 @@ class ManufacturingProduct(Base):
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
     tenant = relationship("Tenant", back_populates="manufacturing_products")
+    owner = relationship("User", foreign_keys=[owner_user_id])
     order_items = relationship("OrderItem", back_populates="manufacturing_product")
 
 
@@ -228,6 +232,7 @@ class ManufacturingService(Base):
     location = Column(String(255))
     latitude = Column(Float)
     longitude = Column(Float)
+    listing_code = Column(String(30), unique=True, nullable=True)   # e.g. ORT-SVC-2024-AB1C2D
     is_deleted = Column(Boolean, default=False, server_default="false", nullable=False)
     status = Column(
         String(50),
@@ -237,6 +242,8 @@ class ManufacturingService(Base):
     )
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    owner = relationship("User", foreign_keys=[owner_user_id])
 
 
 # ---------------------------------------------------------------------------
