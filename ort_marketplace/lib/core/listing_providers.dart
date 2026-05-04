@@ -7,11 +7,42 @@ import 'dart:math';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'api_service.dart';
 import 'app_preferences.dart';
 import '../models/models.dart';
 
 // ─── Currency formatting ──────────────────────────────────────────────────────
+
+/// Approximate USD conversion rates for common currencies.
+///
+/// These rates are used when displaying international listing prices in USD.
+/// Update these values periodically to keep conversions reasonably accurate.
+const _kToUsdRates = {
+  'UGX': 0.000272, // Ugandan Shilling  ≈ 0.000272 USD
+  'AED': 0.272,    // UAE Dirham         ≈ 0.272 USD
+  'USD': 1.0,
+  'EUR': 1.08,
+  'GBP': 1.25,
+  'KES': 0.0077,   // Kenyan Shilling
+  'TZS': 0.00039,  // Tanzanian Shilling
+  'RWF': 0.00087,  // Rwandan Franc
+  'ETB': 0.0088,   // Ethiopian Birr
+  'NGN': 0.00062,  // Nigerian Naira
+  'ZAR': 0.054,    // South African Rand
+  'EGP': 0.021,    // Egyptian Pound
+  'CNY': 0.137,    // Chinese Yuan
+  'INR': 0.012,    // Indian Rupee
+};
+
+/// Converts [amount] from [fromCurrency] to USD using the built-in rate table.
+/// Returns the original amount unchanged when the currency is unknown or
+/// is already USD.
+double convertToUsd(double amount, String? fromCurrency) {
+  final rate = _kToUsdRates[fromCurrency?.toUpperCase()];
+  if (rate == null || rate == 1.0) return amount;
+  return amount * rate;
+}
 
 /// Formats [amount] as a currency string based on [country] or explicit
 /// [currency] code.
@@ -64,9 +95,9 @@ String currencyPrefixForCountry(String? country) {
 
 /// Like [formatCurrency] but respects the current [MarketplaceMode].
 ///
-/// In [MarketplaceMode.international] the currency is always USD regardless
-/// of country/currency arguments.  In [MarketplaceMode.local] the existing
-/// country/currency logic applies.
+/// In [MarketplaceMode.international] all prices are converted to USD using
+/// [convertToUsd] before display, regardless of the original currency.
+/// In [MarketplaceMode.local] the existing country/currency logic applies.
 String formatCurrencyForMode(
   double amount, {
   String? country,
@@ -75,7 +106,12 @@ String formatCurrencyForMode(
   MarketplaceMode mode = MarketplaceMode.local,
 }) {
   if (mode == MarketplaceMode.international) {
-    return '\$${amount.toStringAsFixed(decimals)}';
+    // Derive the currency code if not explicitly provided.
+    final cur = currency?.isNotEmpty == true
+        ? currency
+        : currencyCodeForCountry(country);
+    final usdAmount = convertToUsd(amount, cur);
+    return '\$${usdAmount.toStringAsFixed(decimals)}';
   }
   return formatCurrency(amount, country: country, currency: currency, decimals: decimals);
 }
@@ -253,36 +289,48 @@ final sortedHomePropertiesProvider =
     Provider<AsyncValue<List<PropertyModel>>>((ref) {
   final data = ref.watch(homePropertiesProvider);
   final loc = ref.watch(userLocationProvider);
+  final recentlyViewed = ref.watch(recentlyViewedProvider);
   ref.watch(radiusFilterProvider); // trigger re-sort on radius change
-  return data.whenData(
-      (items) => sortedByDistance(items, loc, (p) => p.latitude, (p) => p.longitude));
+  return data.whenData((items) {
+    final byDist = sortedByDistance(items, loc, (p) => p.latitude, (p) => p.longitude);
+    return applyPersonalization(byDist, recentlyViewed, 'property', (p) => p.id);
+  });
 });
 
 final sortedHomeAgricultureProvider =
     Provider<AsyncValue<List<AgricultureListingModel>>>((ref) {
   final data = ref.watch(homeAgricultureProvider);
   final loc = ref.watch(userLocationProvider);
+  final recentlyViewed = ref.watch(recentlyViewedProvider);
   ref.watch(radiusFilterProvider);
-  return data.whenData(
-      (items) => sortedByDistance(items, loc, (a) => a.latitude, (a) => a.longitude));
+  return data.whenData((items) {
+    final byDist = sortedByDistance(items, loc, (a) => a.latitude, (a) => a.longitude);
+    return applyPersonalization(byDist, recentlyViewed, 'agriculture', (a) => a.id);
+  });
 });
 
 final sortedHomeMfgProvider =
     Provider<AsyncValue<List<ManufacturingProductModel>>>((ref) {
   final data = ref.watch(homeMfgProvider);
   final loc = ref.watch(userLocationProvider);
+  final recentlyViewed = ref.watch(recentlyViewedProvider);
   ref.watch(radiusFilterProvider);
-  return data.whenData(
-      (items) => sortedByDistance(items, loc, (m) => m.latitude, (m) => m.longitude));
+  return data.whenData((items) {
+    final byDist = sortedByDistance(items, loc, (m) => m.latitude, (m) => m.longitude);
+    return applyPersonalization(byDist, recentlyViewed, 'manufacturing', (m) => m.id);
+  });
 });
 
 final sortedHomeServicesProvider =
     Provider<AsyncValue<List<ManufacturingServiceModel>>>((ref) {
   final data = ref.watch(homeServicesProvider);
   final loc = ref.watch(userLocationProvider);
+  final recentlyViewed = ref.watch(recentlyViewedProvider);
   ref.watch(radiusFilterProvider);
-  return data.whenData(
-      (items) => sortedByDistance(items, loc, (s) => s.latitude, (s) => s.longitude));
+  return data.whenData((items) {
+    final byDist = sortedByDistance(items, loc, (s) => s.latitude, (s) => s.longitude);
+    return applyPersonalization(byDist, recentlyViewed, 'manufacturing_service', (s) => s.id);
+  });
 });
 
 /// Call this after creating any listing to ensure the home feed is refreshed.
@@ -291,4 +339,88 @@ void invalidateHomeProviders(WidgetRef ref) {
   ref.invalidate(homeAgricultureProvider);
   ref.invalidate(homeMfgProvider);
   ref.invalidate(homeServicesProvider);
+}
+
+// ─── Interaction tracking & personalization ───────────────────────────────────
+
+const _kRecentlyViewedKey = 'recently_viewed_ids';
+// Maximum number of listing IDs kept in the history.
+const _kMaxRecentlyViewed = 100;
+
+/// Tracks recently viewed listing IDs across all categories.  IDs are stored
+/// as strings in SharedPreferences in the form `"<type>:<id>"`, e.g.
+/// `"property:42"`, `"agriculture:7"`, `"manufacturing:15"`.
+///
+/// The list is ordered most-recently-viewed first; index 0 = the most recent.
+class RecentlyViewedNotifier extends StateNotifier<List<String>> {
+  RecentlyViewedNotifier() : super([]) {
+    _load();
+  }
+
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    state = prefs.getStringList(_kRecentlyViewedKey) ?? [];
+  }
+
+  /// Records that the user has viewed a listing of [type] with the given [id].
+  ///
+  /// The entry is moved to the front (most recent) and the history is capped
+  /// at [_kMaxRecentlyViewed] entries.
+  Future<void> recordView(String type, int id) async {
+    final key = '$type:$id';
+    // Remove any existing occurrence so we don't get duplicates, then prepend.
+    final updated = [key, ...state.where((k) => k != key)]
+        .take(_kMaxRecentlyViewed)
+        .toList();
+    state = updated;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_kRecentlyViewedKey, updated);
+  }
+
+  /// Returns `true` when the listing has been previously viewed.
+  bool hasViewed(String type, int id) => state.contains('$type:$id');
+}
+
+final recentlyViewedProvider =
+    StateNotifierProvider<RecentlyViewedNotifier, List<String>>(
+  (_) => RecentlyViewedNotifier(),
+);
+
+/// Re-orders [items] so that previously-viewed listings appear first, with
+/// the most-recently-viewed item at the top.  Items not in the history keep
+/// their original relative order after the viewed group.
+///
+/// Call this **after** distance-based sorting so the order within each group
+/// still respects proximity.
+List<T> applyPersonalization<T>(
+  List<T> items,
+  List<String> recentlyViewed,
+  String type,
+  int Function(T) getId,
+) {
+  // Build a lookup: key → recency rank (lower = more recent).
+  final recencyRank = <String, int>{};
+  for (var i = 0; i < recentlyViewed.length; i++) {
+    recencyRank[recentlyViewed[i]] = i;
+  }
+
+  final viewed = <T>[];
+  final rest = <T>[];
+  for (final item in items) {
+    final key = '$type:${getId(item)}';
+    if (recencyRank.containsKey(key)) {
+      viewed.add(item);
+    } else {
+      rest.add(item);
+    }
+  }
+
+  // Sort viewed items by recency (index 0 = most recent → first).
+  viewed.sort((a, b) {
+    final rankA = recencyRank['$type:${getId(a)}'] ?? _kMaxRecentlyViewed;
+    final rankB = recencyRank['$type:${getId(b)}'] ?? _kMaxRecentlyViewed;
+    return rankA.compareTo(rankB);
+  });
+
+  return [...viewed, ...rest];
 }

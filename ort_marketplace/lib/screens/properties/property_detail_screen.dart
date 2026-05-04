@@ -40,6 +40,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
   void initState() {
     super.initState();
     _loadSavedState();
+    // Record this listing as viewed for personalization ranking.
+    ref.read(recentlyViewedProvider.notifier).recordView('property', widget.id);
   }
 
   Future<void> _loadSavedState() async {

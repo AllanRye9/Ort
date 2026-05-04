@@ -106,6 +106,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final theme = ref.watch(themeProvider);
     final distanceUnit = ref.watch(distanceUnitProvider);
     final marketplaceMode = ref.watch(marketplaceModeProvider);
+    final locationStatus = ref.watch(locationAvailabilityProvider);
+    final locationDenied = locationStatus == LocationAvailabilityStatus.denied;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
@@ -135,15 +137,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             title: const Text('Marketplace Mode'),
             subtitle: Text(marketplaceMode.label),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () => _showModePicker(context),
+            onTap: () => _showModePicker(context, locationDenied: locationDenied),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(72, 0, 16, 8),
             child: Text(
-              marketplaceMode.description,
+              locationDenied
+                  ? 'Local mode is disabled because location access was denied. '
+                    'Grant location access to switch to Local mode.'
+                  : marketplaceMode.description,
               style: TextStyle(
                 fontSize: 12,
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
+                color: locationDenied
+                    ? Theme.of(context).colorScheme.error.withValues(alpha: 0.75)
+                    : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
               ),
             ),
           ),
@@ -337,7 +344,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  void _showModePicker(BuildContext context) {
+  void _showModePicker(BuildContext context, {bool locationDenied = false}) {
     final current = ref.read(marketplaceModeProvider);
     showModalBottomSheet<void>(
       context: context,
@@ -357,28 +364,46 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
                 ),
               ),
-              const Padding(
-                padding: EdgeInsets.fromLTRB(16, 0, 16, 12),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                 child: Text(
-                  'International mode shows all prices in USD and is designed for Uganda ↔ UAE import & export.',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                  locationDenied
+                      ? 'Local mode requires location access. '
+                        'Grant location permission to enable it.'
+                      : 'International mode shows all prices in USD and is designed for Uganda ↔ UAE import & export.',
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
                   textAlign: TextAlign.center,
                 ),
               ),
               ...MarketplaceMode.values.map(
-                (mode) => RadioListTile<MarketplaceMode>(
-                  value: mode,
-                  groupValue: current,
-                  title: Text(mode.label),
-                  subtitle: Text(mode.description,
-                      style: const TextStyle(fontSize: 11)),
-                  onChanged: (v) {
-                    if (v != null) {
-                      ref.read(marketplaceModeProvider.notifier).setMode(v);
-                    }
-                    Navigator.of(ctx).pop();
-                  },
-                ),
+                (mode) {
+                  final isLocalDisabled =
+                      locationDenied && mode == MarketplaceMode.local;
+                  return RadioListTile<MarketplaceMode>(
+                    value: mode,
+                    groupValue: current,
+                    title: Text(mode.label),
+                    subtitle: Text(
+                      isLocalDisabled
+                          ? 'Requires location access'
+                          : mode.description,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isLocalDisabled ? Colors.red[400] : null,
+                      ),
+                    ),
+                    onChanged: isLocalDisabled
+                        ? null
+                        : (v) {
+                            if (v != null) {
+                              ref
+                                  .read(marketplaceModeProvider.notifier)
+                                  .setMode(v);
+                            }
+                            Navigator.of(ctx).pop();
+                          },
+                  );
+                },
               ),
             ],
           ),
