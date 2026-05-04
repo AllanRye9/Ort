@@ -581,9 +581,13 @@ class _PropertyDetailBody extends StatelessWidget {
                       Icon(Icons.business_outlined,
                           size: 15, color: Colors.grey[600]),
                       const SizedBox(width: 4),
-                      Text(
-                        p.buildingName!,
-                        style: TextStyle(color: Colors.grey[700], fontSize: 13),
+                      Expanded(
+                        child: Text(
+                          p.buildingName!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(color: Colors.grey[700], fontSize: 13),
+                        ),
                       ),
                     ],
                   ),
@@ -785,9 +789,13 @@ class _AgentProfileCard extends StatelessWidget {
                             Icon(Icons.phone_outlined,
                                 size: 13, color: Colors.grey[500]),
                             const SizedBox(width: 3),
-                            Text(agent.phone!,
-                                style: TextStyle(
-                                    fontSize: 12, color: Colors.grey[600])),
+                            Expanded(
+                              child: Text(agent.phone!,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                      fontSize: 12, color: Colors.grey[600])),
+                            ),
                           ],
                         ),
                       ],
@@ -813,12 +821,16 @@ class _AgentProfileCard extends StatelessWidget {
                   Icon(Icons.badge_outlined,
                       size: 14, color: cs.primary),
                   const SizedBox(width: 4),
-                  Text(
-                    'License: ${agent.licenseNumber}',
-                    style: TextStyle(
-                        fontSize: 12,
-                        color: cs.primary,
-                        fontWeight: FontWeight.w500),
+                  Expanded(
+                    child: Text(
+                      'License: ${agent.licenseNumber}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: cs.primary,
+                          fontWeight: FontWeight.w500),
+                    ),
                   ),
                 ],
               ),

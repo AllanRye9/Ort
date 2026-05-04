@@ -4,6 +4,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/api_service.dart';
 import '../../core/app_preferences.dart';
+import '../../core/auth_provider.dart';
 import '../../core/listing_providers.dart';
 import '../../core/location_service.dart';
 import '../../core/responsive.dart';
@@ -401,6 +402,8 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
   Widget build(BuildContext context) {
     // Watch mode/country providers so we reload if they change while this
     // screen is active (e.g., user switches mode from Settings).
+    final auth = ref.watch(authProvider);
+    final canList = auth.role != 'user';
     final mode = ref.watch(marketplaceModeProvider);
     final userCountry = ref.watch(userCountryProvider);
     final intlFilter = ref.watch(intlCountryFilterProvider);
@@ -433,11 +436,13 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
             ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        icon: const Icon(Icons.add),
-        label: const Text('List Property'),
-        onPressed: () => context.go('/properties/create'),
-      ),
+      floatingActionButton: canList
+          ? FloatingActionButton.extended(
+              icon: const Icon(Icons.add),
+              label: const Text('List Property'),
+              onPressed: () => context.go('/properties/create'),
+            )
+          : null,
       body: Column(
         children: [
           // ── Search bar ──────────────────────────────────────────────
@@ -658,14 +663,14 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
                                   style: TextStyle(color: Colors.grey[500]),
                                 ),
                                 const SizedBox(height: 16),
-                                if (!_hasActiveFilters)
+                                if (!_hasActiveFilters && canList)
                                   ElevatedButton.icon(
                                     icon: const Icon(Icons.add),
                                     label: const Text('Add First Listing'),
                                     onPressed: () =>
                                         context.go('/properties/create'),
                                   )
-                                else
+                                else if (_hasActiveFilters)
                                   TextButton(
                                     onPressed: _clearFilters,
                                     child: const Text('Clear Filters'),
