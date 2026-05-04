@@ -762,12 +762,16 @@ class _PropertyListingCard extends StatelessWidget {
             const SizedBox(height: 4),
             Row(
               children: [
-                Text(
-                  formatCurrency(p.price, country: p.country),
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Theme.of(context).colorScheme.primary,
-                    fontWeight: FontWeight.w600,
+                Flexible(
+                  child: Text(
+                    formatCurrency(p.price, country: p.country),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -937,11 +941,15 @@ class _SimpleListingCard extends StatelessWidget {
             const SizedBox(height: 4),
             Row(
               children: [
-                Text(price,
-                    style: TextStyle(
-                        fontSize: 13,
-                        color: Theme.of(context).colorScheme.primary,
-                        fontWeight: FontWeight.w600)),
+                Flexible(
+                  child: Text(price,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          fontSize: 13,
+                          color: Theme.of(context).colorScheme.primary,
+                          fontWeight: FontWeight.w600)),
+                ),
                 const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(
