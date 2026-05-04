@@ -163,6 +163,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           if (result?.country != null && result!.country!.isNotEmpty) {
             ref.read(userCountryProvider.notifier).setCountry(result.country!);
           }
+        }).catchError((_) {
+          // Reverse geocoding failed – country stays at its persisted value.
         });
         setState(() {
           _locationServiceOff = false;
