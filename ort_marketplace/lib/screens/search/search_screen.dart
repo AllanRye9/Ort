@@ -397,6 +397,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         ),
     };
   }
+}
 
 // ─── Featured preview (shown when no search query entered) ───────────────────
 
