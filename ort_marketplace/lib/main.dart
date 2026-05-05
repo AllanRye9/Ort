@@ -1,11 +1,20 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/router.dart';
 import 'core/theme.dart';
 import 'core/theme_provider.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Initialise Firebase (requires google-services.json / GoogleService-Info.plist).
+  // Silently skipped when Firebase is not configured so that the app works in
+  // development environments without the config files.
+  try {
+    await Firebase.initializeApp();
+  } catch (_) {
+    // Firebase config files not present – push notifications will be disabled.
+  }
   runApp(const ProviderScope(child: OrtMarketplaceApp()));
 }
 

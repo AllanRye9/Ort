@@ -100,6 +100,16 @@ def send_message(payload: MessageCreate, db: Session = Depends(get_db)):
 
     db.commit()
     db.refresh(obj)
+
+    # Send FCM push notification to recipient
+    if recipient_id:
+        try:
+            from app.utils.push import notify_user
+            preview = (payload.body or "")[:80]
+            notify_user(recipient_id, "New Message", preview or "You have a new message", db)
+        except Exception:
+            pass  # Push failure must never break the message API
+
     return obj
 
 

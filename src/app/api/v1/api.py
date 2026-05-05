@@ -380,6 +380,26 @@ def create_property(prop: PropertyCreate, db: Session = Depends(get_db)):
             db.add(PropertyImage(property_id=db_property.id, image_url=url, is_primary=(idx == 0)))
     db.commit()
     db.refresh(db_property)
+
+    agent_id = prop_data.get("agent_id")
+    if agent_id:
+        try:
+            from app.models.marketplace_models import Notification
+            from app.utils.push import notify_user
+            db.add(Notification(
+                user_id=agent_id,
+                title="Property Published ✅",
+                body=f"Your property '{db_property.title}' is now live.",
+                notification_type="listing_created",
+                reference_id=db_property.id,
+                reference_type="property",
+            ))
+            db.commit()
+            notify_user(agent_id, "Property Published ✅",
+                        f"Your property '{db_property.title}' is now live.", db)
+        except Exception:
+            pass
+
     return PropertyResponse.from_orm_with_images(db_property)
 
 

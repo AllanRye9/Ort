@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'api_service.dart';
 import 'constants.dart';
+import 'push_notification_service.dart';
 
 // ─── Auth state ───────────────────────────────────────────────────────────────
 
@@ -113,11 +114,27 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       state =
           state.copyWith(token: token, userId: userId, role: role, isLoading: false);
+
+      // Register FCM device token after successful login
+      if (userId != null) {
+        _initPush(userId);
+      }
+
       return true;
     } catch (e) {
       state = state.copyWith(isLoading: false, error: _extractError(e));
       return false;
     }
+  }
+
+  void _initPush(int userId) {
+    Future.microtask(() async {
+      try {
+        await PushNotificationService.init(userId: userId, apiService: _api);
+      } catch (_) {
+        // Push init failure must never prevent login from completing.
+      }
+    });
   }
 
   Future<bool> register(Map<String, dynamic> userData) async {
@@ -133,6 +150,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> logout() async {
+    final userId = state.userId;
+    if (userId != null) {
+      try {
+        await PushNotificationService.unregister(userId: userId, apiService: _api);
+      } catch (_) {}
+    }
     await _storage.deleteAll();
     state = const AuthState(isInitialized: true);
   }
