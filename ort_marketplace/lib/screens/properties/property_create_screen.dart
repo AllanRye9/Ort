@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/api_service.dart';
+import '../../core/app_preferences.dart';
 import '../../core/auth_provider.dart';
 import '../../core/listing_providers.dart';
 import '../../core/location_service.dart';
@@ -41,6 +42,7 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
   final List<String> _selectedAmenities = [];
 
   String _propertyType = 'house';
+  final _customPropertyTypeCtrl = TextEditingController();
   List<String> _imageUrls = [];
   bool _submitting = false;
 
@@ -70,13 +72,15 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
   bool get _showBedroomsBathrooms =>
       _residentialTypes.contains(_propertyType);
 
-  String get _priceCurrencyCode {
+  String _priceCurrencyCode(MarketplaceMode mode) {
+    if (mode == MarketplaceMode.international) return 'USD';
     if (_isUganda) return 'UGX';
     if (_isUAE) return 'AED';
     return 'USD';
   }
 
-  String get _priceCurrencyPrefix {
+  String _priceCurrencyPrefix(MarketplaceMode mode) {
+    if (mode == MarketplaceMode.international) return '\$';
     if (_isUganda) return 'UGX ';
     if (_isUAE) return 'AED ';
     return '\$';
@@ -119,6 +123,7 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
     _floorsCtrl.dispose();
     _parkingCtrl.dispose();
     _propertyAgeCtrl.dispose();
+    _customPropertyTypeCtrl.dispose();
     super.dispose();
   }
 
@@ -241,6 +246,16 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
+    if (_propertyType == 'other' && _customPropertyTypeCtrl.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a custom property type.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
     if (_geocodedLat == null || _geocodedLon == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -259,6 +274,9 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
       double? widthM;
       double? landAreaAcres;
 
+      final effectivePropertyType = _propertyType == 'other'
+          ? _customPropertyTypeCtrl.text.trim().toLowerCase().replaceAll(' ', '_')
+          : _propertyType;
       final isLand = _propertyType == 'land';
 
       if (isLand && _landCategory != null) {
@@ -300,7 +318,7 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
             ? _addressCtrl.text.trim()
             : (_geocodedDisplayName ?? 'Unknown'),
         'price': double.parse(_priceCtrl.text.trim()),
-        'property_type': _propertyType,
+        'property_type': effectivePropertyType,
         'latitude': _geocodedLat,
         'longitude': _geocodedLon,
         if (userId != null) 'agent_id': userId,
@@ -370,6 +388,7 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final mode = ref.watch(marketplaceModeProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('List a Property')),
@@ -416,6 +435,18 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
                     }
                   }),
               ),
+              if (_propertyType == 'other') ...[
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _customPropertyTypeCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Custom Property Type *',
+                    hintText: 'e.g. Guesthouse, Resort, Hostel',
+                  ),
+                  validator: (v) =>
+                      v == null || v.trim().isEmpty ? 'Required' : null,
+                ),
+              ],
               // ── Land category (shown only when property_type == 'land') ────
               if (_propertyType == 'land') ...[
                 const SizedBox(height: 12),
@@ -444,7 +475,9 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
                     controller: _descCtrl,
                     listingType: 'property',
                     getTitle: () => _titleCtrl.text,
-                    getCategory: () => _propertyType,
+                    getCategory: () => _propertyType == 'other'
+                        ? _customPropertyTypeCtrl.text
+                        : _propertyType,
                     getLocation: () => _cityCtrl.text.isNotEmpty
                         ? _cityCtrl.text
                         : _addressCtrl.text,
@@ -592,13 +625,15 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
                 controller: _priceCtrl,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 decoration: InputDecoration(
-                  labelText: 'Price ($_priceCurrencyCode) *',
-                  prefixText: _priceCurrencyPrefix,
-                  helperText: _isUganda
-                      ? 'Enter price in Uganda Shillings (UGX)'
-                      : _isUAE
-                          ? 'Enter price in UAE Dirhams (AED)'
-                          : null,
+                  labelText: 'Price (${_priceCurrencyCode(mode)}) *',
+                  prefixText: _priceCurrencyPrefix(mode),
+                  helperText: mode == MarketplaceMode.international
+                      ? 'International listing: price in USD'
+                      : _isUganda
+                          ? 'Enter price in Uganda Shillings (UGX)'
+                          : _isUAE
+                              ? 'Enter price in UAE Dirhams (AED)'
+                              : null,
                 ),
                 validator: (v) {
                   if (v == null || v.trim().isEmpty) return 'Required';

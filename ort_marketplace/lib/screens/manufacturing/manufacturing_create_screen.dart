@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/api_service.dart';
+import '../../core/app_preferences.dart';
 import '../../core/auth_provider.dart';
 import '../../core/listing_providers.dart';
 import '../../core/location_service.dart';
@@ -48,6 +49,8 @@ class _ManufacturingCreateScreenState
   String _pricingUnit = 'per_hour';
   final _minOrderCtrl = TextEditingController(); // Min order value
   final _noticePeriodCtrl = TextEditingController(); // Notice period days
+  final _customCategoryCtrl = TextEditingController();
+  final _customServiceTypeCtrl = TextEditingController();
 
   // ── Location state ────────────────────────────────────────────────────────
   double? _geocodedLat;
@@ -125,6 +128,8 @@ class _ManufacturingCreateScreenState
     _countryCtrl.dispose();
     _minOrderCtrl.dispose();
     _noticePeriodCtrl.dispose();
+    _customCategoryCtrl.dispose();
+    _customServiceTypeCtrl.dispose();
     super.dispose();
   }
 
@@ -205,6 +210,27 @@ class _ManufacturingCreateScreenState
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    // Validate custom category/service type
+    if (!_isService && _category == 'other' &&
+        _customCategoryCtrl.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a custom category name.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    if (_isService && _serviceType == 'other' &&
+        _customServiceTypeCtrl.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a custom service type.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
     setState(() => _submitting = true);
     try {
       final certs = _certCtrl.text
@@ -215,13 +241,23 @@ class _ManufacturingCreateScreenState
           .toList();
 
       final userId = ref.read(authProvider).userId;
+      final mode = ref.read(marketplaceModeProvider);
+      final userCountry = ref.read(userCountryProvider);
+      final currency = mode == MarketplaceMode.international
+          ? 'USD'
+          : currencyCodeForCountry(
+              _geocodedCountry ?? userCountry);
 
       if (_isService) {
+        final effectiveServiceType = _serviceType == 'other'
+            ? _customServiceTypeCtrl.text.trim().toLowerCase().replaceAll(' ', '_')
+            : _serviceType;
         final payload = <String, dynamic>{
           'title': _titleCtrl.text.trim(),
           'price': double.parse(_priceCtrl.text.trim()),
-          'service_type': _serviceType,
+          'service_type': effectiveServiceType,
           'pricing_unit': _pricingUnit,
+          'currency': currency,
           if (_descCtrl.text.trim().isNotEmpty)
             'description': _descCtrl.text.trim(),
           if (_locationCtrl.text.trim().isNotEmpty)
@@ -243,10 +279,14 @@ class _ManufacturingCreateScreenState
             .read(apiServiceProvider)
             .createManufacturingService(payload);
       } else {
+        final effectiveCategory = _category == 'other'
+            ? _customCategoryCtrl.text.trim().toLowerCase().replaceAll(' ', '_')
+            : _category;
         final payload = <String, dynamic>{
           'title': _titleCtrl.text.trim(),
           'wholesale_price': double.parse(_priceCtrl.text.trim()),
-          'category': _category,
+          'category': effectiveCategory,
+          'currency': currency,
           'is_locally_made': _isLocallyMade,
           if (_descCtrl.text.trim().isNotEmpty)
             'description': _descCtrl.text.trim(),
@@ -420,7 +460,10 @@ class _ManufacturingCreateScreenState
         ],
       );
 
-  Widget _productFields() => Column(
+  Widget _productFields({
+    required String currencyCode,
+    required String currencyPrefix,
+  }) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _sectionTitle('PRODUCT DETAILS'),
@@ -435,6 +478,18 @@ class _ManufacturingCreateScreenState
                 .toList(),
             onChanged: (v) => setState(() => _category = v!),
           ),
+          if (_category == 'other') ...[
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _customCategoryCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Custom Category *',
+                hintText: 'e.g. Composite Materials, Smart Devices',
+              ),
+              validator: (v) =>
+                  v == null || v.trim().isEmpty ? 'Required' : null,
+            ),
+          ],
           const SizedBox(height: 12),
           TextFormField(
             controller: _productCodeCtrl,
@@ -459,9 +514,9 @@ class _ManufacturingCreateScreenState
                   controller: _priceCtrl,
                   keyboardType:
                       const TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(
-                    labelText: 'Wholesale Price *',
-                    prefixText: '\$',
+                  decoration: InputDecoration(
+                    labelText: 'Wholesale Price ($currencyCode) *',
+                    prefixText: currencyPrefix,
                   ),
                   validator: (v) {
                     if (v == null || v.trim().isEmpty) return 'Required';
@@ -548,7 +603,10 @@ class _ManufacturingCreateScreenState
         ],
       );
 
-  Widget _serviceFields() => Column(
+  Widget _serviceFields({
+    required String currencyCode,
+    required String currencyPrefix,
+  }) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _sectionTitle('SERVICE DETAILS'),
@@ -562,6 +620,18 @@ class _ManufacturingCreateScreenState
                 .toList(),
             onChanged: (v) => setState(() => _serviceType = v!),
           ),
+          if (_serviceType == 'other') ...[
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _customServiceTypeCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Custom Service Type *',
+                hintText: 'e.g. Laser Cutting, 3D Printing',
+              ),
+              validator: (v) =>
+                  v == null || v.trim().isEmpty ? 'Required' : null,
+            ),
+          ],
           _sectionTitle('PRICING'),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -572,9 +642,9 @@ class _ManufacturingCreateScreenState
                   controller: _priceCtrl,
                   keyboardType:
                       const TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(
-                    labelText: 'Price *',
-                    prefixText: '\$',
+                  decoration: InputDecoration(
+                    labelText: 'Price ($currencyCode) *',
+                    prefixText: currencyPrefix,
                   ),
                   validator: (v) {
                     if (v == null || v.trim().isEmpty) return 'Required';
@@ -608,9 +678,9 @@ class _ManufacturingCreateScreenState
                   controller: _minOrderCtrl,
                   keyboardType:
                       const TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Minimum Job Value (optional)',
-                    prefixText: '\$',
+                    prefixText: currencyPrefix,
                     hintText: 'Smallest project you accept',
                   ),
                   validator: (v) {
@@ -643,6 +713,14 @@ class _ManufacturingCreateScreenState
 
   @override
   Widget build(BuildContext context) {
+    final mode = ref.watch(marketplaceModeProvider);
+    final userCountry = ref.watch(userCountryProvider);
+    final currencyCode = mode == MarketplaceMode.international
+        ? 'USD'
+        : currencyCodeForCountry(_geocodedCountry ?? userCountry);
+    final currencyPrefix = mode == MarketplaceMode.international
+        ? '\$'
+        : currencyPrefixForCountry(_geocodedCountry ?? userCountry);
     return Scaffold(
       appBar: AppBar(
           title: Text(_isService ? 'Add Service' : 'Add Product')),
@@ -708,8 +786,16 @@ class _ManufacturingCreateScreenState
                         ? 'manufacturing_service'
                         : 'manufacturing_product',
                     getTitle: () => _titleCtrl.text,
-                    getCategory: () =>
-                        _isService ? _serviceType : _category,
+                    getCategory: () {
+                      if (_isService) {
+                        return _serviceType == 'other'
+                            ? _customServiceTypeCtrl.text
+                            : _serviceType;
+                      }
+                      return _category == 'other'
+                          ? _customCategoryCtrl.text
+                          : _category;
+                    },
                     getLocation: () => _locationCtrl.text,
                   ),
                 ),
@@ -717,7 +803,10 @@ class _ManufacturingCreateScreenState
               ),
 
               // ── Type-specific fields ──────────────────────────────────
-              if (_isService) _serviceFields() else _productFields(),
+              if (_isService)
+                _serviceFields(currencyCode: currencyCode, currencyPrefix: currencyPrefix)
+              else
+                _productFields(currencyCode: currencyCode, currencyPrefix: currencyPrefix),
 
               // ── Location ─────────────────────────────────────────────
               _locationSection(),

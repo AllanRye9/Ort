@@ -31,6 +31,7 @@ class _ManufacturingEditScreenState
   final _countryCtrl = TextEditingController();
   final _certCtrl = TextEditingController();
   final _placeNameCtrl = TextEditingController();
+  final _customCategoryCtrl = TextEditingController();
 
   String _category = 'textiles';
   bool _isLocallyMade = false;
@@ -83,7 +84,10 @@ class _ManufacturingEditScreenState
         _countryCtrl.text = m.countryOfOrigin ?? '';
         _certCtrl.text = m.certifications?.join(', ') ?? '';
         _category =
-            _categories.contains(m.category) ? m.category! : 'textiles';
+            _categories.contains(m.category) ? m.category! : 'other';
+        if (!_categories.contains(m.category) && m.category != null) {
+          _customCategoryCtrl.text = m.category!;
+        }
         _isLocallyMade = m.isLocallyMade;
         _imageUrls = m.images?.toList() ?? [];
         _geocodedLat = m.latitude;
@@ -117,6 +121,7 @@ class _ManufacturingEditScreenState
     _countryCtrl.dispose();
     _certCtrl.dispose();
     _placeNameCtrl.dispose();
+    _customCategoryCtrl.dispose();
     super.dispose();
   }
 
@@ -193,6 +198,18 @@ class _ManufacturingEditScreenState
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    final effectiveCategory = _category == 'other'
+        ? _customCategoryCtrl.text.trim().toLowerCase().replaceAll(' ', '_')
+        : _category;
+    if (effectiveCategory.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a custom category name.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
     setState(() => _submitting = true);
     try {
       final certs = _certCtrl.text
@@ -205,7 +222,7 @@ class _ManufacturingEditScreenState
       final payload = <String, dynamic>{
         'title': _titleCtrl.text.trim(),
         'wholesale_price': double.parse(_priceCtrl.text.trim()),
-        'category': _category,
+        'category': effectiveCategory,
         'is_locally_made': _isLocallyMade,
         if (_descCtrl.text.trim().isNotEmpty)
           'description': _descCtrl.text.trim(),
@@ -309,6 +326,18 @@ class _ManufacturingEditScreenState
                     .toList(),
                 onChanged: (v) => setState(() => _category = v!),
               ),
+              if (_category == 'other') ...[
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _customCategoryCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Custom Category *',
+                    hintText: 'e.g. Composite Materials, Smart Devices',
+                  ),
+                  validator: (v) =>
+                      v == null || v.trim().isEmpty ? 'Required' : null,
+                ),
+              ],
               const SizedBox(height: 12),
               TextFormField(
                 controller: _descCtrl,

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/api_service.dart';
+import '../../core/app_preferences.dart';
 import '../../core/listing_providers.dart';
 import '../../models/models.dart';
 import '../../widgets/listing_card.dart';
@@ -315,53 +316,55 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     );
   }
 
-  Widget _resultTile(BuildContext ctx, _SearchResult r) => switch (r) {
-        _PropertyResult(:final item) => ListingCard(
-            icon: Icons.home,
-            iconColor: Theme.of(ctx).colorScheme.primary,
-            title: item.title,
-            subtitle: item.city ?? item.address,
-            tag: item.propertyType,
-            status: item.status,
-            price: formatCurrency(item.price, country: item.country),
-            imageUrl:
-                item.imageUrls.isNotEmpty ? item.imageUrls.first : null,
-            extras: [
-              if (item.bedrooms != null) '${item.bedrooms} bd',
-              if (item.bathrooms != null) '${item.bathrooms} ba',
-            ],
-            onTap: () => ctx.go('/properties/${item.id}'),
-          ),
-        _AgriResult(:final item) => ListingCard(
-            icon: Icons.grass,
-            iconColor: Colors.green,
-            title: item.title,
-            subtitle: item.location ?? item.commodityType ?? '',
-            tag: item.category ?? 'Agriculture',
-            status: item.status,
-            price:
-                '${formatCurrency(item.pricePerUnit, currency: item.currency, decimals: 2)}/${item.unit ?? 'unit'}',
-            imageUrl: (item.images?.isNotEmpty == true)
-                ? item.images!.first
-                : null,
-            onTap: () => ctx.go('/agriculture/${item.id}'),
-          ),
-        _MfgResult(:final item) => ListingCard(
-            icon: Icons.factory,
-            iconColor: Colors.orange,
-            title: item.title,
-            subtitle: item.category ?? '',
-            tag: item.category ?? 'Manufacturing',
-            status: item.status,
-            price:
-                '${formatCurrency(item.wholesalePrice, currency: item.currency, decimals: 2)}/${item.unit ?? 'unit'}',
-            imageUrl: (item.images?.isNotEmpty == true)
-                ? item.images!.first
-                : null,
-            onTap: () => ctx.go('/manufacturing/${item.id}'),
-          ),
-      };
-}
+  Widget _resultTile(BuildContext ctx, _SearchResult r) {
+    final mode = ref.read(marketplaceModeProvider);
+    return switch (r) {
+      _PropertyResult(:final item) => ListingCard(
+          icon: Icons.home,
+          iconColor: Theme.of(ctx).colorScheme.primary,
+          title: item.title,
+          subtitle: item.city ?? item.address,
+          tag: item.propertyType,
+          status: item.status,
+          price: formatCurrencyForMode(item.price, country: item.country, mode: mode),
+          imageUrl:
+              item.imageUrls.isNotEmpty ? item.imageUrls.first : null,
+          extras: [
+            if (item.bedrooms != null) '${item.bedrooms} bd',
+            if (item.bathrooms != null) '${item.bathrooms} ba',
+          ],
+          onTap: () => ctx.go('/properties/${item.id}'),
+        ),
+      _AgriResult(:final item) => ListingCard(
+          icon: Icons.grass,
+          iconColor: Colors.green,
+          title: item.title,
+          subtitle: item.location ?? item.commodityType ?? '',
+          tag: item.category ?? 'Agriculture',
+          status: item.status,
+          price:
+              '${formatCurrencyForMode(item.pricePerUnit, currency: item.currency, decimals: 2, mode: mode)}/${item.unit ?? 'unit'}',
+          imageUrl: (item.images?.isNotEmpty == true)
+              ? item.images!.first
+              : null,
+          onTap: () => ctx.go('/agriculture/${item.id}'),
+        ),
+      _MfgResult(:final item) => ListingCard(
+          icon: Icons.factory,
+          iconColor: Colors.orange,
+          title: item.title,
+          subtitle: item.category ?? '',
+          tag: item.category ?? 'Manufacturing',
+          status: item.status,
+          price:
+              '${formatCurrencyForMode(item.wholesalePrice, currency: item.currency, decimals: 2, mode: mode)}/${item.unit ?? 'unit'}',
+          imageUrl: (item.images?.isNotEmpty == true)
+              ? item.images!.first
+              : null,
+          onTap: () => ctx.go('/manufacturing/${item.id}'),
+        ),
+    };
+  }
 
 // ─── Featured preview (shown when no search query entered) ───────────────────
 
