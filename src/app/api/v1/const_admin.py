@@ -75,8 +75,9 @@ _HTML = r"""<!DOCTYPE html>
         </svg>
       </div>
       <h1 class="text-2xl font-bold text-gray-900">Ort Admin Console</h1>
-      <p class="text-gray-400 text-sm mt-1">Sign in with admin credentials</p>
+      <p id="loginSubtitle" class="text-gray-400 text-sm mt-1">Sign in with admin credentials</p>
     </div>
+    <!-- Login form -->
     <form id="loginForm" class="space-y-4">
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Username / Email</label>
@@ -94,6 +95,40 @@ _HTML = r"""<!DOCTYPE html>
       <button type="submit"
         class="w-full bg-green-700 hover:bg-green-800 text-white font-semibold py-2.5 rounded-lg transition-colors text-sm">
         Sign In
+      </button>
+    </form>
+    <!-- One-time setup form (shown when no admin is configured) -->
+    <form id="setupForm" class="space-y-4 hidden">
+      <div class="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800 mb-2">
+        ⚠️ No admin account is configured. Create the one-time admin account below.
+        This form is only available once.
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Choose Username</label>
+        <input id="setupUsername" type="text" required autocomplete="username"
+          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+          placeholder="admin or admin@example.com"/>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Choose Password <span class="text-gray-400 font-normal">(min 8 chars)</span></label>
+        <input id="setupPassword" type="password" required autocomplete="new-password" minlength="8"
+          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+          placeholder="••••••••"/>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+        <input id="setupPasswordConfirm" type="password" required autocomplete="new-password"
+          class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+          placeholder="••••••••"/>
+      </div>
+      <p id="setupError" class="text-red-500 text-xs hidden"></p>
+      <button type="submit"
+        class="w-full bg-green-700 hover:bg-green-800 text-white font-semibold py-2.5 rounded-lg transition-colors text-sm">
+        Create Admin Account
+      </button>
+      <button type="button" onclick="showLoginForm()"
+        class="w-full text-green-700 text-xs text-center hover:underline mt-1">
+        ← Back to Sign In
       </button>
     </form>
   </div>
@@ -512,6 +547,19 @@ window.onload = () => {
   }
 };
 
+// ── Setup / Login form toggle ──────────────────────────────────────────────
+function showLoginForm() {
+  document.getElementById('loginForm').classList.remove('hidden');
+  document.getElementById('setupForm').classList.add('hidden');
+  document.getElementById('loginSubtitle').textContent = 'Sign in with admin credentials';
+}
+
+function showSetupForm() {
+  document.getElementById('loginForm').classList.add('hidden');
+  document.getElementById('setupForm').classList.remove('hidden');
+  document.getElementById('loginSubtitle').textContent = 'First-time setup';
+}
+
 // ── Login ──────────────────────────────────────────────────────────────────
 document.getElementById('loginForm').onsubmit = async (e) => {
   e.preventDefault();
@@ -527,15 +575,56 @@ document.getElementById('loginForm').onsubmit = async (e) => {
     });
     const data = await r.json();
     if (!r.ok) {
-      let msg = data.detail || 'Login failed';
       if (r.status === 503) {
-        msg = 'Admin credentials are not configured on this server. ' +
-              'Set the ADMIN_USER and ADMIN_PASSWORD environment variables ' +
-              'in your deployment configuration and redeploy.';
+        showSetupForm();
+        return;
       }
+      const msg = data.detail || 'Login failed';
       errEl.textContent = msg; errEl.classList.remove('hidden'); return;
     }
     if (data.role !== 'admin') { errEl.textContent = 'Access denied — admin accounts only.'; errEl.classList.remove('hidden'); return; }
+    token = data.access_token;
+    localStorage.setItem('ort_admin_token', token);
+    const adminEmailEl = document.getElementById('adminEmail');
+    if (adminEmailEl) adminEmailEl.textContent = username;
+    showApp();
+  } catch(err) {
+    errEl.textContent = 'Network error: ' + err.message;
+    errEl.classList.remove('hidden');
+  }
+};
+
+// ── One-time admin setup ───────────────────────────────────────────────────
+document.getElementById('setupForm').onsubmit = async (e) => {
+  e.preventDefault();
+  const username = document.getElementById('setupUsername').value.trim();
+  const pass    = document.getElementById('setupPassword').value;
+  const confirm = document.getElementById('setupPasswordConfirm').value;
+  const errEl   = document.getElementById('setupError');
+  errEl.classList.add('hidden');
+  if (pass !== confirm) {
+    errEl.textContent = 'Passwords do not match.'; errEl.classList.remove('hidden'); return;
+  }
+  if (pass.length < 8) {
+    errEl.textContent = 'Password must be at least 8 characters.'; errEl.classList.remove('hidden'); return;
+  }
+  try {
+    const r = await fetch(API + '/auth/admin-setup', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({username, password: pass})
+    });
+    const data = await r.json();
+    if (!r.ok) {
+      if (r.status === 409) {
+        errEl.textContent = data.detail || 'Admin already configured. Please log in.';
+        errEl.classList.remove('hidden');
+        setTimeout(() => showLoginForm(), 2500);
+        return;
+      }
+      errEl.textContent = data.detail || 'Setup failed.';
+      errEl.classList.remove('hidden'); return;
+    }
     token = data.access_token;
     localStorage.setItem('ort_admin_token', token);
     const adminEmailEl = document.getElementById('adminEmail');
@@ -560,6 +649,7 @@ function logout() {
   clearInterval(_refreshInterval);
   document.getElementById('loginOverlay').classList.remove('hidden');
   document.getElementById('app').classList.add('hidden');
+  showLoginForm();
 }
 
 // ── Auto-refresh ───────────────────────────────────────────────────────────

@@ -620,8 +620,26 @@ class AdPromotion(Base):
 
 
 # ---------------------------------------------------------------------------
-# Product / Order Tracking
+# Push Notification Device Tokens
 # ---------------------------------------------------------------------------
+
+class UserDeviceToken(Base):
+    """Stores FCM device tokens for mobile push notifications."""
+    __tablename__ = "user_device_tokens"
+    __table_args__ = (
+        Index("ix_user_device_tokens_user_id", "user_id"),
+        UniqueConstraint("user_id", "token", name="uq_user_device_token"),
+    )
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    token = Column(Text, nullable=False)
+    # "android" | "ios" | "web"
+    platform = Column(String(20), nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    user = relationship("User", foreign_keys=[user_id])
 
 class ProductTracking(Base):
     """Real-time transit updates posted by agents, companies, or organisations.

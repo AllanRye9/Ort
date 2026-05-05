@@ -58,6 +58,14 @@ dependencies:
   # URL launching
   url_launcher: ^6.3.1
 
+  # Push notifications (Firebase Cloud Messaging)
+  # NOTE: To enable push notifications you must add:
+  #   - android/app/google-services.json  (Android)
+  #   - ios/Runner/GoogleService-Info.plist  (iOS)
+  # Generate these files in the Firebase console for your project.
+  firebase_core: ^3.8.0
+  firebase_messaging: ^15.1.5
+
   # Icons
   cupertino_icons: ^1.0.6
 

@@ -136,7 +136,6 @@ def get_listing(listing_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Agriculture listing not found")
     return _enrich(obj)
 
-
 @router.post("/", response_model=AgricultureListingResponse, status_code=status.HTTP_201_CREATED)
 def create_listing(payload: AgricultureListingCreate, db: Session = Depends(get_db)):
     data = payload.model_dump()
@@ -146,6 +145,27 @@ def create_listing(payload: AgricultureListingCreate, db: Session = Depends(get_
     db.add(obj)
     db.commit()
     db.refresh(obj)
+
+    # Notify the listing creator that their item is live
+    creator_id = data.get("owner_user_id")
+    if creator_id:
+        try:
+            from app.models.marketplace_models import Notification
+            from app.utils.push import notify_user
+            db.add(Notification(
+                user_id=creator_id,
+                title="Listing Published ✅",
+                body=f"Your agriculture listing '{obj.title}' is now live.",
+                notification_type="listing_created",
+                reference_id=obj.id,
+                reference_type="agriculture",
+            ))
+            db.commit()
+            notify_user(creator_id, "Listing Published ✅",
+                        f"Your agriculture listing '{obj.title}' is now live.", db)
+        except Exception:
+            pass
+
     return _enrich(obj)
 
 
