@@ -30,6 +30,7 @@ class _AgricultureEditScreenState
   final _certCtrl = TextEditingController();
   final _storageCtrl = TextEditingController();
   final _placeNameCtrl = TextEditingController();
+  final _customCategoryCtrl = TextEditingController();
 
   String _category = 'grains';
   bool _isPerishable = false;
@@ -81,7 +82,10 @@ class _AgricultureEditScreenState
         _gradeCtrl.text = m.qualityGrade ?? '';
         _certCtrl.text = m.certification ?? '';
         _storageCtrl.text = m.storageConditions ?? '';
-        _category = _categories.contains(m.category) ? m.category! : 'grains';
+        _category = _categories.contains(m.category) ? m.category! : 'other';
+        if (!_categories.contains(m.category) && m.category != null) {
+          _customCategoryCtrl.text = m.category!;
+        }
         _isPerishable = m.isPerishable;
         _imageUrls = m.images?.toList() ?? [];
         _geocodedLat = m.latitude;
@@ -114,6 +118,7 @@ class _AgricultureEditScreenState
     _certCtrl.dispose();
     _storageCtrl.dispose();
     _placeNameCtrl.dispose();
+    _customCategoryCtrl.dispose();
     super.dispose();
   }
 
@@ -190,12 +195,15 @@ class _AgricultureEditScreenState
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    final effectiveCategory = _category == 'other'
+        ? _customCategoryCtrl.text.trim().toLowerCase().replaceAll(' ', '_')
+        : _category;
     setState(() => _submitting = true);
     try {
       final payload = <String, dynamic>{
         'title': _titleCtrl.text.trim(),
         'price_per_unit': double.parse(_priceCtrl.text.trim()),
-        'category': _category,
+        'category': effectiveCategory,
         'is_perishable': _isPerishable,
         if (_descCtrl.text.trim().isNotEmpty)
           'description': _descCtrl.text.trim(),
@@ -299,6 +307,18 @@ class _AgricultureEditScreenState
                     .toList(),
                 onChanged: (v) => setState(() => _category = v!),
               ),
+              if (_category == 'other') ...[
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _customCategoryCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Custom Category *',
+                    hintText: 'e.g. Medicinal Herbs, Beekeeping',
+                  ),
+                  validator: (v) =>
+                      v == null || v.trim().isEmpty ? 'Required' : null,
+                ),
+              ],
               const SizedBox(height: 12),
               TextFormField(
                 controller: _descCtrl,

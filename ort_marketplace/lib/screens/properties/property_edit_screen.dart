@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/api_service.dart';
+import '../../core/app_preferences.dart';
 import '../../core/listing_providers.dart';
 import '../../core/location_service.dart';
 import '../../models/models.dart';
@@ -35,6 +36,7 @@ class _PropertyEditScreenState extends ConsumerState<PropertyEditScreen> {
   final _landAreaCtrl = TextEditingController();
 
   String _propertyType = 'house';
+  final _customPropertyTypeCtrl = TextEditingController();
   List<String> _imageUrls = [];
   bool _submitting = false;
   bool _loading = true;
@@ -65,12 +67,16 @@ class _PropertyEditScreenState extends ConsumerState<PropertyEditScreen> {
       _residentialTypes.contains(_propertyType);
 
   String get _priceCurrencyCode {
+    final mode = ref.read(marketplaceModeProvider);
+    if (mode == MarketplaceMode.international) return 'USD';
     if (_isUganda) return 'UGX';
     if (_isUAE) return 'AED';
     return 'USD';
   }
 
   String get _priceCurrencyPrefix {
+    final mode = ref.read(marketplaceModeProvider);
+    if (mode == MarketplaceMode.international) return '\$';
     if (_isUganda) return 'UGX ';
     if (_isUAE) return 'AED ';
     return '\$';
@@ -112,7 +118,10 @@ class _PropertyEditScreenState extends ConsumerState<PropertyEditScreen> {
         _widthCtrl.text = p.plotWidthM?.toStringAsFixed(0) ?? '';
         _landAreaCtrl.text = p.landAreaAcres?.toStringAsFixed(2) ?? '';
         _propertyType =
-            _propertyTypes.contains(p.propertyType) ? p.propertyType : 'house';
+            _propertyTypes.contains(p.propertyType) ? p.propertyType : 'other';
+        if (!_propertyTypes.contains(p.propertyType) && p.propertyType.isNotEmpty) {
+          _customPropertyTypeCtrl.text = p.propertyType;
+        }
         _landCategory = p.landCategory;
         _imageUrls = List<String>.from(p.imageUrls);
         _geocodedLat = p.latitude;
@@ -148,6 +157,7 @@ class _PropertyEditScreenState extends ConsumerState<PropertyEditScreen> {
     _lengthCtrl.dispose();
     _widthCtrl.dispose();
     _landAreaCtrl.dispose();
+    _customPropertyTypeCtrl.dispose();
     super.dispose();
   }
 
@@ -270,7 +280,10 @@ class _PropertyEditScreenState extends ConsumerState<PropertyEditScreen> {
       double? widthM;
       double? landAreaAcres;
 
-      final isLand = _propertyType == 'land';
+      final effectivePropertyType = _propertyType == 'other'
+          ? _customPropertyTypeCtrl.text.trim().toLowerCase().replaceAll(' ', '_')
+          : _propertyType;
+      final isLand = effectivePropertyType == 'land';
 
       if (isLand && _landCategory != null) {
         if (_landCategory == 'residential' && _landResidentialUseMetric) {
@@ -307,7 +320,7 @@ class _PropertyEditScreenState extends ConsumerState<PropertyEditScreen> {
             ? _addressCtrl.text.trim()
             : (_geocodedDisplayName ?? 'Unknown'),
         'price': double.parse(_priceCtrl.text.trim()),
-        'property_type': _propertyType,
+        'property_type': effectivePropertyType,
         if (_geocodedLat != null) 'latitude': _geocodedLat,
         if (_geocodedLon != null) 'longitude': _geocodedLon,
         if (_geocodedCountry != null) 'country': _geocodedCountry,
@@ -415,6 +428,18 @@ class _PropertyEditScreenState extends ConsumerState<PropertyEditScreen> {
                   if (v != 'land') _landCategory = null;
                 }),
               ),
+              if (_propertyType == 'other') ...[
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _customPropertyTypeCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Custom Property Type *',
+                    hintText: 'e.g. Guesthouse, Resort, Hostel',
+                  ),
+                  validator: (v) =>
+                      v == null || v.trim().isEmpty ? 'Required' : null,
+                ),
+              ],
               if (_propertyType == 'land') ...[
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(

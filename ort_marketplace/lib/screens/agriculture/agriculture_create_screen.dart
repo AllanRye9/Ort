@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/api_service.dart';
+import '../../core/app_preferences.dart';
 import '../../core/auth_provider.dart';
 import '../../core/listing_providers.dart';
 import '../../core/location_service.dart';
@@ -30,6 +31,7 @@ class _AgricultureCreateScreenState
   final _certCtrl = TextEditingController();
   final _storageCtrl = TextEditingController();
   final _placeNameCtrl = TextEditingController();
+  final _customCategoryCtrl = TextEditingController();
 
   String _category = 'grains';
   bool _isPerishable = false;
@@ -70,6 +72,7 @@ class _AgricultureCreateScreenState
     _certCtrl.dispose();
     _storageCtrl.dispose();
     _placeNameCtrl.dispose();
+    _customCategoryCtrl.dispose();
     super.dispose();
   }
 
@@ -160,12 +163,21 @@ class _AgricultureCreateScreenState
       );
       return;
     }
+    final effectiveCategory = _category == 'other'
+        ? _customCategoryCtrl.text.trim().toLowerCase().replaceAll(' ', '_')
+        : _category;
     setState(() => _submitting = true);
     try {
+      final mode = ref.read(marketplaceModeProvider);
+      final userCountry = ref.read(userCountryProvider);
+      final currency = mode == MarketplaceMode.international
+          ? 'USD'
+          : currencyCodeForCountry(userCountry);
       final payload = <String, dynamic>{
         'title': _titleCtrl.text.trim(),
         'price_per_unit': double.parse(_priceCtrl.text.trim()),
-        'category': _category,
+        'category': effectiveCategory,
+        'currency': currency,
         'is_perishable': _isPerishable,
         if (_descCtrl.text.trim().isNotEmpty)
           'description': _descCtrl.text.trim(),
@@ -225,6 +237,14 @@ class _AgricultureCreateScreenState
 
   @override
   Widget build(BuildContext context) {
+    final mode = ref.watch(marketplaceModeProvider);
+    final userCountry = ref.watch(userCountryProvider);
+    final currencyCode = mode == MarketplaceMode.international
+        ? 'USD'
+        : currencyCodeForCountry(userCountry);
+    final currencyPrefix = mode == MarketplaceMode.international
+        ? '\$'
+        : currencyPrefixForCountry(userCountry);
     return Scaffold(
       appBar: AppBar(title: const Text('Add Agriculture Listing')),
       body: Form(
@@ -262,6 +282,18 @@ class _AgricultureCreateScreenState
                     .toList(),
                 onChanged: (v) => setState(() => _category = v!),
               ),
+              if (_category == 'other') ...[
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _customCategoryCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Custom Category *',
+                    hintText: 'e.g. Medicinal Herbs, Beekeeping',
+                  ),
+                  validator: (v) =>
+                      v == null || v.trim().isEmpty ? 'Required' : null,
+                ),
+              ],
               const SizedBox(height: 12),
               // ── AI Auto-fill description ──────────────────────────────────
               TextFormField(
@@ -272,7 +304,9 @@ class _AgricultureCreateScreenState
                     controller: _descCtrl,
                     listingType: 'agriculture',
                     getTitle: () => _titleCtrl.text,
-                    getCategory: () => _category,
+                    getCategory: () => _category == 'other'
+                        ? _customCategoryCtrl.text
+                        : _category,
                     getLocation: () => _locationCtrl.text,
                   ),
                 ),
@@ -408,9 +442,9 @@ class _AgricultureCreateScreenState
                       controller: _priceCtrl,
                       keyboardType:
                           const TextInputType.numberWithOptions(decimal: true),
-                      decoration: const InputDecoration(
-                        labelText: 'Price per Unit (USD) *',
-                        prefixText: '\$',
+                      decoration: InputDecoration(
+                        labelText: 'Price per Unit ($currencyCode) *',
+                        prefixText: currencyPrefix,
                       ),
                       validator: (v) {
                         if (v == null || v.trim().isEmpty) return 'Required';
