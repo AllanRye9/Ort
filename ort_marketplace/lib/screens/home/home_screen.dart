@@ -100,9 +100,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     _maybeRequestLocation();
     // Show marketplace-mode selection the first time the user reaches the home
     // screen (i.e. they have never chosen local vs international before).
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    // We await the notifier's async initialisation so that `everSelected`
+    // reflects the persisted value rather than the in-memory default.
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       final notifier = ref.read(marketplaceModeProvider.notifier);
+      await notifier.waitForLoad();
+      if (!mounted) return;
       if (!notifier.everSelected) {
         _showModeSelectionDialog();
       }
@@ -338,11 +342,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   /// and also available via the settings screen.
   void _showModeSelectionDialog() {
     final locationStatus = ref.read(locationAvailabilityProvider);
+
+    // Pre-select a sensible default based on location availability so the user
+    // just needs to confirm rather than having to tap a card from scratch.
+    MarketplaceMode? initialMode;
+    if (locationStatus == LocationAvailabilityStatus.granted) {
+      initialMode = MarketplaceMode.local;
+    } else if (locationStatus == LocationAvailabilityStatus.denied) {
+      initialMode = MarketplaceMode.international;
+    }
+
     showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => _ModeSelectionDialog(
         locationStatus: locationStatus,
+        initialMode: initialMode,
         onSelected: (mode) {
           ref.read(marketplaceModeProvider.notifier).setMode(
             mode,
@@ -2091,11 +2106,15 @@ class _ModeSelectionDialog extends StatefulWidget {
   const _ModeSelectionDialog({
     required this.onSelected,
     this.locationStatus = LocationAvailabilityStatus.unknown,
+    this.initialMode,
   });
 
   final ValueChanged<MarketplaceMode> onSelected;
   /// When [LocationAvailabilityStatus.denied], the Local option is disabled.
   final LocationAvailabilityStatus locationStatus;
+  /// Optional pre-selected mode derived from the device's location status.
+  /// When provided the Continue button is enabled immediately.
+  final MarketplaceMode? initialMode;
 
   @override
   State<_ModeSelectionDialog> createState() => _ModeSelectionDialogState();
@@ -2111,6 +2130,7 @@ class _ModeSelectionDialogState extends State<_ModeSelectionDialog>
   @override
   void initState() {
     super.initState();
+    _selected = widget.initialMode;
     _ctrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 500),
