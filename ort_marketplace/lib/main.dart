@@ -1,9 +1,12 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'core/app_preferences.dart';
 import 'core/router.dart';
 import 'core/theme.dart';
 import 'core/theme_provider.dart';
+import 'l10n/app_localizations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,6 +28,7 @@ class OrtMarketplaceApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
     final themeChoice = ref.watch(themeProvider);
+    final locale = ref.watch(localeProvider);
 
     final themeData = switch (themeChoice) {
       AppThemeChoice.white => AppTheme.lightTheme,
@@ -37,6 +41,15 @@ class OrtMarketplaceApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       theme: themeData,
       routerConfig: router,
+      // ── Localisation ──────────────────────────────────────────────────────
+      locale: locale,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: AppLocalizations.supportedLocales,
     );
   }
 }
