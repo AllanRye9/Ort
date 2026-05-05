@@ -246,16 +246,6 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    if (_propertyType == 'other' && _customPropertyTypeCtrl.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter a custom property type.'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-      return;
-    }
-
     if (_geocodedLat == null || _geocodedLon == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -277,7 +267,7 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
       final effectivePropertyType = _propertyType == 'other'
           ? _customPropertyTypeCtrl.text.trim().toLowerCase().replaceAll(' ', '_')
           : _propertyType;
-      final isLand = _propertyType == 'land';
+      final isLand = effectivePropertyType == 'land';
 
       if (isLand && _landCategory != null) {
         // Collect land area

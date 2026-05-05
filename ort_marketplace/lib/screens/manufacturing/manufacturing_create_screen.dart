@@ -210,27 +210,6 @@ class _ManufacturingCreateScreenState
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    // Validate custom category/service type
-    if (!_isService && _category == 'other' &&
-        _customCategoryCtrl.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter a custom category name.'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-    if (_isService && _serviceType == 'other' &&
-        _customServiceTypeCtrl.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter a custom service type.'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
     setState(() => _submitting = true);
     try {
       final certs = _certCtrl.text

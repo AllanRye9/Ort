@@ -172,13 +172,14 @@ def _stub_description(req: DescriptionRequest) -> str:
             "flexible project intake, and transparent pricing. Ideal for businesses seeking "
             "a dependable local manufacturing partner for both prototyping and production runs."
         )
-    parts = [f"{req.title}"]
-    if req.category:
-        parts.append(f"Category: {req.category}.")
-    if req.location:
-        parts.append(f"Located in {req.location}.")
-    parts.append("Contact us for more information.")
-    return " ".join(parts)
+    else:
+        parts = [f"{req.title}"]
+        if req.category:
+            parts.append(f"Category: {req.category}.")
+        if req.location:
+            parts.append(f"Located in {req.location}.")
+        parts.append("Contact us for more information.")
+        return " ".join(parts)
 
 
 @router.post("/generate-description", response_model=DescriptionResponse)
