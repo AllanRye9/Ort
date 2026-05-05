@@ -16,25 +16,29 @@ from app.schemas.marketplace_schemas import (
 
 router = APIRouter(prefix="/notifications", tags=["notifications"])
 
-SECRET_KEY = os.getenv("SECRET_KEY", "change-me-in-production")
+_SECRET_KEY = os.getenv("SECRET_KEY", "change-me-in-production")
 ALGORITHM = "HS256"
 _bearer = HTTPBearer(auto_error=False)
 
 
-def _get_current_user_optional(
+def _require_user(
     credentials: HTTPAuthorizationCredentials = Depends(_bearer),
     db: Session = Depends(get_db),
-) -> Optional[User]:
+) -> User:
+    """Require a valid JWT and return the authenticated user."""
     if credentials is None:
-        return None
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
     try:
-        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id: str = payload.get("sub")
-        if user_id is None:
-            return None
+        payload = jwt.decode(credentials.credentials, _SECRET_KEY, algorithms=[ALGORITHM])
+        user_id_str: str = payload.get("sub")
+        if user_id_str is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
     except JWTError:
-        return None
-    return db.query(User).filter(User.id == int(user_id)).first()
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    user = db.query(User).filter(User.id == int(user_id_str)).first()
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+    return user
 
 
 @router.get("/", response_model=List[NotificationResponse])
@@ -97,7 +101,6 @@ def update_notification(
 # ── Device Token Registration ──────────────────────────────────────────────
 
 class DeviceTokenRequest(BaseModel):
-    user_id: int
     token: str = Field(..., min_length=1)
     platform: Optional[str] = Field(None, description="android | ios | web")
 
@@ -106,6 +109,7 @@ class DeviceTokenRequest(BaseModel):
 def register_device_token(
     payload: DeviceTokenRequest,
     db: Session = Depends(get_db),
+    current_user: User = Depends(_require_user),
 ):
     """Register or update a device FCM token for push notifications.
 
@@ -113,7 +117,7 @@ def register_device_token(
     A user may have multiple tokens (e.g. multiple devices).
     """
     existing = db.query(UserDeviceToken).filter(
-        UserDeviceToken.user_id == payload.user_id,
+        UserDeviceToken.user_id == current_user.id,
         UserDeviceToken.token == payload.token,
     ).first()
     if existing:
@@ -122,7 +126,7 @@ def register_device_token(
             db.commit()
         return {"message": "Token already registered"}
     obj = UserDeviceToken(
-        user_id=payload.user_id,
+        user_id=current_user.id,
         token=payload.token,
         platform=payload.platform,
     )
@@ -133,13 +137,13 @@ def register_device_token(
 
 @router.delete("/device-token", status_code=status.HTTP_200_OK)
 def unregister_device_token(
-    user_id: int = Query(...),
     token: str = Query(...),
     db: Session = Depends(get_db),
+    current_user: User = Depends(_require_user),
 ):
     """Remove a device FCM token (e.g. on logout)."""
     obj = db.query(UserDeviceToken).filter(
-        UserDeviceToken.user_id == user_id,
+        UserDeviceToken.user_id == current_user.id,
         UserDeviceToken.token == token,
     ).first()
     if obj:
