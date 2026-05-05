@@ -586,6 +586,7 @@ class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen>
   }
 
   Widget _buildProductsTab(BuildContext context, {required bool canList}) {
+    final mode = ref.watch(marketplaceModeProvider);
     return Column(
       children: [
         // ── Search bar ──────────────────────────────────────────────
