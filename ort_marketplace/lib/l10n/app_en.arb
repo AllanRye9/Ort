@@ -1,0 +1,227 @@
+{
+  "@@locale": "en",
+
+  "appTitle": "Ort Marketplace",
+  "@appTitle": { "description": "Application title" },
+
+  "navHome": "Home",
+  "@navHome": { "description": "Bottom navigation – Home tab" },
+
+  "navSearch": "Search",
+  "@navSearch": { "description": "Bottom navigation – Search tab" },
+
+  "navSaved": "Saved",
+  "@navSaved": { "description": "Bottom navigation – Saved tab" },
+
+  "navMessages": "Messages",
+  "@navMessages": { "description": "Bottom navigation – Messages tab" },
+
+  "navProfile": "Profile",
+  "@navProfile": { "description": "Bottom navigation – Profile tab" },
+
+  "login": "Login",
+  "@login": { "description": "Login button label" },
+
+  "logout": "Sign Out",
+  "@logout": { "description": "Sign-out button label" },
+
+  "register": "Register",
+  "@register": { "description": "Registration button label" },
+
+  "email": "Email",
+  "@email": { "description": "Email field label" },
+
+  "password": "Password",
+  "@password": { "description": "Password field label" },
+
+  "confirmPassword": "Confirm Password",
+  "@confirmPassword": { "description": "Confirm password field label" },
+
+  "fullName": "Full Name",
+  "@fullName": { "description": "Full name field label" },
+
+  "settings": "Settings",
+  "@settings": { "description": "Settings screen title" },
+
+  "appearance": "Appearance",
+  "@appearance": { "description": "Settings section header – Appearance" },
+
+  "theme": "Theme",
+  "@theme": { "description": "Theme setting label" },
+
+  "language": "Language",
+  "@language": { "description": "Language setting label" },
+
+  "chooseLanguage": "Choose Language",
+  "@chooseLanguage": { "description": "Language picker sheet title" },
+
+  "marketplace": "Marketplace",
+  "@marketplace": { "description": "Settings section header – Marketplace" },
+
+  "marketplaceMode": "Marketplace Mode",
+  "@marketplaceMode": { "description": "Marketplace mode setting label" },
+
+  "modeLocal": "Local",
+  "@modeLocal": { "description": "Local marketplace mode label" },
+
+  "modeInternational": "International (UG ↔ UAE)",
+  "@modeInternational": { "description": "International marketplace mode label" },
+
+  "distanceAndUnits": "Distance & Units",
+  "@distanceAndUnits": { "description": "Settings section header" },
+
+  "distanceUnit": "Distance Unit",
+  "@distanceUnit": { "description": "Distance unit setting label" },
+
+  "autoDetectUnit": "Auto-detect unit from location",
+  "@autoDetectUnit": { "description": "Auto-detect distance unit tile title" },
+
+  "autoDetectUnitSubtitle": "Detects km or miles based on your country",
+  "@autoDetectUnitSubtitle": { "description": "Auto-detect distance unit tile subtitle" },
+
+  "notifications": "Notifications",
+  "@notifications": { "description": "Settings section header – Notifications" },
+
+  "newMessages": "New Messages",
+  "@newMessages": { "description": "Notifications – New messages toggle label" },
+
+  "orderUpdates": "Order Updates",
+  "@orderUpdates": { "description": "Notifications – Order updates toggle label" },
+
+  "reviews": "Reviews",
+  "@reviews": { "description": "Notifications – Reviews toggle label" },
+
+  "savedItemUpdates": "Saved Item Updates",
+  "@savedItemUpdates": { "description": "Notifications – Saved item updates toggle label" },
+
+  "privacy": "Privacy",
+  "@privacy": { "description": "Settings section header – Privacy" },
+
+  "privateProfile": "Private Profile",
+  "@privateProfile": { "description": "Privacy – Private profile toggle label" },
+
+  "privateProfileSubtitle": "Hide your profile from search",
+  "@privateProfileSubtitle": { "description": "Privacy – Private profile toggle subtitle" },
+
+  "showEmail": "Show Email",
+  "@showEmail": { "description": "Privacy – Show email toggle label" },
+
+  "showEmailSubtitle": "Display email on your public profile",
+  "@showEmailSubtitle": { "description": "Privacy – Show email toggle subtitle" },
+
+  "account": "Account",
+  "@account": { "description": "Settings section header – Account" },
+
+  "changePassword": "Change Password",
+  "@changePassword": { "description": "Change password section title" },
+
+  "currentPassword": "Current Password",
+  "@currentPassword": { "description": "Current password field label" },
+
+  "newPassword": "New Password",
+  "@newPassword": { "description": "New password field label" },
+
+  "updatePassword": "Update Password",
+  "@updatePassword": { "description": "Update password button label" },
+
+  "properties": "Properties",
+  "@properties": { "description": "Properties category label" },
+
+  "agriculture": "Agriculture",
+  "@agriculture": { "description": "Agriculture category label" },
+
+  "manufacturing": "Manufacturing",
+  "@manufacturing": { "description": "Manufacturing category label" },
+
+  "search": "Search",
+  "@search": { "description": "Generic search label" },
+
+  "searchHint": "Search listings…",
+  "@searchHint": { "description": "Search bar hint text" },
+
+  "recentListings": "Recent Listings",
+  "@recentListings": { "description": "Home screen section – Recent listings" },
+
+  "featuredListings": "Featured Listings",
+  "@featuredListings": { "description": "Home screen section – Featured listings" },
+
+  "viewAll": "View All",
+  "@viewAll": { "description": "View-all link label" },
+
+  "price": "Price",
+  "@price": { "description": "Price label" },
+
+  "location": "Location",
+  "@location": { "description": "Location label" },
+
+  "description": "Description",
+  "@description": { "description": "Description label" },
+
+  "contactSeller": "Contact Seller",
+  "@contactSeller": { "description": "Contact seller button label" },
+
+  "save": "Save",
+  "@save": { "description": "Save action label" },
+
+  "cancel": "Cancel",
+  "@cancel": { "description": "Cancel action label" },
+
+  "submit": "Submit",
+  "@submit": { "description": "Submit action label" },
+
+  "loading": "Loading…",
+  "@loading": { "description": "Generic loading indicator label" },
+
+  "error": "An error occurred. Please try again.",
+  "@error": { "description": "Generic error message" },
+
+  "noResults": "No results found.",
+  "@noResults": { "description": "Empty state – No results" },
+
+  "aiAssistant": "AI Assistant",
+  "@aiAssistant": { "description": "AI Assistant screen title" },
+
+  "wallet": "Wallet",
+  "@wallet": { "description": "Wallet screen title" },
+
+  "orders": "Orders",
+  "@orders": { "description": "Orders screen title" },
+
+  "tracking": "Tracking",
+  "@tracking": { "description": "Tracking screen title" },
+
+  "chooseTheme": "Choose Theme",
+  "@chooseTheme": { "description": "Theme picker sheet title" },
+
+  "chooseMarketplaceMode": "Choose Marketplace Mode",
+  "@chooseMarketplaceMode": { "description": "Mode picker sheet title" },
+
+  "chooseDistanceUnit": "Choose Distance Unit",
+  "@chooseDistanceUnit": { "description": "Distance unit picker sheet title" },
+
+  "detectingLocation": "Detecting your location…",
+  "@detectingLocation": { "description": "Snackbar shown while auto-detecting location" },
+
+  "distanceUnitSetTo": "Distance unit set to {unit}",
+  "@distanceUnitSetTo": {
+    "description": "Snackbar confirming auto-detected distance unit",
+    "placeholders": {
+      "unit": { "type": "String", "example": "Kilometres (km)" }
+    }
+  },
+
+  "passwordUpdated": "Password updated!",
+  "@passwordUpdated": { "description": "Snackbar – password change success" },
+
+  "fillAllPasswordFields": "Please fill in all password fields.",
+  "@fillAllPasswordFields": { "description": "Validation – all password fields required" },
+
+  "passwordsDoNotMatch": "New passwords do not match.",
+  "@passwordsDoNotMatch": { "description": "Validation – passwords do not match" },
+
+  "passwordTooShort": "New password must be at least 8 characters.",
+  "@passwordTooShort": { "description": "Validation – password too short" },
+
+  "systemDefault": "System default",
+  "@systemDefault": { "description": "Language picker – follow device system locale" }
+}

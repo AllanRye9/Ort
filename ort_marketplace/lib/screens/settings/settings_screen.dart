@@ -7,6 +7,7 @@ import '../../core/app_preferences.dart';
 import '../../core/auth_provider.dart';
 import '../../core/theme.dart';
 import '../../core/theme_provider.dart';
+import '../../l10n/app_localizations.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -121,6 +122,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             subtitle: Text(theme.label),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => _showThemePicker(context),
+          ),
+          Consumer(
+            builder: (ctx, r, _) {
+              final locale = r.watch(localeProvider);
+              final l10n = AppLocalizations.of(ctx);
+              final langName = locale == null
+                  ? (l10n?.systemDefault ?? 'System default')
+                  : (kSupportedLocaleNames[locale.languageCode] ?? locale.languageCode);
+              return ListTile(
+                leading: const Icon(Icons.language_outlined),
+                title: Text(l10n?.language ?? 'Language'),
+                subtitle: Text(langName),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => _showLanguagePicker(context),
+              );
+            },
           ),
 
           // ── Marketplace Mode ─────────────────────────────────────────────
@@ -333,6 +350,51 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   title: Text(choice.label),
                   onChanged: (v) {
                     if (v != null) ref.read(themeProvider.notifier).setTheme(v);
+                    Navigator.of(ctx).pop();
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showLanguagePicker(BuildContext context) {
+    final current = ref.read(localeProvider);
+    final l10n = AppLocalizations.of(context);
+    // Entries: null → system default, then each supported locale.
+    final options = <Locale?>[null, ...kSupportedLocaleNames.keys.map(Locale.new)];
+    showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Text(
+                  l10n?.chooseLanguage ?? 'Choose Language',
+                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                ),
+              ),
+              ...options.map(
+                (locale) => RadioListTile<Locale?>(
+                  value: locale,
+                  groupValue: current,
+                  title: Text(
+                    locale == null
+                        ? (l10n?.systemDefault ?? 'System default')
+                        : (kSupportedLocaleNames[locale.languageCode] ?? locale.languageCode),
+                  ),
+                  onChanged: (v) {
+                    ref.read(localeProvider.notifier).setLocale(v);
                     Navigator.of(ctx).pop();
                   },
                 ),
