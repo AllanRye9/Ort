@@ -712,7 +712,7 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
                                       tag: p.propertyType,
                                       status: p.status,
                                       price:
-                                          formatCurrency(p.price, country: p.country),
+                                          formatCurrencyForMode(p.price, country: p.country, mode: mode),
                                       extras: [
                                         if (p.propertyType == 'land' && p.landCategory != null)
                                           '${p.landCategory![0].toUpperCase()}${p.landCategory!.substring(1)} Land',
