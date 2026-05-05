@@ -769,21 +769,23 @@ class WalletModel {
     required this.userId,
     required this.points,
     required this.createdAt,
-    required this.updatedAt,
+    this.updatedAt,
   });
 
   final int id;
   final int userId;
   final int points;
   final DateTime createdAt;
-  final DateTime updatedAt;
+  final DateTime? updatedAt;
 
   factory WalletModel.fromJson(Map<String, dynamic> j) => WalletModel(
         id: j['id'] as int,
         userId: j['user_id'] as int,
         points: j['points'] as int? ?? 0,
         createdAt: DateTime.parse(j['created_at'] as String),
-        updatedAt: DateTime.parse(j['updated_at'] as String),
+        updatedAt: j['updated_at'] != null
+            ? DateTime.parse(j['updated_at'] as String)
+            : null,
       );
 }
 

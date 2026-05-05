@@ -168,6 +168,26 @@ def create_product(payload: ManufacturingProductCreate, db: Session = Depends(ge
     db.add(obj)
     db.commit()
     db.refresh(obj)
+
+    creator_id = data.get("owner_user_id")
+    if creator_id:
+        try:
+            from app.models.marketplace_models import Notification
+            from app.utils.push import notify_user
+            db.add(Notification(
+                user_id=creator_id,
+                title="Product Published ✅",
+                body=f"Your product '{obj.name}' is now live.",
+                notification_type="listing_created",
+                reference_id=obj.id,
+                reference_type="manufacturing",
+            ))
+            db.commit()
+            notify_user(creator_id, "Product Published ✅",
+                        f"Your product '{obj.name}' is now live.", db)
+        except Exception:
+            pass
+
     return _enrich_product(obj)
 
 
@@ -280,6 +300,26 @@ def create_service(payload: ManufacturingServiceCreate, db: Session = Depends(ge
     db.add(obj)
     db.commit()
     db.refresh(obj)
+
+    creator_id = data.get("owner_user_id")
+    if creator_id:
+        try:
+            from app.models.marketplace_models import Notification
+            from app.utils.push import notify_user
+            db.add(Notification(
+                user_id=creator_id,
+                title="Service Published ✅",
+                body=f"Your service '{obj.name}' is now live.",
+                notification_type="listing_created",
+                reference_id=obj.id,
+                reference_type="manufacturing_service",
+            ))
+            db.commit()
+            notify_user(creator_id, "Service Published ✅",
+                        f"Your service '{obj.name}' is now live.", db)
+        except Exception:
+            pass
+
     return _enrich_service(obj)
 
 

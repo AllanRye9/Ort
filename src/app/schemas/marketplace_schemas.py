@@ -705,7 +705,7 @@ class WalletResponse(BaseModel):
     user_id: int
     points: int
     created_at: datetime
-    updated_at: datetime
+    updated_at: Optional[datetime] = None
 
     model_config = {"from_attributes": True}
 

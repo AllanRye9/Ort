@@ -146,6 +146,10 @@ _MIGRATIONS: list[tuple[str, str, str]] = [
     ("messages",                "is_deleted",     "BOOLEAN DEFAULT 'false'"),
     # Wallet tables (new tables; column migrations for robustness)
     ("user_wallets",            "points",         "INTEGER DEFAULT '0'"),
+    ("user_wallets",            "updated_at",     "TIMESTAMP"),
+    # Push-notification device tokens
+    ("user_device_tokens",      "token",          "TEXT"),
+    ("user_device_tokens",      "platform",       "VARCHAR(20)"),
     ("ad_promotions",           "status",         "VARCHAR(20)  DEFAULT 'active'"),
     # Extended property fields
     ("properties",              "property_age",   "INTEGER"),

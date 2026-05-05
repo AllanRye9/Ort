@@ -251,41 +251,127 @@ class AdminLoginRequest(BaseModel):
 
 @router.post("/admin-login", response_model=TokenResponse)
 def admin_login(payload: AdminLoginRequest, db: Session = Depends(get_db)):
-    """Dedicated admin login endpoint that validates against ADMIN_USER / ADMIN_PASSWORD
-    environment variables.  The username does not have to be an e-mail address.
+    """Dedicated admin login endpoint.
+
+    Validates against ADMIN_USER / ADMIN_PASSWORD env vars when set, otherwise
+    falls back to the single admin account created via /auth/admin-setup.
     """
-    if not _ADMIN_USER or not _ADMIN_PASSWORD:
+    # Try env-var admin bypass first
+    if _ADMIN_USER and _ADMIN_PASSWORD:
+        if not (
+            hmac.compare_digest(payload.username.lower(), _ADMIN_USER.lower())
+            and hmac.compare_digest(payload.password, _ADMIN_PASSWORD)
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid admin credentials.",
+            )
+        admin_email = _ADMIN_USER if "@" in _ADMIN_USER else f"{_ADMIN_USER}@ort.admin"
+        admin_user = db.query(User).filter(User.email == admin_email).first()
+        if admin_user is None:
+            admin_user = User(
+                role="admin",
+                first_name="Admin",
+                last_name="User",
+                email=admin_email,
+                password_hash=pwd_context.hash(_ADMIN_PASSWORD),
+            )
+            db.add(admin_user)
+            db.commit()
+            db.refresh(admin_user)
+            logger.info("Admin user created from ADMIN_USER env var: %s", admin_email)
+        elif admin_user.role != "admin":
+            admin_user.role = "admin"
+            db.commit()
+            db.refresh(admin_user)
+        token = _create_access_token({"sub": str(admin_user.id), "role": "admin"})
+        return TokenResponse(access_token=token, user_id=admin_user.id, role="admin")
+
+    # Fall back to DB-stored admin account (created via /auth/admin-setup)
+    admin_user = db.query(User).filter(User.role == "admin").first()
+    if admin_user is None:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Admin credentials are not configured on this server.",
         )
-    credentials_ok = hmac.compare_digest(
-        payload.username.lower(), _ADMIN_USER.lower()
-    ) and hmac.compare_digest(payload.password, _ADMIN_PASSWORD)
-    if not credentials_ok:
+    login_identifier = payload.username.lower()
+    email_match = admin_user.email.lower() == login_identifier
+    uid_match = (admin_user.user_uid or "").lower() == login_identifier
+    if not (email_match or uid_match):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid admin credentials.",
         )
-    # Use the env-var value as the admin e-mail; if it does not contain '@'
-    # we synthesise a local-only address so the DB column stays consistent.
-    admin_email = _ADMIN_USER if "@" in _ADMIN_USER else f"{_ADMIN_USER}@ort.admin"
-    admin_user = db.query(User).filter(User.email == admin_email).first()
-    if admin_user is None:
-        admin_user = User(
-            role="admin",
-            first_name="Admin",
-            last_name="User",
-            email=admin_email,
-            password_hash=pwd_context.hash(_ADMIN_PASSWORD),
+    try:
+        password_ok = pwd_context.verify(payload.password, admin_user.password_hash)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid admin credentials.",
         )
-        db.add(admin_user)
-        db.commit()
-        db.refresh(admin_user)
-        logger.info("Admin user created from ADMIN_USER env var: %s", admin_email)
-    elif admin_user.role != "admin":
-        admin_user.role = "admin"
-        db.commit()
-        db.refresh(admin_user)
+    if not password_ok:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid admin credentials.",
+        )
+    token = _create_access_token({"sub": str(admin_user.id), "role": "admin"})
+    return TokenResponse(access_token=token, user_id=admin_user.id, role="admin")
+
+
+class AdminSetupRequest(BaseModel):
+    username: str = Field(..., min_length=3, max_length=100,
+                          description="Admin username (used as email if it contains '@')")
+    password: str = Field(..., min_length=8, description="Admin password (min 8 chars)")
+
+
+@router.post("/admin-setup", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
+def admin_setup(payload: AdminSetupRequest, db: Session = Depends(get_db)):
+    """One-time admin account creation.
+
+    Succeeds only when:
+    - No admin user exists in the database, AND
+    - ADMIN_USER / ADMIN_PASSWORD environment variables are NOT set
+      (if they are set, use /auth/admin-login directly).
+
+    After this endpoint is called once, subsequent calls return 409 Conflict.
+    """
+    if _ADMIN_USER or _ADMIN_PASSWORD:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Admin is configured via environment variables. Use /auth/admin-login.",
+        )
+    existing_admin = db.query(User).filter(User.role == "admin").first()
+    if existing_admin:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="An admin account already exists.",
+        )
+    admin_email = payload.username if "@" in payload.username else f"{payload.username}@ort.admin"
+    if db.query(User).filter(User.email == admin_email).first():
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="An account with that username already exists.",
+        )
+    try:
+        password_hash = pwd_context.hash(payload.password)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password is too long. Maximum 72 bytes allowed.",
+        )
+    admin_user = User(
+        role="admin",
+        first_name="Admin",
+        last_name="User",
+        email=admin_email,
+        password_hash=password_hash,
+    )
+    db.add(admin_user)
+    db.commit()
+    db.refresh(admin_user)
+    admin_user.user_uid = f"ORT{admin_user.id:06d}"
+    db.commit()
+    db.refresh(admin_user)
+    logger.info("One-time admin account created: %s", admin_email)
     token = _create_access_token({"sub": str(admin_user.id), "role": "admin"})
     return TokenResponse(access_token=token, user_id=admin_user.id, role="admin")

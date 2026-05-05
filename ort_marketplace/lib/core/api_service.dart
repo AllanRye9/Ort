@@ -939,4 +939,26 @@ class ApiService {
     });
     return (res.data as Map<String, dynamic>)['reply'] as String;
   }
+
+  // ─── Push notification device tokens ──────────────────────────────────────
+
+  Future<void> registerDeviceToken({
+    required int userId,
+    required String token,
+    String? platform,
+  }) async {
+    await _dio.post('/notifications/device-token', data: {
+      'token': token,
+      if (platform != null) 'platform': platform,
+    });
+  }
+
+  Future<void> unregisterDeviceToken({
+    required int userId,
+    required String token,
+  }) async {
+    await _dio.delete('/notifications/device-token', queryParameters: {
+      'token': token,
+    });
+  }
 }
