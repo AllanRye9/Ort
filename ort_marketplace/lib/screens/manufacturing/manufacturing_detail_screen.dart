@@ -530,7 +530,11 @@ class _ManufacturingDetailScreenState extends ConsumerState<ManufacturingDetailS
                               .titleSmall
                               ?.copyWith(fontWeight: FontWeight.bold)),
                       const SizedBox(height: 8),
-                      ListingOwnerCard(owner: m.ownerProfile!),
+                      ListingOwnerCard(
+                          owner: m.ownerProfile!,
+                          onTap: () =>
+                              context.push('/user/${m.ownerProfile!.id}'),
+                        ),
                     ],
                     if (m.latitude != null && m.longitude != null) ...[
                       const SizedBox(height: 14),

@@ -22,6 +22,7 @@ import '../screens/orders/order_detail_screen.dart';
 import '../screens/messages/conversations_screen.dart';
 import '../screens/messages/chat_screen.dart';
 import '../screens/profile/profile_screen.dart';
+import '../screens/profile/public_profile_screen.dart';
 import '../screens/profile/my_listings_screen.dart';
 import '../screens/profile/my_clients_screen.dart';
 import '../screens/profile/analytics_screen.dart';
@@ -248,6 +249,12 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/profile',
             builder: (_, __) => const ProfileScreen(),
+          ),
+          GoRoute(
+            path: '/user/:id',
+            builder: (_, state) => PublicProfileScreen(
+              userId: int.parse(state.pathParameters['id']!),
+            ),
           ),
           GoRoute(
             path: '/tracking/:orderId',

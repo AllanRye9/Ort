@@ -17,6 +17,7 @@ class _FilterState {
   final String? location;
   final String? category;
   final String? section; // 'all', 'property', 'agriculture', 'manufacturing'
+  final String? country;
 
   const _FilterState({
     this.query = '',
@@ -25,6 +26,7 @@ class _FilterState {
     this.location,
     this.category,
     this.section,
+    this.country,
   });
 
   _FilterState copyWith({
@@ -34,10 +36,12 @@ class _FilterState {
     String? location,
     String? category,
     String? section,
+    String? country,
     bool clearMinPrice = false,
     bool clearMaxPrice = false,
     bool clearLocation = false,
     bool clearCategory = false,
+    bool clearCountry = false,
   }) =>
       _FilterState(
         query: query ?? this.query,
@@ -46,6 +50,7 @@ class _FilterState {
         location: clearLocation ? null : location ?? this.location,
         category: clearCategory ? null : category ?? this.category,
         section: section ?? this.section,
+        country: clearCountry ? null : country ?? this.country,
       );
 
   bool get hasFilters =>
@@ -53,7 +58,8 @@ class _FilterState {
       maxPrice != null ||
       (location?.isNotEmpty ?? false) ||
       (category?.isNotEmpty ?? false) ||
-      (section != null && section != 'all');
+      (section != null && section != 'all') ||
+      (country?.isNotEmpty ?? false);
 }
 
 final _filterProvider =
@@ -90,6 +96,26 @@ final _searchResultsProvider =
   final api = ref.read(apiServiceProvider);
   final section = filter.section ?? 'all';
 
+  // Determine effective country filter: explicit > marketplace-mode default.
+  String? country;
+  String? excludeCountry;
+  if (filter.country != null && filter.country!.isNotEmpty) {
+    country = filter.country;
+  } else {
+    final mode = ref.read(marketplaceModeProvider);
+    final userCountry = ref.read(userCountryProvider);
+    final intlCountryFilter = ref.read(intlCountryFilterProvider);
+    if (mode == MarketplaceMode.local) {
+      country = userCountry;
+    } else if (intlCountryFilter.isNotEmpty) {
+      country = intlCountryFilter;
+    } else {
+      // International mode, no explicit intl filter – exclude the user's own
+      // country so domestic-only listings are suppressed.
+      excludeCountry = userCountry;
+    }
+  }
+
   final futures = <Future<List<dynamic>>>[];
   final sections = <String>[];
 
@@ -99,6 +125,8 @@ final _searchResultsProvider =
       minPrice: filter.minPrice,
       maxPrice: filter.maxPrice,
       city: filter.location,
+      country: country,
+      excludeCountry: excludeCountry,
       limit: 50,
     ));
     sections.add('property');
@@ -110,6 +138,8 @@ final _searchResultsProvider =
       maxPrice: filter.maxPrice,
       location: filter.location,
       category: filter.category,
+      country: country,
+      excludeCountry: excludeCountry,
       limit: 50,
     ));
     sections.add('agriculture');
@@ -121,6 +151,8 @@ final _searchResultsProvider =
       maxPrice: filter.maxPrice,
       location: filter.location,
       category: filter.category,
+      country: country,
+      excludeCountry: excludeCountry,
       limit: 50,
     ));
     sections.add('manufacturing');
@@ -602,6 +634,14 @@ class _FilterChips extends ConsumerWidget {
             .update((s) => s.copyWith(clearCategory: true)),
       ));
     }
+    if (filter.country?.isNotEmpty ?? false) {
+      chips.add(_Chip(
+        label: '🌍 ${filter.country!}',
+        onRemove: () => ref
+            .read(_filterProvider.notifier)
+            .update((s) => s.copyWith(clearCountry: true)),
+      ));
+    }
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: Wrap(spacing: 8, children: chips),
@@ -646,6 +686,7 @@ class _FilterPanelState extends State<_FilterPanel> {
   final _locationCtrl = TextEditingController();
   final _categoryCtrl = TextEditingController();
   String _section = 'all';
+  String? _country;
 
   @override
   void initState() {
@@ -656,6 +697,7 @@ class _FilterPanelState extends State<_FilterPanel> {
     _locationCtrl.text = c.location ?? '';
     _categoryCtrl.text = c.category ?? '';
     _section = c.section ?? 'all';
+    _country = c.country;
   }
 
   @override
@@ -774,6 +816,30 @@ class _FilterPanelState extends State<_FilterPanel> {
                 prefixIcon: Icon(Icons.category_outlined),
               ),
             ),
+            const SizedBox(height: 16),
+
+            // Country
+            const Text('Country',
+                style: TextStyle(fontWeight: FontWeight.w600)),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: [
+                ChoiceChip(
+                  label: const Text('All countries'),
+                  selected: _country == null || _country!.isEmpty,
+                  onSelected: (_) => setState(() => _country = null),
+                ),
+                ...kInternationalCountries.map(
+                  (c) => ChoiceChip(
+                    label: Text(c),
+                    selected: _country == c,
+                    onSelected: (_) => setState(() => _country = c),
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 24),
 
             ElevatedButton(
@@ -801,6 +867,9 @@ class _FilterPanelState extends State<_FilterPanel> {
                       ? _categoryCtrl.text.trim()
                       : null,
                   section: _section,
+                  country: (_country != null && _country!.isNotEmpty)
+                      ? _country
+                      : null,
                 ));
               },
               child: const Text('Apply Filters'),
