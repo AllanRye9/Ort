@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shimmer/shimmer.dart';
 import '../../core/api_service.dart';
 import '../../core/app_preferences.dart';
@@ -77,6 +78,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   // true when user has moved >500 m since the last sort
   bool _showRefreshResults = false;
 
+  // Timer used to delay the location prompt when in international mode.
+  Timer? _intlLocationTimer;
+
+  // SharedPreferences key that records whether we have already shown the
+  // location permission prompt to a user who was in international mode.
+  static const _kIntlLocationPromptedKey = 'intl_location_prompted';
+
   StreamSubscription<ServiceStatus>? _serviceStatusSub;
   StreamSubscription<Position>? _positionSub;
 
@@ -88,8 +96,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       duration: const Duration(milliseconds: 600),
     )..forward();
     _fadeAnim = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeIn);
-    // Request location exactly once at startup.
-    _initLocation();
+    // Request location at startup, respecting the international-mode delay rule.
+    _maybeRequestLocation();
     // Show marketplace-mode selection the first time the user reaches the home
     // screen (i.e. they have never chosen local vs international before).
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -125,6 +133,36 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         locationStatus: LocationAvailabilityStatus.denied,
       );
     }
+  }
+
+  /// Entry point for the location request at startup.
+  ///
+  /// - In **local** mode the OS permission dialog is shown immediately.
+  /// - In **international** mode the prompt is deferred by 5 minutes, and once
+  ///   shown it is never shown again (stored in SharedPreferences).
+  Future<void> _maybeRequestLocation() async {
+    // Already have a position – nothing to do.
+    if (ref.read(userLocationProvider) != null) return;
+
+    final mode = ref.read(marketplaceModeProvider);
+    if (mode == MarketplaceMode.international) {
+      final prefs = await SharedPreferences.getInstance();
+      final alreadyPrompted =
+          prefs.getBool(_kIntlLocationPromptedKey) ?? false;
+      if (alreadyPrompted) return; // Never prompt again after first time.
+
+      // Schedule the prompt after 5 minutes.
+      _intlLocationTimer ??= Timer(const Duration(minutes: 5), () async {
+        if (!mounted) return;
+        final p = await SharedPreferences.getInstance();
+        await p.setBool(_kIntlLocationPromptedKey, true);
+        _initLocation();
+      });
+      return;
+    }
+
+    // Local mode: request immediately.
+    _initLocation();
   }
 
   Future<void> _initLocation() async {
@@ -317,6 +355,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   @override
   void dispose() {
+    _intlLocationTimer?.cancel();
     _serviceStatusSub?.cancel();
     _positionSub?.cancel();
     _fadeCtrl.dispose();
