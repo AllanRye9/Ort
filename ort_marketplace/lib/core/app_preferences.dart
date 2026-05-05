@@ -130,8 +130,17 @@ const _kModeEverSelectedKey = 'mode_ever_selected';
 
 class MarketplaceModeNotifier extends StateNotifier<MarketplaceMode> {
   MarketplaceModeNotifier() : super(MarketplaceMode.local) {
-    _load();
+    _loadFuture = _load();
   }
+
+  /// Completes once the initial [_load] has finished reading from
+  /// [SharedPreferences].  Await this before reading [everSelected] to
+  /// avoid a race condition where the preferences have not been read yet.
+  late final Future<void> _loadFuture;
+
+  /// Returns a [Future] that completes once the initial persisted state has
+  /// been loaded from [SharedPreferences].
+  Future<void> waitForLoad() => _loadFuture;
 
   bool _everSelected = false;
   bool get everSelected => _everSelected;
@@ -176,12 +185,14 @@ final marketplaceModeProvider =
   (_) => MarketplaceModeNotifier(),
 );
 
-/// Separate bool provider that flips to `true` once the user has chosen a mode.
-/// Used to decide whether to show the on-boarding mode-selection dialog.
-final modeEverSelectedProvider = Provider<bool>((ref) {
-  // Trigger re-reads whenever the mode is changed so the dialog is dismissed.
-  ref.watch(marketplaceModeProvider);
-  return ref.read(marketplaceModeProvider.notifier).everSelected;
+/// Separate bool provider that resolves to `true` once the user has chosen
+/// a mode.  Used to decide whether to show the on-boarding mode-selection
+/// dialog.  Implemented as a [FutureProvider] so that it correctly awaits
+/// the async initialisation of [MarketplaceModeNotifier] before resolving.
+final modeEverSelectedProvider = FutureProvider<bool>((ref) async {
+  final notifier = ref.read(marketplaceModeProvider.notifier);
+  await notifier.waitForLoad();
+  return notifier.everSelected;
 });
 
 // ─── Distance formatting helper ───────────────────────────────────────────────
