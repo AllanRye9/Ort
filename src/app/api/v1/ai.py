@@ -109,7 +109,7 @@ async def _groq_chat(system: str, messages: list[dict]) -> str:
     payload = {
         "model": _MODEL,
         "messages": [{"role": "system", "content": system}] + messages,
-        "max_tokens": 700,
+        "max_tokens": 1024,
         "temperature": 0.7,
     }
     async with httpx.AsyncClient(timeout=30) as client:
@@ -126,40 +126,131 @@ async def _groq_chat(system: str, messages: list[dict]) -> str:
 
 def _stub_description(req: DescriptionRequest) -> str:
     """Fallback description when no AI key is configured."""
-    parts = [f"{req.title}"]
-    if req.category:
-        parts.append(f"Category: {req.category}.")
-    if req.location:
-        parts.append(f"Located in {req.location}.")
+    loc = f" in {req.location}" if req.location else ""
+    cat = f" ({req.category})" if req.category else ""
     if req.listing_type == "property":
-        parts.append("This property offers great value and is ready for viewing.")
+        return (
+            f"**Overview**\n{req.title} is a well-positioned property{loc} offering excellent "
+            f"value in a competitive market{cat}.\n\n"
+            "**Key Features**\nThis property features a practical layout, quality finishes, "
+            "and convenient access to essential amenities including transport links, schools, "
+            "and commercial facilities.\n\n"
+            "**Value Proposition**\nIdeal for owner-occupiers and investors alike, this listing "
+            "presents a compelling opportunity with strong rental yield potential and long-term "
+            "capital appreciation in a growing area."
+        )
     elif req.listing_type == "agriculture":
-        parts.append("Fresh, high-quality produce available for bulk purchase.")
+        return (
+            f"**Overview**\n{req.title} is a high-quality agricultural commodity{cat} sourced "
+            f"directly from trusted producers{loc}.\n\n"
+            "**Quality & Specifications**\nThis commodity meets industry-standard grading "
+            "requirements and is available in bulk quantities with flexible packaging options. "
+            "Handled under proper storage conditions to maintain freshness and shelf life.\n\n"
+            "**Supply & Value**\nCompetitively priced with reliable supply continuity. "
+            "Suitable for processors, wholesalers, and exporters seeking consistent quality "
+            "at favourable terms. Minimum order quantities available on request."
+        )
     elif req.listing_type == "manufacturing_product":
-        parts.append("Locally manufactured product meeting quality standards.")
+        return (
+            f"**Overview**\n{req.title} is a locally manufactured{cat} product{loc} designed "
+            "to meet the demands of B2B buyers across various industries.\n\n"
+            "**Specifications & Features**\nProduced to consistent quality standards with "
+            "durable materials and precise manufacturing tolerances. Available in standard "
+            "configurations with custom sizing or branding options on request.\n\n"
+            "**Use Cases & Benefits**\nSuited to a wide range of commercial and industrial "
+            "applications. Benefits include short lead times, competitive wholesale pricing, "
+            "and the reliability of locally sourced production."
+        )
     elif req.listing_type == "manufacturing_service":
-        parts.append("Professional service with experienced staff and modern equipment.")
-    return " ".join(parts)
+        return (
+            f"**Overview**\n{req.title} is a professional manufacturing service{cat} "
+            f"delivered by an experienced team{loc}.\n\n"
+            "**Capabilities & Specifications**\nEquipped with modern machinery capable of "
+            "handling a variety of materials and project scales. Turnaround times are "
+            "competitive and quality checks are performed at every production stage.\n\n"
+            "**Benefits & Value Proposition**\nClients benefit from precision workmanship, "
+            "flexible project intake, and transparent pricing. Ideal for businesses seeking "
+            "a dependable local manufacturing partner for both prototyping and production runs."
+        )
+    else:
+        parts = [f"{req.title}"]
+        if req.category:
+            parts.append(f"Category: {req.category}.")
+        if req.location:
+            parts.append(f"Located in {req.location}.")
+        parts.append("Contact us for more information.")
+        return " ".join(parts)
 
 
 @router.post("/generate-description", response_model=DescriptionResponse)
 async def generate_description(req: DescriptionRequest):
     """Generate an AI description for a listing based on basic details."""
-    prompt = (
-        f"Write a concise, professional marketplace listing description (2-4 sentences) "
-        f"for a {req.listing_type.replace('_', ' ')} titled '{req.title}'."
-    )
+    listing_label = req.listing_type.replace('_', ' ')
+
+    if req.listing_type == "property":
+        instructions = (
+            "Write a detailed, professional real-estate listing description. "
+            "Structure it with three clearly labelled sections:\n"
+            "1. Overview – introduce the property (type, general character, standout appeal).\n"
+            "2. Key Features – bullet or prose covering location, size, layout, rooms, amenities, "
+            "and any notable highlights (pool, parking, views, security, etc.).\n"
+            "3. Value Proposition – explain why this is a compelling buy or rental opportunity "
+            "(investment potential, lifestyle fit, or competitive pricing).\n"
+            "Be specific, evocative, and factual. Aim for 120-180 words total."
+        )
+    elif req.listing_type == "agriculture":
+        instructions = (
+            "Write a detailed, professional agricultural commodity listing description. "
+            "Structure it with three clearly labelled sections:\n"
+            "1. Overview – describe the commodity (type, variety, origin region, and intended use).\n"
+            "2. Quality & Specifications – cover grade, certification, moisture content, "
+            "packaging, storage conditions, harvest season, and any distinguishing quality markers.\n"
+            "3. Supply & Value – highlight quantity availability, minimum order, lead time, "
+            "and why buyers should choose this supplier (reliability, freshness, competitive price).\n"
+            "Be specific and factual. Aim for 120-180 words total."
+        )
+    elif req.listing_type == "manufacturing_product":
+        instructions = (
+            "Write a detailed, professional B2B manufacturing product listing description. "
+            "Structure it with three clearly labelled sections:\n"
+            "1. Overview – describe the product, its primary function, and target industry.\n"
+            "2. Specifications & Features – cover materials, dimensions, capacity, tolerances, "
+            "standards compliance, certifications, and manufacturing process if relevant.\n"
+            "3. Use Cases & Benefits – explain the main applications, the problems it solves, "
+            "and why buyers should source from this manufacturer "
+            "(lead time, local production, custom orders, pricing competitiveness).\n"
+            "Be specific and factual. Aim for 120-180 words total."
+        )
+    elif req.listing_type == "manufacturing_service":
+        instructions = (
+            "Write a detailed, professional B2B manufacturing service listing description. "
+            "Structure it with three clearly labelled sections:\n"
+            "1. Overview – describe the service, the technology or method used, and target clients.\n"
+            "2. Capabilities & Specifications – cover equipment, capacity, tolerances, turnaround "
+            "time, materials handled, and any quality certifications.\n"
+            "3. Benefits & Value Proposition – explain key advantages "
+            "(speed, precision, cost-efficiency, local availability, custom work capability) "
+            "and types of projects best suited to this provider.\n"
+            "Be specific and factual. Aim for 120-180 words total."
+        )
+    else:
+        instructions = (
+            "Write a detailed, professional marketplace listing description with three sections: "
+            "Overview, Key Features, and Value Proposition. Aim for 120-180 words."
+        )
+
+    prompt = f"{instructions}\n\nListing title: '{req.title}'."
     if req.category:
-        prompt += f" Category: {req.category}."
+        prompt += f"\nCategory: {req.category}."
     if req.location:
-        prompt += f" Location: {req.location}."
+        prompt += f"\nLocation: {req.location}."
     if req.extra_context:
-        prompt += f" Additional details: {req.extra_context}."
-    prompt += " Keep it factual, attractive to buyers, and under 80 words."
+        prompt += f"\nAdditional details: {req.extra_context}."
+    prompt += "\n\nWrite the description now:"
 
     try:
         text = await _groq_chat(
-            "You are a professional marketplace listing copywriter.",
+            "You are an expert marketplace listing copywriter specialising in B2B commerce.",
             [{"role": "user", "content": prompt}],
         )
     except RuntimeError:

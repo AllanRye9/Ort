@@ -886,6 +886,7 @@ class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen>
   }
 
   Widget _buildServicesTab(BuildContext context, {required bool canList}) {
+    final mode = ref.watch(marketplaceModeProvider);
     return Column(
       children: [
         // ── Search bar ─────────────────────────────────────────────
@@ -1032,7 +1033,7 @@ class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen>
                                         : 'Service',
                                     status: s.status,
                                     price:
-                                        '${formatCurrency(s.price, currency: s.currency, decimals: 2)} / $pricingLabel',
+                                        '${formatCurrencyForMode(s.price, currency: s.currency, decimals: 2, mode: mode)} / $pricingLabel',
                                     extras: [
                                       if (s.noticePeriodDays != null)
                                         '${s.noticePeriodDays} day notice',

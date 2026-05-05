@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/api_service.dart';
+import '../../core/app_preferences.dart';
 import '../../core/auth_provider.dart';
 import '../../core/listing_providers.dart';
 import '../../models/models.dart';
@@ -389,6 +390,7 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen>
     final tenantAsync = ref.watch(_myTenantProvider(userId));
     final tenantId = tenantAsync.valueOrNull?.id;
     final listingKey = (tenantId: tenantId, ownerUserId: userId);
+    final mode = ref.watch(marketplaceModeProvider);
 
     final propertyListings = ref.watch(_myListingsProvider(userId));
     final agriListings = ref.watch(_myAgriListingsProvider(listingKey));
@@ -499,7 +501,7 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen>
                         return _SimpleListingCard(
                           title: a.title,
                           subtitle: a.location ?? a.category ?? '',
-                          price: '${formatCurrency(a.pricePerUnit, currency: a.currency, decimals: 2)} / ${a.unit ?? 'unit'}',
+                          price: '${formatCurrencyForMode(a.pricePerUnit, currency: a.currency, decimals: 2, mode: mode)} / ${a.unit ?? 'unit'}',
                           status: a.status,
                           imageUrl: a.images?.isNotEmpty == true
                               ? a.images!.first
@@ -546,7 +548,7 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen>
                         return _SimpleListingCard(
                           title: m.title,
                           subtitle: m.location ?? m.category ?? '',
-                          price: formatCurrency(m.wholesalePrice, currency: m.currency, decimals: 2),
+                          price: formatCurrencyForMode(m.wholesalePrice, currency: m.currency, decimals: 2, mode: mode),
                           status: m.status,
                           imageUrl: m.images?.isNotEmpty == true
                               ? m.images!.first
@@ -597,7 +599,7 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen>
                         return _SimpleListingCard(
                           title: s.title,
                           subtitle: s.location ?? s.serviceType ?? '',
-                          price: '${formatCurrency(s.price, currency: s.currency, decimals: 2)}'
+                          price: '${formatCurrencyForMode(s.price, currency: s.currency, decimals: 2, mode: mode)}'
                               '${pricingLabel.isNotEmpty ? ' / $pricingLabel' : ''}',
                           status: s.status,
                           imageUrl: s.images?.isNotEmpty == true
@@ -673,7 +675,7 @@ class _EmptyState extends StatelessWidget {
 
 // ─── Property listing card ────────────────────────────────────────────────────
 
-class _PropertyListingCard extends StatelessWidget {
+class _PropertyListingCard extends ConsumerWidget {
   const _PropertyListingCard({
     required this.property,
     required this.onView,
@@ -704,9 +706,10 @@ class _PropertyListingCard extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final p = property;
     final color = _statusColor(p.status);
+    final mode = ref.watch(marketplaceModeProvider);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
@@ -764,7 +767,7 @@ class _PropertyListingCard extends StatelessWidget {
               children: [
                 Flexible(
                   child: Text(
-                    formatCurrency(p.price, country: p.country),
+                    formatCurrencyForMode(p.price, country: p.country, mode: mode),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
