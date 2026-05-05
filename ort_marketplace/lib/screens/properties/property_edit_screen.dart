@@ -273,15 +273,6 @@ class _PropertyEditScreenState extends ConsumerState<PropertyEditScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_propertyType == 'other' && _customPropertyTypeCtrl.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter a custom property type.'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-      return;
-    }
     setState(() => _submitting = true);
     try {
       double? areaValue;
@@ -292,7 +283,7 @@ class _PropertyEditScreenState extends ConsumerState<PropertyEditScreen> {
       final effectivePropertyType = _propertyType == 'other'
           ? _customPropertyTypeCtrl.text.trim().toLowerCase().replaceAll(' ', '_')
           : _propertyType;
-      final isLand = _propertyType == 'land';
+      final isLand = effectivePropertyType == 'land';
 
       if (isLand && _landCategory != null) {
         if (_landCategory == 'residential' && _landResidentialUseMetric) {

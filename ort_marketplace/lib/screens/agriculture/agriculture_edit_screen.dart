@@ -198,15 +198,6 @@ class _AgricultureEditScreenState
     final effectiveCategory = _category == 'other'
         ? _customCategoryCtrl.text.trim().toLowerCase().replaceAll(' ', '_')
         : _category;
-    if (effectiveCategory.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter a custom category name.'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
     setState(() => _submitting = true);
     try {
       final payload = <String, dynamic>{
