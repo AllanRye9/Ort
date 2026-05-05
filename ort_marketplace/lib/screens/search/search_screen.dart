@@ -104,11 +104,11 @@ final _searchResultsProvider =
   } else {
     final mode = ref.read(marketplaceModeProvider);
     final userCountry = ref.read(userCountryProvider);
-    final intlFilter = ref.read(intlCountryFilterProvider);
+    final intlCountryFilter = ref.read(intlCountryFilterProvider);
     if (mode == MarketplaceMode.local) {
       country = userCountry;
-    } else if (intlFilter.isNotEmpty) {
-      country = intlFilter;
+    } else if (intlCountryFilter.isNotEmpty) {
+      country = intlCountryFilter;
     } else {
       // International mode, no explicit intl filter – exclude the user's own
       // country so domestic-only listings are suppressed.

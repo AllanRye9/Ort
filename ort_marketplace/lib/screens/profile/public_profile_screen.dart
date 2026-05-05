@@ -198,8 +198,7 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
                       : null,
                   child: (user.avatarUrl == null || user.avatarUrl!.isEmpty)
                       ? Text(
-                          '${user.firstName[0]}${user.lastName[0]}'
-                              .toUpperCase(),
+                          _initials(user.firstName, user.lastName),
                           style: TextStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.bold,
@@ -702,4 +701,13 @@ class _ReviewTile extends StatelessWidget {
       ),
     );
   }
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+String _initials(String first, String last) {
+  final f = first.isNotEmpty ? first[0].toUpperCase() : '';
+  final l = last.isNotEmpty ? last[0].toUpperCase() : '';
+  final result = '$f$l';
+  return result.isNotEmpty ? result : '?';
 }
