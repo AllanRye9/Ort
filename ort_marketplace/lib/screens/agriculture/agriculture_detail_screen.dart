@@ -532,7 +532,11 @@ class _AgricultureDetailScreenState extends ConsumerState<AgricultureDetailScree
                               .titleSmall
                               ?.copyWith(fontWeight: FontWeight.bold)),
                       const SizedBox(height: 8),
-                      ListingOwnerCard(owner: a.ownerProfile!),
+                      ListingOwnerCard(
+                          owner: a.ownerProfile!,
+                          onTap: () =>
+                              context.push('/user/${a.ownerProfile!.id}'),
+                        ),
                     ],
                     if (a.latitude != null && a.longitude != null) ...[
                       const SizedBox(height: 14),

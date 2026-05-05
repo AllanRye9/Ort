@@ -64,9 +64,10 @@ class ListingCodeBadge extends StatelessWidget {
 /// A compact card showing the profile of the agent/company/organisation that
 /// created a listing. Reusable across properties, mfg and agric detail screens.
 class ListingOwnerCard extends StatelessWidget {
-  const ListingOwnerCard({super.key, required this.owner});
+  const ListingOwnerCard({super.key, required this.owner, this.onTap});
 
   final AgentProfileModel owner;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -74,7 +75,12 @@ class ListingOwnerCard extends StatelessWidget {
     final cs = theme.colorScheme;
     final roleLabel = _roleLabel(owner.role);
 
-    return Container(
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: cs.surfaceContainerHighest.withValues(alpha: 0.5),
@@ -154,7 +160,12 @@ class ListingOwnerCard extends StatelessWidget {
               ],
             ),
           ),
+          if (onTap != null)
+            Icon(Icons.chevron_right,
+                color: theme.colorScheme.onSurfaceVariant),
         ],
+      ),
+        ),
       ),
     );
   }
