@@ -697,7 +697,10 @@ class _PropertyDetailBody extends ConsumerWidget {
                   const SizedBox(height: 16),
                   const Divider(),
                   const SizedBox(height: 8),
-                  _AgentProfileCard(agent: p.agentProfile!),
+                  GestureDetector(
+                    onTap: () => context.push('/user/${p.agentProfile!.id}'),
+                    child: _AgentProfileCard(agent: p.agentProfile!),
+                  ),
                 ],
 
                 // ── Map ───────────────────────────────────────────────────────
