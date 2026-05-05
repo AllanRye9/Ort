@@ -84,7 +84,6 @@ def save_item(payload: SavedItemCreate, db: Session = Depends(get_db)):
 
     # Notify the item owner that their listing was saved/liked
     _notify_item_owner(payload.item_type, payload.item_id, payload.user_id, db)
-    db.commit()
 
     return obj
 

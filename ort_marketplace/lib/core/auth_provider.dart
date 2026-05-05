@@ -1,3 +1,5 @@
+import 'dart:async' show unawaited;
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -128,13 +130,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   void _initPush(int userId) {
-    Future.microtask(() async {
+    unawaited(Future.microtask(() async {
       try {
         await PushNotificationService.init(userId: userId, apiService: _api);
       } catch (_) {
         // Push init failure must never prevent login from completing.
       }
-    });
+    }));
   }
 
   Future<bool> register(Map<String, dynamic> userData) async {

@@ -948,7 +948,6 @@ class ApiService {
     String? platform,
   }) async {
     await _dio.post('/notifications/device-token', data: {
-      'user_id': userId,
       'token': token,
       if (platform != null) 'platform': platform,
     });
@@ -959,7 +958,6 @@ class ApiService {
     required String token,
   }) async {
     await _dio.delete('/notifications/device-token', queryParameters: {
-      'user_id': userId,
       'token': token,
     });
   }
