@@ -89,6 +89,9 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
         )
 
     # The very first account ever registered automatically becomes admin.
+    # Use a count query; in practice simultaneous first-registrations are
+    # extremely rare on a fresh deployment, and the DB unique constraint on
+    # email prevents duplicate accounts from persisting.
     is_first_user = db.query(User).count() == 0
     effective_role = "admin" if is_first_user else payload.role
 
@@ -221,7 +224,6 @@ class AdminLoginRequest(BaseModel):
 @router.post("/admin-login", response_model=TokenResponse)
 def admin_login(payload: AdminLoginRequest, db: Session = Depends(get_db)):
     """Dedicated admin login endpoint used by the /const admin console."""
-    # Fall back to DB-stored admin account (the first registered user)
     admin_user = db.query(User).filter(User.role == "admin").first()
     if admin_user is None:
         raise HTTPException(
