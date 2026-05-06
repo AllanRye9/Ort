@@ -1,5 +1,4 @@
 """JWT Authentication router."""
-import hmac
 import logging
 import os
 import re
@@ -32,9 +31,6 @@ SECRET_KEY = os.getenv("SECRET_KEY", "change-me-in-production")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
 
-_ADMIN_USER = (os.getenv("ADMIN_USER") or "").strip() or None
-_ADMIN_PASSWORD = (os.getenv("ADMIN_PASSWORD") or "").strip() or None
-
 
 def _create_access_token(data: dict) -> str:
     to_encode = data.copy()
@@ -58,37 +54,6 @@ def _make_unique_slug(db: Session, base: str) -> str:
 
 @router.post("/login", response_model=TokenResponse)
 def login(payload: LoginRequest, db: Session = Depends(get_db)):
-    # ── ENV-var admin bypass ───────────────────────────────────────────────────
-    # When ADMIN_USER and ADMIN_PASSWORD are configured, credentials matching
-    # those env vars bypass the normal DB lookup and ensure an admin user exists.
-    # hmac.compare_digest is used to prevent timing-based credential leaks.
-    if (
-        _ADMIN_USER
-        and _ADMIN_PASSWORD
-        and hmac.compare_digest(payload.email.lower(), _ADMIN_USER.lower())
-        and hmac.compare_digest(payload.password, _ADMIN_PASSWORD)
-    ):
-        admin_user = db.query(User).filter(User.email == _ADMIN_USER).first()
-        if admin_user is None:
-            # First-time setup: create the admin user record.
-            admin_user = User(
-                role="admin",
-                first_name="Admin",
-                last_name="User",
-                email=_ADMIN_USER,
-                password_hash=pwd_context.hash(_ADMIN_PASSWORD),
-            )
-            db.add(admin_user)
-            db.commit()
-            db.refresh(admin_user)
-            logger.info("Admin user created from ADMIN_USER env var")
-        elif admin_user.role != "admin":
-            admin_user.role = "admin"
-            db.commit()
-            db.refresh(admin_user)
-        token = _create_access_token({"sub": str(admin_user.id), "role": "admin"})
-        return TokenResponse(access_token=token, user_id=admin_user.id, role="admin")
-
     user = db.query(User).filter(User.email == payload.email).first()
     try:
         password_matches = user and pwd_context.verify(payload.password, user.password_hash)
@@ -123,6 +88,10 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
             detail="An account with this email already exists",
         )
 
+    # The very first account ever registered automatically becomes admin.
+    is_first_user = db.query(User).count() == 0
+    effective_role = "admin" if is_first_user else payload.role
+
     # Create the user record. bcrypt raises ValueError if the password exceeds
     # 72 bytes; catch it here so the caller gets a 400 instead of a 500.
     try:
@@ -134,7 +103,7 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
         )
 
     db_user = User(
-        role=payload.role,
+        role=effective_role,
         first_name=payload.first_name.strip(),
         last_name=payload.last_name.strip(),
         email=payload.email,
@@ -251,43 +220,8 @@ class AdminLoginRequest(BaseModel):
 
 @router.post("/admin-login", response_model=TokenResponse)
 def admin_login(payload: AdminLoginRequest, db: Session = Depends(get_db)):
-    """Dedicated admin login endpoint.
-
-    Validates against ADMIN_USER / ADMIN_PASSWORD env vars when set, otherwise
-    falls back to the single admin account created via /auth/admin-setup.
-    """
-    # Try env-var admin bypass first
-    if _ADMIN_USER and _ADMIN_PASSWORD:
-        if not (
-            hmac.compare_digest(payload.username.lower(), _ADMIN_USER.lower())
-            and hmac.compare_digest(payload.password, _ADMIN_PASSWORD)
-        ):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid admin credentials.",
-            )
-        admin_email = _ADMIN_USER if "@" in _ADMIN_USER else f"{_ADMIN_USER}@ort.admin"
-        admin_user = db.query(User).filter(User.email == admin_email).first()
-        if admin_user is None:
-            admin_user = User(
-                role="admin",
-                first_name="Admin",
-                last_name="User",
-                email=admin_email,
-                password_hash=pwd_context.hash(_ADMIN_PASSWORD),
-            )
-            db.add(admin_user)
-            db.commit()
-            db.refresh(admin_user)
-            logger.info("Admin user created from ADMIN_USER env var: %s", admin_email)
-        elif admin_user.role != "admin":
-            admin_user.role = "admin"
-            db.commit()
-            db.refresh(admin_user)
-        token = _create_access_token({"sub": str(admin_user.id), "role": "admin"})
-        return TokenResponse(access_token=token, user_id=admin_user.id, role="admin")
-
-    # Fall back to DB-stored admin account (created via /auth/admin-setup)
+    """Dedicated admin login endpoint used by the /const admin console."""
+    # Fall back to DB-stored admin account (the first registered user)
     admin_user = db.query(User).filter(User.role == "admin").first()
     if admin_user is None:
         raise HTTPException(
@@ -328,18 +262,9 @@ class AdminSetupRequest(BaseModel):
 def admin_setup(payload: AdminSetupRequest, db: Session = Depends(get_db)):
     """One-time admin account creation.
 
-    Succeeds only when:
-    - No admin user exists in the database, AND
-    - ADMIN_USER / ADMIN_PASSWORD environment variables are NOT set
-      (if they are set, use /auth/admin-login directly).
-
+    Succeeds only when no admin user exists in the database.
     After this endpoint is called once, subsequent calls return 409 Conflict.
     """
-    if _ADMIN_USER or _ADMIN_PASSWORD:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Admin is configured via environment variables. Use /auth/admin-login.",
-        )
     existing_admin = db.query(User).filter(User.role == "admin").first()
     if existing_admin:
         raise HTTPException(
