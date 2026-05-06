@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -722,12 +723,17 @@ class _PropertyListingCard extends ConsumerWidget {
                     context, p.imageUrls.first, p.title),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: Image.network(
-                    p.imageUrls.first,
+                  child: CachedNetworkImage(
+                    imageUrl: p.imageUrls.first,
                     width: 56,
                     height: 56,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const SizedBox(
+                    placeholder: (_, __) => Container(
+                      width: 56,
+                      height: 56,
+                      color: Colors.grey[200],
+                    ),
+                    errorWidget: (_, __, ___) => const SizedBox(
                       width: 56,
                       height: 56,
                       child: Icon(Icons.broken_image_outlined),
@@ -906,12 +912,17 @@ class _SimpleListingCard extends StatelessWidget {
                 onTap: () => _openImagePreview(context, imageUrl!, title),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: Image.network(
-                    imageUrl!,
+                  child: CachedNetworkImage(
+                    imageUrl: imageUrl!,
                     width: 56,
                     height: 56,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const SizedBox(
+                    placeholder: (_, __) => Container(
+                      width: 56,
+                      height: 56,
+                      color: Colors.grey[200],
+                    ),
+                    errorWidget: (_, __, ___) => const SizedBox(
                         width: 56,
                         height: 56,
                         child: Icon(Icons.broken_image_outlined)),
@@ -1042,10 +1053,11 @@ class _SimpleListingCard extends StatelessWidget {
           ),
           body: Center(
             child: InteractiveViewer(
-              child: Image.network(
-                url,
+              child: CachedNetworkImage(
+                imageUrl: url,
                 fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) => const Icon(
+                placeholder: (_, __) => const CircularProgressIndicator(),
+                errorWidget: (_, __, ___) => const Icon(
                     Icons.broken_image,
                     color: Colors.white,
                     size: 64),
