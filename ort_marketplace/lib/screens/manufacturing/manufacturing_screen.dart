@@ -10,6 +10,7 @@ import '../../core/location_service.dart';
 import '../../core/responsive.dart';
 import '../../models/models.dart';
 import '../../widgets/listing_card.dart';
+import '../../widgets/mode_filter_bar.dart';
 
 class ManufacturingScreen extends ConsumerStatefulWidget {
   const ManufacturingScreen({super.key});
@@ -72,6 +73,11 @@ class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen>
   void initState() {
     super.initState();
     _tabCtrl = TabController(length: 2, vsync: this);
+    // Snapshot current mode/country so that the first build() can detect if they
+    // changed between initState and the first rendered frame.
+    _lastMode = ref.read(marketplaceModeProvider);
+    _lastUserCountry = ref.read(userCountryProvider);
+    _lastIntlFilter = ref.read(intlCountryFilterProvider);
     _loadListings();
     _loadServices();
   }
@@ -524,8 +530,7 @@ class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen>
     final mode = ref.watch(marketplaceModeProvider);
     final userCountry = ref.watch(userCountryProvider);
     final intlFilter = ref.watch(intlCountryFilterProvider);
-    if (_lastMode != null &&
-        !_reloadPending &&
+    if (!_reloadPending &&
         (_lastMode != mode ||
             _lastUserCountry != userCountry ||
             _lastIntlFilter != intlFilter)) {
@@ -635,6 +640,8 @@ class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen>
               ],
             ),
           ),
+          // ── Mode indicator / international country filter ───────────
+          const ModeFilterBar(),
           // ── Active filter chips ────────────────────────────────────
           if (_category != null || _status != null)
             Padding(
@@ -920,6 +927,8 @@ class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen>
             ),
           ),
         ),
+        // ── Mode indicator / international country filter ──────────
+        const ModeFilterBar(),
         // ── Service type filter chips ──────────────────────────────
         Padding(
           padding: const EdgeInsets.only(left: 12, right: 12, bottom: 6),
