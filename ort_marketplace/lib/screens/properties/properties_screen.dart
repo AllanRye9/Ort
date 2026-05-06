@@ -10,6 +10,7 @@ import '../../core/location_service.dart';
 import '../../core/responsive.dart';
 import '../../models/models.dart';
 import '../../widgets/listing_card.dart';
+import '../../widgets/mode_filter_bar.dart';
 
 class PropertiesScreen extends ConsumerStatefulWidget {
   const PropertiesScreen({super.key});
@@ -51,6 +52,13 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
   @override
   void initState() {
     super.initState();
+    // Snapshot current mode/country so that the first build() can detect if they
+    // changed between initState and the first rendered frame (e.g. because
+    // MarketplaceModeNotifier finishes loading from SharedPreferences after
+    // initState already ran but before the first build).
+    _lastMode = ref.read(marketplaceModeProvider);
+    _lastUserCountry = ref.read(userCountryProvider);
+    _lastIntlFilter = ref.read(intlCountryFilterProvider);
     _loadListings();
   }
 
@@ -407,8 +415,7 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
     final mode = ref.watch(marketplaceModeProvider);
     final userCountry = ref.watch(userCountryProvider);
     final intlFilter = ref.watch(intlCountryFilterProvider);
-    if (_lastMode != null &&
-        !_reloadPending &&
+    if (!_reloadPending &&
         (_lastMode != mode ||
             _lastUserCountry != userCountry ||
             _lastIntlFilter != intlFilter)) {
@@ -491,6 +498,8 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
               ],
             ),
           ),
+          // ── Mode indicator / international country filter ───────────
+          const ModeFilterBar(),
           // ── Active filter chips ────────────────────────────────────
           if (_propertyType != null || _status != null)
             Padding(

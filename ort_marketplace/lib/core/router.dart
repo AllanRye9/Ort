@@ -353,12 +353,19 @@ class _MainShellState extends State<MainShell> {
 
   Future<bool> _onWillPop(BuildContext context) async {
     final router = GoRouter.of(context);
-    // If the router can go back (e.g., we're on a sub-page), go back.
+    // If the router can go back (e.g., we're on a sub-page pushed via
+    // context.push), let the router handle it.
     if (router.canPop()) {
       router.pop();
       return false;
     }
-    // On the root/home level: require a second tap within 2 seconds to exit.
+    // If we have custom history from tab navigation (context.go), go back.
+    if (_historyStack.isNotEmpty) {
+      _goBack(context);
+      return false;
+    }
+    // On the root/home level with no history: require a second tap within
+    // 2 seconds to exit.
     final now = DateTime.now();
     if (_lastBackPress == null ||
         now.difference(_lastBackPress!) > const Duration(seconds: 2)) {
