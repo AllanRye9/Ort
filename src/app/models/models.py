@@ -73,6 +73,12 @@ class Property(Base):
     address = Column(Text, nullable=False)
     city = Column(String(100))
     price = Column(DECIMAL(12, 2), nullable=False)
+    pricing_type = Column(
+        Enum("negotiable", "fixed", name="property_pricing_types"),
+        default="negotiable",
+        server_default="negotiable",
+        nullable=False,
+    )
     bedrooms = Column(Integer)
     bathrooms = Column(Integer)
     area_sqft = Column(Integer)

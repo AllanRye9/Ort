@@ -87,7 +87,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
               .toList();
           _loading = false;
         });
-        _scrollToBottom();
+        _scrollToTop();
       }
     } catch (e) {
       if (mounted) {
@@ -108,23 +108,23 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       final updated = data
           .map((e) => MessageModel.fromJson(e as Map<String, dynamic>))
           .toList();
-      // Only update state if there are new messages (compare last message ID)
-      final lastId = _messages.isNotEmpty ? _messages.last.id : null;
-      final newLastId = updated.isNotEmpty ? updated.last.id : null;
-      if (newLastId != lastId || updated.length != _messages.length) {
+      final currentNewestId = _messages.isNotEmpty ? _messages.first.id : null;
+      final fetchedNewestId = updated.isNotEmpty ? updated.first.id : null;
+      if (fetchedNewestId != currentNewestId ||
+          updated.length != _messages.length) {
         setState(() => _messages = updated);
-        _scrollToBottom();
+        _scrollToTop();
       }
     } catch (_) {
       // Silently ignore polling errors to avoid spamming the user
     }
   }
 
-  void _scrollToBottom() {
+  void _scrollToTop() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
+          _scrollController.position.minScrollExtent,
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeOut,
         );
@@ -195,7 +195,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
               .map((e) => MessageModel.fromJson(e as Map<String, dynamic>))
               .toList();
         });
-        _scrollToBottom();
+        _scrollToTop();
       }
     } catch (e) {
       if (mounted) {
@@ -254,7 +254,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
               .map((e) => MessageModel.fromJson(e as Map<String, dynamic>))
               .toList();
         });
-        _scrollToBottom();
+        _scrollToTop();
       }
     } catch (e) {
       if (mounted) {

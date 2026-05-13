@@ -10,7 +10,6 @@ TENANT_PAYLOAD = {
 LISTING_BASE = {
     "title": "Organic Maize",
     "price_per_unit": "3.50",
-    "currency": "USD",
     "quantity_available": 1000,
     "unit": "kg",
 }
@@ -36,6 +35,8 @@ def test_create_agriculture_listing(client):
     data = resp.json()
     assert data["title"] == "Organic Maize"
     assert data["status"] == "available"
+    assert data["currency"] == "UGX"
+    assert data["pricing_type"] == "negotiable"
 
 
 def test_get_agriculture_listing(client):

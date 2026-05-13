@@ -592,6 +592,7 @@ class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen>
 
   Widget _buildProductsTab(BuildContext context, {required bool canList}) {
     final mode = ref.watch(marketplaceModeProvider);
+    final userCountry = ref.watch(userCountryProvider);
     return Column(
       children: [
         // ── Search bar ──────────────────────────────────────────────
@@ -870,7 +871,7 @@ class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen>
                                       tag: m.category ?? 'Manufacturing',
                                       status: m.status,
                                       price:
-                                          '${formatCurrencyForMode(m.wholesalePrice, currency: m.currency, decimals: 2, mode: mode)}/${m.unit ?? 'unit'}',
+                                          '${formatCurrencyForMode(m.wholesalePrice, currency: m.currency, viewerCountry: userCountry, decimals: 2, mode: mode)}/${m.unit ?? 'unit'}',
                                       extras: [
                                         if (m.moq != null) 'Min order: ${m.moq}',
                                         if (m.leadTimeDays != null)
@@ -894,6 +895,7 @@ class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen>
 
   Widget _buildServicesTab(BuildContext context, {required bool canList}) {
     final mode = ref.watch(marketplaceModeProvider);
+    final userCountry = ref.watch(userCountryProvider);
     return Column(
       children: [
         // ── Search bar ─────────────────────────────────────────────
@@ -1042,7 +1044,7 @@ class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen>
                                         : 'Service',
                                     status: s.status,
                                     price:
-                                        '${formatCurrencyForMode(s.price, currency: s.currency, decimals: 2, mode: mode)} / $pricingLabel',
+                                        '${formatCurrencyForMode(s.price, currency: s.currency, viewerCountry: userCountry, decimals: 2, mode: mode)} / $pricingLabel',
                                     extras: [
                                       if (s.noticePeriodDays != null)
                                         '${s.noticePeriodDays} day notice',
@@ -1062,4 +1064,3 @@ class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen>
     );
   }
 }
-

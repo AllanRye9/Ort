@@ -118,6 +118,7 @@ class PropertyBase(BaseModel):
     address: str
     city: Optional[str] = None
     price: Decimal
+    pricing_type: str = "negotiable"
     bedrooms: Optional[int] = None
     bathrooms: Optional[int] = None
     area_sqft: Optional[int] = None
@@ -143,6 +144,7 @@ class PropertyCreate(PropertyBase):
     owner_id: Optional[int] = None
     property_type: str = Field(..., pattern="^(house|apartment|land|commercial|villa|office|warehouse|other)$")
     price: Decimal = Field(..., gt=0)
+    pricing_type: str = Field("negotiable", pattern="^(negotiable|fixed)$")
     bedrooms: Optional[int] = Field(None, ge=0)
     bathrooms: Optional[int] = Field(None, ge=0)
     area_sqft: Optional[int] = Field(None, gt=0)
@@ -177,6 +179,7 @@ class PropertyUpdate(BaseModel):
     address: Optional[str] = None
     city: Optional[str] = None
     price: Optional[Decimal] = Field(None, gt=0)
+    pricing_type: Optional[str] = Field(None, pattern="^(negotiable|fixed)$")
     bedrooms: Optional[int] = Field(None, ge=0)
     bathrooms: Optional[int] = Field(None, ge=0)
     area_sqft: Optional[int] = Field(None, gt=0)

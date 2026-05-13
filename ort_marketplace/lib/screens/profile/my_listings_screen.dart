@@ -392,6 +392,7 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen>
     final tenantId = tenantAsync.valueOrNull?.id;
     final listingKey = (tenantId: tenantId, ownerUserId: userId);
     final mode = ref.watch(marketplaceModeProvider);
+    final userCountry = ref.watch(userCountryProvider);
 
     final propertyListings = ref.watch(_myListingsProvider(userId));
     final agriListings = ref.watch(_myAgriListingsProvider(listingKey));
@@ -502,7 +503,7 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen>
                         return _SimpleListingCard(
                           title: a.title,
                           subtitle: a.location ?? a.category ?? '',
-                          price: '${formatCurrencyForMode(a.pricePerUnit, currency: a.currency, decimals: 2, mode: mode)} / ${a.unit ?? 'unit'}',
+                          price: '${formatCurrencyForMode(a.pricePerUnit, currency: a.currency, viewerCountry: userCountry, decimals: 2, mode: mode)} / ${a.unit ?? 'unit'}',
                           status: a.status,
                           imageUrl: a.images?.isNotEmpty == true
                               ? a.images!.first
@@ -549,7 +550,7 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen>
                         return _SimpleListingCard(
                           title: m.title,
                           subtitle: m.location ?? m.category ?? '',
-                          price: formatCurrencyForMode(m.wholesalePrice, currency: m.currency, decimals: 2, mode: mode),
+                          price: formatCurrencyForMode(m.wholesalePrice, currency: m.currency, viewerCountry: userCountry, decimals: 2, mode: mode),
                           status: m.status,
                           imageUrl: m.images?.isNotEmpty == true
                               ? m.images!.first
@@ -600,7 +601,7 @@ class _MyListingsScreenState extends ConsumerState<MyListingsScreen>
                         return _SimpleListingCard(
                           title: s.title,
                           subtitle: s.location ?? s.serviceType ?? '',
-                          price: '${formatCurrencyForMode(s.price, currency: s.currency, decimals: 2, mode: mode)}'
+                          price: '${formatCurrencyForMode(s.price, currency: s.currency, viewerCountry: userCountry, decimals: 2, mode: mode)}'
                               '${pricingLabel.isNotEmpty ? ' / $pricingLabel' : ''}',
                           status: s.status,
                           imageUrl: s.images?.isNotEmpty == true
@@ -711,6 +712,7 @@ class _PropertyListingCard extends ConsumerWidget {
     final p = property;
     final color = _statusColor(p.status);
     final mode = ref.watch(marketplaceModeProvider);
+    final userCountry = ref.watch(userCountryProvider);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
@@ -773,7 +775,12 @@ class _PropertyListingCard extends ConsumerWidget {
               children: [
                 Flexible(
                   child: Text(
-                    formatCurrencyForMode(p.price, country: p.country, mode: mode),
+                    formatCurrencyForMode(
+                      p.price,
+                      country: p.country,
+                      viewerCountry: userCountry,
+                      mode: mode,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
