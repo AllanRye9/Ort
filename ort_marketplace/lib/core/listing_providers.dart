@@ -32,8 +32,10 @@ const _kToUsdRates = {
 };
 
 /// Converts [amount] between supported currencies using the shared USD rate
-/// table. Returns `null` when either currency is unknown, so callers can fall
-/// back to USD and, if that also fails, keep showing the original stored
+/// table. When [fromCurrency] is null, the app treats listing prices as UGX
+/// source values; when [toCurrency] is null, USD is used as the safest display
+/// fallback. Returns `null` when either currency is unknown, so callers can
+/// fall back to USD and, if that also fails, keep showing the original stored
 /// currency amount instead of inventing a target-currency value.
 double? convertCurrency(
   double amount, {
@@ -115,8 +117,9 @@ String formatCurrencyForMode(
   int decimals = 0,
   MarketplaceMode mode = MarketplaceMode.local,
 }) {
-  final sourceCurrency =
-      currency?.isNotEmpty == true ? currency!.toUpperCase() : 'UGX';
+  final sourceCurrency = currency?.isNotEmpty ?? false
+      ? currency!.toUpperCase()
+      : 'UGX';
   var targetCurrency = mode == MarketplaceMode.international
       ? 'USD'
       : currencyCodeForCountry(viewerCountry ?? country);
