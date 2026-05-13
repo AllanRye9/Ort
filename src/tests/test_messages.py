@@ -101,5 +101,6 @@ def test_send_and_list_messages(client):
     assert list_resp.status_code == 200
     data = list_resp.json()
     assert len(data) == 2
+    assert data[0]["id"] > data[1]["id"]
     assert data[0]["body"] == "Newest message"
     assert data[1]["body"] == "Hi there!"

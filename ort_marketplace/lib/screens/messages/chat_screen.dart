@@ -108,9 +108,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       final updated = data
           .map((e) => MessageModel.fromJson(e as Map<String, dynamic>))
           .toList();
-      final latestId = _messages.isNotEmpty ? _messages.first.id : null;
-      final newLatestId = updated.isNotEmpty ? updated.first.id : null;
-      if (newLatestId != latestId || updated.length != _messages.length) {
+      final currentNewestId = _messages.isNotEmpty ? _messages.first.id : null;
+      final fetchedNewestId = updated.isNotEmpty ? updated.first.id : null;
+      if (fetchedNewestId != currentNewestId ||
+          updated.length != _messages.length) {
         setState(() => _messages = updated);
         _scrollToTop();
       }
