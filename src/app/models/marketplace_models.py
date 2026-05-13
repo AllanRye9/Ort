@@ -125,7 +125,7 @@ class AgricultureListing(Base):
     moq = Column(Float)                     # Minimum Order Quantity
     price_per_unit = Column(DECIMAL(12, 2), nullable=False)
     pricing_type = Column(
-        Enum("negotiable", "fixed", name="pricing_types"),
+        Enum("negotiable", "fixed", name="agriculture_pricing_types"),
         default="negotiable",
         server_default="negotiable",
         nullable=False,
@@ -183,7 +183,7 @@ class ManufacturingProduct(Base):
     unit = Column(String(30))               # units, pieces, kg, etc.
     wholesale_price = Column(DECIMAL(12, 2), nullable=False)
     pricing_type = Column(
-        Enum("negotiable", "fixed", name="pricing_types"),
+        Enum("negotiable", "fixed", name="manufacturing_product_pricing_types"),
         default="negotiable",
         server_default="negotiable",
         nullable=False,
@@ -236,7 +236,7 @@ class ManufacturingService(Base):
     service_type = Column(String(100))      # machining, fabrication, welding, etc.
     price = Column(DECIMAL(12, 2), nullable=False)
     pricing_type = Column(
-        Enum("negotiable", "fixed", name="pricing_types"),
+        Enum("negotiable", "fixed", name="manufacturing_service_pricing_types"),
         default="negotiable",
         server_default="negotiable",
         nullable=False,
