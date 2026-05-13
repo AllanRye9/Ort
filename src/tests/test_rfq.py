@@ -16,6 +16,14 @@ RFQ_PAYLOAD = {
     "currency": "USD",
 }
 
+PROPERTY_PAYLOAD = {
+    "title": "Fixed Price Property",
+    "property_type": "house",
+    "address": "123 Test Street",
+    "price": "250000.00",
+    "pricing_type": "fixed",
+}
+
 
 def _create_user(client):
     resp = client.post("/api/v1/users/", json=USER_PAYLOAD)
@@ -81,3 +89,21 @@ def test_rfq_response_flow(client):
     updated_rfq = client.get(f"/api/v1/rfq/{rfq['id']}").json()
     assert updated_rfq["status"] == "quoted"
 
+
+def test_create_property_bid_rejects_fixed_pricing(client):
+    prop_resp = client.post("/api/v1/properties/", json=PROPERTY_PAYLOAD)
+    assert prop_resp.status_code == 201, prop_resp.text
+    prop = prop_resp.json()
+
+    user = _create_user(client)
+    resp = client.post(
+        "/api/v1/rfq/",
+        json={
+            "title": "Bid on fixed property",
+            "buyer_id": user["id"],
+            "property_id": prop["id"],
+            "target_price": "200000.00",
+            "currency": "USD",
+        },
+    )
+    assert resp.status_code == 400

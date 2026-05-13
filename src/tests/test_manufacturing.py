@@ -10,7 +10,6 @@ TENANT_PAYLOAD = {
 PRODUCT_BASE = {
     "title": "Hand-woven Basket",
     "wholesale_price": "12.99",
-    "currency": "USD",
     "quantity_available": 500,
     "unit": "units",
     "is_locally_made": True,
@@ -37,6 +36,8 @@ def test_create_manufacturing_product(client):
     data = resp.json()
     assert data["title"] == "Hand-woven Basket"
     assert data["status"] == "available"
+    assert data["currency"] == "UGX"
+    assert data["pricing_type"] == "negotiable"
 
 
 def test_get_manufacturing_product(client):

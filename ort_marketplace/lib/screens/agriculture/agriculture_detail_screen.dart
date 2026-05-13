@@ -316,6 +316,7 @@ class _AgricultureDetailScreenState extends ConsumerState<AgricultureDetailScree
     final async = ref.watch(_agriDetailProvider(widget.id));
     final auth = ref.watch(authProvider);
     final mode = ref.watch(marketplaceModeProvider);
+    final userCountry = ref.watch(userCountryProvider);
     final isOwner = auth.isAuthenticated &&
         (auth.role == 'company' ||
             auth.role == 'organization' ||
@@ -455,7 +456,7 @@ class _AgricultureDetailScreenState extends ConsumerState<AgricultureDetailScree
                     ],
                     const SizedBox(height: 10),
                     Text(
-                      '${formatCurrencyForMode(a.pricePerUnit, currency: a.currency, decimals: 2, mode: mode)} / ${a.unit ?? 'unit'}',
+                      '${formatCurrencyForMode(a.pricePerUnit, currency: a.currency, viewerCountry: userCountry, decimals: 2, mode: mode)} / ${a.unit ?? 'unit'}',
                       style:
                           Theme.of(context).textTheme.headlineMedium?.copyWith(
                                 color: const Color(0xFF2E7D32),
@@ -469,6 +470,11 @@ class _AgricultureDetailScreenState extends ConsumerState<AgricultureDetailScree
                       children: [
                         if (a.category != null)
                           _InfoChip(label: a.category!),
+                        _InfoChip(
+                          label: a.pricingType == 'fixed'
+                              ? 'Fixed Price'
+                              : 'Negotiable',
+                        ),
                         if (a.qualityGrade != null)
                           _InfoChip(label: 'Grade: ${a.qualityGrade}'),
                         if (a.moq != null)
@@ -592,16 +598,18 @@ class _AgricultureDetailScreenState extends ConsumerState<AgricultureDetailScree
               ),
             ],
           ),
-          child: Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  icon: const Icon(Icons.request_quote_outlined, size: 16),
-                  label: const Text('Quote'),
-                  onPressed: () => _requestQuote(a),
+            child: Row(
+              children: [
+              if (a.pricingType == 'negotiable') ...[
+                Expanded(
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.request_quote_outlined, size: 16),
+                    label: const Text('Quote'),
+                    onPressed: () => _requestQuote(a),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
+                const SizedBox(width: 8),
+              ],
               Expanded(
                 child: FilledButton.tonalIcon(
                   style: FilledButton.styleFrom(

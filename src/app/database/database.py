@@ -153,6 +153,7 @@ _MIGRATIONS: list[tuple[str, str, str]] = [
     ("ad_promotions",           "status",         "VARCHAR(20)  DEFAULT 'active'"),
     # Extended property fields
     ("properties",              "property_age",   "INTEGER"),
+    ("properties",              "pricing_type",   "VARCHAR(20) DEFAULT 'negotiable'"),
     ("properties",              "furnishing",     "VARCHAR(50)"),
     ("properties",              "purpose",        "VARCHAR(20)"),
     ("properties",              "amenities",      "JSON"),
@@ -172,8 +173,11 @@ _MIGRATIONS: list[tuple[str, str, str]] = [
     ("messages",                "attachment_filename", "VARCHAR(255)"),
     # Listing codes for agriculture, manufacturing products and services
     ("agriculture_listings",    "listing_code",       "VARCHAR(30)"),
+    ("agriculture_listings",    "pricing_type",       "VARCHAR(20) DEFAULT 'negotiable'"),
     ("manufacturing_products",  "listing_code",       "VARCHAR(30)"),
+    ("manufacturing_products",  "pricing_type",       "VARCHAR(20) DEFAULT 'negotiable'"),
     ("manufacturing_services",  "listing_code",       "VARCHAR(30)"),
+    ("manufacturing_services",  "pricing_type",       "VARCHAR(20) DEFAULT 'negotiable'"),
     # Country field for manufacturing services (for geolocation filtering)
     ("manufacturing_services",  "country",            "VARCHAR(100)"),
 ]
