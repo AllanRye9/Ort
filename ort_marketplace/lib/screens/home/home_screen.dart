@@ -390,6 +390,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final walletPoints = ref.watch(_homeWalletPointsProvider).valueOrNull;
     final marketplaceMode = ref.watch(marketplaceModeProvider);
     final distanceUnit = ref.watch(distanceUnitProvider);
+    final userCountry = ref.watch(userCountryProvider);
     final locationStatus = ref.watch(locationAvailabilityProvider);
     final locationDenied = locationStatus == LocationAvailabilityStatus.denied;
 
@@ -580,7 +581,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       iconColor: AppTheme.primary,
                       title: p.title,
                       subtitle: p.city ?? p.address,
-                      price: formatCurrencyForMode(p.price, country: p.country, mode: marketplaceMode),
+                      price: formatCurrencyForMode(p.price, country: p.country, viewerCountry: userCountry, mode: marketplaceMode),
                       badge: p.propertyType,
                       distanceKm: _distanceFromUser(userLoc, p.latitude, p.longitude),
                       distanceUnit: distanceUnit,
@@ -620,7 +621,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         title: a.title,
                         subtitle: a.location ?? a.category ?? '',
                         price:
-                            '${formatCurrencyForMode(a.pricePerUnit, currency: a.currency, decimals: 2, mode: marketplaceMode)}/${a.unit ?? 'unit'}',
+                            '${formatCurrencyForMode(a.pricePerUnit, currency: a.currency, viewerCountry: userCountry, decimals: 2, mode: marketplaceMode)}/${a.unit ?? 'unit'}',
                         badge: a.category,
                         distanceKm: _distanceFromUser(userLoc, a.latitude, a.longitude),
                         distanceUnit: distanceUnit,
@@ -662,7 +663,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         subtitle:
                             m.category ?? (m.isLocallyMade ? 'Locally Made' : ''),
                         price:
-                            '${formatCurrencyForMode(m.wholesalePrice, currency: m.currency, decimals: 2, mode: marketplaceMode)}/${m.unit ?? 'unit'}',
+                            '${formatCurrencyForMode(m.wholesalePrice, currency: m.currency, viewerCountry: userCountry, decimals: 2, mode: marketplaceMode)}/${m.unit ?? 'unit'}',
                         badge: m.category,
                         distanceKm: _distanceFromUser(userLoc, m.latitude, m.longitude),
                         distanceUnit: distanceUnit,
@@ -703,7 +704,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         title: s.title,
                         subtitle: s.serviceType ?? s.location ?? '',
                         price:
-                            '${formatCurrencyForMode(s.price, currency: s.currency, decimals: 2, mode: marketplaceMode)}/${s.pricingUnit ?? 'service'}',
+                            '${formatCurrencyForMode(s.price, currency: s.currency, viewerCountry: userCountry, decimals: 2, mode: marketplaceMode)}/${s.pricingUnit ?? 'service'}',
                         badge: s.serviceType,
                         distanceKm: _distanceFromUser(userLoc, s.latitude, s.longitude),
                         distanceUnit: distanceUnit,
@@ -1713,8 +1714,16 @@ class _AiDialogState extends ConsumerState<_AiDialog>
       final mfg = ref.read(sortedHomeMfgProvider).valueOrNull ?? [];
       final svc = ref.read(sortedHomeServicesProvider).valueOrNull ?? [];
       final mode = ref.read(marketplaceModeProvider);
-      response = _searchListingsLocally(text, props, agri, mfg, svc, mode,
-          errorNote: '(AI unavailable — showing local results)\n\n');
+      response = _searchListingsLocally(
+        text,
+        props,
+        agri,
+        mfg,
+        svc,
+        mode,
+        userCountry: ref.read(userCountryProvider),
+        errorNote: '(AI unavailable — showing local results)\n\n',
+      );
     }
 
     _radarCtrl
@@ -1736,6 +1745,7 @@ class _AiDialogState extends ConsumerState<_AiDialog>
     List<ManufacturingProductModel> mfg,
     List<ManufacturingServiceModel> svc,
     MarketplaceMode mode, {
+    required String userCountry,
     String errorNote = '',
   }) {
     final lower = text.toLowerCase();
@@ -1753,7 +1763,7 @@ class _AiDialogState extends ConsumerState<_AiDialog>
         if (keywords.isEmpty ||
             _keywordMatch(keywords, [p.title, p.city, p.address, p.propertyType])) {
           results.add(
-              '🏠 ${p.title} · ${p.city ?? p.address} · ${formatCurrencyForMode(p.price, country: p.country, mode: mode)}');
+              '🏠 ${p.title} · ${p.city ?? p.address} · ${formatCurrencyForMode(p.price, country: p.country, viewerCountry: userCountry, mode: mode)}');
         }
       }
     }
@@ -1762,7 +1772,7 @@ class _AiDialogState extends ConsumerState<_AiDialog>
         if (keywords.isEmpty ||
             _keywordMatch(keywords, [a.title, a.category, a.location])) {
           results.add(
-              '🌾 ${a.title} · ${a.location ?? a.category ?? ''} · ${formatCurrencyForMode(a.pricePerUnit, currency: a.currency, decimals: 2, mode: mode)}/${a.unit ?? 'unit'}');
+              '🌾 ${a.title} · ${a.location ?? a.category ?? ''} · ${formatCurrencyForMode(a.pricePerUnit, currency: a.currency, viewerCountry: userCountry, decimals: 2, mode: mode)}/${a.unit ?? 'unit'}');
         }
       }
     }
@@ -1771,7 +1781,7 @@ class _AiDialogState extends ConsumerState<_AiDialog>
         if (keywords.isEmpty ||
             _keywordMatch(keywords, [m.title, m.category])) {
           results.add(
-              '🏭 ${m.title} · ${m.category ?? ''} · ${formatCurrencyForMode(m.wholesalePrice, currency: m.currency, decimals: 2, mode: mode)}/${m.unit ?? 'unit'}');
+              '🏭 ${m.title} · ${m.category ?? ''} · ${formatCurrencyForMode(m.wholesalePrice, currency: m.currency, viewerCountry: userCountry, decimals: 2, mode: mode)}/${m.unit ?? 'unit'}');
         }
       }
     }
@@ -1780,7 +1790,7 @@ class _AiDialogState extends ConsumerState<_AiDialog>
         if (keywords.isEmpty ||
             _keywordMatch(keywords, [s.title, s.serviceType, s.location])) {
           results.add(
-              '🔧 ${s.title} · ${s.serviceType ?? s.location ?? ''} · ${formatCurrencyForMode(s.price, currency: s.currency, decimals: 2, mode: mode)}/${s.pricingUnit ?? 'service'}');
+              '🔧 ${s.title} · ${s.serviceType ?? s.location ?? ''} · ${formatCurrencyForMode(s.price, currency: s.currency, viewerCountry: userCountry, decimals: 2, mode: mode)}/${s.pricingUnit ?? 'service'}');
         }
       }
     }

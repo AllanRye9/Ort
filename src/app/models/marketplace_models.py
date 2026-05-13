@@ -124,7 +124,13 @@ class AgricultureListing(Base):
     unit = Column(String(30))               # kg, tons, units, litres
     moq = Column(Float)                     # Minimum Order Quantity
     price_per_unit = Column(DECIMAL(12, 2), nullable=False)
-    currency = Column(String(10), default="USD")
+    pricing_type = Column(
+        Enum("negotiable", "fixed", name="pricing_types"),
+        default="negotiable",
+        server_default="negotiable",
+        nullable=False,
+    )
+    currency = Column(String(10), default="UGX", server_default="UGX", nullable=False)
     quality_grade = Column(String(50))
     harvest_date = Column(Date)
     expiry_date = Column(Date)
@@ -176,7 +182,13 @@ class ManufacturingProduct(Base):
     moq = Column(Integer)                   # Minimum Order Quantity
     unit = Column(String(30))               # units, pieces, kg, etc.
     wholesale_price = Column(DECIMAL(12, 2), nullable=False)
-    currency = Column(String(10), default="USD")
+    pricing_type = Column(
+        Enum("negotiable", "fixed", name="pricing_types"),
+        default="negotiable",
+        server_default="negotiable",
+        nullable=False,
+    )
+    currency = Column(String(10), default="UGX", server_default="UGX", nullable=False)
     tiered_pricing = Column(JSON)           # [{min_qty: 100, price: 4.50}, ...]
     certifications = Column(JSON)           # ["ISO 9001", "NAFDAC", ...]
     images = Column(JSON)
@@ -223,8 +235,14 @@ class ManufacturingService(Base):
     description = Column(Text)
     service_type = Column(String(100))      # machining, fabrication, welding, etc.
     price = Column(DECIMAL(12, 2), nullable=False)
+    pricing_type = Column(
+        Enum("negotiable", "fixed", name="pricing_types"),
+        default="negotiable",
+        server_default="negotiable",
+        nullable=False,
+    )
     pricing_unit = Column(String(50))       # per_hour, per_day, per_project, per_piece, fixed
-    currency = Column(String(10), default="USD", server_default="USD")
+    currency = Column(String(10), default="UGX", server_default="UGX", nullable=False)
     min_order_value = Column(DECIMAL(12, 2))
     notice_period_days = Column(Integer)    # days notice required to engage service
     certifications = Column(JSON)           # ["ISO 9001", "CE", ...]

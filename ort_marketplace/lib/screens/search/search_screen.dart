@@ -350,6 +350,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   Widget _resultTile(BuildContext ctx, _SearchResult r) {
     final mode = ref.read(marketplaceModeProvider);
+    final userCountry = ref.read(userCountryProvider);
     return switch (r) {
       _PropertyResult(:final item) => ListingCard(
           icon: Icons.home,
@@ -358,7 +359,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           subtitle: item.city ?? item.address,
           tag: item.propertyType,
           status: item.status,
-          price: formatCurrencyForMode(item.price, country: item.country, mode: mode),
+          price: formatCurrencyForMode(
+            item.price,
+            country: item.country,
+            viewerCountry: userCountry,
+            mode: mode,
+          ),
           imageUrl:
               item.imageUrls.isNotEmpty ? item.imageUrls.first : null,
           extras: [
@@ -375,7 +381,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           tag: item.category ?? 'Agriculture',
           status: item.status,
           price:
-              '${formatCurrencyForMode(item.pricePerUnit, currency: item.currency, decimals: 2, mode: mode)}/${item.unit ?? 'unit'}',
+              '${formatCurrencyForMode(item.pricePerUnit, currency: item.currency, viewerCountry: userCountry, decimals: 2, mode: mode)}/${item.unit ?? 'unit'}',
           imageUrl: (item.images?.isNotEmpty == true)
               ? item.images!.first
               : null,
@@ -389,7 +395,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           tag: item.category ?? 'Manufacturing',
           status: item.status,
           price:
-              '${formatCurrencyForMode(item.wholesalePrice, currency: item.currency, decimals: 2, mode: mode)}/${item.unit ?? 'unit'}',
+              '${formatCurrencyForMode(item.wholesalePrice, currency: item.currency, viewerCountry: userCountry, decimals: 2, mode: mode)}/${item.unit ?? 'unit'}',
           imageUrl: (item.images?.isNotEmpty == true)
               ? item.images!.first
               : null,

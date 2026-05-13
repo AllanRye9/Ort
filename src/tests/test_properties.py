@@ -30,6 +30,7 @@ def test_create_property(client):
     data = _create_property(client)
     assert data["title"] == PROPERTY_PAYLOAD["title"]
     assert data["status"] == "available"
+    assert data["pricing_type"] == "negotiable"
     assert "id" in data
 
 

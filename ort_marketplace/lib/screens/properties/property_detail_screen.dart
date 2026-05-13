@@ -80,6 +80,17 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
   }
 
   Future<void> _placeBid(PropertyModel p) async {
+    if (p.pricingType == 'fixed') {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('This listing uses fixed pricing, so bidding is unavailable.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      return;
+    }
     final userId = ref.read(authProvider).userId;
     if (userId == null) {
       if (mounted) {
@@ -437,6 +448,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
         data: (p) => _BottomBar(
           onBidNow: () => _placeBid(p),
           onContact: () => _contactAgent(p),
+          showBid: p.pricingType == 'negotiable',
         ),
         orElse: () => null,
       ),
@@ -452,6 +464,7 @@ class _PropertyDetailBody extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final p = property;
     final mode = ref.watch(marketplaceModeProvider);
+    final userCountry = ref.watch(userCountryProvider);
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -507,7 +520,12 @@ class _PropertyDetailBody extends ConsumerWidget {
 
                 // ── Price ─────────────────────────────────────────────────────
                 Text(
-                  formatCurrencyForMode(p.price, country: p.country, mode: mode),
+                  formatCurrencyForMode(
+                    p.price,
+                    country: p.country,
+                    viewerCountry: userCountry,
+                    mode: mode,
+                  ),
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                         color: Theme.of(context).colorScheme.primary,
                         fontWeight: FontWeight.bold,
@@ -555,6 +573,14 @@ class _PropertyDetailBody extends ConsumerWidget {
                     _SpecChip(
                         icon: Icons.category_outlined,
                         label: p.propertyType.toUpperCase()),
+                    _SpecChip(
+                      icon: p.pricingType == 'fixed'
+                          ? Icons.lock_outline
+                          : Icons.handshake_outlined,
+                      label: p.pricingType == 'fixed'
+                          ? 'Fixed Price'
+                          : 'Negotiable',
+                    ),
                     if (p.furnishing != null)
                       _SpecChip(
                         icon: Icons.chair_outlined,
@@ -622,8 +648,10 @@ class _PropertyDetailBody extends ConsumerWidget {
                 ],
 
                 // ── Bid count ─────────────────────────────────────────────────
-                const SizedBox(height: 12),
-                _AnimatedBidCount(propertyId: p.id),
+                if (p.pricingType == 'negotiable') ...[
+                  const SizedBox(height: 12),
+                  _AnimatedBidCount(propertyId: p.id),
+                ],
 
                 // ── Promote button (visible to authenticated non-buyers) ──────
                 Consumer(
@@ -871,9 +899,11 @@ class _BottomBar extends StatelessWidget {
   const _BottomBar({
     required this.onBidNow,
     required this.onContact,
+    required this.showBid,
   });
   final VoidCallback onBidNow;
   final VoidCallback onContact;
+  final bool showBid;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -903,14 +933,16 @@ class _BottomBar extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: ElevatedButton.icon(
-                icon: const Icon(Icons.gavel_outlined, size: 16),
-                label: const Text('Bid'),
-                onPressed: onBidNow,
+            if (showBid) ...[
+              const SizedBox(width: 8),
+              Expanded(
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.gavel_outlined, size: 16),
+                  label: const Text('Bid'),
+                  onPressed: onBidNow,
+                ),
               ),
-            ),
+            ],
           ],
         ),
       );

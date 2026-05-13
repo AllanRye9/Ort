@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 
 from app.database.database import get_db
+from app.models.models import User
 from app.models.marketplace_models import Conversation, Message
 from app.schemas.marketplace_schemas import (
     ConversationCreate, ConversationResponse,
@@ -15,6 +16,7 @@ from app.schemas.marketplace_schemas import (
 # messages live at /api/v1/messages/
 conversations_router = APIRouter(prefix="/messages/conversations", tags=["conversations"])
 router = APIRouter(prefix="/messages", tags=["messages"])
+_ALLOWED_RECIPIENT_ROLES = {"agent", "company", "organization"}
 
 
 # ---- Conversations ----
@@ -44,6 +46,23 @@ def get_conversation(conversation_id: int, db: Session = Depends(get_db)):
 
 @conversations_router.post("/", response_model=ConversationResponse, status_code=status.HTTP_201_CREATED)
 def create_conversation(payload: ConversationCreate, db: Session = Depends(get_db)):
+    initiator = None
+    if payload.initiator_id is not None:
+        initiator = db.query(User).filter(User.id == payload.initiator_id).first()
+        if not initiator:
+            raise HTTPException(status_code=404, detail="Initiator not found")
+
+    recipient = db.query(User).filter(User.id == payload.recipient_id).first()
+    if not recipient:
+        raise HTTPException(status_code=404, detail="Recipient not found")
+    if initiator is not None and initiator.id == recipient.id:
+        raise HTTPException(status_code=400, detail="You cannot start a conversation with yourself")
+    if recipient.role not in _ALLOWED_RECIPIENT_ROLES:
+        raise HTTPException(
+            status_code=400,
+            detail="Conversations can only be started with agents, companies, or organizations",
+        )
+
     obj = Conversation(**payload.model_dump())
     db.add(obj)
     db.commit()
@@ -63,7 +82,7 @@ def list_messages(
     return (
         db.query(Message)
         .filter(Message.conversation_id == conversation_id, Message.is_deleted.is_(False))
-        .order_by(Message.sent_at.asc())
+        .order_by(Message.sent_at.desc(), Message.id.desc())
         .offset(skip)
         .limit(limit)
         .all()
@@ -75,6 +94,8 @@ def send_message(payload: MessageCreate, db: Session = Depends(get_db)):
     conv = db.query(Conversation).filter(Conversation.id == payload.conversation_id).first()
     if not conv:
         raise HTTPException(status_code=404, detail="Conversation not found")
+    if payload.sender_id not in {conv.initiator_id, conv.recipient_id}:
+        raise HTTPException(status_code=403, detail="Sender is not part of this conversation")
     obj = Message(**payload.model_dump())
     db.add(obj)
     db.flush()

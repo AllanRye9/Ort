@@ -160,6 +160,7 @@ class PropertyModel {
     required this.address,
     this.city,
     required this.price,
+    this.pricingType = 'negotiable',
     this.bedrooms,
     this.bathrooms,
     this.areaSqft,
@@ -193,6 +194,7 @@ class PropertyModel {
   final String address;
   final String? city;
   final double price;
+  final String pricingType;
   final int? bedrooms;
   final int? bathrooms;
   final int? areaSqft;
@@ -244,6 +246,7 @@ class PropertyModel {
         address: j['address'] as String,
         city: j['city'] as String?,
         price: double.parse(j['price'].toString()),
+        pricingType: (j['pricing_type'] as String?) ?? 'negotiable',
         bedrooms: j['bedrooms'] as int?,
         bathrooms: j['bathrooms'] as int?,
         areaSqft: j['area_sqft'] as int?,
@@ -284,7 +287,8 @@ class AgricultureListingModel {
     this.unit,
     this.moq,
     required this.pricePerUnit,
-    this.currency = 'USD',
+    this.pricingType = 'negotiable',
+    this.currency = 'UGX',
     this.qualityGrade,
     this.certification,
     this.location,
@@ -309,6 +313,7 @@ class AgricultureListingModel {
   final String? unit;
   final double? moq;
   final double pricePerUnit;
+  final String pricingType;
   final String currency;
   final String? qualityGrade;
   final String? certification;
@@ -337,7 +342,8 @@ class AgricultureListingModel {
         unit: j['unit'] as String?,
         moq: j['moq'] != null ? double.parse(j['moq'].toString()) : null,
         pricePerUnit: double.parse(j['price_per_unit'].toString()),
-        currency: j['currency'] as String? ?? 'USD',
+        pricingType: (j['pricing_type'] as String?) ?? 'negotiable',
+        currency: j['currency'] as String? ?? 'UGX',
         qualityGrade: j['quality_grade'] as String?,
         certification: j['certification'] as String?,
         location: j['location'] as String?,
@@ -367,7 +373,8 @@ class ManufacturingProductModel {
     this.moq,
     this.unit,
     required this.wholesalePrice,
-    this.currency = 'USD',
+    this.pricingType = 'negotiable',
+    this.currency = 'UGX',
     this.certifications,
     this.images,
     this.leadTimeDays,
@@ -392,6 +399,7 @@ class ManufacturingProductModel {
   final int? moq;
   final String? unit;
   final double wholesalePrice;
+  final String pricingType;
   final String currency;
   final List<String>? certifications;
   final List<String>? images;
@@ -418,7 +426,8 @@ class ManufacturingProductModel {
         moq: j['moq'] as int?,
         unit: j['unit'] as String?,
         wholesalePrice: double.parse(j['wholesale_price'].toString()),
-        currency: j['currency'] as String? ?? 'USD',
+        pricingType: (j['pricing_type'] as String?) ?? 'negotiable',
+        currency: j['currency'] as String? ?? 'UGX',
         certifications:
             (j['certifications'] as List<dynamic>?)?.cast<String>(),
         images: (j['images'] as List<dynamic>?)?.cast<String>(),
@@ -445,8 +454,9 @@ class ManufacturingServiceModel {
     this.description,
     this.serviceType,
     required this.price,
+    this.pricingType = 'negotiable',
     this.pricingUnit,
-    this.currency = 'USD',
+    this.currency = 'UGX',
     this.minOrderValue,
     this.noticePeriodDays,
     this.certifications,
@@ -467,6 +477,7 @@ class ManufacturingServiceModel {
   final String? description;
   final String? serviceType;
   final double price;
+  final String pricingType;
   final String? pricingUnit;
   final String currency;
   final double? minOrderValue;
@@ -490,8 +501,9 @@ class ManufacturingServiceModel {
         description: j['description'] as String?,
         serviceType: j['service_type'] as String?,
         price: double.parse(j['price'].toString()),
+        pricingType: (j['pricing_type'] as String?) ?? 'negotiable',
         pricingUnit: j['pricing_unit'] as String?,
-        currency: j['currency'] as String? ?? 'USD',
+        currency: j['currency'] as String? ?? 'UGX',
         minOrderValue: j['min_order_value'] != null
             ? double.parse(j['min_order_value'].toString())
             : null,

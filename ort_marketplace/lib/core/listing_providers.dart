@@ -14,10 +14,6 @@ import '../models/models.dart';
 
 // ─── Currency formatting ──────────────────────────────────────────────────────
 
-/// Approximate USD conversion rates for common currencies.
-///
-/// These rates are used when displaying international listing prices in USD.
-/// Update these values periodically to keep conversions reasonably accurate.
 const _kToUsdRates = {
   'UGX': 0.000272, // Ugandan Shilling  ≈ 0.000272 USD
   'AED': 0.272,    // UAE Dirham         ≈ 0.272 USD
@@ -35,13 +31,21 @@ const _kToUsdRates = {
   'INR': 0.012,    // Indian Rupee
 };
 
-/// Converts [amount] from [fromCurrency] to USD using the built-in rate table.
-/// Returns the original amount unchanged when the currency is unknown or
-/// is already USD.
-double convertToUsd(double amount, String? fromCurrency) {
-  final rate = _kToUsdRates[fromCurrency?.toUpperCase()];
-  if (rate == null || rate == 1.0) return amount;
-  return amount * rate;
+double? convertCurrency(
+  double amount, {
+  required String? fromCurrency,
+  required String? toCurrency,
+}) {
+  final source = (fromCurrency ?? 'UGX').toUpperCase();
+  final target = (toCurrency ?? 'USD').toUpperCase();
+  if (source == target) return amount;
+
+  final sourceToUsd = _kToUsdRates[source];
+  final targetToUsd = _kToUsdRates[target];
+  if (sourceToUsd == null || targetToUsd == null) return null;
+
+  final amountInUsd = amount * sourceToUsd;
+  return amountInUsd / targetToUsd;
 }
 
 /// Formats [amount] as a currency string based on [country] or explicit
@@ -52,20 +56,21 @@ double convertToUsd(double amount, String? fromCurrency) {
 /// * All other → `$1234.00` using [decimals] decimal places
 String formatCurrency(
   double amount, {
-  String? country,
   String? currency,
   int decimals = 0,
 }) {
-  final c = country?.toLowerCase();
   final cur = currency?.toUpperCase();
 
-  if (cur == 'UGX' || c == 'uganda') {
+  if (cur == 'UGX') {
     return 'UGX ${NumberFormat('#,###', 'en_US').format(amount.round())}';
   }
-  if (cur == 'AED' || c == 'united arab emirates') {
+  if (cur == 'AED') {
     return 'AED ${NumberFormat('#,###', 'en_US').format(amount.round())}';
   }
-  return '\$${amount.toStringAsFixed(decimals)}';
+  if (cur == 'USD' || cur == null) {
+    return '\$${amount.toStringAsFixed(decimals)}';
+  }
+  return '$cur ${amount.toStringAsFixed(decimals)}';
 }
 
 /// Returns the currency code for the given country name.
@@ -102,18 +107,36 @@ String formatCurrencyForMode(
   double amount, {
   String? country,
   String? currency,
+  String? viewerCountry,
   int decimals = 0,
   MarketplaceMode mode = MarketplaceMode.local,
 }) {
-  if (mode == MarketplaceMode.international) {
-    // Derive the currency code if not explicitly provided.
-    final cur = currency?.isNotEmpty == true
-        ? currency
-        : currencyCodeForCountry(country);
-    final usdAmount = convertToUsd(amount, cur);
-    return '\$${usdAmount.toStringAsFixed(decimals)}';
+  final sourceCurrency =
+      currency?.isNotEmpty == true ? currency!.toUpperCase() : 'UGX';
+  var targetCurrency = mode == MarketplaceMode.international
+      ? 'USD'
+      : currencyCodeForCountry(viewerCountry ?? country);
+
+  var converted = convertCurrency(
+    amount,
+    fromCurrency: sourceCurrency,
+    toCurrency: targetCurrency,
+  );
+
+  if (converted == null && targetCurrency != 'USD') {
+    targetCurrency = 'USD';
+    converted = convertCurrency(
+      amount,
+      fromCurrency: sourceCurrency,
+      toCurrency: targetCurrency,
+    );
   }
-  return formatCurrency(amount, country: country, currency: currency, decimals: decimals);
+
+  return formatCurrency(
+    converted ?? amount,
+    currency: converted == null ? sourceCurrency : targetCurrency,
+    decimals: decimals,
+  );
 }
 
 /// The user's last known GPS position as `(lat, lon)`. Null until the user

@@ -216,7 +216,8 @@ class AgricultureListingBase(BaseModel):
     unit: Optional[str] = None
     moq: Optional[float] = None
     price_per_unit: Decimal
-    currency: Optional[str] = "USD"
+    pricing_type: str = "negotiable"
+    currency: Optional[str] = "UGX"
     quality_grade: Optional[str] = None
     harvest_date: Optional[date] = None
     expiry_date: Optional[date] = None
@@ -234,6 +235,7 @@ class AgricultureListingCreate(AgricultureListingBase):
     tenant_id: Optional[int] = None
     owner_user_id: Optional[int] = None
     price_per_unit: Decimal = Field(..., gt=0)
+    pricing_type: str = Field("negotiable", pattern="^(negotiable|fixed)$")
 
     @field_validator("title", mode="before")
     @classmethod
@@ -256,6 +258,7 @@ class AgricultureListingUpdate(BaseModel):
     unit: Optional[str] = None
     moq: Optional[float] = None
     price_per_unit: Optional[Decimal] = Field(None, gt=0)
+    pricing_type: Optional[str] = Field(None, pattern="^(negotiable|fixed)$")
     currency: Optional[str] = None
     quality_grade: Optional[str] = None
     harvest_date: Optional[date] = None
@@ -294,7 +297,8 @@ class ManufacturingProductBase(BaseModel):
     moq: Optional[int] = None
     unit: Optional[str] = None
     wholesale_price: Decimal
-    currency: Optional[str] = "USD"
+    pricing_type: str = "negotiable"
+    currency: Optional[str] = "UGX"
     tiered_pricing: Optional[List[Dict[str, Any]]] = None
     certifications: Optional[List[str]] = None
     images: Optional[List[str]] = None
@@ -312,6 +316,7 @@ class ManufacturingProductCreate(ManufacturingProductBase):
     tenant_id: Optional[int] = None
     owner_user_id: Optional[int] = None
     wholesale_price: Decimal = Field(..., gt=0)
+    pricing_type: str = Field("negotiable", pattern="^(negotiable|fixed)$")
 
     @field_validator("title", mode="before")
     @classmethod
@@ -331,6 +336,7 @@ class ManufacturingProductUpdate(BaseModel):
     moq: Optional[int] = None
     unit: Optional[str] = None
     wholesale_price: Optional[Decimal] = Field(None, gt=0)
+    pricing_type: Optional[str] = Field(None, pattern="^(negotiable|fixed)$")
     currency: Optional[str] = None
     tiered_pricing: Optional[List[Dict[str, Any]]] = None
     certifications: Optional[List[str]] = None
@@ -368,8 +374,9 @@ class ManufacturingServiceBase(BaseModel):
     description: Optional[str] = None
     service_type: Optional[str] = None
     price: Decimal
+    pricing_type: str = "negotiable"
     pricing_unit: Optional[str] = None
-    currency: Optional[str] = "USD"
+    currency: Optional[str] = "UGX"
     min_order_value: Optional[Decimal] = None
     notice_period_days: Optional[int] = None
     certifications: Optional[List[str]] = None
@@ -384,6 +391,7 @@ class ManufacturingServiceCreate(ManufacturingServiceBase):
     tenant_id: Optional[int] = None
     owner_user_id: Optional[int] = None
     price: Decimal = Field(..., gt=0)
+    pricing_type: str = Field("negotiable", pattern="^(negotiable|fixed)$")
 
     @field_validator("title", mode="before")
     @classmethod
@@ -398,6 +406,7 @@ class ManufacturingServiceUpdate(BaseModel):
     description: Optional[str] = None
     service_type: Optional[str] = None
     price: Optional[Decimal] = Field(None, gt=0)
+    pricing_type: Optional[str] = Field(None, pattern="^(negotiable|fixed)$")
     pricing_unit: Optional[str] = None
     currency: Optional[str] = None
     min_order_value: Optional[Decimal] = None
@@ -804,4 +813,3 @@ class ProductTrackingResponse(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
-
