@@ -42,6 +42,7 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
   final List<String> _selectedAmenities = [];
 
   String _propertyType = 'house';
+  String _pricingType = 'negotiable';
   final _customPropertyTypeCtrl = TextEditingController();
   List<String> _imageUrls = [];
   bool _submitting = false;
@@ -73,17 +74,11 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
       _residentialTypes.contains(_propertyType);
 
   String _priceCurrencyCode(MarketplaceMode mode) {
-    if (mode == MarketplaceMode.international) return 'USD';
-    if (_isUganda) return 'UGX';
-    if (_isUAE) return 'AED';
-    return 'USD';
+    return 'UGX';
   }
 
   String _priceCurrencyPrefix(MarketplaceMode mode) {
-    if (mode == MarketplaceMode.international) return '\$';
-    if (_isUganda) return 'UGX ';
-    if (_isUAE) return 'AED ';
-    return '\$';
+    return 'UGX ';
   }
 
   static const _propertyTypes = [
@@ -308,6 +303,7 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
             ? _addressCtrl.text.trim()
             : (_geocodedDisplayName ?? 'Unknown'),
         'price': double.parse(_priceCtrl.text.trim()),
+        'pricing_type': _pricingType,
         'property_type': effectivePropertyType,
         'latitude': _geocodedLat,
         'longitude': _geocodedLon,
@@ -617,13 +613,7 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
                 decoration: InputDecoration(
                   labelText: 'Price (${_priceCurrencyCode(mode)}) *',
                   prefixText: _priceCurrencyPrefix(mode),
-                  helperText: mode == MarketplaceMode.international
-                      ? 'International listing: price in USD'
-                      : _isUganda
-                          ? 'Enter price in Uganda Shillings (UGX)'
-                          : _isUAE
-                              ? 'Enter price in UAE Dirhams (AED)'
-                              : null,
+                  helperText: 'All property prices are created and stored in Uganda Shillings (UGX).',
                 ),
                 validator: (v) {
                   if (v == null || v.trim().isEmpty) return 'Required';
@@ -631,6 +621,26 @@ class _PropertyCreateScreenState extends ConsumerState<PropertyCreateScreen> {
                     return 'Enter a valid price';
                   }
                   return null;
+                },
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: _pricingType,
+                decoration: const InputDecoration(labelText: 'Pricing Type *'),
+                items: const [
+                  DropdownMenuItem(
+                    value: 'negotiable',
+                    child: Text('Negotiable'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'fixed',
+                    child: Text('Fixed'),
+                  ),
+                ],
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() => _pricingType = value);
+                  }
                 },
               ),
 

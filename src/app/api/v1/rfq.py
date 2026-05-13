@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 
 from app.database.database import get_db
+from app.models.models import Property
 from app.models.marketplace_models import RFQ, RFQResponse as RFQResponseModel
 from app.schemas.marketplace_schemas import (
     RFQCreate, RFQUpdate, RFQResponse,
@@ -42,6 +43,12 @@ def get_rfq(rfq_id: int, db: Session = Depends(get_db)):
 
 @router.post("/", response_model=RFQResponse, status_code=status.HTTP_201_CREATED)
 def create_rfq(payload: RFQCreate, db: Session = Depends(get_db)):
+    if payload.property_id is not None and payload.target_price is not None:
+        prop = db.query(Property).filter(Property.id == payload.property_id).first()
+        if prop is None:
+            raise HTTPException(status_code=404, detail="Property not found")
+        if prop.pricing_type == "fixed":
+            raise HTTPException(status_code=400, detail="Bidding is disabled for this listing")
     obj = RFQ(**payload.model_dump())
     db.add(obj)
     db.commit()

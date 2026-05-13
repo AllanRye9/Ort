@@ -216,6 +216,7 @@ class _ManufacturingServiceDetailScreenState
     final async = ref.watch(_svcDetailProvider(widget.id));
     final auth = ref.watch(authProvider);
     final mode = ref.watch(marketplaceModeProvider);
+    final userCountry = ref.watch(userCountryProvider);
     final isOwner = auth.isAuthenticated &&
         (auth.role == 'company' ||
             auth.role == 'organization' ||
@@ -341,7 +342,7 @@ class _ManufacturingServiceDetailScreenState
 
                     // ── Price ────────────────────────────────────────
                     Text(
-                      '${formatCurrencyForMode(s.price, currency: s.currency, decimals: 2, mode: mode)}'
+                      '${formatCurrencyForMode(s.price, currency: s.currency, viewerCountry: userCountry, decimals: 2, mode: mode)}'
                       '${s.pricingUnit != null ? ' / ${s.pricingUnit!.replaceAll('_', ' ')}' : ''}',
                       style: Theme.of(context)
                           .textTheme
@@ -363,6 +364,11 @@ class _ManufacturingServiceDetailScreenState
                             label: s.serviceType![0].toUpperCase() +
                                 s.serviceType!.substring(1),
                           ),
+                        _InfoChip(
+                          label: s.pricingType == 'fixed'
+                              ? 'Fixed Price'
+                              : 'Negotiable',
+                        ),
                         if (s.location != null)
                           _InfoChip(
                             label: '📍 ${s.location!}',

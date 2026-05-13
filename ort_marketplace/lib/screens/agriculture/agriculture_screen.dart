@@ -722,7 +722,7 @@ class _AgricultureScreenState extends ConsumerState<AgricultureScreen> {
                                       tag: a.category ?? 'Agriculture',
                                       status: a.status,
                                       price:
-                                          '${formatCurrencyForMode(a.pricePerUnit, currency: a.currency, decimals: 2, mode: mode)}/${a.unit ?? 'unit'}',
+                                          '${formatCurrencyForMode(a.pricePerUnit, currency: a.currency, viewerCountry: userCountry, decimals: 2, mode: mode)}/${a.unit ?? 'unit'}',
                                       extras: [
                                         if (a.qualityGrade != null)
                                           a.qualityGrade!,

@@ -37,7 +37,7 @@ class ConversationsScreen extends ConsumerWidget {
               controller: recipientCtrl,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
-                labelText: 'Recipient User ID',
+                labelText: 'Agent / Company / Organization User ID',
                 prefixIcon: Icon(Icons.person_search_outlined),
               ),
             ),
@@ -79,6 +79,16 @@ class ConversationsScreen extends ConsumerWidget {
 
     try {
       final auth = ref.read(authProvider);
+      if (recipientId == auth.userId) {
+        throw Exception('You cannot start a conversation with yourself');
+      }
+      final recipient = await ref.read(apiServiceProvider).getUser(recipientId);
+      final role = recipient['role'] as String?;
+      if (role != 'agent' && role != 'company' && role != 'organization') {
+        throw Exception(
+          'Conversations can only be started with agents, companies, or organizations',
+        );
+      }
       final data = await ref.read(apiServiceProvider).createConversation({
         'initiator_id': auth.userId,
         'recipient_id': recipientId,

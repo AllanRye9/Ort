@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/api_service.dart';
-import '../../core/app_preferences.dart';
 import '../../core/auth_provider.dart';
 import '../../core/listing_providers.dart';
 import '../../core/location_service.dart';
@@ -34,6 +33,7 @@ class _AgricultureCreateScreenState
   final _customCategoryCtrl = TextEditingController();
 
   String _category = 'grains';
+  String _pricingType = 'negotiable';
   bool _isPerishable = false;
   List<String> _imageUrls = [];
   bool _submitting = false;
@@ -168,16 +168,12 @@ class _AgricultureCreateScreenState
         : _category;
     setState(() => _submitting = true);
     try {
-      final mode = ref.read(marketplaceModeProvider);
-      final userCountry = ref.read(userCountryProvider);
-      final currency = mode == MarketplaceMode.international
-          ? 'USD'
-          : currencyCodeForCountry(userCountry);
       final payload = <String, dynamic>{
         'title': _titleCtrl.text.trim(),
         'price_per_unit': double.parse(_priceCtrl.text.trim()),
         'category': effectiveCategory,
-        'currency': currency,
+        'pricing_type': _pricingType,
+        'currency': 'UGX',
         'is_perishable': _isPerishable,
         if (_descCtrl.text.trim().isNotEmpty)
           'description': _descCtrl.text.trim(),
@@ -237,14 +233,8 @@ class _AgricultureCreateScreenState
 
   @override
   Widget build(BuildContext context) {
-    final mode = ref.watch(marketplaceModeProvider);
-    final userCountry = ref.watch(userCountryProvider);
-    final currencyCode = mode == MarketplaceMode.international
-        ? 'USD'
-        : currencyCodeForCountry(userCountry);
-    final currencyPrefix = mode == MarketplaceMode.international
-        ? '\$'
-        : currencyPrefixForCountry(userCountry);
+    const currencyCode = 'UGX';
+    const currencyPrefix = 'UGX ';
     return Scaffold(
       appBar: AppBar(title: const Text('Add Agriculture Listing')),
       body: Form(
@@ -445,6 +435,8 @@ class _AgricultureCreateScreenState
                       decoration: InputDecoration(
                         labelText: 'Price per Unit ($currencyCode) *',
                         prefixText: currencyPrefix,
+                        helperText:
+                            'All agriculture listing prices are created and stored in Uganda Shillings (UGX).',
                       ),
                       validator: (v) {
                         if (v == null || v.trim().isEmpty) return 'Required';
@@ -467,6 +459,26 @@ class _AgricultureCreateScreenState
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: _pricingType,
+                decoration: const InputDecoration(labelText: 'Pricing Type *'),
+                items: const [
+                  DropdownMenuItem(
+                    value: 'negotiable',
+                    child: Text('Negotiable'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'fixed',
+                    child: Text('Fixed'),
+                  ),
+                ],
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() => _pricingType = value);
+                  }
+                },
               ),
               const SizedBox(height: 12),
               Row(

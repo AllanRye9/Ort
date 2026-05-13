@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/api_service.dart';
-import '../../core/app_preferences.dart';
 import '../../core/auth_provider.dart';
 import '../../core/listing_providers.dart';
 import '../../core/location_service.dart';
@@ -46,6 +45,7 @@ class _ManufacturingCreateScreenState
 
   // ── Service-only fields ──────────────────────────────────────────────────
   String _serviceType = 'machining';
+  String _pricingType = 'negotiable';
   String _pricingUnit = 'per_hour';
   final _minOrderCtrl = TextEditingController(); // Min order value
   final _noticePeriodCtrl = TextEditingController(); // Notice period days
@@ -220,12 +220,7 @@ class _ManufacturingCreateScreenState
           .toList();
 
       final userId = ref.read(authProvider).userId;
-      final mode = ref.read(marketplaceModeProvider);
-      final userCountry = ref.read(userCountryProvider);
-      final currency = mode == MarketplaceMode.international
-          ? 'USD'
-          : currencyCodeForCountry(
-              _geocodedCountry ?? userCountry);
+      const currency = 'UGX';
 
       if (_isService) {
         final effectiveServiceType = _serviceType == 'other'
@@ -235,6 +230,7 @@ class _ManufacturingCreateScreenState
           'title': _titleCtrl.text.trim(),
           'price': double.parse(_priceCtrl.text.trim()),
           'service_type': effectiveServiceType,
+          'pricing_type': _pricingType,
           'pricing_unit': _pricingUnit,
           'currency': currency,
           if (_descCtrl.text.trim().isNotEmpty)
@@ -265,6 +261,7 @@ class _ManufacturingCreateScreenState
           'title': _titleCtrl.text.trim(),
           'wholesale_price': double.parse(_priceCtrl.text.trim()),
           'category': effectiveCategory,
+          'pricing_type': _pricingType,
           'currency': currency,
           'is_locally_made': _isLocallyMade,
           if (_descCtrl.text.trim().isNotEmpty)
@@ -485,6 +482,26 @@ class _ManufacturingCreateScreenState
             contentPadding: EdgeInsets.zero,
           ),
           _sectionTitle('PRICING AND QUANTITY'),
+          DropdownButtonFormField<String>(
+            value: _pricingType,
+            decoration: const InputDecoration(labelText: 'Pricing Type *'),
+            items: const [
+              DropdownMenuItem(
+                value: 'negotiable',
+                child: Text('Negotiable'),
+              ),
+              DropdownMenuItem(
+                value: 'fixed',
+                child: Text('Fixed'),
+              ),
+            ],
+            onChanged: (value) {
+              if (value != null) {
+                setState(() => _pricingType = value);
+              }
+            },
+          ),
+          const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
@@ -496,6 +513,8 @@ class _ManufacturingCreateScreenState
                   decoration: InputDecoration(
                     labelText: 'Wholesale Price ($currencyCode) *',
                     prefixText: currencyPrefix,
+                    helperText:
+                        'All manufacturing listing prices are created and stored in Uganda Shillings (UGX).',
                   ),
                   validator: (v) {
                     if (v == null || v.trim().isEmpty) return 'Required';
@@ -612,6 +631,26 @@ class _ManufacturingCreateScreenState
             ),
           ],
           _sectionTitle('PRICING'),
+          DropdownButtonFormField<String>(
+            value: _pricingType,
+            decoration: const InputDecoration(labelText: 'Pricing Type *'),
+            items: const [
+              DropdownMenuItem(
+                value: 'negotiable',
+                child: Text('Negotiable'),
+              ),
+              DropdownMenuItem(
+                value: 'fixed',
+                child: Text('Fixed'),
+              ),
+            ],
+            onChanged: (value) {
+              if (value != null) {
+                setState(() => _pricingType = value);
+              }
+            },
+          ),
+          const SizedBox(height: 12),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -624,6 +663,8 @@ class _ManufacturingCreateScreenState
                   decoration: InputDecoration(
                     labelText: 'Price ($currencyCode) *',
                     prefixText: currencyPrefix,
+                    helperText:
+                        'All manufacturing listing prices are created and stored in Uganda Shillings (UGX).',
                   ),
                   validator: (v) {
                     if (v == null || v.trim().isEmpty) return 'Required';
@@ -692,14 +733,8 @@ class _ManufacturingCreateScreenState
 
   @override
   Widget build(BuildContext context) {
-    final mode = ref.watch(marketplaceModeProvider);
-    final userCountry = ref.watch(userCountryProvider);
-    final currencyCode = mode == MarketplaceMode.international
-        ? 'USD'
-        : currencyCodeForCountry(_geocodedCountry ?? userCountry);
-    final currencyPrefix = mode == MarketplaceMode.international
-        ? '\$'
-        : currencyPrefixForCountry(_geocodedCountry ?? userCountry);
+    const currencyCode = 'UGX';
+    const currencyPrefix = 'UGX ';
     return Scaffold(
       appBar: AppBar(
           title: Text(_isService ? 'Add Service' : 'Add Product')),
