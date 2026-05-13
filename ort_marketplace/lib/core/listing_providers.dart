@@ -31,6 +31,9 @@ const _kToUsdRates = {
   'INR': 0.012,    // Indian Rupee
 };
 
+/// Converts [amount] between supported currencies using the shared USD rate
+/// table. Returns `null` when either currency is unknown, so callers can fall
+/// back to USD or the original stored currency for display.
 double? convertCurrency(
   double amount, {
   required String? fromCurrency,
@@ -132,8 +135,9 @@ String formatCurrencyForMode(
     );
   }
 
-  // If we cannot convert to the viewer currency or the USD fallback, show the
-  // stored amount with its original currency code instead of fabricating one.
+  // If we cannot convert to the viewer currency, try USD next. If both
+  // conversions fail, show the stored amount with its original currency code
+  // instead of fabricating a misleading display currency.
   return formatCurrency(
     converted ?? amount,
     currency: converted == null ? sourceCurrency : targetCurrency,
