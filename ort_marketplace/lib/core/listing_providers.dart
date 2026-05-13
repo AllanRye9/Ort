@@ -132,6 +132,8 @@ String formatCurrencyForMode(
     );
   }
 
+  // If we cannot convert to the viewer currency or the USD fallback, show the
+  // stored amount with its original currency code instead of fabricating one.
   return formatCurrency(
     converted ?? amount,
     currency: converted == null ? sourceCurrency : targetCurrency,

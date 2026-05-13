@@ -74,7 +74,7 @@ class Property(Base):
     city = Column(String(100))
     price = Column(DECIMAL(12, 2), nullable=False)
     pricing_type = Column(
-        Enum("negotiable", "fixed", name="pricing_types"),
+        Enum("negotiable", "fixed", name="property_pricing_types"),
         default="negotiable",
         server_default="negotiable",
         nullable=False,
