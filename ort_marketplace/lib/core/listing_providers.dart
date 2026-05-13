@@ -33,7 +33,8 @@ const _kToUsdRates = {
 
 /// Converts [amount] between supported currencies using the shared USD rate
 /// table. Returns `null` when either currency is unknown, so callers can fall
-/// back to USD or the original stored currency for display.
+/// back to USD and, if that also fails, keep showing the original stored
+/// currency amount instead of inventing a target-currency value.
 double? convertCurrency(
   double amount, {
   required String? fromCurrency,

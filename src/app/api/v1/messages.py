@@ -82,8 +82,9 @@ def list_messages(
     return (
         db.query(Message)
         .filter(Message.conversation_id == conversation_id, Message.is_deleted.is_(False))
-        # Keep the newest messages first and use id as a deterministic tiebreaker
-        # when multiple messages share the same sent_at timestamp.
+        # Message threads are shown in reverse chronological order so the newest
+        # activity is visible first. Use id as a deterministic tiebreaker when
+        # multiple messages share the same sent_at timestamp.
         .order_by(Message.sent_at.desc(), Message.id.desc())
         .offset(skip)
         .limit(limit)
