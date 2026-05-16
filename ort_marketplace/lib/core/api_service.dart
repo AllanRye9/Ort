@@ -843,12 +843,15 @@ class ApiService {
     String currency = 'UGX',
     String? reference,
   }) async {
-    final res = await _dio.post('/wallet/topup', data: {
-      'amount': amount,
-      'payment_method': paymentMethod,
-      'currency': currency,
-      if (reference != null) 'reference': reference,
-    });
+    final res = await _dio.post(
+      '/wallet/topup',
+      queryParameters: {'currency': currency},
+      data: {
+        'amount': amount,
+        'payment_method': paymentMethod,
+        if (reference != null) 'reference': reference,
+      },
+    );
     return res.data as Map<String, dynamic>;
   }
 
