@@ -352,6 +352,7 @@ class Conversation(Base):
     initiator_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     recipient_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     subject = Column(String(255))
+    location = Column(String(255), nullable=True)
     # optional context references
     property_id = Column(Integer, ForeignKey("properties.id", ondelete="SET NULL"), nullable=True)
     order_id = Column(Integer, ForeignKey("orders.id", ondelete="SET NULL"), nullable=True)

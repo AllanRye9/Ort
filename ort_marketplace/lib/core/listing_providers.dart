@@ -3,20 +3,23 @@
 /// can call `ref.invalidate(...)` to force a refresh after creating/editing a
 /// listing, so uploaded images appear everywhere automatically.
 
+import 'dart:convert';
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'api_service.dart';
 import 'app_preferences.dart';
+import 'friendly_error.dart';
 import '../models/models.dart';
 
 // ─── Currency formatting ──────────────────────────────────────────────────────
 
 const _kToUsdRates = {
   'UGX': 0.000272, // Ugandan Shilling  ≈ 0.000272 USD
-  'AED': 0.272,    // UAE Dirham         ≈ 0.272 USD
+  'AED': 0.2722940776, // UAE Dirham fixed peg (≈ 3.6725 AED : 1 USD)
   'USD': 1.0,
   'EUR': 1.08,
   'GBP': 1.25,
@@ -156,6 +159,38 @@ final userLocationProvider = StateProvider<(double, double)?>((_) => null);
 /// Radius (in km) for location-based listing filter. Default 50 km.
 final radiusFilterProvider = StateProvider<double>((_) => 50.0);
 
+final homePropertiesCacheFallbackProvider = StateProvider<bool>((_) => false);
+final homeAgricultureCacheFallbackProvider = StateProvider<bool>((_) => false);
+final homeMfgCacheFallbackProvider = StateProvider<bool>((_) => false);
+final homeServicesCacheFallbackProvider = StateProvider<bool>((_) => false);
+
+Future<List<dynamic>> _fetchWithOfflineCache(
+  Ref ref, {
+  required String cacheKey,
+  required Future<List<dynamic>> Function() request,
+  required StateProvider<bool> fallbackProvider,
+}) async {
+  final prefs = await SharedPreferences.getInstance();
+  try {
+    final data = await request();
+    await prefs.setString(cacheKey, jsonEncode(data));
+    ref.read(fallbackProvider.notifier).state = false;
+    return data;
+  } catch (e, st) {
+    debugPrint('Home feed fetch failed for $cacheKey: $e\n$st');
+    final cached = prefs.getString(cacheKey);
+    if (cached != null && cached.isNotEmpty) {
+      final decoded = jsonDecode(cached);
+      if (decoded is List<dynamic>) {
+        ref.read(fallbackProvider.notifier).state = true;
+        return decoded;
+      }
+    }
+    ref.read(fallbackProvider.notifier).state = false;
+    throw Exception(friendlyErrorMessage());
+  }
+}
+
 // ─── Haversine distance helper ────────────────────────────────────────────────
 
 /// Returns the great-circle distance in kilometres between two coordinates.
@@ -213,11 +248,16 @@ final homePropertiesProvider = FutureProvider<List<PropertyModel>>(
       }
     }
 
-    final data = await ref.read(apiServiceProvider).getPropertiesFiltered(
-          limit: 20,
-          country: country,
-          excludeCountry: excludeCountry,
-        );
+    final data = await _fetchWithOfflineCache(
+      ref,
+      cacheKey: 'cache_home_properties',
+      fallbackProvider: homePropertiesCacheFallbackProvider,
+      request: () => ref.read(apiServiceProvider).getPropertiesFiltered(
+            limit: 20,
+            country: country,
+            excludeCountry: excludeCountry,
+          ),
+    );
     return data
         .map((e) => PropertyModel.fromJson(e as Map<String, dynamic>))
         .toList();
@@ -242,11 +282,16 @@ final homeAgricultureProvider = FutureProvider<List<AgricultureListingModel>>(
       }
     }
 
-    final data = await ref.read(apiServiceProvider).getAgricultureFiltered(
-          limit: 8,
-          country: country,
-          excludeCountry: excludeCountry,
-        );
+    final data = await _fetchWithOfflineCache(
+      ref,
+      cacheKey: 'cache_home_agriculture',
+      fallbackProvider: homeAgricultureCacheFallbackProvider,
+      request: () => ref.read(apiServiceProvider).getAgricultureFiltered(
+            limit: 8,
+            country: country,
+            excludeCountry: excludeCountry,
+          ),
+    );
     return data
         .map((e) =>
             AgricultureListingModel.fromJson(e as Map<String, dynamic>))
@@ -272,11 +317,16 @@ final homeMfgProvider = FutureProvider<List<ManufacturingProductModel>>(
       }
     }
 
-    final data = await ref.read(apiServiceProvider).getManufacturingFiltered(
-          limit: 8,
-          country: country,
-          excludeCountry: excludeCountry,
-        );
+    final data = await _fetchWithOfflineCache(
+      ref,
+      cacheKey: 'cache_home_mfg',
+      fallbackProvider: homeMfgCacheFallbackProvider,
+      request: () => ref.read(apiServiceProvider).getManufacturingFiltered(
+            limit: 8,
+            country: country,
+            excludeCountry: excludeCountry,
+          ),
+    );
     return data
         .map((e) =>
             ManufacturingProductModel.fromJson(e as Map<String, dynamic>))
@@ -302,11 +352,16 @@ final homeServicesProvider = FutureProvider<List<ManufacturingServiceModel>>(
       }
     }
 
-    final data = await ref.read(apiServiceProvider).getManufacturingServices(
-          limit: 8,
-          country: country,
-          excludeCountry: excludeCountry,
-        );
+    final data = await _fetchWithOfflineCache(
+      ref,
+      cacheKey: 'cache_home_services',
+      fallbackProvider: homeServicesCacheFallbackProvider,
+      request: () => ref.read(apiServiceProvider).getManufacturingServices(
+            limit: 8,
+            country: country,
+            excludeCountry: excludeCountry,
+          ),
+    );
     return data
         .map((e) =>
             ManufacturingServiceModel.fromJson(e as Map<String, dynamic>))

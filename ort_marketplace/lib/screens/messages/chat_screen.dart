@@ -10,6 +10,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/api_service.dart';
 import '../../core/auth_provider.dart';
+import '../../core/friendly_error.dart';
 import '../../models/models.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
@@ -92,7 +93,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = e.toString();
+          _error = friendlyErrorMessage();
           _loading = false;
         });
       }
@@ -158,16 +159,63 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       final userId = ref.read(authProvider).userId;
       await ref.read(apiServiceProvider).deleteMessage(messageId, userId!);
       setState(() => _messages.removeWhere((m) => m.id == messageId));
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Could not delete message: ${e.toString()}'),
+            content: Text(friendlyErrorMessage()),
             backgroundColor: Theme.of(context).colorScheme.error,
             behavior: SnackBarBehavior.floating,
           ),
         );
       }
+    }
+  }
+
+  Future<void> _confirmClearBody(int messageId) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete message body?'),
+        content: const Text(
+          'The message will stay in history, but its text content will be removed.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(
+              'Delete Body',
+              style: TextStyle(color: Theme.of(ctx).colorScheme.error),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      final userId = ref.read(authProvider).userId;
+      if (userId == null) return;
+      final updated =
+          await ref.read(apiServiceProvider).clearMessageBody(messageId, userId);
+      final msg = MessageModel.fromJson(updated);
+      if (!mounted) return;
+      setState(() {
+        final idx = _messages.indexWhere((m) => m.id == messageId);
+        if (idx >= 0) _messages[idx] = msg;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(friendlyErrorMessage()),
+          backgroundColor: Theme.of(context).colorScheme.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
 
@@ -197,11 +245,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         });
         _scrollToTop();
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to send message: ${e.toString()}'),
+            content: Text(friendlyErrorMessage()),
             backgroundColor: Theme.of(context).colorScheme.error,
             behavior: SnackBarBehavior.floating,
           ),
@@ -256,11 +304,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         });
         _scrollToTop();
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('File send failed: ${e.toString()}'),
+            content: Text(friendlyErrorMessage()),
             backgroundColor: Theme.of(context).colorScheme.error,
             behavior: SnackBarBehavior.floating,
           ),
@@ -317,7 +365,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text('Error: $_error'),
+                            Text(_error ?? friendlyErrorMessage()),
                             const SizedBox(height: 8),
                             ElevatedButton(
                               onPressed: _loadMessages,
@@ -419,10 +467,34 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                 ),
                               );
                               if (!isMe) return bubble;
-                              // Own messages support delete via double-tap or long-press
                               return GestureDetector(
-                                onDoubleTap: () => _confirmDelete(m.id),
-                                onLongPress: () => _confirmDelete(m.id),
+                                onLongPress: () async {
+                                  final action = await showModalBottomSheet<String>(
+                                    context: context,
+                                    builder: (sheetCtx) => SafeArea(
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          ListTile(
+                                            leading: const Icon(Icons.edit_off_outlined),
+                                            title: const Text('Delete body only'),
+                                            onTap: () => Navigator.pop(sheetCtx, 'clear'),
+                                          ),
+                                          ListTile(
+                                            leading: const Icon(Icons.delete_outline),
+                                            title: const Text('Delete message'),
+                                            onTap: () => Navigator.pop(sheetCtx, 'delete'),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                  if (action == 'clear') {
+                                    _confirmClearBody(m.id);
+                                  } else if (action == 'delete') {
+                                    _confirmDelete(m.id);
+                                  }
+                                },
                                 child: bubble,
                               );
                             },
@@ -617,12 +689,12 @@ class _FileBubbleState extends State<_FileBubble> {
           ),
         );
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
         setState(() => _progress = null);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Download failed: $e'),
+            content: Text(friendlyErrorMessage()),
             backgroundColor: Theme.of(context).colorScheme.error,
             behavior: SnackBarBehavior.floating,
           ),
