@@ -314,6 +314,7 @@ class DisplayCurrencyNotifier extends StateNotifier<String> {
   }
 
   final Ref _ref;
+  Future<void>? _refreshInFlight;
 
   Future<void> _initialize() async {
     await _load();
@@ -329,6 +330,24 @@ class DisplayCurrencyNotifier extends StateNotifier<String> {
   }
 
   Future<void> refreshFromLocation() async {
+    final inFlight = _refreshInFlight;
+    if (inFlight != null) {
+      await inFlight;
+      return;
+    }
+
+    final refresh = _refreshFromLocationInternal();
+    _refreshInFlight = refresh;
+    try {
+      await refresh;
+    } finally {
+      if (identical(_refreshInFlight, refresh)) {
+        _refreshInFlight = null;
+      }
+    }
+  }
+
+  Future<void> _refreshFromLocationInternal() async {
     try {
       final position = await LocationService.instance.requestAndGetPosition();
       if (position == null) {
