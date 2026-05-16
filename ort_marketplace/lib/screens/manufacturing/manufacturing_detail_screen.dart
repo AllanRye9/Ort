@@ -119,6 +119,12 @@ class _ManufacturingDetailScreenState extends ConsumerState<ManufacturingDetailS
         recipientId: recipientId,
         subject: 'Re: ${m.title}',
       );
+      await api.sendMessage({
+        'conversation_id': convId,
+        'sender_id': userId,
+        'body': 'Contact request about "${m.title}"${m.location != null ? ' at ${m.location}' : ''}.',
+        'message_type': 'text',
+      });
       if (mounted) context.push('/messages/$convId');
     } catch (e) {
       if (mounted) {

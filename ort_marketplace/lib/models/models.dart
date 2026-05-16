@@ -783,6 +783,10 @@ class WalletModel {
     required this.id,
     required this.userId,
     required this.points,
+    required this.ugxValue,
+    required this.displayCurrency,
+    required this.displayAmount,
+    required this.exchangeRate,
     required this.createdAt,
     this.updatedAt,
   });
@@ -790,6 +794,10 @@ class WalletModel {
   final int id;
   final int userId;
   final int points;
+  final int ugxValue;
+  final String displayCurrency;
+  final double displayAmount;
+  final double exchangeRate;
   final DateTime createdAt;
   final DateTime? updatedAt;
 
@@ -797,6 +805,10 @@ class WalletModel {
         id: j['id'] as int,
         userId: j['user_id'] as int,
         points: j['points'] as int? ?? 0,
+        ugxValue: (j['ugx_value'] as num?)?.toInt() ?? 0,
+        displayCurrency: j['display_currency'] as String? ?? 'UGX',
+        displayAmount: (j['display_amount'] as num?)?.toDouble() ?? 0,
+        exchangeRate: (j['exchange_rate'] as num?)?.toDouble() ?? 1,
         createdAt: DateTime.parse(j['created_at'] as String),
         updatedAt: j['updated_at'] != null
             ? DateTime.parse(j['updated_at'] as String)

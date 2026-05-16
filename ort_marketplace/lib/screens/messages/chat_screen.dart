@@ -6,6 +6,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/api_service.dart';
@@ -169,6 +170,50 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
           ),
         );
       }
+    }
+  }
+
+  Future<void> _confirmDeleteConversation() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete conversation?'),
+        content: const Text(
+          'This will remove the full conversation thread and its messages.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(
+              'Delete',
+              style: TextStyle(color: Theme.of(ctx).colorScheme.error),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      final userId = ref.read(authProvider).userId;
+      if (userId == null) return;
+      await ref.read(apiServiceProvider).deleteConversation(
+            conversationId: widget.conversationId,
+            actorId: userId,
+          );
+      if (mounted) context.go('/messages');
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(friendlyErrorMessage()),
+          backgroundColor: Theme.of(context).colorScheme.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
 
@@ -352,6 +397,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
             icon: const Icon(Icons.refresh),
             tooltip: 'Refresh',
             onPressed: _loadMessages,
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete_sweep_outlined),
+            tooltip: 'Delete conversation',
+            onPressed: _confirmDeleteConversation,
           ),
         ],
       ),
