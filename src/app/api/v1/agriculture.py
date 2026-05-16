@@ -4,6 +4,7 @@ import string
 from datetime import datetime as _dt
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import not_
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
@@ -18,6 +19,7 @@ from app.schemas.marketplace_schemas import (
     AgriStatusUpdate,
     OwnerProfileResponse,
 )
+from app.utils.countries import country_contains_clause
 from app.utils.geo import haversine_km
 
 router = APIRouter(prefix="/agriculture", tags=["agriculture"])
@@ -85,12 +87,16 @@ def list_listings(
     if location:
         q = q.filter(AgricultureListing.location.ilike(f"%{location}%"))
     if country:
-        q = q.filter(AgricultureListing.location.ilike(f"%{country}%"))
+        country_clause = country_contains_clause(AgricultureListing.location, country)
+        if country_clause is not None:
+            q = q.filter(country_clause)
     if exclude_country:
-        q = q.filter(
-            (AgricultureListing.location == None) |
-            (~AgricultureListing.location.ilike(f"%{exclude_country}%"))
-        )
+        exclude_clause = country_contains_clause(AgricultureListing.location, exclude_country)
+        if exclude_clause is not None:
+            q = q.filter(
+                (AgricultureListing.location == None) |
+                (not_(exclude_clause))
+            )
 
     items = q.order_by(AgricultureListing.created_at.desc()).offset(skip).limit(limit).all()
 
@@ -189,4 +195,3 @@ def delete_listing(listing_id: int, db: Session = Depends(get_db)):
     obj.is_deleted = True
     db.commit()
     return {"message": "Agriculture listing deleted successfully"}
-

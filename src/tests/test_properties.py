@@ -71,3 +71,10 @@ def test_create_property_invalid_type(client):
     payload = {**PROPERTY_PAYLOAD, "property_type": "mansion"}
     resp = client.post("/api/v1/properties/", json=payload)
     assert resp.status_code == 422
+
+
+def test_filter_properties_matches_uae_alias(client):
+    _create_property(client, {**PROPERTY_PAYLOAD, "country": "United Arab Emirates"})
+    resp = client.get("/api/v1/properties/", params={"country": "UAE"})
+    assert resp.status_code == 200
+    assert len(resp.json()) == 1

@@ -13,6 +13,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'api_service.dart';
 import 'app_preferences.dart';
 import 'friendly_error.dart';
+import 'location_service.dart';
 import '../models/models.dart';
 
 // ─── Currency formatting ──────────────────────────────────────────────────────
@@ -85,26 +86,24 @@ String formatCurrency(
 /// Returns the currency code for the given country name.
 /// Defaults to 'USD' when the country is not specifically recognised.
 String currencyCodeForCountry(String? country) {
-  switch (country?.toLowerCase()) {
-    case 'uganda':
-      return 'UGX';
-    case 'united arab emirates':
-      return 'AED';
-    default:
-      return 'USD';
+  if (matchesCountry(country, 'Uganda')) {
+    return 'UGX';
   }
+  if (matchesCountry(country, 'United Arab Emirates')) {
+    return 'AED';
+  }
+  return 'USD';
 }
 
 /// Returns the currency symbol / prefix for the given country.
 String currencyPrefixForCountry(String? country) {
-  switch (country?.toLowerCase()) {
-    case 'uganda':
-      return 'UGX ';
-    case 'united arab emirates':
-      return 'AED ';
-    default:
-      return '\$';
+  if (matchesCountry(country, 'Uganda')) {
+    return 'UGX ';
   }
+  if (matchesCountry(country, 'United Arab Emirates')) {
+    return 'AED ';
+  }
+  return '\$';
 }
 
 /// Like [formatCurrency] but respects the current [MarketplaceMode].

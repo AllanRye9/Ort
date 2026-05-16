@@ -70,3 +70,20 @@ def test_delete_manufacturing_product(client):
     resp = client.delete(f"/api/v1/manufacturing/{product['id']}")
     assert resp.status_code == 200
     assert client.get(f"/api/v1/manufacturing/{product['id']}").status_code == 404
+
+
+def test_filter_manufacturing_matches_uae_alias(client):
+    tenant = _create_tenant(client)
+    created = client.post(
+        "/api/v1/manufacturing/",
+        json={
+            **PRODUCT_BASE,
+            "tenant_id": tenant["id"],
+            "country_of_origin": "United Arab Emirates",
+        },
+    )
+    assert created.status_code == 201, created.text
+
+    resp = client.get("/api/v1/manufacturing/", params={"country": "UAE"})
+    assert resp.status_code == 200
+    assert len(resp.json()) == 1

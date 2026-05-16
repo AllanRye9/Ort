@@ -57,9 +57,8 @@ class _PropertyEditScreenState extends ConsumerState<PropertyEditScreen> {
   bool _gpsCapturing = false;
   String? _locationError;
 
-  bool get _isUganda => _geocodedCountry?.toLowerCase() == 'uganda';
-  bool get _isUAE =>
-      _geocodedCountry?.toLowerCase() == 'united arab emirates';
+  bool get _isUganda => matchesCountry(_geocodedCountry, 'Uganda');
+  bool get _isUAE => matchesCountry(_geocodedCountry, 'United Arab Emirates');
 
   static const _residentialTypes = ['house', 'apartment', 'villa'];
 

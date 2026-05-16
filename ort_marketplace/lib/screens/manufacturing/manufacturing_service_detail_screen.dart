@@ -123,6 +123,15 @@ class _ManufacturingServiceDetailScreenState
         }
         return;
       }
+      if (recipientId == userId) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('You cannot chat about your own listing.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return;
+      }
       final convId = await api.findOrCreateConversation(
         initiatorId: userId,
         recipientId: recipientId,

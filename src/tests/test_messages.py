@@ -155,6 +155,38 @@ def test_update_conversation_location(client):
     assert update_resp.json()["location"] == "Kampala"
 
 
+def test_bulk_delete_messages(client):
+    a = _create_user(client, USER_A)
+    b = _create_user(client, USER_B)
+    conv = client.post(
+        "/api/v1/messages/conversations/",
+        json={"initiator_id": a["id"], "recipient_id": b["id"]},
+    ).json()
+
+    first = client.post(
+        "/api/v1/messages/",
+        json={"conversation_id": conv["id"], "sender_id": a["id"], "body": "First"},
+    ).json()
+    second = client.post(
+        "/api/v1/messages/",
+        json={"conversation_id": conv["id"], "sender_id": a["id"], "body": "Second"},
+    ).json()
+
+    resp = client.post(
+        "/api/v1/messages/bulk-delete",
+        json={
+            "sender_id": a["id"],
+            "message_ids": [first["id"], second["id"]],
+        },
+    )
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["count"] == 2
+
+    listed = client.get(f"/api/v1/messages/?conversation_id={conv['id']}")
+    assert listed.status_code == 200
+    assert all(item["id"] not in {first["id"], second["id"]} for item in listed.json())
+
+
 def test_lookup_business_user_by_name(client):
     _create_user(client, USER_A)
     _create_user(client, USER_B)
