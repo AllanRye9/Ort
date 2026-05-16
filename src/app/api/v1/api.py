@@ -204,13 +204,14 @@ def get_user(user_id: int, db: Session = Depends(get_db)):
 
 @router.post("/users/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def create_user(user: UserCreate, db: Session = Depends(get_db)):
-    if db.query(User).filter(User.email == user.email).first():
+    normalized_email = str(user.email).strip().lower()
+    if db.query(User).filter(func.lower(User.email) == normalized_email).first():
         raise HTTPException(status_code=409, detail="Email already registered")
     db_user = User(
         role=user.role,
         first_name=user.first_name,
         last_name=user.last_name,
-        email=user.email,
+        email=normalized_email,
         phone=user.phone,
         password_hash=pwd_context.hash(user.password[:72]),
     )

@@ -60,3 +60,12 @@ def test_create_user_duplicate_email(client):
     _create_user(client)
     resp = client.post("/api/v1/users/", json=USER_PAYLOAD)
     assert resp.status_code == 409
+
+
+def test_create_user_duplicate_email_case_insensitive(client):
+    _create_user(client)
+    resp = client.post(
+        "/api/v1/users/",
+        json={**USER_PAYLOAD, "email": "TESTUSER@EXAMPLE.COM"},
+    )
+    assert resp.status_code == 409
