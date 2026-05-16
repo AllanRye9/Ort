@@ -279,6 +279,7 @@ class AgricultureListingModel {
   const AgricultureListingModel({
     required this.id,
     this.tenantId,
+    this.ownerUserId,
     required this.title,
     this.description,
     this.category,
@@ -305,6 +306,7 @@ class AgricultureListingModel {
 
   final int id;
   final int? tenantId;
+  final int? ownerUserId;
   final String title;
   final String? description;
   final String? category;
@@ -332,6 +334,7 @@ class AgricultureListingModel {
       AgricultureListingModel(
         id: j['id'] as int,
         tenantId: j['tenant_id'] as int?,
+        ownerUserId: j['owner_user_id'] as int?,
         title: j['title'] as String,
         description: j['description'] as String?,
         category: j['category'] as String?,
@@ -365,6 +368,7 @@ class ManufacturingProductModel {
   const ManufacturingProductModel({
     required this.id,
     this.tenantId,
+    this.ownerUserId,
     required this.title,
     this.description,
     this.category,
@@ -391,6 +395,7 @@ class ManufacturingProductModel {
 
   final int id;
   final int? tenantId;
+  final int? ownerUserId;
   final String title;
   final String? description;
   final String? category;
@@ -418,6 +423,7 @@ class ManufacturingProductModel {
       ManufacturingProductModel(
         id: j['id'] as int,
         tenantId: j['tenant_id'] as int?,
+        ownerUserId: j['owner_user_id'] as int?,
         title: j['title'] as String,
         description: j['description'] as String?,
         category: j['category'] as String?,
