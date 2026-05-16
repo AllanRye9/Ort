@@ -249,6 +249,7 @@ Required setup:
    - generates an API key with `POST /v1_0/apiuser/{X-Reference-Id}/apikey`,
    - obtains a bearer token from `POST /collection/token/` using HTTP Basic auth (`username = X-Reference-Id` or configured API user, `password = generated API key`),
    - submits `POST /collection/v1_0/requesttopay` with `amount`, `currency`, `externalId`, and `payer` details.
+   - When static MTN credentials are omitted, this provisioning flow runs per request; the generated API user and API key are not persisted by the backend.
 5. Send top-up requests with:
    - `amount`: number of points to credit
    - `payment_method`: `mtn`

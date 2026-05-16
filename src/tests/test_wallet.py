@@ -35,7 +35,7 @@ class _FakeClient:
         return self._responses.pop(0)
 
 
-def test_get_mtn_callback_host_prefers_explicit_host(monkeypatch):
+def test_get_mtn_callback_host_uses_explicit_host_when_set(monkeypatch):
     monkeypatch.setenv("MTN_COLLECTION_CALLBACK_HOST", "callbacks.example.com")
     monkeypatch.setenv(
         "MTN_COLLECTION_CALLBACK_URL",
