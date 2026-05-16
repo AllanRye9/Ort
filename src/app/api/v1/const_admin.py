@@ -589,7 +589,7 @@ document.getElementById('loginForm').onsubmit = async (e) => {
     if (adminEmailEl) adminEmailEl.textContent = username;
     showApp();
   } catch(err) {
-    errEl.textContent = 'Network error: ' + err.message;
+    errEl.textContent = 'Network issue. Please try again.';
     errEl.classList.remove('hidden');
   }
 };
@@ -631,7 +631,7 @@ document.getElementById('setupForm').onsubmit = async (e) => {
     if (adminEmailEl) adminEmailEl.textContent = username;
     showApp();
   } catch(err) {
-    errEl.textContent = 'Network error: ' + err.message;
+    errEl.textContent = 'Network issue. Please try again.';
     errEl.classList.remove('hidden');
   }
 };
@@ -719,7 +719,7 @@ async function loadDashboard() {
     renderOrderChart(report.orders_by_status || {});
     renderActivityChart(report);
     document.getElementById('lastRefresh').textContent = 'Refreshed ' + new Date().toLocaleTimeString();
-  } catch(e) { showToast('Failed to load dashboard: ' + e.message, 'red'); }
+  } catch(e) { showToast('Failed to load dashboard. Please try again.', 'red'); }
 }
 
 function renderStats(s) {
@@ -814,7 +814,7 @@ async function loadUsers(offset) {
       btn.addEventListener('click', () => deleteUser(parseInt(btn.dataset.uid)));
     });
     renderPager('usersPager', data.total||0, _usersOffset, 50, 'users');
-  } catch(e) { showToast('Failed to load users: '+e.message,'red'); }
+  } catch(e) { showToast('Failed to load users. Please try again.','red'); }
 }
 
 function roleBadge(role) {
@@ -843,7 +843,7 @@ async function saveUser() {
   try {
     await apiFetch('/admin/users/'+id, {method:'PATCH', body:JSON.stringify(payload)});
     closeUserModal(); showToast('User updated','green'); loadUsers();
-  } catch(e) { showToast('Failed: '+e.message,'red'); }
+  } catch(e) { showToast('Operation failed. Please try again.','red'); }
 }
 
 async function deleteUser(id) {
@@ -851,7 +851,7 @@ async function deleteUser(id) {
   try {
     await apiFetch('/admin/users/'+id, {method:'DELETE'});
     showToast('User deleted','green'); loadUsers();
-  } catch(e) { showToast('Failed: '+e.message,'red'); }
+  } catch(e) { showToast('Operation failed. Please try again.','red'); }
 }
 
 // ── Content ────────────────────────────────────────────────────────────────
@@ -883,7 +883,7 @@ async function loadContent(type, offset) {
       });
     });
     renderPager('contentPager', total, _contentOffset, 50, 'content');
-  } catch(e) { showToast('Failed to load content: '+e.message,'red'); }
+  } catch(e) { showToast('Failed to load content. Please try again.','red'); }
 }
 
 function statusBadge(s) {
@@ -896,7 +896,7 @@ async function deleteContent(type, id) {
   try {
     await apiFetch('/admin/content/'+type+'/'+id, {method:'DELETE'});
     showToast('Deleted','green'); loadContent(type);
-  } catch(e) { showToast('Failed: '+e.message,'red'); }
+  } catch(e) { showToast('Operation failed. Please try again.','red'); }
 }
 
 // ── Reports ────────────────────────────────────────────────────────────────
@@ -938,7 +938,7 @@ async function loadReports() {
       data:{ labels:Object.keys(overview.orders_by_status||{}), datasets:[{label:'Orders', data:Object.values(overview.orders_by_status||{}), backgroundColor:'#22c55e'}] },
       options:{ plugins:{legend:{display:false}}, responsive:true, scales:{y:{beginAtZero:true}} }
     });
-  } catch(e) { showToast('Failed to load reports: '+e.message,'red'); }
+  } catch(e) { showToast('Failed to load reports. Please try again.','red'); }
 }
 
 // ── Tickets ────────────────────────────────────────────────────────────────
@@ -965,7 +965,7 @@ async function loadTickets(offset) {
       btn.addEventListener('click', () => openTicketModal(parseInt(btn.dataset.tid)));
     });
     renderPager('ticketsPager', data.total||0, _ticketsOffset, 50, 'tickets');
-  } catch(e) { showToast('Failed to load tickets: '+e.message,'red'); }
+  } catch(e) { showToast('Failed to load tickets. Please try again.','red'); }
 }
 
 function ticketBadge(s) {
@@ -981,7 +981,7 @@ async function openTicketModal(id) {
     document.getElementById('editTicketStatus').value=t.status||'open';
     document.getElementById('editTicketResolution').value=t.resolution||'';
     document.getElementById('ticketModal').classList.remove('hidden');
-  } catch(e) { showToast('Failed: '+e.message,'red'); }
+  } catch(e) { showToast('Operation failed. Please try again.','red'); }
 }
 function closeTicketModal() { document.getElementById('ticketModal').classList.add('hidden'); }
 
@@ -994,7 +994,7 @@ async function saveTicket() {
   try {
     await apiFetch('/admin/tickets/'+id, {method:'PATCH', body:JSON.stringify(payload)});
     closeTicketModal(); showToast('Ticket updated','green'); loadTickets();
-  } catch(e) { showToast('Failed: '+e.message,'red'); }
+  } catch(e) { showToast('Operation failed. Please try again.','red'); }
 }
 
 // ── Audit Logs ─────────────────────────────────────────────────────────────
@@ -1012,7 +1012,7 @@ async function loadLogs(offset) {
         <td class="px-4 py-3 text-gray-500 text-xs truncate max-w-[200px]">${esc(l.detail||'')}</td>
       </tr>`).join('');
     renderPager('logsPager', data.total||0, _logsOffset, 50, 'logs');
-  } catch(e) { showToast('Failed to load logs: '+e.message,'red'); }
+  } catch(e) { showToast('Failed to load logs. Please try again.','red'); }
 }
 
 // ── Broadcast ──────────────────────────────────────────────────────────────
@@ -1048,7 +1048,7 @@ async function loadDeleted(filter) {
         </td>
       </tr>`).join('');
   } catch(e) {
-    table.innerHTML = `<tr><td colspan="6" class="px-4 py-6 text-center text-red-500 text-sm">Error: ${esc(e.message)}</td></tr>`;
+    table.innerHTML = `<tr><td colspan="6" class="px-4 py-6 text-center text-red-500 text-sm">Error: Please try again.</td></tr>`;
   }
 }
 
@@ -1058,7 +1058,7 @@ async function purgeDeletedItem(type, id) {
     await apiFetch(`/admin/deleted/${type}/${id}`, {method:'DELETE'});
     showToast('Item permanently deleted','green');
     loadDeleted(_deletedFilter);
-  } catch(e) { showToast('Purge failed: '+e.message,'red'); }
+  } catch(e) { showToast('Delete failed. Please try again.','red'); }
 }
 
 async function restoreDeletedItem(type, id) {
@@ -1066,7 +1066,7 @@ async function restoreDeletedItem(type, id) {
     await apiFetch(`/admin/deleted/${type}/${id}/restore`, {method:'PATCH'});
     showToast('Item restored','green');
     loadDeleted(_deletedFilter);
-  } catch(e) { showToast('Restore failed: '+e.message,'red'); }
+  } catch(e) { showToast('Restore failed. Please try again.','red'); }
 }
 
 async function sendBroadcast() {
@@ -1082,7 +1082,7 @@ async function sendBroadcast() {
     document.getElementById('bcTitle').value='';
     document.getElementById('bcBody').value='';
     document.getElementById('bcRole').value='';
-  } catch(e) { showToast('Failed: '+e.message,'red'); }
+  } catch(e) { showToast('Operation failed. Please try again.','red'); }
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────

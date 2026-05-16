@@ -7,7 +7,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from passlib.context import CryptContext
 from jose import jwt, JWTError
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from typing import List, Optional
 
 from app.database.database import get_db
@@ -132,6 +132,48 @@ def get_user_by_uid(user_uid: str, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
+
+
+@router.get("/users/lookup", response_model=UserResponse)
+def lookup_user(
+    q: str = Query(..., min_length=1),
+    role_scope: str = Query("any", pattern="^(any|business)$"),
+    db: Session = Depends(get_db),
+):
+    """Lookup a user by numeric ID or unique business identifier/name."""
+    query_text = q.strip()
+    if not query_text:
+        raise HTTPException(status_code=400, detail="Lookup query is required")
+
+    user_query = db.query(User)
+    if role_scope == "business":
+        user_query = user_query.filter(User.role.in_(["agent", "company", "organization"]))
+
+    if query_text.isdigit():
+        user = user_query.filter(User.id == int(query_text)).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        return user
+
+    lowered = query_text.lower()
+    candidates = user_query.filter(
+        or_(
+            func.lower(func.coalesce(User.agency_name, "")) == lowered,
+            func.lower(User.email) == lowered,
+            func.lower(func.coalesce(User.user_uid, "")) == lowered,
+            func.lower(
+                func.coalesce(User.first_name, "") + " " + func.coalesce(User.last_name, "")
+            ) == lowered,
+        )
+    ).limit(2).all()
+    if not candidates:
+        raise HTTPException(status_code=404, detail="User not found")
+    if len(candidates) > 1:
+        raise HTTPException(
+            status_code=409,
+            detail="Multiple users matched this name. Use user ID or unique account name.",
+        )
+    return candidates[0]
 
 
 @router.patch("/users/me", response_model=UserResponse)

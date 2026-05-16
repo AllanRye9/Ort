@@ -617,6 +617,7 @@ class ConversationModel {
     this.initiatorId,
     this.recipientId,
     this.subject,
+    this.location,
     this.propertyId,
     this.orderId,
     required this.createdAt,
@@ -626,6 +627,7 @@ class ConversationModel {
   final int? initiatorId;
   final int? recipientId;
   final String? subject;
+  final String? location;
   final int? propertyId;
   final int? orderId;
   final DateTime createdAt;
@@ -636,6 +638,7 @@ class ConversationModel {
         initiatorId: j['initiator_id'] as int?,
         recipientId: j['recipient_id'] as int?,
         subject: j['subject'] as String?,
+        location: j['location'] as String?,
         propertyId: j['property_id'] as int?,
         orderId: j['order_id'] as int?,
         createdAt: DateTime.parse(j['created_at'] as String),
