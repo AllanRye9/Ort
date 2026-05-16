@@ -298,7 +298,6 @@ class MainShell extends ConsumerStatefulWidget {
 }
 
 class _MainShellState extends ConsumerState<MainShell> {
-  DateTime? _lastBackPress;
   double _menuFabLeft = 16;
   double _menuFabBottom = 120;
   static const _draggableFabSize = 40.0;
@@ -329,26 +328,18 @@ class _MainShellState extends ConsumerState<MainShell> {
       router.pop();
       return false;
     }
-    // On the root/home level: require a second tap within
-    // 2 seconds to exit.
     final currentTab = _currentIndex(context);
     if (currentTab != 0) {
       context.go('/home');
       return false;
     }
-    final now = DateTime.now();
-    if (_lastBackPress == null ||
-        now.difference(_lastBackPress!) > const Duration(seconds: 2)) {
-        _lastBackPress = now;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Already at Home screen'),
-          duration: Duration(seconds: 2),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-      return false;
-    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Navigation is already at Home'),
+        duration: Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
     return false;
   }
 
