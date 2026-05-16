@@ -206,6 +206,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             final modeNotifier = ref.read(marketplaceModeProvider.notifier);
             await modeNotifier.waitForLoad();
             if (!mounted) return;
+            // Respect the user's explicit manual mode choice if one exists.
             if (modeNotifier.everSelected) return;
             final isUganda = country.trim().toLowerCase() == 'uganda';
             final autoMode =
