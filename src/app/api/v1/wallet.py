@@ -175,7 +175,12 @@ def _get_mtn_subscription_keys() -> list[str]:
 
 
 def _get_mtn_callback_host() -> str | None:
-    """Return the MTN callback host used during API user provisioning."""
+    """Return the provisioning callback host.
+
+    `MTN_COLLECTION_CALLBACK_HOST` takes precedence. Otherwise the hostname is
+    derived from `MTN_COLLECTION_CALLBACK_URL`. Returns `None` when no host can
+    be resolved.
+    """
     callback_host = os.getenv("MTN_COLLECTION_CALLBACK_HOST")
     if callback_host:
         return callback_host
@@ -197,7 +202,10 @@ def _post_mtn_request(
     headers: dict[str, str] | None = None,
     json: dict | None = None,
 ) -> tuple[httpx.Response, str]:
-    """POST to MTN with ordered subscription keys, retrying on auth failure."""
+    """POST to MTN with ordered subscription keys, retrying on auth failure.
+
+    Returns the response and the subscription key that completed the request.
+    """
     base_headers = headers or {}
     last_response: httpx.Response | None = None
     last_key = ""
@@ -228,7 +236,9 @@ def _post_mtn_request(
             continue
         return response, subscription_key
     if last_response is None:
-        raise RuntimeError("No MTN subscription keys available for request.")
+        raise RuntimeError(
+            "MTN request failed because no subscription keys were provided."
+        )
     return last_response, last_key
 
 
@@ -472,10 +482,13 @@ def get_my_transactions(
     db: Session = Depends(get_db),
 ):
     """Return the transaction history for the current user's wallet."""
-    wallet_query = db.query(UserWallet).filter(  # noqa: E501
-        UserWallet.user_id == current_user.id
+    wallet = (
+        db.query(UserWallet)
+        .filter(
+            UserWallet.user_id == current_user.id,
+        )
+        .first()
     )
-    wallet = wallet_query.first()
     if wallet is None:
         return []
     return (
