@@ -291,6 +291,8 @@ final userCountryProvider =
 
 const _kDisplayCurrencyKey = 'display_currency';
 
+/// ORT's default marketplace policy is Uganda-first:
+/// Uganda users see UGX, while non-Uganda users default to USD.
 String currencyCodeForCountry(String? country) {
   return country?.trim().toLowerCase() == 'uganda' ? 'UGX' : 'USD';
 }

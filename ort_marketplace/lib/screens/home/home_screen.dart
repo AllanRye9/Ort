@@ -207,10 +207,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             await modeNotifier.waitForLoad();
             if (!mounted) return;
             if (modeNotifier.everSelected) return;
+            final isUganda = country.trim().toLowerCase() == 'uganda';
             final autoMode =
-                currencyCodeForCountry(country) == 'UGX'
-                    ? MarketplaceMode.local
-                    : MarketplaceMode.international;
+                isUganda ? MarketplaceMode.local : MarketplaceMode.international;
             await modeNotifier.setMode(
               autoMode,
               locationStatus: ref.read(locationAvailabilityProvider),
