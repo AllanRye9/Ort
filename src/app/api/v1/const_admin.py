@@ -251,6 +251,24 @@ _HTML = r"""<!DOCTYPE html>
         <h3 class="font-semibold text-gray-700 mb-3 text-sm">Activity — Last 30 Days</h3>
         <canvas id="activityChart" height="100"></canvas>
       </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="bg-white rounded-2xl shadow p-5">
+          <h3 class="font-semibold text-gray-700 mb-3 text-sm">Tracking by Country</h3>
+          <canvas id="countryChart" height="180"></canvas>
+        </div>
+        <div class="bg-white rounded-2xl shadow p-5">
+          <h3 class="font-semibold text-gray-700 mb-3 text-sm">Top Tracking Locations</h3>
+          <canvas id="locationChart" height="180"></canvas>
+        </div>
+      </div>
+      <div class="bg-white rounded-2xl shadow p-5">
+        <h3 class="font-semibold text-gray-700 mb-3 text-sm">Tracking Status Transition Graph</h3>
+        <canvas id="transitionChart" height="110"></canvas>
+      </div>
+      <div class="bg-white rounded-2xl shadow p-5">
+        <h3 class="font-semibold text-gray-700 mb-3 text-sm">Top Listing Countries</h3>
+        <div id="listingCountrySummary" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3"></div>
+      </div>
     </section>
 
     <!-- ── Users section ──────────────────────────────────────────────── -->
@@ -538,6 +556,7 @@ let _usersOffset = 0, _contentOffset = 0, _ticketsOffset = 0, _logsOffset = 0;
 let _contentType = 'properties';
 let _roleChart = null, _orderChart = null, _activityChart = null;
 let _regChart = null, _ordStatusChart = null;
+let _countryChart = null, _locationChart = null, _transitionChart = null;
 let _refreshInterval = null;
 
 // ── Bootstrap ──────────────────────────────────────────────────────────────
@@ -710,14 +729,19 @@ async function apiFetch(path, opts={}) {
 // ── Dashboard ──────────────────────────────────────────────────────────────
 async function loadDashboard() {
   try {
-    const [stats, report] = await Promise.all([
+    const [stats, report, locationAnalytics] = await Promise.all([
       apiFetch('/admin/dashboard/stats'),
-      apiFetch('/admin/reports/overview?days=30')
+      apiFetch('/admin/reports/overview?days=30'),
+      apiFetch('/admin/dashboard/location-analytics?days=30&top_n=8')
     ]);
     renderStats(stats);
     renderRoleChart(stats.users_by_role || {});
     renderOrderChart(report.orders_by_status || {});
     renderActivityChart(report);
+    renderCountryChart(locationAnalytics.top_tracking_countries || []);
+    renderLocationChart(locationAnalytics.top_tracking_locations || []);
+    renderTransitionChart(locationAnalytics.tracking_status_transitions || []);
+    renderListingCountrySummary(locationAnalytics.top_listing_countries || []);
     document.getElementById('lastRefresh').textContent = 'Refreshed ' + new Date().toLocaleTimeString();
   } catch(e) { showToast('Failed to load dashboard. Please try again.', 'red'); }
 }
@@ -773,6 +797,61 @@ function renderActivityChart(r) {
     data:{ labels, datasets:[{label:'Last 30 days', data:values, backgroundColor:['#166534','#15803d','#16a34a','#22c55e','#4ade80','#86efac']}] },
     options:{ plugins:{legend:{display:false}}, responsive:true, scales:{y:{beginAtZero:true}} }
   });
+}
+
+function renderCountryChart(items) {
+  const ctx = document.getElementById('countryChart').getContext('2d');
+  if (_countryChart) _countryChart.destroy();
+  const labels = items.map(i => i.country);
+  const values = items.map(i => i.count);
+  _countryChart = new Chart(ctx, {
+    type:'bar',
+    data:{ labels, datasets:[{label:'Tracking events', data:values, backgroundColor:'#2563eb'}] },
+    options:{ plugins:{legend:{display:false}}, responsive:true, scales:{y:{beginAtZero:true}} }
+  });
+}
+
+function renderLocationChart(items) {
+  const ctx = document.getElementById('locationChart').getContext('2d');
+  if (_locationChart) _locationChart.destroy();
+  const labels = items.map(i => i.location);
+  const values = items.map(i => i.count);
+  _locationChart = new Chart(ctx, {
+    type:'bar',
+    data:{ labels, datasets:[{label:'Updates', data:values, backgroundColor:'#0ea5e9'}] },
+    options:{
+      indexAxis:'y',
+      plugins:{legend:{display:false}},
+      responsive:true,
+      scales:{x:{beginAtZero:true}}
+    }
+  });
+}
+
+function renderTransitionChart(items) {
+  const ctx = document.getElementById('transitionChart').getContext('2d');
+  if (_transitionChart) _transitionChart.destroy();
+  const labels = items.map(i => `${i.from_status} → ${i.to_status}`);
+  const values = items.map(i => i.count);
+  _transitionChart = new Chart(ctx, {
+    type:'line',
+    data:{ labels, datasets:[{label:'Transition frequency', data:values, borderColor:'#7c3aed', backgroundColor:'#c4b5fd', tension:0.25, fill:false}] },
+    options:{ plugins:{legend:{display:false}}, responsive:true, scales:{y:{beginAtZero:true}} }
+  });
+}
+
+function renderListingCountrySummary(items) {
+  const container = document.getElementById('listingCountrySummary');
+  if (!items.length) {
+    container.innerHTML = '<div class="text-xs text-gray-500">No listing country data for the selected period.</div>';
+    return;
+  }
+  container.innerHTML = items.map((item) => `
+    <div class="rounded-xl border border-gray-200 px-3 py-3 bg-gray-50">
+      <div class="text-xs text-gray-500 truncate">${esc(item.country)}</div>
+      <div class="text-lg font-semibold text-green-700">${Number(item.count || 0).toLocaleString()}</div>
+    </div>
+  `).join('');
 }
 
 // ── Users ──────────────────────────────────────────────────────────────────

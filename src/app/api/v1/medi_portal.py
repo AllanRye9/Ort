@@ -327,6 +327,7 @@ _HTML = r"""<!DOCTYPE html>
 
     <!-- ── Analytics section ──────────────────────────────────────────── -->
     <section id="sec-analytics" class="p-6 space-y-6 hidden">
+      <div id="analyticsKpis" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div class="bg-white rounded-2xl shadow p-5">
           <h3 class="font-semibold text-gray-700 mb-3 text-sm">Agriculture by Status</h3>
@@ -336,6 +337,10 @@ _HTML = r"""<!DOCTYPE html>
           <h3 class="font-semibold text-gray-700 mb-3 text-sm">Manufacturing by Status</h3>
           <canvas id="manuChart" height="200"></canvas>
         </div>
+      </div>
+      <div class="bg-white rounded-2xl shadow p-5">
+        <h3 class="font-semibold text-gray-700 mb-3 text-sm">Listings by Country / Region</h3>
+        <canvas id="geoChart" height="120"></canvas>
       </div>
     </section>
 
@@ -687,6 +692,7 @@ let agriImgUrls = [];
 let manuImgUrls = [];
 let agriChartInst = null;
 let manuChartInst = null;
+let geoChartInst = null;
 
 // ── On load ────────────────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
@@ -1192,8 +1198,10 @@ async function deleteManu(id) {
 // ── Analytics ──────────────────────────────────────────────────────────────
 async function loadAnalytics() {
   if (!agriData.length && !manuData.length) await loadPostings();
+  renderAnalyticsKpis();
   renderStatusChart('agriChart', agriData, agriChartInst, c => agriChartInst = c);
   renderStatusChart('manuChart', manuData, manuChartInst, c => manuChartInst = c);
+  renderGeoChart();
 }
 
 function renderStatusChart(canvasId, data, existing, setter) {
@@ -1211,6 +1219,79 @@ function renderStatusChart(canvasId, data, existing, setter) {
     options: { responsive: true, plugins: { legend: { position: 'bottom' } } },
   });
   setter(chart);
+}
+
+function renderAnalyticsKpis() {
+  const totalListings = agriData.length + manuData.length;
+  const availableListings = [...agriData, ...manuData]
+    .filter(item => item.status === 'available')
+    .length;
+  const uniqueCountries = new Set(
+    [...agriData, ...manuData]
+      .map(item => inferCountry(item))
+      .filter(Boolean)
+  ).size;
+  const kpis = [
+    {label:'Total Listings', value:totalListings, color:'text-green-700'},
+    {label:'Available Listings', value:availableListings, color:'text-blue-700'},
+    {label:'Availability Rate', value: totalListings ? `${Math.round((availableListings/totalListings)*100)}%` : '0%', color:'text-purple-700'},
+    {label:'Countries/Regions', value:uniqueCountries, color:'text-orange-700'},
+  ];
+  document.getElementById('analyticsKpis').innerHTML = kpis.map(k => `
+    <div class="bg-white rounded-2xl shadow p-4">
+      <div class="text-xl font-bold ${k.color}">${esc(String(k.value))}</div>
+      <div class="text-xs text-gray-500 mt-1">${k.label}</div>
+    </div>
+  `).join('');
+}
+
+function inferCountry(item) {
+  const explicit = item?.country_of_origin || item?.country;
+  if (explicit) return normalizeCountryName(explicit);
+  const location = item?.location;
+  if (!location) return null;
+  const parts = String(location).split(',').map(p => p.trim()).filter(Boolean);
+  if (!parts.length) return null;
+  return normalizeCountryName(parts[parts.length - 1]);
+}
+
+function normalizeCountryName(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (!normalized) return null;
+  const aliases = {
+    uae: 'United Arab Emirates',
+    'united arab emirates': 'United Arab Emirates',
+    uk: 'United Kingdom',
+    'united kingdom': 'United Kingdom',
+    us: 'United States',
+    usa: 'United States',
+    'united states': 'United States',
+    ug: 'Uganda',
+    uganda: 'Uganda',
+  };
+  if (aliases[normalized]) return aliases[normalized];
+  return normalized.split(/\s+/).map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ');
+}
+
+function renderGeoChart() {
+  const countryCounts = {};
+  [...agriData, ...manuData].forEach(item => {
+    const country = inferCountry(item);
+    if (!country) return;
+    countryCounts[country] = (countryCounts[country] || 0) + 1;
+  });
+  const sorted = Object.entries(countryCounts).sort((a,b) => b[1]-a[1]).slice(0, 10);
+  if (geoChartInst) geoChartInst.destroy();
+  const ctx = document.getElementById('geoChart');
+  if (!ctx) return;
+  geoChartInst = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: sorted.map(([country]) => country),
+      datasets: [{ label: 'Listings', data: sorted.map(([,count]) => count), backgroundColor: '#0ea5e9' }],
+    },
+    options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } },
+  });
 }
 
 // ── Profile ────────────────────────────────────────────────────────────────
