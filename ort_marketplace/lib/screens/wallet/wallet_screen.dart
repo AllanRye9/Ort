@@ -1,3 +1,5 @@
+import 'dart:async' show unawaited;
+
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -47,7 +49,9 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     _loadedQueryPrefill = true;
     if (!_requestedCurrencyRefresh) {
       _requestedCurrencyRefresh = true;
-      ref.read(displayCurrencyProvider.notifier).refreshFromLocation();
+      unawaited(
+        ref.read(displayCurrencyProvider.notifier).refreshFromLocation(),
+      );
     }
     final query = GoRouterState.of(context).uri.queryParameters;
     final amount = query['amount']?.trim();
