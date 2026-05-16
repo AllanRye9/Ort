@@ -85,7 +85,7 @@ def list_conversations(
         q = q.filter(
             (Conversation.initiator_id == user_id) | (Conversation.recipient_id == user_id)
         )
-    return q.offset(skip).limit(limit).all()
+    return q.order_by(Conversation.created_at.desc(), Conversation.id.desc()).offset(skip).limit(limit).all()
 
 
 @conversations_router.get("/{conversation_id}", response_model=ConversationResponse)
@@ -246,6 +246,11 @@ class MessageDeleteRequest(BaseModel):
     sender_id: int
 
 
+class BulkMessageDeleteRequest(BaseModel):
+    sender_id: int
+    message_ids: List[int]
+
+
 class MessageBodyClearRequest(BaseModel):
     sender_id: int
     placeholder: str = "[message body removed]"
@@ -275,6 +280,29 @@ def delete_message(
     obj.is_deleted = True
     db.commit()
     return {"message": "Message deleted"}
+
+
+@router.post("/bulk-delete", status_code=status.HTTP_200_OK)
+def bulk_delete_messages(
+    payload: BulkMessageDeleteRequest,
+    db: Session = Depends(get_db),
+):
+    message_ids = sorted({mid for mid in payload.message_ids if isinstance(mid, int)})
+    if not message_ids:
+        raise HTTPException(status_code=400, detail="Select at least one message")
+    items = (
+        db.query(Message)
+        .filter(Message.id.in_(message_ids), Message.is_deleted.is_(False))
+        .all()
+    )
+    if len(items) != len(message_ids):
+        raise HTTPException(status_code=404, detail="One or more messages were not found")
+    if any(item.sender_id != payload.sender_id for item in items):
+        raise HTTPException(status_code=403, detail="You can only delete your own messages")
+    for item in items:
+        item.is_deleted = True
+    db.commit()
+    return {"message": "Messages deleted", "count": len(items)}
 
 
 @router.patch("/{message_id}/body", response_model=MessageResponse)

@@ -22,7 +22,48 @@ class GeocodeResult {
   final String? displayName;
 
   /// Returns `true` when this result is for a location in Uganda.
-  bool get isUganda => country?.toLowerCase() == 'uganda';
+  bool get isUganda => matchesCountry(country, 'Uganda');
+}
+
+String? normalizeCountryName(String? value) {
+  final cleaned = value?.trim();
+  if (cleaned == null || cleaned.isEmpty) return null;
+  final tokenized = cleaned
+      .toLowerCase()
+      .replaceAll(RegExp(r'[^a-z0-9]+'), ' ')
+      .trim()
+      .replaceAll(RegExp(r'\s+'), ' ');
+  switch (tokenized) {
+    case 'ug':
+    case 'uganda':
+      return 'Uganda';
+    case 'uae':
+    case 'u a e':
+    case 'u a e ':
+    case 'emirates':
+    case 'united arab emirates':
+      return 'United Arab Emirates';
+    case 'uk':
+    case 'united kingdom':
+    case 'great britain':
+    case 'britain':
+      return 'United Kingdom';
+    case 'us':
+    case 'usa':
+    case 'united states':
+    case 'america':
+      return 'United States';
+    default:
+      return cleaned
+          .split(RegExp(r'\s+'))
+          .map((part) =>
+              part.isEmpty ? part : '${part[0].toUpperCase()}${part.substring(1).toLowerCase()}')
+          .join(' ');
+  }
+}
+
+bool matchesCountry(String? value, String expected) {
+  return normalizeCountryName(value) == normalizeCountryName(expected);
 }
 
 /// Thrown when the user has permanently denied location permission.
@@ -128,7 +169,7 @@ class LocationService {
       if (lat == null || lon == null) return null;
 
       final address = first['address'] as Map<String, dynamic>?;
-      final country = address?['country'] as String?;
+      final country = normalizeCountryName(address?['country'] as String?);
       final displayName = first['display_name'] as String?;
 
       return GeocodeResult(
@@ -163,7 +204,7 @@ class LocationService {
       if (rLat == null || rLon == null) return null;
 
       final address = data['address'] as Map<String, dynamic>?;
-      final country = address?['country'] as String?;
+      final country = normalizeCountryName(address?['country'] as String?);
       final displayName = data['display_name'] as String?;
 
       return GeocodeResult(

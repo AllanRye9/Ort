@@ -291,12 +291,12 @@ class _MainShellState extends State<MainShell> {
 
   static const _tabs = [
     ('/home', Icons.home_outlined, Icons.home_rounded, 'Home'),
-    ('/properties', Icons.apartment_outlined, Icons.apartment_rounded, 'Properties'),
-    ('/agriculture', Icons.grass_outlined, Icons.grass_rounded, 'Agriculture'),
+    ('/properties', Icons.apartment_outlined, Icons.apartment_rounded, 'Props'),
+    ('/agriculture', Icons.grass_outlined, Icons.grass_rounded, 'Agri'),
     ('/manufacturing', Icons.precision_manufacturing_outlined,
-        Icons.precision_manufacturing_rounded, 'Manufacturing'),
-    ('/messages', Icons.chat_bubble_outline, Icons.chat_bubble_rounded, 'Messages'),
-    ('/profile', Icons.person_outline_rounded, Icons.person_rounded, 'Profile'),
+        Icons.precision_manufacturing_rounded, 'Prod'),
+    ('/messages', Icons.chat_bubble_outline, Icons.chat_bubble_rounded, 'Msgs'),
+    ('/profile', Icons.person_outline_rounded, Icons.person_rounded, 'Prof'),
   ];
 
   int _currentIndex(BuildContext context) {

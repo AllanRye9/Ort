@@ -4,6 +4,7 @@ import string
 from datetime import datetime as _dt
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import not_
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
@@ -22,6 +23,7 @@ from app.schemas.marketplace_schemas import (
     MfgServiceStatusUpdate,
     OwnerProfileResponse,
 )
+from app.utils.countries import country_equals_clause
 from app.utils.geo import haversine_km
 
 router = APIRouter(prefix="/manufacturing", tags=["manufacturing"])
@@ -107,12 +109,16 @@ def list_products(
     if location:
         q = q.filter(ManufacturingProduct.location.ilike(f"%{location}%"))
     if country:
-        q = q.filter(ManufacturingProduct.country_of_origin.ilike(country))
+        country_clause = country_equals_clause(ManufacturingProduct.country_of_origin, country)
+        if country_clause is not None:
+            q = q.filter(country_clause)
     if exclude_country:
-        q = q.filter(
-            (ManufacturingProduct.country_of_origin == None) |
-            (~ManufacturingProduct.country_of_origin.ilike(exclude_country))
-        )
+        exclude_clause = country_equals_clause(ManufacturingProduct.country_of_origin, exclude_country)
+        if exclude_clause is not None:
+            q = q.filter(
+                (ManufacturingProduct.country_of_origin == None) |
+                (not_(exclude_clause))
+            )
 
     items = q.order_by(ManufacturingProduct.created_at.desc()).offset(skip).limit(limit).all()
 
@@ -258,12 +264,16 @@ def list_services(
     if max_price is not None:
         q = q.filter(ManufacturingService.price <= max_price)
     if country:
-        q = q.filter(ManufacturingService.country.ilike(country))
+        country_clause = country_equals_clause(ManufacturingService.country, country)
+        if country_clause is not None:
+            q = q.filter(country_clause)
     if exclude_country:
-        q = q.filter(
-            (ManufacturingService.country.is_(None)) |
-            (~ManufacturingService.country.ilike(exclude_country))
-        )
+        exclude_clause = country_equals_clause(ManufacturingService.country, exclude_country)
+        if exclude_clause is not None:
+            q = q.filter(
+                (ManufacturingService.country.is_(None)) |
+                (not_(exclude_clause))
+            )
 
     items = q.order_by(ManufacturingService.created_at.desc()).offset(skip).limit(limit).all()
 
@@ -368,5 +378,4 @@ def delete_service(service_id: int, db: Session = Depends(get_db)):
     obj.is_deleted = True
     db.commit()
     return {"message": "Manufacturing service deleted successfully"}
-
 
