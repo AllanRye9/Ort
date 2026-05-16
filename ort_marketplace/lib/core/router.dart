@@ -119,7 +119,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       if (!isAuthenticated && !isAuthRoute) return '/login';
       if (isAuthenticated && isAuthRoute) return '/home';
       if (isAuthenticated && role == 'user' && loc.startsWith('/orders')) {
-        return '/profile';
+        return '/my-rfqs';
       }
       if (isAuthenticated &&
           role != 'user' &&
