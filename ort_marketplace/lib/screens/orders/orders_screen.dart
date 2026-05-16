@@ -7,10 +7,23 @@ import '../../models/models.dart';
 
 final _ordersListProvider =
     FutureProvider.autoDispose<List<OrderModel>>((ref) async {
-  final userId = ref.read(authProvider).userId;
-  final data = await ref
-      .read(apiServiceProvider)
-      .getOrders(buyerUserId: userId, limit: 50);
+  final auth = ref.read(authProvider);
+  final userId = auth.userId;
+  if (userId == null) return const <OrderModel>[];
+
+  final role = auth.role ?? 'user';
+  final api = ref.read(apiServiceProvider);
+
+  List<dynamic> data;
+  if (role == 'user') {
+    data = await api.getOrders(buyerUserId: userId, limit: 50);
+  } else {
+    final tenant = await api.getTenantByOwner(userId);
+    final tenantId = tenant?['id'] as int?;
+    if (tenantId == null) return const <OrderModel>[];
+    data = await api.getOrders(sellerTenantId: tenantId, limit: 50);
+  }
+
   return data
       .map((e) => OrderModel.fromJson(e as Map<String, dynamic>))
       .toList();
@@ -22,14 +35,26 @@ class OrdersScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(_ordersListProvider);
+    final role = ref.watch(authProvider).role ?? 'user';
+    final isBusinessRole =
+        role == 'agent' || role == 'company' || role == 'organization';
+
     return Scaffold(
-      appBar: AppBar(title: const Text('My Orders')),
+      appBar: AppBar(
+        title: Text(isBusinessRole ? 'Business Orders' : 'My Orders'),
+      ),
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Error: $e')),
         data: (items) {
           if (items.isEmpty) {
-            return const Center(child: Text('No orders yet.'));
+            return Center(
+              child: Text(
+                isBusinessRole
+                    ? 'No business orders yet.'
+                    : 'No orders yet.',
+              ),
+            );
           }
           return RefreshIndicator(
             onRefresh: () async => ref.invalidate(_ordersListProvider),

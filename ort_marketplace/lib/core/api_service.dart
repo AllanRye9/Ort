@@ -485,8 +485,14 @@ class ApiService {
 
   // ─── Reviews ──────────────────────────────────────────────────────────────
 
-  Future<List<dynamic>> getReviews({int? tenantId, int? propertyId, int? agentId}) async {
+  Future<List<dynamic>> getReviews({
+    int? reviewerId,
+    int? tenantId,
+    int? propertyId,
+    int? agentId,
+  }) async {
     final res = await _dio.get('/reviews/', queryParameters: {
+      if (reviewerId != null) 'reviewer_id': reviewerId,
       if (tenantId != null) 'tenant_id': tenantId,
       if (propertyId != null) 'property_id': propertyId,
       if (agentId != null) 'agent_id': agentId,

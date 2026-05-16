@@ -8,23 +8,8 @@ import '../../core/api_service.dart';
 import '../../core/app_preferences.dart';
 import '../../models/models.dart';
 
-String _currencyForCountry(String country) {
-  const exact = <String, String>{
-    'uganda': 'UGX',
-    'kenya': 'KES',
-    'tanzania': 'TZS',
-    'rwanda': 'RWF',
-    'united arab emirates': 'AED',
-    'uae': 'AED',
-    'united kingdom': 'GBP',
-    'uk': 'GBP',
-  };
-  final key = country.trim().toLowerCase();
-  return exact[key] ?? 'USD';
-}
-
 final _walletProvider = FutureProvider.autoDispose<WalletModel>((ref) async {
-  final currency = _currencyForCountry(ref.watch(userCountryProvider));
+  final currency = ref.watch(displayCurrencyProvider);
   final data = await ref.read(apiServiceProvider).getMyWallet(currency: currency);
   return WalletModel.fromJson(data);
 });
@@ -49,6 +34,7 @@ class WalletScreen extends ConsumerStatefulWidget {
 class _WalletScreenState extends ConsumerState<WalletScreen> {
   bool _topping = false;
   bool _loadedQueryPrefill = false;
+  bool _requestedCurrencyRefresh = false;
   final _collectionAmountCtrl = TextEditingController();
   final _collectionPhoneCtrl = TextEditingController();
   final _collectionLabelCtrl = TextEditingController();
@@ -59,6 +45,10 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     super.didChangeDependencies();
     if (_loadedQueryPrefill) return;
     _loadedQueryPrefill = true;
+    if (!_requestedCurrencyRefresh) {
+      _requestedCurrencyRefresh = true;
+      ref.read(displayCurrencyProvider.notifier).refreshFromLocation();
+    }
     final query = GoRouterState.of(context).uri.queryParameters;
     final amount = query['amount']?.trim();
     final phone = query['phone']?.trim();
@@ -86,7 +76,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
     super.dispose();
   }
 
-  String _walletCurrency() => _currencyForCountry(ref.read(userCountryProvider));
+  String _walletCurrency() => ref.read(displayCurrencyProvider);
 
   int get _collectionAmount => int.tryParse(_collectionAmountCtrl.text.trim()) ?? 0;
 
@@ -536,8 +526,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                         await _doTopup(
                           amount: amt,
                           method: selectedMethod!,
-                          currency:
-                              _currencyForCountry(ref.read(userCountryProvider)),
+                          currency: ref.read(displayCurrencyProvider),
                           reference: reference,
                         );
                       },
@@ -615,8 +604,15 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
           ),
         ],
       ),
-      body: Column(
-        children: [
+      body: RefreshIndicator(
+        onRefresh: () async {
+          ref.invalidate(_walletProvider);
+          ref.invalidate(_txProvider);
+        },
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.only(bottom: 96),
+          children: [
           // ── Balance card ─────────────────────────────────────────────────
           Container(
             margin: const EdgeInsets.all(16),
@@ -905,49 +901,59 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                   style: Theme.of(context).textTheme.titleSmall),
             ),
           ),
-          Expanded(
-            child: txAsync.when(
-              data: (txList) => txList.isEmpty
-                  ? const Center(child: Text('No transactions yet.'))
-                  : ListView.builder(
-                      itemCount: txList.length,
-                      itemBuilder: (_, i) {
-                        final tx = txList[i];
-                        final isTopup = tx.transactionType == 'topup';
-                        return ListTile(
-                          leading: CircleAvatar(
-                            backgroundColor: isTopup
-                                ? Colors.green.withValues(alpha: 0.15)
-                                : cs.errorContainer,
-                            child: Icon(
-                              isTopup
-                                  ? Icons.add_circle_outline
-                                  : Icons.remove_circle_outline,
-                              color: isTopup ? Colors.green : cs.error,
-                            ),
+          txAsync.when(
+            data: (txList) => txList.isEmpty
+                ? const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24),
+                    child: Center(child: Text('No transactions yet.')),
+                  )
+                : ListView.builder(
+                    itemCount: txList.length,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemBuilder: (_, i) {
+                      final tx = txList[i];
+                      final isTopup = tx.transactionType == 'topup';
+                      return ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: isTopup
+                              ? Colors.green.withValues(alpha: 0.15)
+                              : cs.errorContainer,
+                          child: Icon(
+                            isTopup
+                                ? Icons.add_circle_outline
+                                : Icons.remove_circle_outline,
+                            color: isTopup ? Colors.green : cs.error,
                           ),
-                          title: Text(
-                            tx.description ?? tx.transactionType.toUpperCase(),
+                        ),
+                        title: Text(
+                          tx.description ?? tx.transactionType.toUpperCase(),
+                        ),
+                        subtitle: Text(
+                          _formatDate(tx.createdAt),
+                          style: const TextStyle(fontSize: 11),
+                        ),
+                        trailing: Text(
+                          '${isTopup ? '+' : '-'}${tx.amount} pts',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: isTopup ? Colors.green : cs.error,
                           ),
-                          subtitle: Text(
-                            _formatDate(tx.createdAt),
-                            style: const TextStyle(fontSize: 11),
-                          ),
-                          trailing: Text(
-                            '${isTopup ? '+' : '-'}${tx.amount} pts',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: isTopup ? Colors.green : cs.error,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(child: Text('Error: $e')),
+                        ),
+                      );
+                    },
+                  ),
+            loading: () => const Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: Center(child: CircularProgressIndicator()),
+            ),
+            error: (e, _) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              child: Center(child: Text('Error: $e')),
             ),
           ),
         ],
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _topping ? null : _showTopupDialog,

@@ -37,6 +37,8 @@ import '../screens/search/distance_calculator_screen.dart';
 import '../screens/wallet/wallet_screen.dart';
 import '../screens/tracking/product_tracking_screen.dart';
 import '../screens/ai/ai_assistant_screen.dart';
+import '../screens/rfq/my_rfqs_screen.dart';
+import '../screens/reviews/my_reviews_screen.dart';
 
 // ─── Auth-change listenable ──────────────────────────────────────────────────
 //
@@ -106,6 +108,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isAuthenticated = authState.isAuthenticated;
       final loc = state.matchedLocation;
       final isAuthRoute = loc == '/login' || loc == '/register';
+      final role = authState.role ?? 'user';
 
       // Redirect away from the loading splash once initialized.
       if (loc == '/') {
@@ -115,6 +118,14 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       if (!isAuthenticated && !isAuthRoute) return '/login';
       if (isAuthenticated && isAuthRoute) return '/home';
+      if (isAuthenticated && role == 'user' && loc.startsWith('/orders')) {
+        return '/profile';
+      }
+      if (isAuthenticated &&
+          role != 'user' &&
+          loc.startsWith('/my-rfqs')) {
+        return '/profile';
+      }
       return null;
     },
     routes: [
@@ -136,6 +147,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
       GoRoute(path: '/saved', builder: (_, __) => const SavedScreen()),
       GoRoute(path: '/wallet', builder: (_, __) => const WalletScreen()),
+      GoRoute(path: '/my-rfqs', builder: (_, __) => const MyRfqsScreen()),
+      GoRoute(path: '/my-reviews', builder: (_, __) => const MyReviewsScreen()),
       GoRoute(path: '/my-listings', builder: (_, __) => const MyListingsScreen()),
       GoRoute(path: '/my-clients', builder: (_, __) => const MyClientsScreen()),
       GoRoute(path: '/analytics', builder: (_, __) => const AnalyticsScreen()),

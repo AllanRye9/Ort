@@ -29,6 +29,7 @@ class OrtMarketplaceApp extends ConsumerWidget {
     final router = ref.watch(routerProvider);
     final themeChoice = ref.watch(themeProvider);
     final locale = ref.watch(localeProvider);
+    ref.watch(displayCurrencyProvider);
 
     final themeData = switch (themeChoice) {
       AppThemeChoice.white => AppTheme.lightTheme,
