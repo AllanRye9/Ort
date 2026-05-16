@@ -210,11 +210,14 @@ platform — e.g. Railway) before starting the application.
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | No | `60` | JWT token lifetime in minutes. |
 | `CORS_ORIGINS` | No | `*` | Comma-separated list of allowed CORS origins (e.g. `https://your-app.com,https://admin.your-app.com`).  Defaults to `*` (all origins) if not set. |
 | `PORT` | No | `8008` | Port the server binds to.  Set automatically by Railway; the `dockerfile` CMD reads `${PORT:-8008}`. |
-| `MTN_COLLECTION_USER_ID` | Yes (for MTN top-up) | — | MTN MoMo Collection API user ID. |
-| `MTN_COLLECTION_API_KEY` | Yes (for MTN top-up) | — | MTN MoMo Collection API key for the API user. |
-| `MTN_COLLECTION_SUBSCRIPTION_KEY` | Yes (for MTN top-up) | — | MTN Ocp-Apim subscription key for Collection product. |
+| `MTN_COLLECTION_USER_ID` | No | — | Pre-provisioned MTN MoMo Collection API user ID. If omitted, the backend can provision a temporary API user per MTN top-up request. |
+| `MTN_COLLECTION_API_KEY` | No | — | Pre-provisioned MTN MoMo Collection API key paired with `MTN_COLLECTION_USER_ID`. |
+| `MTN_COLLECTION_PRIMARY_SUBSCRIPTION_KEY` | Yes (for MTN top-up) | — | Primary MTN Ocp-Apim subscription key for the Collection product. Used first for API user provisioning, token generation, and request-to-pay calls. |
+| `MTN_COLLECTION_SECONDARY_SUBSCRIPTION_KEY` | No | — | Secondary MTN Ocp-Apim subscription key for Collection. Used as the fallback key if the primary key is unavailable or rotated. |
+| `MTN_COLLECTION_SUBSCRIPTION_KEY` | No | — | Legacy single-key fallback. Prefer the primary/secondary variables above for new deployments. |
 | `MTN_COLLECTION_TARGET_ENV` | No | `live` | MTN target environment (`live` or provider-specific value). |
 | `MTN_COLLECTION_BASE_URL` | No | `https://momodeveloper.mtn.com` | MTN Collection base URL. Override for production host as needed. |
+| `MTN_COLLECTION_CALLBACK_HOST` | No | — | Public callback host sent to the MTN `v1_0/apiuser` provisioning endpoint (for example `merchant.example.com`). |
 | `MTN_COLLECTION_CALLBACK_URL` | No | — | Public callback URL for asynchronous payment status updates. |
 
 ### Flutter / Dart-define variables
@@ -236,15 +239,24 @@ Wallet top-up now supports live MTN Mobile Money request-to-pay calls via `/api/
 
 Required setup:
 
-1. Create/enable an MTN MoMo Collection application.
-2. Set the MTN variables above in your environment.
-3. Send top-up requests with:
+1. Create or enable an MTN MoMo Collection application and capture its primary and secondary subscription keys.
+2. Set `MTN_COLLECTION_PRIMARY_SUBSCRIPTION_KEY` and, if available, `MTN_COLLECTION_SECONDARY_SUBSCRIPTION_KEY` in your environment.
+3. Either:
+   - set `MTN_COLLECTION_USER_ID` and `MTN_COLLECTION_API_KEY` if you already provisioned an MTN API user, or
+   - set `MTN_COLLECTION_CALLBACK_HOST` (or `MTN_COLLECTION_CALLBACK_URL`, from which the host is derived) so the backend can create an API user and API key automatically.
+4. For each MTN top-up, the backend:
+   - creates an API user with `POST /v1_0/apiuser` when no API user credentials are already configured,
+   - generates an API key with `POST /v1_0/apiuser/{X-Reference-Id}/apikey`,
+   - obtains a bearer token from `POST /collection/token/` using HTTP Basic auth (`username = X-Reference-Id` or configured API user, `password = generated API key`),
+   - submits `POST /collection/v1_0/requesttopay` with `amount`, `currency`, `externalId`, and `payer` details.
+5. Send top-up requests with:
    - `amount`: number of points to credit
    - `payment_method`: `mtn`
    - `reference`: payer MSISDN
 
 Notes:
 - Base wallet conversion is **1 point = 1,000 UGX**.
+- The backend automatically retries MTN auth-sensitive calls with the secondary subscription key when the primary key is rejected.
 - Wallet responses include:
   - `ugx_value` (points converted to UGX),
   - `display_currency`,
