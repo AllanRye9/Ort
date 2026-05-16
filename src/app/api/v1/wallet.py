@@ -177,10 +177,12 @@ def _get_mtn_callback_host() -> str | None:
     callback_url = os.getenv("MTN_COLLECTION_CALLBACK_URL")
     if not callback_url:
         return None
+    if "://" not in callback_url:
+        return callback_url
     parsed = urlparse(callback_url)
     if parsed.hostname:
         return parsed.hostname
-    return callback_url
+    return None
 
 
 def _post_mtn_request(
@@ -208,7 +210,7 @@ def _post_mtn_request(
         ):
             _logger.warning(
                 (
-                    "MTN request to %s failed with subscription key %s "
+                    "MTN request to %s failed with subscription key #%s "
                     "(status=%s); retrying with fallback key"
                 ),
                 url,
@@ -289,7 +291,14 @@ def _provision_mtn_api_user(
             detail="Failed to generate MTN Mobile Money API key.",
         )
 
-    api_key = (key_res.json() or {}).get("apiKey")
+    try:
+        key_data = key_res.json()
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="MTN API key generation returned invalid JSON.",
+        ) from exc
+    api_key = key_data.get("apiKey") if isinstance(key_data, dict) else None
     if not api_key:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
