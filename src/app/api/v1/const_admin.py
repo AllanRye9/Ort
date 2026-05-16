@@ -550,6 +550,8 @@ _HTML = r"""<!DOCTYPE html>
 
 <script>
 const API = '""" + _API_BASE + r"""';
+const DASHBOARD_DAYS = 30;
+const DASHBOARD_TOP_N_ITEMS = 8;
 let token = localStorage.getItem('ort_admin_token');
 let currentSection = 'dashboard';
 let _usersOffset = 0, _contentOffset = 0, _ticketsOffset = 0, _logsOffset = 0;
@@ -729,19 +731,19 @@ async function apiFetch(path, opts={}) {
 // ── Dashboard ──────────────────────────────────────────────────────────────
 async function loadDashboard() {
   try {
-    const [stats, report, locationAnalytics] = await Promise.all([
+    const [stats, report, locationAnalyticsData] = await Promise.all([
       apiFetch('/admin/dashboard/stats'),
-      apiFetch('/admin/reports/overview?days=30'),
-      apiFetch('/admin/dashboard/location-analytics?days=30&top_n=8')
+      apiFetch(`/admin/reports/overview?days=${DASHBOARD_DAYS}`),
+      apiFetch(`/admin/dashboard/location-analytics?days=${DASHBOARD_DAYS}&top_n=${DASHBOARD_TOP_N_ITEMS}`)
     ]);
     renderStats(stats);
     renderRoleChart(stats.users_by_role || {});
     renderOrderChart(report.orders_by_status || {});
     renderActivityChart(report);
-    renderCountryChart(locationAnalytics.top_tracking_countries || []);
-    renderLocationChart(locationAnalytics.top_tracking_locations || []);
-    renderTransitionChart(locationAnalytics.tracking_status_transitions || []);
-    renderListingCountrySummary(locationAnalytics.top_listing_countries || []);
+    renderCountryChart(locationAnalyticsData.top_tracking_countries || []);
+    renderLocationChart(locationAnalyticsData.top_tracking_locations || []);
+    renderTransitionChart(locationAnalyticsData.tracking_status_transitions || []);
+    renderListingCountrySummary(locationAnalyticsData.top_listing_countries || []);
     document.getElementById('lastRefresh').textContent = 'Refreshed ' + new Date().toLocaleTimeString();
   } catch(e) { showToast('Failed to load dashboard. Please try again.', 'red'); }
 }
@@ -1166,7 +1168,7 @@ async function sendBroadcast() {
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 function esc(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
 function fmtDate(s) {

@@ -141,7 +141,7 @@ def get_dashboard_stats(
     }
 
 
-def _coalesce_location_country(raw: Optional[str]) -> Optional[str]:
+def _extract_country_from_location(raw: Optional[str]) -> Optional[str]:
     if not raw:
         return None
     parts = [part.strip() for part in raw.split(",") if part.strip()]
@@ -162,6 +162,7 @@ def get_dashboard_location_analytics(
 
     tracking_events = (
         db.query(
+            ProductTracking.id,
             ProductTracking.order_id,
             ProductTracking.listing_type,
             ProductTracking.listing_id,
@@ -188,7 +189,7 @@ def get_dashboard_location_analytics(
         location = (event.location or "").strip()
         if location:
             location_counts[location] += 1
-            country = _coalesce_location_country(location)
+            country = _extract_country_from_location(location)
             if country:
                 country_counts[country] += 1
 
@@ -200,7 +201,7 @@ def get_dashboard_location_analytics(
         elif event.listing_type and event.listing_id is not None:
             resource_key = f"{event.listing_type}:{event.listing_id}"
         else:
-            resource_key = f"event:{event.created_at.isoformat()}:{status}"
+            resource_key = f"event:{event.id}"
         previous = last_status_per_resource.get(resource_key)
         if previous and previous != status:
             transition_counts[(previous, status)] += 1
@@ -225,7 +226,7 @@ def get_dashboard_location_analytics(
 
     listing_country_counts: dict[str, int] = defaultdict(int)
     for (location,) in agri_locations:
-        country = _coalesce_location_country(location)
+        country = _extract_country_from_location(location)
         if country:
             listing_country_counts[country] += 1
     for (country_of_origin,) in manufacturing_countries:
