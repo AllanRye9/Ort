@@ -242,7 +242,7 @@ def admin_login(payload: AdminLoginRequest, db: Session = Depends(get_db)):
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Admin credentials are not configured on this server.",
         )
-    login_identifier = payload.username.strip().lower()
+    login_identifier = _normalize_email(payload.username)
     email_match = admin_user.email.lower() == login_identifier
     uid_match = (admin_user.user_uid or "").lower() == login_identifier
     if not (email_match or uid_match):
@@ -285,10 +285,11 @@ def admin_setup(payload: AdminSetupRequest, db: Session = Depends(get_db)):
             status_code=status.HTTP_409_CONFLICT,
             detail="An admin account already exists.",
         )
+    normalized_username = payload.username.strip().lower()
     admin_email = (
-        _normalize_email(payload.username)
-        if "@" in payload.username
-        else f"{payload.username.strip().lower()}@ort.admin"
+        normalized_username
+        if "@" in normalized_username
+        else f"{normalized_username}@ort.admin"
     )
     if db.query(User).filter(func.lower(User.email) == admin_email).first():
         raise HTTPException(

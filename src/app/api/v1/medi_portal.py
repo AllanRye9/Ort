@@ -1198,7 +1198,7 @@ async function deleteManu(id) {
 // ── Analytics ──────────────────────────────────────────────────────────────
 async function loadAnalytics() {
   if (!agriData.length && !manuData.length) await loadPostings();
-  renderAnalyticsKpis();
+  renderAnalyticsKPIs();
   renderStatusChart('agriChart', agriData, agriChartInst, c => agriChartInst = c);
   renderStatusChart('manuChart', manuData, manuChartInst, c => manuChartInst = c);
   renderGeoChart();
@@ -1221,16 +1221,17 @@ function renderStatusChart(canvasId, data, existing, setter) {
   setter(chart);
 }
 
-function renderAnalyticsKpis() {
-  const totalListings = agriData.length + manuData.length;
-  const availableListings = [...agriData, ...manuData]
-    .filter(item => item.status === 'available')
-    .length;
-  const uniqueCountries = new Set(
-    [...agriData, ...manuData]
-      .map(item => inferCountry(item))
-      .filter(Boolean)
-  ).size;
+function renderAnalyticsKPIs() {
+  const allListings = [...agriData, ...manuData];
+  const totalListings = allListings.length;
+  const summary = allListings.reduce((acc, item) => {
+    if (item.status === 'available') acc.available += 1;
+    const country = inferCountry(item);
+    if (country) acc.countries.add(country);
+    return acc;
+  }, { available: 0, countries: new Set() });
+  const availableListings = summary.available;
+  const uniqueCountries = summary.countries.size;
   const kpis = [
     {label:'Total Listings', value:totalListings, color:'text-green-700'},
     {label:'Available Listings', value:availableListings, color:'text-blue-700'},
@@ -1246,31 +1247,14 @@ function renderAnalyticsKpis() {
 }
 
 function inferCountry(item) {
+  // Keep country parsing aligned with backend location-country extraction.
   const explicit = item?.country_of_origin || item?.country;
-  if (explicit) return normalizeCountryName(explicit);
+  if (explicit) return String(explicit).trim();
   const location = item?.location;
   if (!location) return null;
   const parts = String(location).split(',').map(p => p.trim()).filter(Boolean);
   if (!parts.length) return null;
-  return normalizeCountryName(parts[parts.length - 1]);
-}
-
-function normalizeCountryName(value) {
-  const normalized = String(value || '').trim().toLowerCase();
-  if (!normalized) return null;
-  const aliases = {
-    uae: 'United Arab Emirates',
-    'united arab emirates': 'United Arab Emirates',
-    uk: 'United Kingdom',
-    'united kingdom': 'United Kingdom',
-    us: 'United States',
-    usa: 'United States',
-    'united states': 'United States',
-    ug: 'Uganda',
-    uganda: 'Uganda',
-  };
-  if (aliases[normalized]) return aliases[normalized];
-  return normalized.split(/\s+/).map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ');
+  return parts[parts.length - 1];
 }
 
 function renderGeoChart() {
@@ -1341,7 +1325,7 @@ function statusColor(s) {
 }
 
 function esc(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
 function showToast(msg, isError=false) {
