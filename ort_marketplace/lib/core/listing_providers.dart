@@ -92,12 +92,7 @@ String currencyCodeForCountry(String? country) {
   if (matchesCountry(country, 'United Arab Emirates')) {
     return 'AED';
   }
-  switch (normalizeCountryName(country)?.toLowerCase()) {
-    case 'uganda':
-      return 'UGX';
-    default:
-      return 'USD';
-  }
+  return 'USD';
 }
 
 /// Returns the currency symbol / prefix for the given country.
@@ -108,12 +103,7 @@ String currencyPrefixForCountry(String? country) {
   if (matchesCountry(country, 'United Arab Emirates')) {
     return 'AED ';
   }
-  switch (normalizeCountryName(country)?.toLowerCase()) {
-    case 'uganda':
-      return 'UGX ';
-    default:
-      return '\$';
-  }
+  return '\$';
 }
 
 /// Like [formatCurrency] but respects the current [MarketplaceMode].
