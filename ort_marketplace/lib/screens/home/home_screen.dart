@@ -205,7 +205,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             if (!mounted) return;
             final modeNotifier = ref.read(marketplaceModeProvider.notifier);
             await modeNotifier.waitForLoad();
-            if (!mounted || modeNotifier.everSelected) return;
+            if (!mounted) return;
+            if (modeNotifier.everSelected) return;
             final autoMode =
                 currencyCodeForCountry(country) == 'UGX'
                     ? MarketplaceMode.local
