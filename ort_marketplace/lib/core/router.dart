@@ -289,56 +289,12 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   DateTime? _lastBackPress;
 
-  // ── Back/forward history ─────────────────────────────────────────────────
-  final List<String> _historyStack = [];
-  final List<String> _forwardStack = [];
-  String _prevLocation = '';
-  bool _didGoBack = false;
-  bool _didGoForward = false;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final loc = GoRouterState.of(context).matchedLocation;
-    if (loc != _prevLocation && _prevLocation.isNotEmpty) {
-      // A natural forward navigation pushes previous location to history and
-      // clears the forward stack; back/forward button presses skip this.
-      if (!_didGoBack && !_didGoForward) {
-        setState(() {
-          _historyStack.add(_prevLocation);
-          _forwardStack.clear();
-        });
-      }
-      _didGoBack = false;
-      _didGoForward = false;
-    }
-    _prevLocation = loc;
-  }
-
-  void _goBack(BuildContext context) {
-    if (_historyStack.isEmpty) return;
-    final current = GoRouterState.of(context).matchedLocation;
-    final target = _historyStack.removeLast();
-    setState(() {
-      _didGoBack = true;
-      _forwardStack.add(current);
-    });
-    context.go(target);
-  }
-
-  void _goForward(BuildContext context) {
-    if (_forwardStack.isEmpty) return;
-    final target = _forwardStack.removeLast();
-    setState(() => _didGoForward = true);
-    context.go(target);
-  }
-
   static const _tabs = [
     ('/home', Icons.home_outlined, Icons.home_rounded, 'Home'),
     ('/properties', Icons.apartment_outlined, Icons.apartment_rounded, 'Properties'),
-    ('/agriculture', Icons.grass_outlined, Icons.grass_rounded, 'Agri'),
+    ('/agriculture', Icons.grass_outlined, Icons.grass_rounded, 'Agriculture'),
     ('/manufacturing', Icons.precision_manufacturing_outlined,
-        Icons.precision_manufacturing_rounded, 'Mfg'),
+        Icons.precision_manufacturing_rounded, 'Manufacturing'),
     ('/messages', Icons.chat_bubble_outline, Icons.chat_bubble_rounded, 'Messages'),
     ('/profile', Icons.person_outline_rounded, Icons.person_rounded, 'Profile'),
   ];
@@ -359,12 +315,7 @@ class _MainShellState extends State<MainShell> {
       router.pop();
       return false;
     }
-    // If we have custom history from tab navigation (context.go), go back.
-    if (_historyStack.isNotEmpty) {
-      _goBack(context);
-      return false;
-    }
-    // On the root/home level with no history: require a second tap within
+    // On the root/home level: require a second tap within
     // 2 seconds to exit.
     final now = DateTime.now();
     if (_lastBackPress == null ||
@@ -391,8 +342,6 @@ class _MainShellState extends State<MainShell> {
     // ── Wide layout: NavigationRail on the left ──────────────────────────────
     if (isWide) {
       final isExtended = width >= 900;
-      final canGoBack = _historyStack.isNotEmpty;
-      final canGoForward = _forwardStack.isNotEmpty;
       return Scaffold(
         body: Row(
           children: [
@@ -426,30 +375,13 @@ class _MainShellState extends State<MainShell> {
                   .toList(),
             ),
             const VerticalDivider(width: 1, thickness: 1),
-            Expanded(
-              child: Column(
-                children: [
-                  // ── Back / forward toolbar ──────────────────────────────
-                  _NavHistoryBar(
-                    canGoBack: canGoBack,
-                    canGoForward: canGoForward,
-                    onBack: () => _goBack(context),
-                    onForward: () => _goForward(context),
-                    borderSide: _NavHistoryBorderSide.bottom,
-                  ),
-                  Expanded(child: widget.child),
-                ],
-              ),
-            ),
+            Expanded(child: widget.child),
           ],
         ),
       );
     }
 
     // ── Narrow layout: BottomNavigationBar ───────────────────────────────────
-    final canGoBack = _historyStack.isNotEmpty;
-    final canGoForward = _forwardStack.isNotEmpty;
-
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) async {
@@ -463,107 +395,32 @@ class _MainShellState extends State<MainShell> {
       },
       child: Scaffold(
         body: widget.child,
-        bottomNavigationBar: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // ── Animated back/forward bar (only when history exists) ────
-            AnimatedSize(
-              duration: const Duration(milliseconds: 220),
-              curve: Curves.easeInOut,
-              child: (canGoBack || canGoForward)
-                  ? _NavHistoryBar(
-                      canGoBack: canGoBack,
-                      canGoForward: canGoForward,
-                      onBack: () => _goBack(context),
-                      onForward: () => _goForward(context),
-                      borderSide: _NavHistoryBorderSide.top,
-                      dense: true,
-                    )
-                  : const SizedBox.shrink(),
+        bottomNavigationBar: NavigationBarTheme(
+          data: NavigationBarThemeData(
+            height: 74,
+            labelTextStyle: WidgetStateProperty.resolveWith<TextStyle?>(
+              (_) => const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
             ),
-            NavigationBar(
-              selectedIndex: index,
-              onDestinationSelected: (i) => context.go(_tabs[i].$1),
-              destinations: _tabs
-                  .map(
-                    (t) => NavigationDestination(
-                      icon: Icon(t.$2),
-                      selectedIcon: Icon(t.$3),
-                      label: t.$4,
+          ),
+          child: NavigationBar(
+            selectedIndex: index,
+            onDestinationSelected: (i) => context.go(_tabs[i].$1),
+            destinations: _tabs
+                .map(
+                  (t) => NavigationDestination(
+                    icon: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 2),
+                      child: Icon(t.$2),
                     ),
-                  )
-                  .toList(),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ─── Back / forward history bar ──────────────────────────────────────────────
-
-enum _NavHistoryBorderSide { top, bottom }
-
-class _NavHistoryBar extends StatelessWidget {
-  const _NavHistoryBar({
-    required this.canGoBack,
-    required this.canGoForward,
-    required this.onBack,
-    required this.onForward,
-    this.borderSide = _NavHistoryBorderSide.bottom,
-    this.dense = false,
-  });
-
-  final bool canGoBack;
-  final bool canGoForward;
-  final VoidCallback onBack;
-  final VoidCallback onForward;
-  final _NavHistoryBorderSide borderSide;
-  final bool dense;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    final border = BorderSide(color: theme.dividerColor, width: 0.5);
-
-    return Material(
-      color: cs.surface,
-      elevation: 0,
-      child: Container(
-        decoration: BoxDecoration(
-          border: borderSide == _NavHistoryBorderSide.top
-              ? Border(top: border)
-              : Border(bottom: border),
-        ),
-        padding: EdgeInsets.symmetric(
-          horizontal: 4,
-          vertical: dense ? 0 : 2,
-        ),
-        child: Row(
-          children: [
-            AnimatedOpacity(
-              opacity: canGoBack ? 1.0 : 0.35,
-              duration: const Duration(milliseconds: 180),
-              child: IconButton(
-                icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 16),
-                onPressed: canGoBack ? onBack : null,
-                tooltip: 'Back',
-                visualDensity: VisualDensity.compact,
-              ),
-            ),
-            AnimatedOpacity(
-              opacity: canGoForward ? 1.0 : 0.35,
-              duration: const Duration(milliseconds: 180),
-              child: IconButton(
-                icon: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
-                onPressed: canGoForward ? onForward : null,
-                tooltip: 'Forward',
-                visualDensity: VisualDensity.compact,
-              ),
-            ),
-          ],
+                    selectedIcon: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 2),
+                      child: Icon(t.$3),
+                    ),
+                    label: t.$4,
+                  ),
+                )
+                .toList(),
+          ),
         ),
       ),
     );

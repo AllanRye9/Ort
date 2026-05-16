@@ -339,6 +339,12 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
         subject: 'Re: ${p.title}',
         propertyId: p.id,
       );
+      await api.sendMessage({
+        'conversation_id': convId,
+        'sender_id': userId,
+        'body': 'Contact request about "${p.title}" at ${p.city ?? p.address}.',
+        'message_type': 'text',
+      });
       if (mounted) context.push('/messages/$convId');
     } catch (e) {
       if (mounted) {

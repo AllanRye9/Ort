@@ -118,6 +118,12 @@ class _AgricultureDetailScreenState extends ConsumerState<AgricultureDetailScree
         recipientId: recipientId,
         subject: 'Re: ${a.title}',
       );
+      await api.sendMessage({
+        'conversation_id': convId,
+        'sender_id': userId,
+        'body': 'Contact request about "${a.title}"${a.location != null ? ' at ${a.location}' : ''}.',
+        'message_type': 'text',
+      });
       if (mounted) context.push('/messages/$convId');
     } catch (e) {
       if (mounted) {

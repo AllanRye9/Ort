@@ -4,14 +4,32 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 
 from app.database.database import get_db
-from app.models.models import Property
-from app.models.marketplace_models import RFQ, RFQResponse as RFQResponseModel
+from app.models.models import Property, User
+from app.models.marketplace_models import (
+    RFQ,
+    RFQResponse as RFQResponseModel,
+    Tenant,
+    Conversation,
+    Message,
+    Notification,
+)
 from app.schemas.marketplace_schemas import (
     RFQCreate, RFQUpdate, RFQResponse,
     RFQResponseCreate, RFQResponseResponse,
 )
 
 router = APIRouter(prefix="/rfq", tags=["rfq"])
+
+
+def _display_name(user: Optional[User], fallback_id: Optional[int]) -> str:
+    if user is None:
+        return f"User #{fallback_id}" if fallback_id is not None else "A buyer"
+    full_name = f"{(user.first_name or '').strip()} {(user.last_name or '').strip()}".strip()
+    if full_name:
+        return full_name
+    if user.email:
+        return user.email
+    return f"User #{user.id}"
 
 
 @router.get("/", response_model=List[RFQResponse])
@@ -51,8 +69,79 @@ def create_rfq(payload: RFQCreate, db: Session = Depends(get_db)):
             raise HTTPException(status_code=400, detail="Bidding is disabled for this listing")
     obj = RFQ(**payload.model_dump())
     db.add(obj)
+    db.flush()
+
+    seller_owner_id = None
+    if payload.seller_tenant_id is not None:
+        tenant = (
+            db.query(Tenant)
+            .filter(Tenant.id == payload.seller_tenant_id)
+            .first()
+        )
+        seller_owner_id = tenant.owner_user_id if tenant else None
+
+    buyer = None
+    if payload.buyer_id is not None:
+        buyer = db.query(User).filter(User.id == payload.buyer_id).first()
+    buyer_label = _display_name(buyer, payload.buyer_id)
+
+    if seller_owner_id:
+        db.add(
+            Notification(
+                user_id=seller_owner_id,
+                title="New Quote Request",
+                body=f"{buyer_label} requested a quote: {payload.title}",
+                notification_type="rfq",
+                reference_id=obj.id,
+                reference_type="rfq",
+            )
+        )
+        conversation = (
+            db.query(Conversation)
+            .filter(
+                Conversation.initiator_id == payload.buyer_id,
+                Conversation.recipient_id == seller_owner_id,
+                Conversation.subject == payload.title,
+            )
+            .first()
+        )
+        if conversation is None:
+            conversation = Conversation(
+                initiator_id=payload.buyer_id,
+                recipient_id=seller_owner_id,
+                subject=payload.title,
+                property_id=payload.property_id,
+            )
+            db.add(conversation)
+            db.flush()
+        db.add(
+            Message(
+                conversation_id=conversation.id,
+                sender_id=payload.buyer_id,
+                body=(
+                    f"Quote request from {buyer_label}: {payload.title}. "
+                    f"Details: {payload.description or 'No additional details provided.'}"
+                ),
+                message_type="text",
+            )
+        )
+
     db.commit()
     db.refresh(obj)
+
+    if seller_owner_id:
+        try:
+            from app.utils.push import notify_user
+
+            notify_user(
+                seller_owner_id,
+                "New Quote Request",
+                f"{buyer_label} requested a quote.",
+                db,
+            )
+        except Exception:
+            pass
+
     return obj
 
 

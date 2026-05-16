@@ -1,10 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api_service.dart';
+import '../../core/app_preferences.dart';
 import '../../models/models.dart';
 
+String _currencyForCountry(String country) {
+  final c = country.toLowerCase();
+  if (c.contains('uganda')) return 'UGX';
+  if (c.contains('kenya')) return 'KES';
+  if (c.contains('tanzania')) return 'TZS';
+  if (c.contains('rwanda')) return 'RWF';
+  if (c.contains('united arab emirates') || c.contains('uae')) return 'AED';
+  if (c.contains('united kingdom')) return 'GBP';
+  if (c.contains('europe')) return 'EUR';
+  return 'USD';
+}
+
 final _walletProvider = FutureProvider.autoDispose<WalletModel>((ref) async {
-  final data = await ref.read(apiServiceProvider).getMyWallet();
+  final currency = _currencyForCountry(ref.watch(userCountryProvider));
+  final data = await ref.read(apiServiceProvider).getMyWallet(currency: currency);
   return WalletModel.fromJson(data);
 });
 
@@ -85,7 +99,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                                 Theme.of(ctx).colorScheme.primary),
                         const SizedBox(width: 6),
                         Text(
-                          '1 cash unit = 1 wallet point',
+                          '1 point = 1,000 UGX',
                           style: TextStyle(
                             fontSize: 12,
                             color: Theme.of(ctx).colorScheme.primary,
@@ -397,11 +411,13 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                               : digits;
                         }
                         Navigator.pop(ctx);
-                        await _doTopup(
-                          amount: amt,
-                          method: selectedMethod!,
-                          reference: reference,
-                        );
+                         await _doTopup(
+                           amount: amt,
+                           method: selectedMethod!,
+                           currency:
+                               _currencyForCountry(ref.read(userCountryProvider)),
+                           reference: reference,
+                         );
                       },
               ),
             ],
@@ -421,6 +437,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
   Future<void> _doTopup({
     required int amount,
     required String method,
+    required String currency,
     String? reference,
   }) async {
     setState(() => _topping = true);
@@ -428,6 +445,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
       await ref.read(apiServiceProvider).topupWallet(
             amount: amount,
             paymentMethod: method,
+            currency: currency,
             reference: reference,
           );
       ref.invalidate(_walletProvider);
@@ -504,10 +522,10 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                       ),
                       walletAsync.when(
                         data: (w) => Text(
-                          '${w.points} pts',
+                          '${w.points} pts · ${w.displayCurrency} ${w.displayAmount.toStringAsFixed(2)}',
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 32,
+                            fontSize: 20,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -521,9 +539,13 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      const Text(
-                        '1 point = 1 cash unit',
-                        style: TextStyle(color: Colors.white60, fontSize: 11),
+                      walletAsync.when(
+                        data: (w) => Text(
+                          '1 point = 1,000 UGX (rate ${w.exchangeRate.toStringAsFixed(4)} ${w.displayCurrency}/UGX)',
+                          style: const TextStyle(color: Colors.white60, fontSize: 11),
+                        ),
+                        loading: () => const SizedBox.shrink(),
+                        error: (_, __) => const SizedBox.shrink(),
                       ),
                     ],
                   ),

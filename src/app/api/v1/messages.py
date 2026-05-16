@@ -1,4 +1,5 @@
 """Messaging router (conversations & messages)."""
+import re
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -6,7 +7,7 @@ from typing import List, Optional
 
 from app.database.database import get_db
 from app.models.models import User
-from app.models.marketplace_models import Conversation, Message
+from app.models.marketplace_models import Conversation, Message, Notification
 from app.schemas.marketplace_schemas import (
     ConversationCreate, ConversationResponse,
     MessageCreate, MessageResponse,
@@ -17,6 +18,40 @@ from app.schemas.marketplace_schemas import (
 conversations_router = APIRouter(prefix="/messages/conversations", tags=["conversations"])
 router = APIRouter(prefix="/messages", tags=["messages"])
 _ALLOWED_RECIPIENT_ROLES = {"agent", "company", "organization"}
+
+
+def _display_name(user: User) -> str:
+    full_name = f"{(user.first_name or '').strip()} {(user.last_name or '').strip()}".strip()
+    if full_name:
+        return full_name
+    if user.email:
+        return user.email
+    return f"User #{user.id}"
+
+
+def _extract_location_from_text(text: Optional[str]) -> Optional[str]:
+    if not text:
+        return None
+    body = text.strip()
+    if not body:
+        return None
+
+    keyed = re.search(
+        r"(?im)\b(?:location|loc|address|place)\s*[:=-]\s*([^\n\r;]{2,120})",
+        body,
+    )
+    if keyed:
+        value = keyed.group(1).strip(" .,-")
+        return value or None
+
+    coords = re.search(
+        r"(?<!\d)([-+]?\d{1,2}\.\d{3,}),\s*([-+]?\d{1,3}\.\d{3,})(?!\d)",
+        body,
+    )
+    if coords:
+        return f"{coords.group(1)}, {coords.group(2)}"
+
+    return None
 
 
 # ---- Conversations ----
@@ -65,8 +100,46 @@ def create_conversation(payload: ConversationCreate, db: Session = Depends(get_d
 
     obj = Conversation(**payload.model_dump())
     db.add(obj)
+    db.flush()
+
+    if initiator is not None:
+        sender_label = _display_name(initiator)
+        summary = payload.subject.strip() if payload.subject else "General enquiry"
+        db.add(
+            Notification(
+                user_id=recipient.id,
+                title="New Contact Request",
+                body=f"{sender_label} started a conversation: {summary}",
+                notification_type="contact",
+                reference_id=obj.id,
+                reference_type="conversation",
+            )
+        )
+        db.add(
+            Message(
+                conversation_id=obj.id,
+                sender_id=initiator.id,
+                body=f"Contact request from {sender_label}: {summary}",
+                message_type="text",
+            )
+        )
+
     db.commit()
     db.refresh(obj)
+
+    if initiator is not None:
+        try:
+            from app.utils.push import notify_user
+
+            notify_user(
+                recipient.id,
+                "New Contact Request",
+                f"{_display_name(initiator)} started a conversation with you.",
+                db,
+            )
+        except Exception:
+            pass
+
     return obj
 
 
@@ -102,6 +175,10 @@ def send_message(payload: MessageCreate, db: Session = Depends(get_db)):
     obj = Message(**payload.model_dump())
     db.add(obj)
     db.flush()
+
+    extracted_location = _extract_location_from_text(payload.body)
+    if extracted_location:
+        conv.location = extracted_location
 
     # Create a notification for the other participant
     recipient_id = None
@@ -162,6 +239,10 @@ class ConversationLocationUpdateRequest(BaseModel):
     location: Optional[str] = None
 
 
+class ConversationDeleteRequest(BaseModel):
+    actor_id: int
+
+
 @router.delete("/{message_id}", status_code=status.HTTP_200_OK)
 def delete_message(
     message_id: int,
@@ -214,3 +295,19 @@ def update_conversation_location(
     db.commit()
     db.refresh(obj)
     return obj
+
+
+@conversations_router.delete("/{conversation_id}", status_code=status.HTTP_200_OK)
+def delete_conversation(
+    conversation_id: int,
+    payload: ConversationDeleteRequest,
+    db: Session = Depends(get_db),
+):
+    obj = db.query(Conversation).filter(Conversation.id == conversation_id).first()
+    if not obj:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    if payload.actor_id not in {obj.initiator_id, obj.recipient_id}:
+        raise HTTPException(status_code=403, detail="Not allowed to delete this conversation")
+    db.delete(obj)
+    db.commit()
+    return {"message": "Conversation deleted"}

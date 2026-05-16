@@ -715,6 +715,10 @@ class WalletResponse(BaseModel):
     id: int
     user_id: int
     points: int
+    ugx_value: int
+    display_currency: str = "UGX"
+    display_amount: float
+    exchange_rate: float = 1.0
     created_at: datetime
     updated_at: Optional[datetime] = None
 
@@ -724,15 +728,21 @@ class WalletResponse(BaseModel):
 class WalletTopupRequest(BaseModel):
     """Request to load wallet points via mobile money or card.
 
-    The conversion rate is 1 cash unit = 1 point.
-    ``amount`` is the number of points to credit (== cash amount paid).
+    Base conversion: 1 point = 1,000 UGX.
+    ``amount`` is the number of points to credit.
     """
-    amount: int = Field(..., gt=0, description="Points to credit (1:1 cash ratio)")
+    amount: int = Field(..., gt=0, description="Points to credit (1 point = 1,000 UGX)")
     payment_method: str = Field(
         ..., pattern="^(mtn|airtel|card)$",
         description="Payment method: mtn, airtel, or card"
     )
     reference: Optional[str] = Field(None, max_length=255, description="Phone number, card last-4, etc.")
+    currency: Optional[str] = Field(
+        "UGX",
+        min_length=3,
+        max_length=3,
+        description="Currency used for payment amount display (UGX by default).",
+    )
 
 
 class WalletTransactionResponse(BaseModel):
