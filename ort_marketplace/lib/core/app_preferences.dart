@@ -240,6 +240,7 @@ final locationAvailabilityProvider =
     StateProvider<LocationAvailabilityStatus>((_) => LocationAvailabilityStatus.unknown);
 
 final sessionLocationPromptHandledProvider = StateProvider<bool>((_) => false);
+final sessionLocationServiceDialogShownProvider = StateProvider<bool>((_) => false);
 
 // ─── User country ─────────────────────────────────────────────────────────────
 
@@ -291,24 +292,7 @@ final userCountryProvider =
 const _kDisplayCurrencyKey = 'display_currency';
 
 String currencyCodeForCountry(String? country) {
-  switch (country?.trim().toLowerCase()) {
-    case 'uganda':
-      return 'UGX';
-    case 'kenya':
-      return 'KES';
-    case 'tanzania':
-      return 'TZS';
-    case 'rwanda':
-      return 'RWF';
-    case 'united arab emirates':
-    case 'uae':
-      return 'AED';
-    case 'united kingdom':
-    case 'uk':
-      return 'GBP';
-    default:
-      return 'USD';
-  }
+  return country?.trim().toLowerCase() == 'uganda' ? 'UGX' : 'USD';
 }
 
 class DisplayCurrencyNotifier extends StateNotifier<String> {
