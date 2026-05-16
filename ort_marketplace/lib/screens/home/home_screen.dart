@@ -7,7 +7,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shimmer/shimmer.dart';
 import '../../core/api_service.dart';
 import '../../core/app_preferences.dart';
@@ -84,10 +83,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   Timer? _intlLocationTimer;
   Timer? _autoRefreshTimer;
 
-  // SharedPreferences key that records whether we have already shown the
-  // location permission prompt to a user who was in international mode.
-  static const _kIntlLocationPromptedKey = 'intl_location_prompted';
-
   StreamSubscription<ServiceStatus>? _serviceStatusSub;
   StreamSubscription<Position>? _positionSub;
 
@@ -155,25 +150,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   Future<void> _maybeRequestLocation() async {
     // Already have a position – nothing to do.
     if (ref.read(userLocationProvider) != null) return;
+    if (ref.read(sessionLocationPromptHandledProvider)) return;
 
     final mode = ref.read(marketplaceModeProvider);
     if (mode == MarketplaceMode.international) {
-      final prefs = await SharedPreferences.getInstance();
-      final alreadyPrompted =
-          prefs.getBool(_kIntlLocationPromptedKey) ?? false;
-      if (alreadyPrompted) return; // Never prompt again after first time.
-
       // Schedule the prompt after 5 minutes.
       _intlLocationTimer ??= Timer(const Duration(minutes: 5), () async {
         if (!mounted) return;
-        final p = await SharedPreferences.getInstance();
-        await p.setBool(_kIntlLocationPromptedKey, true);
+        ref.read(sessionLocationPromptHandledProvider.notifier).state = true;
         _initLocation();
       });
       return;
     }
 
     // Local mode: request immediately.
+    ref.read(sessionLocationPromptHandledProvider.notifier).state = true;
     _initLocation();
   }
 
@@ -221,6 +212,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           _lastSortedLoc = loc;
         });
         _startPositionTracking();
+      } else {
+        final permission = await Geolocator.checkPermission();
+        if (!mounted) return;
+        if (permission == LocationPermission.denied ||
+            permission == LocationPermission.deniedForever) {
+          ref.read(locationAvailabilityProvider.notifier).state =
+              LocationAvailabilityStatus.denied;
+          ref.read(marketplaceModeProvider.notifier).setMode(
+            MarketplaceMode.international,
+            locationStatus: LocationAvailabilityStatus.denied,
+          );
+        }
       }
       // If permission denied (once), silently skip – no banner shown.
     } on LocationPermissionDeniedException {
@@ -512,7 +515,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   children: [
                     _HomeSectionCircles(
                       onDistanceTap: () => context.go('/distance-calculator'),
-                      onMfgTap: () => context.go('/manufacturing'),
+                      onProductsTap: () => context.go('/manufacturing'),
+                      onServicesTap: () => context.go('/manufacturing'),
                       onAgricTap: () => context.go('/agriculture'),
                       onRealEstateTap: () => context.go('/properties'),
                     ),
@@ -844,17 +848,15 @@ class _HeroBannerState extends State<_HeroBanner>
             colors: [AppTheme.primary, Color(0xFF388E3C)],
           ),
         ),
-        // Top padding pushes content below the collapsed app bar height (~56px)
-        // plus an extra 8px gutter; bottom/side padding provides visual breathing room.
         padding:
-            const EdgeInsets.only(left: 20, right: 20, top: 42, bottom: 20),
+            const EdgeInsets.only(left: 20, right: 20, top: 60, bottom: 24),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
                     widget.greeting,
@@ -868,7 +870,7 @@ class _HeroBannerState extends State<_HeroBanner>
                     widget.subtitle,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 22,
+                      fontSize: 21,
                       fontWeight: FontWeight.bold,
                       height: 1.2,
                     ),
@@ -915,29 +917,43 @@ class _HeroBannerState extends State<_HeroBanner>
             // Profile image / spinning wheel badge
             GestureDetector(
               onTap: widget.onAvatarTap,
-               child: ScaleTransition(
-                 scale: _zoomAnim,
-                 child: Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.4), width: 2),
-                  ),
-                  child: widget.avatarUrl != null && widget.avatarUrl!.isNotEmpty
-                      ? ClipOval(
-                          child: CachedNetworkImage(
-                            imageUrl: widget.avatarUrl!,
-                            fit: BoxFit.cover,
-                            width: 52,
-                            height: 52,
-                            placeholder: (_, __) => roleIcon,
-                            errorWidget: (_, __, ___) => roleIcon,
-                          ),
-                        )
-                      : roleIcon,
+              child: ScaleTransition(
+                scale: _zoomAnim,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.4), width: 2),
+                      ),
+                      child: widget.avatarUrl != null && widget.avatarUrl!.isNotEmpty
+                          ? ClipOval(
+                              child: CachedNetworkImage(
+                                imageUrl: widget.avatarUrl!,
+                                fit: BoxFit.cover,
+                                width: 56,
+                                height: 56,
+                                placeholder: (_, __) => roleIcon,
+                                errorWidget: (_, __, ___) => roleIcon,
+                              ),
+                            )
+                          : roleIcon,
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Profile',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.92),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -1021,26 +1037,50 @@ class _SearchBar extends StatelessWidget {
 class _HomeSectionCircles extends StatelessWidget {
   const _HomeSectionCircles({
     required this.onDistanceTap,
-    required this.onMfgTap,
+    required this.onProductsTap,
     required this.onAgricTap,
     required this.onRealEstateTap,
+    required this.onServicesTap,
   });
 
   final VoidCallback onDistanceTap;
-  final VoidCallback onMfgTap;
+  final VoidCallback onProductsTap;
   final VoidCallback onAgricTap;
   final VoidCallback onRealEstateTap;
+  final VoidCallback onServicesTap;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        _AnimatedCircleButton(label: 'Distance', icon: Icons.near_me_rounded, onTap: onDistanceTap),
-        _AnimatedCircleButton(label: 'Manufacturing', icon: Icons.precision_manufacturing_rounded, onTap: onMfgTap),
-        _AnimatedCircleButton(label: 'Agriculture', icon: Icons.agriculture_rounded, onTap: onAgricTap),
-        _AnimatedCircleButton(label: 'Real Estate', icon: Icons.home_work_outlined, onTap: onRealEstateTap),
-      ],
+    final items = [
+      ('Products', Icons.precision_manufacturing_rounded, onProductsTap),
+      ('Agriculture', Icons.agriculture_rounded, onAgricTap),
+      ('Real Estate', Icons.home_work_outlined, onRealEstateTap),
+      ('Services', Icons.build_circle_outlined, onServicesTap),
+      ('Distance', Icons.near_me_rounded, onDistanceTap),
+    ];
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isCompact = constraints.maxWidth < 520;
+        final columns = isCompact ? 3 : 5;
+        final spacing = 10.0;
+        final totalSpacing = spacing * (columns - 1);
+        final itemWidth = (constraints.maxWidth - totalSpacing) / columns;
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: [
+            for (final item in items)
+              SizedBox(
+                width: itemWidth,
+                child: _AnimatedCircleButton(
+                  label: item.$1,
+                  icon: item.$2,
+                  onTap: item.$3,
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 }
@@ -1181,7 +1221,7 @@ class _AnimatedCircleButtonState extends State<_AnimatedCircleButton>
         onTap: widget.onTap,
         borderRadius: BorderRadius.circular(40),
         child: SizedBox(
-          width: 82,
+          width: double.infinity,
           child: Column(
             children: [
               CircleAvatar(

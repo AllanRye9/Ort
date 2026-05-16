@@ -7,7 +7,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from passlib.context import CryptContext
 from jose import jwt, JWTError
 from sqlalchemy.orm import Session
-from sqlalchemy import func, or_
+from sqlalchemy import func, not_, or_
 from typing import List, Optional
 
 from app.database.database import get_db
@@ -28,6 +28,7 @@ from app.schemas.schemas import (
     UserCreate, UserResponse, UserUpdate,
 )
 from app.schemas.marketplace_schemas import PropertyStatusUpdate
+from app.utils.countries import country_equals_clause
 from app.utils.geo import haversine_km
 
 # Marketplace module routers
@@ -380,12 +381,16 @@ def get_properties(
     elif lat is not None and lon is not None and radius_km is not None:
         q = q.filter(Property.status == "available")
     if country:
-        q = q.filter(Property.country.ilike(country))
+        country_clause = country_equals_clause(Property.country, country)
+        if country_clause is not None:
+            q = q.filter(country_clause)
     if exclude_country:
-        q = q.filter(
-            (Property.country == None) |
-            (~Property.country.ilike(exclude_country))
-        )
+        exclude_clause = country_equals_clause(Property.country, exclude_country)
+        if exclude_clause is not None:
+            q = q.filter(
+                (Property.country == None) |
+                (not_(exclude_clause))
+            )
     props = q.offset(skip).limit(limit).all()
 
     if lat is not None and lon is not None and radius_km is not None:

@@ -531,7 +531,7 @@ class MessageCreate(BaseModel):
     body: str = Field(..., min_length=1)
     attachment_url: Optional[str] = None
     attachment_filename: Optional[str] = None
-    message_type: Optional[str] = Field("text", pattern="^(text|file|voice)$")
+    message_type: Optional[str] = Field("text", pattern="^(text|file|voice|location)$")
 
     @field_validator("body", mode="before")
     @classmethod

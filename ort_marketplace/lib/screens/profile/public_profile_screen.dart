@@ -98,7 +98,15 @@ class _ProfileBodyState extends ConsumerState<_ProfileBody> {
       );
       return;
     }
-    if (myId == widget.user.id) return;
+    if (myId == widget.user.id) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('You cannot message yourself.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
     try {
       final convId =
           await ref.read(apiServiceProvider).findOrCreateConversation(
