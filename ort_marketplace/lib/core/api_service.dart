@@ -447,6 +447,16 @@ class ApiService {
     return res.data as Map<String, dynamic>;
   }
 
+  Future<void> deleteConversation({
+    required int conversationId,
+    required int actorId,
+  }) async {
+    await _dio.delete(
+      '/messages/conversations/$conversationId',
+      data: {'actor_id': actorId},
+    );
+  }
+
   Future<List<dynamic>> getMessages(int conversationId) async {
     final res = await _dio
         .get('/messages/', queryParameters: {'conversation_id': conversationId});
@@ -819,19 +829,24 @@ class ApiService {
 
   // ─── Wallet ───────────────────────────────────────────────────────────────
 
-  Future<Map<String, dynamic>> getMyWallet() async {
-    final res = await _dio.get('/wallet/me');
+  Future<Map<String, dynamic>> getMyWallet({String currency = 'UGX'}) async {
+    final res = await _dio.get(
+      '/wallet/me',
+      queryParameters: {'currency': currency},
+    );
     return res.data as Map<String, dynamic>;
   }
 
   Future<Map<String, dynamic>> topupWallet({
     required int amount,
     required String paymentMethod,
+    String currency = 'UGX',
     String? reference,
   }) async {
     final res = await _dio.post('/wallet/topup', data: {
       'amount': amount,
       'payment_method': paymentMethod,
+      'currency': currency,
       if (reference != null) 'reference': reference,
     });
     return res.data as Map<String, dynamic>;

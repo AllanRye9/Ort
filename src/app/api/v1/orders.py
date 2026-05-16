@@ -6,7 +6,15 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 
 from app.database.database import get_db
-from app.models.marketplace_models import Order, OrderItem
+from app.models.models import User
+from app.models.marketplace_models import (
+    Order,
+    OrderItem,
+    Tenant,
+    Conversation,
+    Message,
+    Notification,
+)
 from app.schemas.marketplace_schemas import (
     OrderCreate, OrderUpdate, OrderResponse,
 )
@@ -16,6 +24,17 @@ router = APIRouter(prefix="/orders", tags=["orders"])
 
 def _generate_order_number() -> str:
     return f"ORD-{uuid.uuid4().hex[:10].upper()}"
+
+
+def _display_name(user: Optional[User], fallback_id: Optional[int]) -> str:
+    if user is None:
+        return f"User #{fallback_id}" if fallback_id is not None else "A buyer"
+    full_name = f"{(user.first_name or '').strip()} {(user.last_name or '').strip()}".strip()
+    if full_name:
+        return full_name
+    if user.email:
+        return user.email
+    return f"User #{user.id}"
 
 
 @router.get("/", response_model=List[OrderResponse])
@@ -76,8 +95,78 @@ def create_order(payload: OrderCreate, db: Session = Depends(get_db)):
         )
         db.add(db_item)
 
+    seller_owner_id = None
+    if payload.seller_tenant_id is not None:
+        tenant = (
+            db.query(Tenant)
+            .filter(Tenant.id == payload.seller_tenant_id)
+            .first()
+        )
+        seller_owner_id = tenant.owner_user_id if tenant else None
+
+    buyer = None
+    if payload.buyer_user_id is not None:
+        buyer = db.query(User).filter(User.id == payload.buyer_user_id).first()
+    buyer_label = _display_name(buyer, payload.buyer_user_id)
+
+    if seller_owner_id:
+        db.add(
+            Notification(
+                user_id=seller_owner_id,
+                title="New Order Placed",
+                body=f"{buyer_label} placed order {order_data['order_number']}.",
+                notification_type="order",
+                reference_id=db_order.id,
+                reference_type="order",
+            )
+        )
+
+        conversation = (
+            db.query(Conversation)
+            .filter(
+                Conversation.initiator_id == payload.buyer_user_id,
+                Conversation.recipient_id == seller_owner_id,
+                Conversation.order_id == db_order.id,
+            )
+            .first()
+        )
+        if conversation is None:
+            conversation = Conversation(
+                initiator_id=payload.buyer_user_id,
+                recipient_id=seller_owner_id,
+                subject=f"Order {order_data['order_number']}",
+                order_id=db_order.id,
+            )
+            db.add(conversation)
+            db.flush()
+        db.add(
+            Message(
+                conversation_id=conversation.id,
+                sender_id=payload.buyer_user_id,
+                body=(
+                    f"Order placed by {buyer_label}. "
+                    f"Order #{order_data['order_number']} total: {total} {payload.currency or 'USD'}."
+                ),
+                message_type="text",
+            )
+        )
+
     db.commit()
     db.refresh(db_order)
+
+    if seller_owner_id:
+        try:
+            from app.utils.push import notify_user
+
+            notify_user(
+                seller_owner_id,
+                "New Order Placed",
+                f"{buyer_label} placed order {order_data['order_number']}.",
+                db,
+            )
+        except Exception:
+            pass
+
     return db_order
 
 
