@@ -298,10 +298,12 @@ class MainShell extends ConsumerStatefulWidget {
 }
 
 class _MainShellState extends ConsumerState<MainShell> {
-  double _menuFabLeft = 16;
-  double _menuFabBottom = 120;
+  static const _initialMenuFabLeft = 16.0;
+  static const _initialMenuFabBottom = 120.0;
   static const _draggableFabSize = 40.0;
   static const _menuFabMinBottom = 80.0;
+  double _menuFabLeft = _initialMenuFabLeft;
+  double _menuFabBottom = _initialMenuFabBottom;
 
   static const _tabs = [
     ('/home', Icons.home_outlined, Icons.home_rounded, 'Home'),
