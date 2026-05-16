@@ -12,6 +12,7 @@ import 'package:shimmer/shimmer.dart';
 import '../../core/api_service.dart';
 import '../../core/app_preferences.dart';
 import '../../core/auth_provider.dart';
+import '../../core/friendly_error.dart';
 import '../../core/listing_providers.dart';
 import '../../core/location_service.dart';
 import '../../core/responsive.dart';
@@ -63,6 +64,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen>
     with SingleTickerProviderStateMixin {
+  static const _kAutoRefreshInterval = Duration(seconds: 25);
   late final AnimationController _fadeCtrl;
   late final Animation<double> _fadeAnim;
 
@@ -80,6 +82,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   // Timer used to delay the location prompt when in international mode.
   Timer? _intlLocationTimer;
+  Timer? _autoRefreshTimer;
 
   // SharedPreferences key that records whether we have already shown the
   // location permission prompt to a user who was in international mode.
@@ -117,6 +120,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       _serviceStatusSub =
           Geolocator.getServiceStatusStream().listen(_onServiceStatusChanged);
     }
+    _autoRefreshTimer = Timer.periodic(_kAutoRefreshInterval, (_) {
+      if (!mounted) return;
+      _invalidateHomeFeeds();
+    });
   }
 
   void _onServiceStatusChanged(ServiceStatus status) {
@@ -127,6 +134,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         _locationBannerDismissed = false;
       });
       _initLocation();
+      _invalidateHomeFeeds();
     } else {
       setState(() => _locationServiceOff = true);
       // Mark location as denied so the mode is forced to International.
@@ -336,6 +344,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         _showRefreshResults = false;
       });
     }
+    _invalidateHomeFeeds();
+  }
+
+  void _invalidateHomeFeeds() {
+    ref.invalidate(homePropertiesProvider);
+    ref.invalidate(homeAgricultureProvider);
+    ref.invalidate(homeMfgProvider);
+    ref.invalidate(homeServicesProvider);
   }
 
   /// Shows the marketplace-mode selection dialog.  Called once on first login
@@ -371,6 +387,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   @override
   void dispose() {
     _intlLocationTimer?.cancel();
+    _autoRefreshTimer?.cancel();
     _serviceStatusSub?.cancel();
     _positionSub?.cancel();
     _fadeCtrl.dispose();
@@ -390,8 +407,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final walletPoints = ref.watch(_homeWalletPointsProvider).valueOrNull;
     final marketplaceMode = ref.watch(marketplaceModeProvider);
     final distanceUnit = ref.watch(distanceUnitProvider);
+    final radiusKm = ref.watch(radiusFilterProvider);
     final userCountry = ref.watch(userCountryProvider);
     final locationStatus = ref.watch(locationAvailabilityProvider);
+    final offlineFallback = ref.watch(homePropertiesCacheFallbackProvider) ||
+        ref.watch(homeAgricultureCacheFallbackProvider) ||
+        ref.watch(homeMfgCacheFallbackProvider) ||
+        ref.watch(homeServicesCacheFallbackProvider);
     final locationDenied = locationStatus == LocationAvailabilityStatus.denied;
 
     final roleLabel = switch (role) {
@@ -404,10 +426,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     return Scaffold(
       body: RefreshIndicator(
         onRefresh: () async {
-          ref.invalidate(homePropertiesProvider);
-          ref.invalidate(homeAgricultureProvider);
-          ref.invalidate(homeMfgProvider);
-          ref.invalidate(homeServicesProvider);
+          _invalidateHomeFeeds();
         },
         child: FadeTransition(
           opacity: _fadeAnim,
@@ -493,6 +512,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   children: [
                     _SearchBar(onTap: () => context.go('/search')),
                     const SizedBox(height: 8),
+                    _HomeSectionCircles(
+                      onServiceTap: () => context.go('/manufacturing'),
+                      onMfgTap: () => context.go('/manufacturing'),
+                      onAgricTap: () => context.go('/agriculture'),
+                      onRealEstateTap: () => context.go('/properties'),
+                    ),
+                    const SizedBox(height: 8),
+                    _DistanceOverview(
+                      distanceText:
+                          'Distance range: ${radiusKm.toStringAsFixed(0)} ${distanceUnit == DistanceUnit.km ? 'km' : 'mi'}',
+                    ),
+                    if (offlineFallback) ...[
+                      const SizedBox(height: 8),
+                      const _OfflineCacheBanner(),
+                    ],
+                    const SizedBox(height: 8),
                     // Location denied – Local mode unavailable, forced to International
                     if (locationDenied)
                       _LocationBanner(
@@ -558,77 +593,40 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 ),
               ),
 
-            // ── Featured Properties ─────────────────────────────────────────
+            // ── Services ─────────────────────────────────────────────────────
             SliverToBoxAdapter(
               child: _ContentWrapper(
                 child: _SectionHeader(
-                  title: 'Properties',
-                  onSeeAll: () => context.go('/properties'),
+                  title: 'Services',
+                  onSeeAll: () => context.go('/manufacturing'),
                 ),
               ),
             ),
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.only(bottom: 24),
-                child: propertiesAsync.when(
+                child: servicesAsync.when(
                   loading: () => const _HorizontalShimmer(),
-                  error: (e, _) => _ErrorTile(message: e.toString()),
-                  data: (items) => _FeaturedSection<PropertyModel>(
+                  error: (_, __) => const _ErrorTile(),
+                  data: (items) => _FeaturedSection<ManufacturingServiceModel>(
                     items: items,
-                    cardBuilder: (ctx, p) => _FeaturedCard(
-                      imageUrl: p.imageUrls.isNotEmpty ? p.imageUrls.first : null,
-                      icon: Icons.apartment_rounded,
-                      iconColor: AppTheme.primary,
-                      title: p.title,
-                      subtitle: p.city ?? p.address,
-                      price: formatCurrencyForMode(p.price, country: p.country, viewerCountry: userCountry, mode: marketplaceMode),
-                      badge: p.propertyType,
-                      distanceKm: _distanceFromUser(userLoc, p.latitude, p.longitude),
+                    cardBuilder: (ctx, s) => _FeaturedCard(
+                      imageUrl: (s.images != null && s.images!.isNotEmpty)
+                          ? s.images!.first
+                          : null,
+                      icon: Icons.build_rounded,
+                      iconColor: const Color(0xFF0288D1),
+                      title: s.title,
+                      subtitle: s.serviceType ?? s.location ?? '',
+                      price:
+                          '${formatCurrencyForMode(s.price, currency: s.currency, viewerCountry: userCountry, decimals: 2, mode: marketplaceMode)}/${s.pricingUnit ?? 'service'}',
+                      badge: s.serviceType,
+                      distanceKm:
+                          _distanceFromUser(userLoc, s.latitude, s.longitude),
                       distanceUnit: distanceUnit,
-                      onTap: () => ctx.go('/properties/${p.id}'),
+                      onTap: () => ctx.go('/manufacturing/service/${s.id}'),
                     ),
-                    emptyText: 'No properties listed yet.',
-                  ),
-                ),
-              ),
-            ),
-
-            // ── Agriculture ─────────────────────────────────────────────────
-            SliverToBoxAdapter(
-              child: _ContentWrapper(
-                child: _SectionHeader(
-                  title: 'Agriculture',
-                  onSeeAll: () => context.go('/agriculture'),
-                ),
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 24),
-                child: agricultureAsync.when(
-                  loading: () => const _HorizontalShimmer(),
-                  error: (e, _) => _ErrorTile(message: e.toString()),
-                  data: (items) => _FeaturedSection<AgricultureListingModel>(
-                    items: items,
-                    cardBuilder: (ctx, a) {
-                      final imgUrl = (a.images != null && a.images!.isNotEmpty)
-                          ? a.images!.first
-                          : null;
-                      return _FeaturedCard(
-                        imageUrl: imgUrl,
-                        icon: Icons.grass_rounded,
-                        iconColor: const Color(0xFF388E3C),
-                        title: a.title,
-                        subtitle: a.location ?? a.category ?? '',
-                        price:
-                            '${formatCurrencyForMode(a.pricePerUnit, currency: a.currency, viewerCountry: userCountry, decimals: 2, mode: marketplaceMode)}/${a.unit ?? 'unit'}',
-                        badge: a.category,
-                        distanceKm: _distanceFromUser(userLoc, a.latitude, a.longitude),
-                        distanceUnit: distanceUnit,
-                        onTap: () => ctx.go('/agriculture/${a.id}'),
-                      );
-                    },
-                    emptyText: 'No agriculture listings yet.',
+                    emptyText: 'No services listed yet.',
                   ),
                 ),
               ),
@@ -648,7 +646,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 padding: const EdgeInsets.only(bottom: 24),
                 child: mfgAsync.when(
                   loading: () => const _HorizontalShimmer(),
-                  error: (e, _) => _ErrorTile(message: e.toString()),
+                  error: (_, __) => const _ErrorTile(),
                   data: (items) => _FeaturedSection<ManufacturingProductModel>(
                     items: items,
                     cardBuilder: (ctx, m) {
@@ -665,7 +663,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         price:
                             '${formatCurrencyForMode(m.wholesalePrice, currency: m.currency, viewerCountry: userCountry, decimals: 2, mode: marketplaceMode)}/${m.unit ?? 'unit'}',
                         badge: m.category,
-                        distanceKm: _distanceFromUser(userLoc, m.latitude, m.longitude),
+                        distanceKm:
+                            _distanceFromUser(userLoc, m.latitude, m.longitude),
                         distanceUnit: distanceUnit,
                         onTap: () => ctx.go('/manufacturing/${m.id}'),
                       );
@@ -676,42 +675,82 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               ),
             ),
 
-            // ── Manufacturing Services ───────────────────────────────────────
+            // ── Agriculture ─────────────────────────────────────────────────
             SliverToBoxAdapter(
               child: _ContentWrapper(
                 child: _SectionHeader(
-                  title: 'Manufacturing Services',
-                  onSeeAll: () => context.go('/manufacturing'),
+                  title: 'Agriculture',
+                  onSeeAll: () => context.go('/agriculture'),
+                ),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 24),
+                child: agricultureAsync.when(
+                  loading: () => const _HorizontalShimmer(),
+                  error: (_, __) => const _ErrorTile(),
+                  data: (items) => _FeaturedSection<AgricultureListingModel>(
+                    items: items,
+                    cardBuilder: (ctx, a) {
+                      final imgUrl = (a.images != null && a.images!.isNotEmpty)
+                          ? a.images!.first
+                          : null;
+                      return _FeaturedCard(
+                        imageUrl: imgUrl,
+                        icon: Icons.grass_rounded,
+                        iconColor: const Color(0xFF388E3C),
+                        title: a.title,
+                        subtitle: a.location ?? a.category ?? '',
+                        price:
+                            '${formatCurrencyForMode(a.pricePerUnit, currency: a.currency, viewerCountry: userCountry, decimals: 2, mode: marketplaceMode)}/${a.unit ?? 'unit'}',
+                        badge: a.category,
+                        distanceKm:
+                            _distanceFromUser(userLoc, a.latitude, a.longitude),
+                        distanceUnit: distanceUnit,
+                        onTap: () => ctx.go('/agriculture/${a.id}'),
+                      );
+                    },
+                    emptyText: 'No agriculture listings yet.',
+                  ),
+                ),
+              ),
+            ),
+
+            // ── Real Estate ──────────────────────────────────────────────────
+            SliverToBoxAdapter(
+              child: _ContentWrapper(
+                child: _SectionHeader(
+                  title: 'Real Estate',
+                  onSeeAll: () => context.go('/properties'),
                 ),
               ),
             ),
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.only(bottom: 32),
-                child: servicesAsync.when(
+                child: propertiesAsync.when(
                   loading: () => const _HorizontalShimmer(),
-                  error: (e, _) => _ErrorTile(message: e.toString()),
-                  data: (items) => _FeaturedSection<ManufacturingServiceModel>(
+                  error: (_, __) => const _ErrorTile(),
+                  data: (items) => _FeaturedSection<PropertyModel>(
                     items: items,
-                    cardBuilder: (ctx, s) {
-                      final imgUrl = (s.images != null && s.images!.isNotEmpty)
-                          ? s.images!.first
-                          : null;
-                      return _FeaturedCard(
-                        imageUrl: imgUrl,
-                        icon: Icons.build_rounded,
-                        iconColor: const Color(0xFF0288D1),
-                        title: s.title,
-                        subtitle: s.serviceType ?? s.location ?? '',
-                        price:
-                            '${formatCurrencyForMode(s.price, currency: s.currency, viewerCountry: userCountry, decimals: 2, mode: marketplaceMode)}/${s.pricingUnit ?? 'service'}',
-                        badge: s.serviceType,
-                        distanceKm: _distanceFromUser(userLoc, s.latitude, s.longitude),
-                        distanceUnit: distanceUnit,
-                        onTap: () => ctx.go('/manufacturing/service/${s.id}'),
-                      );
-                    },
-                    emptyText: 'No manufacturing services yet.',
+                    cardBuilder: (ctx, p) => _FeaturedCard(
+                      imageUrl: p.imageUrls.isNotEmpty ? p.imageUrls.first : null,
+                      icon: Icons.apartment_rounded,
+                      iconColor: AppTheme.primary,
+                      title: p.title,
+                      subtitle: p.city ?? p.address,
+                      price: formatCurrencyForMode(p.price,
+                          country: p.country,
+                          viewerCountry: userCountry,
+                          mode: marketplaceMode),
+                      badge: p.propertyType,
+                      distanceKm:
+                          _distanceFromUser(userLoc, p.latitude, p.longitude),
+                      distanceUnit: distanceUnit,
+                      onTap: () => ctx.go('/properties/${p.id}'),
+                    ),
+                    emptyText: 'No properties listed yet.',
                   ),
                 ),
               ),
@@ -748,20 +787,25 @@ class _HeroBanner extends StatefulWidget {
 
 class _HeroBannerState extends State<_HeroBanner>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _spinCtrl;
+  static const _kZoomDuration = Duration(milliseconds: 1400);
+  late final AnimationController _zoomCtrl;
+  late final Animation<double> _zoomAnim;
 
   @override
   void initState() {
     super.initState();
-    _spinCtrl = AnimationController(
+    _zoomCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 6),
-    )..repeat();
+      duration: _kZoomDuration,
+    )..repeat(reverse: true);
+    _zoomAnim = Tween<double>(begin: 0.94, end: 1.0).animate(
+      CurvedAnimation(parent: _zoomCtrl, curve: Curves.easeInOut),
+    );
   }
 
   @override
   void dispose() {
-    _spinCtrl.dispose();
+    _zoomCtrl.dispose();
     super.dispose();
   }
 
@@ -793,14 +837,14 @@ class _HeroBannerState extends State<_HeroBanner>
         // Top padding pushes content below the collapsed app bar height (~56px)
         // plus an extra 8px gutter; bottom/side padding provides visual breathing room.
         padding:
-            const EdgeInsets.only(left: 20, right: 20, top: 64, bottom: 20),
+            const EdgeInsets.only(left: 20, right: 20, top: 42, bottom: 20),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.end,
+                mainAxisAlignment: MainAxisAlignment.start,
                 children: [
                   Text(
                     widget.greeting,
@@ -861,9 +905,9 @@ class _HeroBannerState extends State<_HeroBanner>
             // Profile image / spinning wheel badge
             GestureDetector(
               onTap: widget.onAvatarTap,
-              child: RotationTransition(
-                turns: _spinCtrl,
-                child: Container(
+               child: ScaleTransition(
+                 scale: _zoomAnim,
+                 child: Container(
                   width: 52,
                   height: 52,
                   decoration: BoxDecoration(
@@ -959,6 +1003,163 @@ class _SearchBar extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _HomeSectionCircles extends StatelessWidget {
+  const _HomeSectionCircles({
+    required this.onServiceTap,
+    required this.onMfgTap,
+    required this.onAgricTap,
+    required this.onRealEstateTap,
+  });
+
+  final VoidCallback onServiceTap;
+  final VoidCallback onMfgTap;
+  final VoidCallback onAgricTap;
+  final VoidCallback onRealEstateTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        _AnimatedCircleButton(label: 'Service', icon: Icons.build_rounded, onTap: onServiceTap),
+        _AnimatedCircleButton(label: 'Manufacturing', icon: Icons.precision_manufacturing_rounded, onTap: onMfgTap),
+        _AnimatedCircleButton(label: 'Agriculture', icon: Icons.agriculture_rounded, onTap: onAgricTap),
+        _AnimatedCircleButton(label: 'Real Estate', icon: Icons.home_work_outlined, onTap: onRealEstateTap),
+      ],
+    );
+  }
+}
+
+class _AnimatedCircleButton extends StatefulWidget {
+  const _AnimatedCircleButton({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+  });
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  State<_AnimatedCircleButton> createState() => _AnimatedCircleButtonState();
+}
+
+class _AnimatedCircleButtonState extends State<_AnimatedCircleButton>
+    with SingleTickerProviderStateMixin {
+  static const _kPulseDuration = Duration(milliseconds: 1100);
+  late final AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: _kPulseDuration,
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return ScaleTransition(
+      scale: Tween<double>(begin: 0.95, end: 1.0)
+          .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut)),
+      child: InkWell(
+        onTap: widget.onTap,
+        borderRadius: BorderRadius.circular(40),
+        child: SizedBox(
+          width: 82,
+          child: Column(
+            children: [
+              CircleAvatar(
+                radius: 24,
+                backgroundColor: cs.primaryContainer,
+                child: Icon(widget.icon, color: cs.primary),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                widget.label,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DistanceOverview extends StatelessWidget {
+  const _DistanceOverview({required this.distanceText});
+  final String distanceText;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: cs.primaryContainer.withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.near_me_outlined, size: 14, color: cs.primary),
+          const SizedBox(width: 6),
+          Text(
+            distanceText,
+            style: TextStyle(
+              fontSize: 12,
+              color: cs.onSurface,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OfflineCacheBanner extends StatelessWidget {
+  const _OfflineCacheBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: cs.tertiaryContainer.withValues(alpha: 0.45),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: cs.tertiary.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.wifi_off_rounded, color: cs.tertiary, size: 18),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              kOfflineDataNotice,
+              style: TextStyle(fontSize: 12, color: cs.onSurface),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1264,8 +1465,7 @@ class _HorizontalShimmer extends StatelessWidget {
 // ─── Error tile ───────────────────────────────────────────────────────────────
 
 class _ErrorTile extends StatelessWidget {
-  const _ErrorTile({required this.message});
-  final String message;
+  const _ErrorTile();
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -1273,7 +1473,8 @@ class _ErrorTile extends StatelessWidget {
         child: ListTile(
           leading: const Icon(Icons.error_outline, color: Colors.red),
           title: const Text('Failed to load'),
-          subtitle: Text(message, maxLines: 1, overflow: TextOverflow.ellipsis),
+          subtitle:
+              Text(friendlyErrorMessage(), maxLines: 2, overflow: TextOverflow.ellipsis),
         ),
       );
 }

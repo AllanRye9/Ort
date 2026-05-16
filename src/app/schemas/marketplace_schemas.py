@@ -507,6 +507,7 @@ class ConversationCreate(BaseModel):
     recipient_id: int
     initiator_id: Optional[int] = None
     subject: Optional[str] = None
+    location: Optional[str] = None
     property_id: Optional[int] = None
     order_id: Optional[int] = None
 
@@ -516,6 +517,7 @@ class ConversationResponse(BaseModel):
     initiator_id: Optional[int] = None
     recipient_id: Optional[int] = None
     subject: Optional[str] = None
+    location: Optional[str] = None
     property_id: Optional[int] = None
     order_id: Optional[int] = None
     created_at: datetime

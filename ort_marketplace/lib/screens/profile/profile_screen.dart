@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/api_service.dart';
 import '../../core/auth_provider.dart';
+import '../../core/friendly_error.dart';
 import '../../core/constants.dart';
 import '../../core/theme.dart';
 import '../../core/theme_provider.dart';
@@ -229,7 +230,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
         opacity: _fadeAnim,
         child: meAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Center(child: Text('Error: $e')),
+          error: (_, __) => Center(child: Text(friendlyErrorMessage())),
           data: (user) => _editMode
               ? _EditView(
                   user: user,
@@ -290,10 +291,6 @@ class _ReadView extends StatelessWidget {
             children: [
               // ── XP / Level card ────────────────────────────────────────────
               _XpLevelCard(score: score, pct: pct),
-              const SizedBox(height: 16),
-
-              // ── Quick Actions ───────────────────────────────────────────────
-              _QuickActionsSection(role: auth.role ?? 'user'),
               const SizedBox(height: 16),
 
               // ── Info tiles ─────────────────────────────────────────────────
@@ -648,11 +645,11 @@ class _ReadView extends StatelessWidget {
                 await ref.read(apiServiceProvider).deleteMe();
                 await ref.read(authProvider.notifier).logout();
                 if (context.mounted) context.go('/login');
-              } catch (e) {
+              } catch (_) {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Delete failed: $e'),
+                      content: Text(friendlyErrorMessage()),
                       backgroundColor: Colors.red,
                       behavior: SnackBarBehavior.floating,
                     ),
@@ -1571,7 +1568,7 @@ class _AgentReviewsSectionState extends ConsumerState<_AgentReviewsSection> {
             padding: EdgeInsets.symmetric(vertical: 12),
             child: Center(child: CircularProgressIndicator()),
           ),
-          error: (e, _) => Text('Could not load reviews: $e',
+          error: (_, __) => Text('Could not load reviews right now.',
               style: const TextStyle(color: Colors.grey)),
           data: (reviews) {
             if (reviews.isEmpty) {
