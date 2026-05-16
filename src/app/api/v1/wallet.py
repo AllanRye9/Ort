@@ -6,7 +6,9 @@ They are spent to purchase ad promotions.
 Authentication: all endpoints require a valid JWT (Bearer token).
 """
 import base64
+import logging
 import os
+import time
 import uuid
 from typing import List
 import httpx
@@ -32,16 +34,25 @@ ALGORITHM = "HS256"
 _bearer = HTTPBearer(auto_error=False)
 POINT_UGX_VALUE = 1000
 
+# Static fallback rates used only when live rate fetch fails.
+# Last reviewed: 2026-05-16.
 _STATIC_FX_TO_UGX = {
     "UGX": 1.0,
-    "USD": 1 / 3750.0,
-    "EUR": 1 / 4050.0,
-    "KES": 1 / 29.0,
-    "TZS": 1 / 1.5,
-    "RWF": 1 / 3.0,
-    "AED": 1 / 1020.0,
-    "GBP": 1 / 4800.0,
+    "USD": 1 / 3750.0,  # 1 UGX ≈ 0.000267 USD (assuming 1 USD ≈ 3750 UGX)
+    "EUR": 1 / 4050.0,  # 1 EUR ≈ 4050 UGX
+    "KES": 1 / 29.0,    # 1 KES ≈ 29 UGX
+    "TZS": 1 / 1.5,     # 1 TZS ≈ 1.5 UGX
+    "RWF": 1 / 3.0,     # 1 RWF ≈ 3 UGX
+    "AED": 1 / 1020.0,  # 1 AED ≈ 1020 UGX
+    "GBP": 1 / 4800.0,  # 1 GBP ≈ 4800 UGX
 }
+_FX_CACHE_TTL_SECONDS = 3600
+_FX_FALLBACK_CACHE_TTL_SECONDS = 300
+_FX_API_URL = os.getenv("FX_API_URL", "https://open.er-api.com/v6/latest/UGX")
+_FX_API_TIMEOUT_SECONDS = float(os.getenv("FX_API_TIMEOUT_SECONDS", "4.0"))
+_MTN_API_TIMEOUT_SECONDS = float(os.getenv("MTN_API_TIMEOUT_SECONDS", "15.0"))
+_fx_cache: dict[str, tuple[float, float]] = {}
+_logger = logging.getLogger(__name__)
 
 
 def _get_current_user(
@@ -84,24 +95,31 @@ def _live_fx_rate_from_ugx(currency: str) -> float:
     target = (currency or "UGX").upper()
     if target == "UGX":
         return 1.0
-    url = "https://open.er-api.com/v6/latest/UGX"
+    cached = _fx_cache.get(target)
+    now = time.time()
+    if cached and cached[1] > now:
+        return cached[0]
     try:
-        with httpx.Client(timeout=4.0) as client:
-            res = client.get(url)
+        with httpx.Client(timeout=_FX_API_TIMEOUT_SECONDS) as client:
+            res = client.get(_FX_API_URL)
             res.raise_for_status()
             data = res.json()
             rates = data.get("rates") or {}
             rate = rates.get(target)
             if isinstance(rate, (int, float)) and rate > 0:
-                return float(rate)
-    except Exception:
-        pass
-    return _fx_rate_from_ugx(target)
+                parsed = float(rate)
+                _fx_cache[target] = (parsed, now + _FX_CACHE_TTL_SECONDS)
+                return parsed
+    except Exception as exc:
+        _logger.warning("Live FX fetch failed for %s, using fallback: %s", target, exc)
+    fallback = _fx_rate_from_ugx(target)
+    _fx_cache[target] = (fallback, now + _FX_FALLBACK_CACHE_TTL_SECONDS)
+    return fallback
 
 
 def _wallet_payload(wallet: UserWallet, display_currency: str) -> dict:
     currency = (display_currency or "UGX").upper()
-    ugx_value = int(wallet.points) * POINT_UGX_VALUE
+    ugx_value = _points_to_ugx(int(wallet.points))
     rate = _live_fx_rate_from_ugx(currency)
     return {
         "id": wallet.id,
@@ -114,6 +132,10 @@ def _wallet_payload(wallet: UserWallet, display_currency: str) -> dict:
         "created_at": wallet.created_at,
         "updated_at": wallet.updated_at,
     }
+
+
+def _points_to_ugx(points: int) -> int:
+    return points * POINT_UGX_VALUE
 
 
 def _process_mtn_payment(payload: WalletTopupRequest) -> str:
@@ -140,11 +162,12 @@ def _process_mtn_payment(payload: WalletTopupRequest) -> str:
             detail="MTN top-up requires a mobile number in `reference`.",
         )
 
+    # MTN token endpoint expects HTTP Basic auth with API user id and API key.
     auth = base64.b64encode(f"{api_user}:{api_key}".encode("utf-8")).decode("utf-8")
-    amount_ugx = payload.amount * POINT_UGX_VALUE
+    amount_ugx = _points_to_ugx(payload.amount)
     reference_id = str(uuid.uuid4())
 
-    with httpx.Client(timeout=15.0) as client:
+    with httpx.Client(timeout=_MTN_API_TIMEOUT_SECONDS) as client:
         token_res = client.post(
             f"{base_url}/collection/token/",
             headers={
@@ -153,9 +176,14 @@ def _process_mtn_payment(payload: WalletTopupRequest) -> str:
             },
         )
         if token_res.status_code >= 400:
+            _logger.error(
+                "MTN token request failed (status=%s): %s",
+                token_res.status_code,
+                token_res.text,
+            )
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=f"Failed to authenticate MTN payment: {token_res.text}",
+                detail="Failed to authenticate with MTN Mobile Money.",
             )
         token_data = token_res.json()
         access_token = token_data.get("access_token")
@@ -191,9 +219,14 @@ def _process_mtn_payment(payload: WalletTopupRequest) -> str:
             },
         )
         if req_res.status_code >= 400:
+            _logger.error(
+                "MTN request-to-pay failed (status=%s): %s",
+                req_res.status_code,
+                req_res.text,
+            )
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=f"MTN request-to-pay failed: {req_res.text}",
+                detail="MTN request-to-pay failed.",
             )
 
     return reference_id
@@ -232,7 +265,7 @@ def topup_wallet(
         reference=payment_reference,
         description=(
             f"Top-up via {payload.payment_method.upper()} "
-            f"({payload.amount * POINT_UGX_VALUE} UGX)"
+            f"({_points_to_ugx(payload.amount)} UGX)"
         ),
     )
     db.add(tx)

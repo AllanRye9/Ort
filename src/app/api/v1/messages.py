@@ -18,6 +18,9 @@ from app.schemas.marketplace_schemas import (
 conversations_router = APIRouter(prefix="/messages/conversations", tags=["conversations"])
 router = APIRouter(prefix="/messages", tags=["messages"])
 _ALLOWED_RECIPIENT_ROLES = {"agent", "company", "organization"}
+_MIN_LOCATION_LENGTH = 2
+_MAX_LOCATION_LENGTH = 120
+_MIN_COORDINATE_PRECISION = 3
 
 
 def _display_name(user: User) -> str:
@@ -30,22 +33,36 @@ def _display_name(user: User) -> str:
 
 
 def _extract_location_from_text(text: Optional[str]) -> Optional[str]:
+    """Extract location tokens from free-form message text.
+
+    Supported formats include:
+    - `location: Kampala`
+    - `address=Kigali Heights`
+    - coordinate pairs like `0.3476, 32.5825`
+    """
     if not text:
         return None
     body = text.strip()
     if not body:
         return None
 
+    # Match keyed location snippets like `location: Kampala` or `address=Plot 5`.
+    # Captures the value segment between configured min/max lengths while
+    # excluding line breaks and semicolons.
+    # The `{{...}}` notation below is escaped f-string syntax to emit regex
+    # quantifier braces literally.
     keyed = re.search(
-        r"(?im)\b(?:location|loc|address|place)\s*[:=-]\s*([^\n\r;]{2,120})",
+        rf"(?im)\b(?:location|loc|address|place)\s*[:=-]\s*([^\n\r;]{{{_MIN_LOCATION_LENGTH},{_MAX_LOCATION_LENGTH}}})",
         body,
     )
     if keyed:
         value = keyed.group(1).strip(" .,-")
         return value or None
 
+    # Match coordinate pairs like `0.3476, 32.5825` with minimum decimal
+    # precision and optional +/- sign.
     coords = re.search(
-        r"(?<!\d)([-+]?\d{1,2}\.\d{3,}),\s*([-+]?\d{1,3}\.\d{3,})(?!\d)",
+        rf"(?<!\d)([-+]?\d{{1,2}}\.\d{{{_MIN_COORDINATE_PRECISION},}}),\s*([-+]?\d{{1,3}}\.\d{{{_MIN_COORDINATE_PRECISION},}})(?!\d)",
         body,
     )
     if coords:
