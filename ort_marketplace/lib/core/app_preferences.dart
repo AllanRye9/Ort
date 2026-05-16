@@ -286,6 +286,106 @@ final userCountryProvider =
   (_) => UserCountryNotifier(),
 );
 
+// ─── Display currency ─────────────────────────────────────────────────────────
+
+const _kDisplayCurrencyKey = 'display_currency';
+
+String currencyCodeForCountry(String? country) {
+  switch (country?.trim().toLowerCase()) {
+    case 'uganda':
+      return 'UGX';
+    case 'kenya':
+      return 'KES';
+    case 'tanzania':
+      return 'TZS';
+    case 'rwanda':
+      return 'RWF';
+    case 'united arab emirates':
+    case 'uae':
+      return 'AED';
+    case 'united kingdom':
+    case 'uk':
+      return 'GBP';
+    default:
+      return 'USD';
+  }
+}
+
+class DisplayCurrencyNotifier extends StateNotifier<String> {
+  DisplayCurrencyNotifier(this._ref) : super('USD') {
+    _initialize();
+  }
+
+  final Ref _ref;
+  Future<void>? _refreshInFlight;
+
+  Future<void> _initialize() async {
+    await _load();
+    await refreshFromLocation();
+  }
+
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString(_kDisplayCurrencyKey);
+    if (saved != null && saved.isNotEmpty) {
+      state = saved.toUpperCase();
+    }
+  }
+
+  Future<void> refreshFromLocation() async {
+    final inFlight = _refreshInFlight;
+    if (inFlight != null) {
+      await inFlight;
+      return;
+    }
+
+    final refresh = _refreshFromLocationInternal();
+    _refreshInFlight = refresh;
+    try {
+      await refresh;
+    } finally {
+      if (identical(_refreshInFlight, refresh)) {
+        _refreshInFlight = null;
+      }
+    }
+  }
+
+  Future<void> _refreshFromLocationInternal() async {
+    try {
+      final position = await LocationService.instance.requestAndGetPosition();
+      if (position == null) {
+        await _setCurrency('USD');
+        return;
+      }
+      final result = await LocationService.instance.reverseGeocodePosition(
+        position.latitude,
+        position.longitude,
+      );
+      final country = result?.country?.trim();
+      if (country == null || country.isEmpty) {
+        await _setCurrency('USD');
+        return;
+      }
+
+      await _ref.read(userCountryProvider.notifier).setCountry(country);
+      await _setCurrency(currencyCodeForCountry(country));
+    } catch (_) {
+      await _setCurrency('USD');
+    }
+  }
+
+  Future<void> _setCurrency(String currency) async {
+    state = currency;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_kDisplayCurrencyKey, currency);
+  }
+}
+
+final displayCurrencyProvider =
+    StateNotifierProvider<DisplayCurrencyNotifier, String>(
+  (ref) => DisplayCurrencyNotifier(ref),
+);
+
 // ─── International country filter ─────────────────────────────────────────────
 
 /// When in international mode, the user can optionally filter to a specific

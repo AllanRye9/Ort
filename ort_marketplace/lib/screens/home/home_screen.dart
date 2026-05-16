@@ -128,6 +128,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         _locationServiceOff = false;
         _locationBannerDismissed = false;
       });
+      ref.read(displayCurrencyProvider.notifier).refreshFromLocation();
       _initLocation();
       _invalidateHomeFeeds();
     } else {
