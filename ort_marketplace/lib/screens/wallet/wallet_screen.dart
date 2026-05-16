@@ -1,5 +1,9 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import '../../core/api_service.dart';
 import '../../core/app_preferences.dart';
 import '../../models/models.dart';
@@ -33,6 +37,8 @@ final _txProvider =
       .toList();
 });
 
+enum _CollectionCheckoutMode { ussd, qr }
+
 class WalletScreen extends ConsumerStatefulWidget {
   const WalletScreen({super.key});
 
@@ -42,6 +48,119 @@ class WalletScreen extends ConsumerStatefulWidget {
 
 class _WalletScreenState extends ConsumerState<WalletScreen> {
   bool _topping = false;
+  bool _loadedQueryPrefill = false;
+  final _collectionAmountCtrl = TextEditingController();
+  final _collectionPhoneCtrl = TextEditingController();
+  final _collectionLabelCtrl = TextEditingController();
+  _CollectionCheckoutMode _collectionMode = _CollectionCheckoutMode.ussd;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_loadedQueryPrefill) return;
+    _loadedQueryPrefill = true;
+    final query = GoRouterState.of(context).uri.queryParameters;
+    final amount = query['amount']?.trim();
+    final phone = query['phone']?.trim();
+    final label = query['label']?.trim();
+    final mode = query['mode']?.trim().toLowerCase();
+    if (amount != null && amount.isNotEmpty) {
+      _collectionAmountCtrl.text = amount;
+    }
+    if (phone != null && phone.isNotEmpty) {
+      _collectionPhoneCtrl.text = phone;
+    }
+    if (label != null && label.isNotEmpty) {
+      _collectionLabelCtrl.text = label;
+    }
+    if (mode == 'qr') {
+      _collectionMode = _CollectionCheckoutMode.qr;
+    }
+  }
+
+  @override
+  void dispose() {
+    _collectionAmountCtrl.dispose();
+    _collectionPhoneCtrl.dispose();
+    _collectionLabelCtrl.dispose();
+    super.dispose();
+  }
+
+  String _walletCurrency() => _currencyForCountry(ref.read(userCountryProvider));
+
+  int get _collectionAmount => int.tryParse(_collectionAmountCtrl.text.trim()) ?? 0;
+
+  String _collectionCheckoutLink() {
+    final query = <String, String>{
+      'collection': '1',
+      'mode': 'ussd',
+      'amount': _collectionAmountCtrl.text.trim(),
+      'currency': _walletCurrency(),
+      if (_collectionPhoneCtrl.text.trim().isNotEmpty)
+        'phone': _collectionPhoneCtrl.text.trim(),
+      if (_collectionLabelCtrl.text.trim().isNotEmpty)
+        'label': _collectionLabelCtrl.text.trim(),
+    };
+    final encodedQuery = Uri(queryParameters: query).query;
+    if (kIsWeb) {
+      final base = Uri.base;
+      return Uri(
+        scheme: base.scheme,
+        host: base.host,
+        port: base.hasPort ? base.port : null,
+        path: base.path,
+        fragment: '/wallet?$encodedQuery',
+      ).toString();
+    }
+    return 'ORT MoMo Checkout\n'
+        'Amount: ${_collectionAmountCtrl.text.trim()} points\n'
+        'Currency: ${_walletCurrency()}\n'
+        'Phone: ${_collectionPhoneCtrl.text.trim().isEmpty ? 'Enter on checkout' : _collectionPhoneCtrl.text.trim()}\n'
+        '${_collectionLabelCtrl.text.trim().isEmpty ? '' : 'Reference: ${_collectionLabelCtrl.text.trim()}\n'}';
+  }
+
+  Future<void> _copyCollectionLink() async {
+    final amount = _collectionAmount;
+    if (amount <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Enter an amount before generating a QR checkout link.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+    await Clipboard.setData(ClipboardData(text: _collectionCheckoutLink()));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(kIsWeb
+            ? 'Checkout link copied.'
+            : 'Checkout details copied.'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  Future<void> _submitCollectionUssd() async {
+    final amount = _collectionAmount;
+    final phone = _collectionPhoneCtrl.text.trim();
+    if (amount <= 0 || phone.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Enter both the amount and the mobile money number.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+    await _doTopup(
+      amount: amount,
+      method: 'mtn',
+      currency: _walletCurrency(),
+      reference: phone,
+    );
+  }
 
   Future<void> _showTopupDialog() async {
     String? selectedMethod;
@@ -556,6 +675,203 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
               ],
             ),
           ),
+
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.qr_code_2_rounded, color: cs.primary),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'MoMo Collection Widget',
+                                style: Theme.of(context).textTheme.titleMedium,
+                              ),
+                              Text(
+                                'Use a USSD checkout button or a QR code to collect MTN MoMo payments on the web.',
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _collectionAmountCtrl,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Amount',
+                        hintText: 'e.g. 50',
+                        suffixText: 'pts',
+                        prefixIcon: Icon(Icons.account_balance_wallet_outlined),
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (_) => setState(() {}),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _collectionPhoneCtrl,
+                      keyboardType: TextInputType.phone,
+                      decoration: const InputDecoration(
+                        labelText: 'Mobile money number',
+                        hintText: '25677XXXXXXX',
+                        prefixIcon: Icon(Icons.phone_android_outlined),
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (_) => setState(() {}),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _collectionLabelCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Reference / order note',
+                        hintText: 'Optional',
+                        prefixIcon: Icon(Icons.receipt_long_outlined),
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (_) => setState(() {}),
+                    ),
+                    const SizedBox(height: 12),
+                    SegmentedButton<_CollectionCheckoutMode>(
+                      segments: const [
+                        ButtonSegment<_CollectionCheckoutMode>(
+                          value: _CollectionCheckoutMode.ussd,
+                          icon: Icon(Icons.phone_android_outlined),
+                          label: Text('USSD'),
+                        ),
+                        ButtonSegment<_CollectionCheckoutMode>(
+                          value: _CollectionCheckoutMode.qr,
+                          icon: Icon(Icons.qr_code_2_outlined),
+                          label: Text('QR code'),
+                        ),
+                      ],
+                      selected: {_collectionMode},
+                      onSelectionChanged: (selection) {
+                        setState(() => _collectionMode = selection.first);
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 180),
+                      child: _collectionMode == _CollectionCheckoutMode.ussd
+                          ? Container(
+                              key: const ValueKey('ussd-mode'),
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: cs.primaryContainer.withValues(alpha: 0.45),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'USSD checkout',
+                                    style: Theme.of(context).textTheme.titleSmall,
+                                  ),
+                                  const SizedBox(height: 6),
+                                  const Text(
+                                    'Trigger the MTN MoMo prompt directly from your checkout button.',
+                                  ),
+                                  const SizedBox(height: 12),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    child: FilledButton.icon(
+                                      onPressed: _topping ? null : _submitCollectionUssd,
+                                      icon: const Icon(Icons.phone_android),
+                                      label: const Text('Start USSD payment'),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : Container(
+                              key: const ValueKey('qr-mode'),
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: cs.surfaceContainerHighest.withValues(alpha: 0.5),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'QR checkout',
+                                    style: Theme.of(context).textTheme.titleSmall,
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    kIsWeb
+                                        ? 'Share this QR code on your checkout page so customers can continue payment on their phones.'
+                                        : 'Open the web app to generate a shareable checkout QR code.',
+                                  ),
+                                  const SizedBox(height: 12),
+                                  if (kIsWeb && _collectionAmount > 0)
+                                    Center(
+                                      child: Container(
+                                        padding: const EdgeInsets.all(12),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: QrImageView(
+                                          data: _collectionCheckoutLink(),
+                                          size: 180,
+                                          backgroundColor: Colors.white,
+                                        ),
+                                      ),
+                                    )
+                                  else
+                                    Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        border: Border.all(
+                                          color: cs.outline.withValues(alpha: 0.25),
+                                        ),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: Text(
+                                        _collectionAmount > 0
+                                            ? 'QR generation is available on Flutter Web.'
+                                            : 'Enter an amount to generate a checkout QR code.',
+                                      ),
+                                    ),
+                                  const SizedBox(height: 12),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    child: OutlinedButton.icon(
+                                      onPressed: _copyCollectionLink,
+                                      icon: const Icon(Icons.copy_outlined),
+                                      label: Text(
+                                        kIsWeb
+                                            ? 'Copy checkout link'
+                                            : 'Copy checkout details',
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 8),
 
           // ── Promotion pricing info ────────────────────────────────────────
           Padding(

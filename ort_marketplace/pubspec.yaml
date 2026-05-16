@@ -59,6 +59,7 @@ dependencies:
 
   # URL launching
   url_launcher: ^6.3.1
+  qr_flutter: ^4.1.0
 
   # Push notifications (Firebase Cloud Messaging)
   # NOTE: To enable push notifications you must add:
