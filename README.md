@@ -246,8 +246,8 @@ Required setup:
    - set `MTN_COLLECTION_CALLBACK_HOST` (or `MTN_COLLECTION_CALLBACK_URL`, from which the host is derived) so the backend can create an API user and API key automatically.
 4. For each MTN top-up, the backend:
    - creates an API user with `POST /v1_0/apiuser` when no API user credentials are already configured,
-   - generates an API key with `POST /v1_0/apiuser/{X-Reference-Id}/apikey`,
-   - obtains a bearer token from `POST /collection/token/` using HTTP Basic auth (`username = X-Reference-Id` or configured API user, `password = generated API key`),
+   - generates an API key with `POST /v1_0/apiuser/{api_user_uuid}/apikey`,
+   - obtains a bearer token from `POST /collection/token/` using HTTP Basic auth (`username = api_user_uuid` or configured API user, `password = generated API key`),
    - submits `POST /collection/v1_0/requesttopay` with `amount`, `currency`, `externalId`, and `payer` details.
    - When static MTN credentials are omitted, this provisioning flow runs per request; the generated API user and API key are not persisted by the backend.
    - For production, prefer configuring `MTN_COLLECTION_USER_ID` and `MTN_COLLECTION_API_KEY` to avoid creating a fresh MTN API user on every payment attempt.
