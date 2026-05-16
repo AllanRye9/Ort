@@ -5,7 +5,8 @@ import '../../core/auth_provider.dart';
 
 final _myRfqsProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
   final auth = ref.read(authProvider);
-  if (auth.role != 'user' || auth.userId == null) return const [];
+  if (auth.userId == null) return const [];
+  if (auth.role != 'user') return const [];
   final data = await ref.read(apiServiceProvider).getRFQs(buyerId: auth.userId);
   return data.cast<Map<String, dynamic>>();
 });
