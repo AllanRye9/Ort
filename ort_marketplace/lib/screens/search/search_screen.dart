@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/api_service.dart';
 import '../../core/app_preferences.dart';
 import '../../core/listing_providers.dart';
+import '../../core/friendly_error.dart';
 import '../../models/models.dart';
 import '../../widgets/listing_card.dart';
 
@@ -313,7 +314,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 : resultsAsync.when(
                     loading: () =>
                         const Center(child: CircularProgressIndicator()),
-                    error: (e, _) => Center(child: Text('Error: $e')),
+                    error: (_, __) =>
+                        Center(child: Text(friendlyErrorMessage())),
                     data: (items) {
                       if (items.isEmpty) {
                         return Center(

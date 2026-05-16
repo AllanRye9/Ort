@@ -152,6 +152,16 @@ class MessageDeleteRequest(BaseModel):
     sender_id: int
 
 
+class MessageBodyClearRequest(BaseModel):
+    sender_id: int
+    placeholder: str = "[message body removed]"
+
+
+class ConversationLocationUpdateRequest(BaseModel):
+    actor_id: int
+    location: Optional[str] = None
+
+
 @router.delete("/{message_id}", status_code=status.HTTP_200_OK)
 def delete_message(
     message_id: int,
@@ -167,3 +177,40 @@ def delete_message(
     obj.is_deleted = True
     db.commit()
     return {"message": "Message deleted"}
+
+
+@router.patch("/{message_id}/body", response_model=MessageResponse)
+def clear_message_body(
+    message_id: int,
+    payload: MessageBodyClearRequest,
+    db: Session = Depends(get_db),
+):
+    """Clear only the text body while keeping the message record."""
+    obj = db.query(Message).filter(Message.id == message_id, Message.is_deleted.is_(False)).first()
+    if not obj:
+        raise HTTPException(status_code=404, detail="Message not found")
+    if obj.sender_id != payload.sender_id:
+        raise HTTPException(status_code=403, detail="You can only edit your own messages")
+    stripped = payload.placeholder.strip() if payload.placeholder else ""
+    obj.body = stripped or "[message body removed]"
+    db.commit()
+    db.refresh(obj)
+    return obj
+
+
+@conversations_router.patch("/{conversation_id}/location", response_model=ConversationResponse)
+def update_conversation_location(
+    conversation_id: int,
+    payload: ConversationLocationUpdateRequest,
+    db: Session = Depends(get_db),
+):
+    obj = db.query(Conversation).filter(Conversation.id == conversation_id).first()
+    if not obj:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    if payload.actor_id not in {obj.initiator_id, obj.recipient_id}:
+        raise HTTPException(status_code=403, detail="Not allowed to update this conversation")
+    stripped = payload.location.strip() if payload.location else ""
+    obj.location = stripped or None
+    db.commit()
+    db.refresh(obj)
+    return obj

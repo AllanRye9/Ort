@@ -432,6 +432,21 @@ class ApiService {
     return res.data as Map<String, dynamic>;
   }
 
+  Future<Map<String, dynamic>> updateConversationLocation({
+    required int conversationId,
+    required int actorId,
+    String? location,
+  }) async {
+    final res = await _dio.patch(
+      '/messages/conversations/$conversationId/location',
+      data: {
+        'actor_id': actorId,
+        'location': location,
+      },
+    );
+    return res.data as Map<String, dynamic>;
+  }
+
   Future<List<dynamic>> getMessages(int conversationId) async {
     final res = await _dio
         .get('/messages/', queryParameters: {'conversation_id': conversationId});
@@ -787,6 +802,14 @@ class ApiService {
     await _dio.delete('/messages/$messageId', data: {'sender_id': senderId});
   }
 
+  Future<Map<String, dynamic>> clearMessageBody(int messageId, int senderId) async {
+    final res = await _dio.patch(
+      '/messages/$messageId/body',
+      data: {'sender_id': senderId},
+    );
+    return res.data as Map<String, dynamic>;
+  }
+
   // ─── User lookup by UID ───────────────────────────────────────────────────
 
   Future<Map<String, dynamic>> getUserByUid(String uid) async {
@@ -888,6 +911,14 @@ class ApiService {
 
   Future<Map<String, dynamic>> getUser(int userId) async {
     final res = await _dio.get('/users/$userId');
+    return res.data as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> lookupConversationRecipient(String query) async {
+    final res = await _dio.get(
+      '/users/lookup',
+      queryParameters: {'q': query, 'role_scope': 'business'},
+    );
     return res.data as Map<String, dynamic>;
   }
 

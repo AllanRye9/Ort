@@ -171,6 +171,7 @@ _MIGRATIONS: list[tuple[str, str, str]] = [
     ("product_tracking",        "created_by_user_id", "INTEGER"),
     # Message attachments – store original filename for downloads
     ("messages",                "attachment_filename", "VARCHAR(255)"),
+    ("conversations",           "location",       "VARCHAR(255)"),
     # Listing codes for agriculture, manufacturing products and services
     ("agriculture_listings",    "listing_code",       "VARCHAR(30)"),
     ("agriculture_listings",    "pricing_type",       "VARCHAR(20) DEFAULT 'negotiable'"),
