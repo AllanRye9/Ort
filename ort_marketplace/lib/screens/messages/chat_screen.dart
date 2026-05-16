@@ -701,10 +701,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                                )
                                              : null,
                                        ),
-                                       child: Column(
-                                         crossAxisAlignment:
-                                             CrossAxisAlignment.start,
-                                         mainAxisSize: MainAxisSize.min,
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              isMe
+                                                  ? CrossAxisAlignment.end
+                                                  : CrossAxisAlignment.start,
+                                          mainAxisSize: MainAxisSize.min,
                                          children: [
                                            Text(
                                              senderLabel,
