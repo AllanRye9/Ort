@@ -301,6 +301,7 @@ class _MainShellState extends ConsumerState<MainShell> {
   double _menuFabLeft = 16;
   double _menuFabBottom = 120;
   static const _draggableFabSize = 40.0;
+  static const _menuFabMinBottom = 80.0;
 
   static const _tabs = [
     ('/home', Icons.home_outlined, Icons.home_rounded, 'Home'),
@@ -335,7 +336,7 @@ class _MainShellState extends ConsumerState<MainShell> {
     }
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Navigation is already at Home'),
+        content: Text('Back exit is disabled to prevent accidental app close'),
         duration: Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
       ),
@@ -405,11 +406,16 @@ class _MainShellState extends ConsumerState<MainShell> {
              final maxLeft = (constraints.maxWidth - _draggableFabSize) > 0
                  ? (constraints.maxWidth - _draggableFabSize)
                  : 0.0;
-             final maxBottom = (constraints.maxHeight - _draggableFabSize - 80) > 80
-                 ? (constraints.maxHeight - _draggableFabSize - 80)
-                 : 80.0;
+             final maxBottom =
+                 (constraints.maxHeight - _draggableFabSize - _menuFabMinBottom) >
+                         _menuFabMinBottom
+                     ? (constraints.maxHeight -
+                         _draggableFabSize -
+                         _menuFabMinBottom)
+                     : _menuFabMinBottom;
              _menuFabLeft = _menuFabLeft.clamp(0.0, maxLeft).toDouble();
-             _menuFabBottom = _menuFabBottom.clamp(80.0, maxBottom).toDouble();
+             _menuFabBottom =
+                 _menuFabBottom.clamp(_menuFabMinBottom, maxBottom).toDouble();
              return Stack(
                children: [
                  Positioned.fill(child: widget.child),
@@ -425,7 +431,7 @@ class _MainShellState extends ConsumerState<MainShell> {
                                  .toDouble();
                           _menuFabBottom =
                              (_menuFabBottom - details.delta.dy)
-                                 .clamp(80.0, maxBottom)
+                                 .clamp(_menuFabMinBottom, maxBottom)
                                  .toDouble();
                        });
                      },
