@@ -1,6 +1,4 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'auth_provider.dart';
@@ -300,7 +298,15 @@ class MainShell extends ConsumerStatefulWidget {
 }
 
 class _MainShellState extends ConsumerState<MainShell> {
-  DateTime? _lastBackPress;
+  // Default launch position for the draggable menu button on small screens.
+  static const _initialMenuFabLeft = 16.0;
+  static const _initialMenuFabBottom = 120.0;
+  // Matches FloatingActionButton.small diameter.
+  static const _draggableFabSize = 40.0;
+  // Keep the draggable button above the bottom navigation bar.
+  static const _menuFabMinBottom = 80.0;
+  double _menuFabLeft = _initialMenuFabLeft;
+  double _menuFabBottom = _initialMenuFabBottom;
 
   static const _tabs = [
     ('/home', Icons.home_outlined, Icons.home_rounded, 'Home'),
@@ -328,22 +334,19 @@ class _MainShellState extends ConsumerState<MainShell> {
       router.pop();
       return false;
     }
-    // On the root/home level: require a second tap within
-    // 2 seconds to exit.
-    final now = DateTime.now();
-    if (_lastBackPress == null ||
-        now.difference(_lastBackPress!) > const Duration(seconds: 2)) {
-      _lastBackPress = now;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Press back again to exit'),
-          duration: Duration(seconds: 2),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+    final currentTab = _currentIndex(context);
+    if (currentTab != 0) {
+      context.go('/home');
       return false;
     }
-    return true;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Use menu tabs to navigate; close app from system controls'),
+        duration: Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+    return false;
   }
 
   @override
@@ -400,19 +403,53 @@ class _MainShellState extends ConsumerState<MainShell> {
       canPop: false,
       onPopInvokedWithResult: (didPop, _) async {
         if (didPop) return;
-        final shouldExit = await _onWillPop(context);
-        if (shouldExit && context.mounted) {
-          // SystemNavigator.pop() is Android-only; on web there is no such
-          // concept (and it would throw), so skip it.
-          if (!kIsWeb) await SystemNavigator.pop();
-        }
+        await _onWillPop(context);
       },
       child: Scaffold(
-         body: widget.child,
-         floatingActionButton: FloatingActionButton.small(
-           heroTag: 'global-nav-fab',
-           onPressed: () => _showMobileNavigationSheet(context, role),
-           child: const Icon(Icons.menu),
+         body: LayoutBuilder(
+           builder: (ctx, constraints) {
+             final maxLeft = (constraints.maxWidth - _draggableFabSize) > 0
+                 ? (constraints.maxWidth - _draggableFabSize)
+                 : 0.0;
+             final maxBottom =
+                 (constraints.maxHeight - _draggableFabSize - _menuFabMinBottom) >
+                         _menuFabMinBottom
+                     ? (constraints.maxHeight -
+                         _draggableFabSize -
+                         _menuFabMinBottom)
+                     : _menuFabMinBottom;
+             _menuFabLeft = _menuFabLeft.clamp(0.0, maxLeft).toDouble();
+             _menuFabBottom =
+                 _menuFabBottom.clamp(_menuFabMinBottom, maxBottom).toDouble();
+             return Stack(
+               children: [
+                 Positioned.fill(child: widget.child),
+                 Positioned(
+                   left: _menuFabLeft,
+                   bottom: _menuFabBottom,
+                   child: GestureDetector(
+                     onPanUpdate: (details) {
+                       setState(() {
+                          _menuFabLeft =
+                             (_menuFabLeft + details.delta.dx)
+                                 .clamp(0.0, maxLeft)
+                                 .toDouble();
+                          _menuFabBottom =
+                             (_menuFabBottom - details.delta.dy)
+                                 .clamp(_menuFabMinBottom, maxBottom)
+                                 .toDouble();
+                       });
+                     },
+                     child: FloatingActionButton.small(
+                       heroTag: 'global-nav-fab',
+                       onPressed: () => _showMobileNavigationSheet(context, role),
+                       child: const Icon(Icons.menu),
+                     ),
+                   ),
+                 ),
+               ],
+             );
+           },
          ),
          bottomNavigationBar: NavigationBarTheme(
           data: NavigationBarThemeData(

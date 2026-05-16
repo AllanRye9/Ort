@@ -71,9 +71,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   bool _locationServiceOff = false;
   // whether the user dismissed the location-service-off banner
   bool _locationBannerDismissed = false;
-  // whether the one-time GPS-off dialog has been shown this session
-  bool _locationDialogShown = false;
-
   // Position used for the most recent sort, used to detect >500 m moves.
   (double, double)? _lastSortedLoc;
   // true when user has moved >500 m since the last sort
@@ -179,8 +176,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     if (!serviceEnabled) {
       setState(() => _locationServiceOff = true);
       // Show a one-time dialog prompting the user to enable GPS.
-      if (!_locationDialogShown) {
-        setState(() => _locationDialogShown = true);
+      if (!ref.read(sessionLocationServiceDialogShownProvider)) {
+        ref.read(sessionLocationServiceDialogShownProvider.notifier).state = true;
         _showGpsOffDialog();
       }
       return;
@@ -200,10 +197,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         // see UAE listings, not Uganda's default).
         LocationService.instance
             .reverseGeocodePosition(pos.latitude, pos.longitude)
-            .then((result) {
+            .then((result) async {
           if (!mounted) return;
           if (result?.country != null && result!.country!.isNotEmpty) {
-            ref.read(userCountryProvider.notifier).setCountry(result.country!);
+            final country = result.country!;
+            await ref.read(userCountryProvider.notifier).setCountry(country);
+            if (!mounted) return;
+            final modeNotifier = ref.read(marketplaceModeProvider.notifier);
+            await modeNotifier.waitForLoad();
+            if (!mounted) return;
+            // Respect the user's explicit manual mode choice if one exists.
+            if (modeNotifier.everSelected) return;
+            final isUganda = country.trim().toLowerCase() == 'uganda';
+            final autoMode =
+                isUganda ? MarketplaceMode.local : MarketplaceMode.international;
+            await modeNotifier.setMode(
+              autoMode,
+              locationStatus: ref.read(locationAvailabilityProvider),
+            );
           }
         }).catchError((_) {
           // Reverse geocoding failed – country stays at its persisted value.
@@ -236,8 +247,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         MarketplaceMode.international,
         locationStatus: LocationAvailabilityStatus.denied,
       );
-      if (!_locationDialogShown) {
-        setState(() => _locationDialogShown = true);
+      if (!ref.read(sessionLocationServiceDialogShownProvider)) {
+        ref.read(sessionLocationServiceDialogShownProvider.notifier).state = true;
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
           showDialog<bool>(
@@ -411,7 +422,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final walletPoints = ref.watch(_homeWalletPointsProvider).valueOrNull;
     final marketplaceMode = ref.watch(marketplaceModeProvider);
     final distanceUnit = ref.watch(distanceUnitProvider);
-    final radiusKm = ref.watch(radiusFilterProvider);
     final userCountry = ref.watch(userCountryProvider);
     final locationStatus = ref.watch(locationAvailabilityProvider);
     final offlineFallback = ref.watch(homePropertiesCacheFallbackProvider) ||
@@ -531,11 +541,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         );
                         _invalidateHomeFeeds();
                       },
-                    ),
-                    const SizedBox(height: 8),
-                    _DistanceOverview(
-                      distanceText:
-                          'Distance range: ${radiusKm.toStringAsFixed(0)} ${distanceUnit == DistanceUnit.km ? 'km' : 'mi'}',
                     ),
                     const SizedBox(height: 8),
                     _SearchBar(onTap: () => context.go('/search')),
@@ -1241,38 +1246,6 @@ class _AnimatedCircleButtonState extends State<_AnimatedCircleButton>
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _DistanceOverview extends StatelessWidget {
-  const _DistanceOverview({required this.distanceText});
-  final String distanceText;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: cs.primaryContainer.withValues(alpha: 0.55),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.near_me_outlined, size: 14, color: cs.primary),
-          const SizedBox(width: 6),
-          Text(
-            distanceText,
-            style: TextStyle(
-              fontSize: 12,
-              color: cs.onSurface,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
       ),
     );
   }

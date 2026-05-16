@@ -76,27 +76,38 @@ class OrdersScreen extends ConsumerWidget {
                     subtitle: Text(
                       '${o.items.length} item(s) • ${o.currency} ${o.totalAmount?.toStringAsFixed(2) ?? '-'}',
                     ),
-                    trailing: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: _statusColor(o.status),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            o.status.toUpperCase(),
-                            style: const TextStyle(
-                                color: Colors.white, fontSize: 10),
-                          ),
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: _statusColor(o.status),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                o.status.toUpperCase(),
+                                style: const TextStyle(
+                                    color: Colors.white, fontSize: 10),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              o.paymentStatus.toUpperCase(),
+                              style: const TextStyle(
+                                  color: Colors.grey, fontSize: 10),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          o.paymentStatus.toUpperCase(),
-                          style: const TextStyle(
-                              color: Colors.grey, fontSize: 10),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          tooltip: 'Track order',
+                          icon: const Icon(Icons.local_shipping_outlined),
+                          onPressed: () => ctx.go('/tracking/${o.id}'),
                         ),
                       ],
                     ),
