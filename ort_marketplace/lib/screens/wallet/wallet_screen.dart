@@ -5,15 +5,18 @@ import '../../core/app_preferences.dart';
 import '../../models/models.dart';
 
 String _currencyForCountry(String country) {
-  final c = country.toLowerCase();
-  if (c.contains('uganda')) return 'UGX';
-  if (c.contains('kenya')) return 'KES';
-  if (c.contains('tanzania')) return 'TZS';
-  if (c.contains('rwanda')) return 'RWF';
-  if (c.contains('united arab emirates') || c.contains('uae')) return 'AED';
-  if (c.contains('united kingdom')) return 'GBP';
-  if (c.contains('europe')) return 'EUR';
-  return 'USD';
+  const exact = <String, String>{
+    'uganda': 'UGX',
+    'kenya': 'KES',
+    'tanzania': 'TZS',
+    'rwanda': 'RWF',
+    'united arab emirates': 'AED',
+    'uae': 'AED',
+    'united kingdom': 'GBP',
+    'uk': 'GBP',
+  };
+  final key = country.trim().toLowerCase();
+  return exact[key] ?? 'USD';
 }
 
 final _walletProvider = FutureProvider.autoDispose<WalletModel>((ref) async {
@@ -411,13 +414,13 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                               : digits;
                         }
                         Navigator.pop(ctx);
-                         await _doTopup(
-                           amount: amt,
-                           method: selectedMethod!,
-                           currency:
-                               _currencyForCountry(ref.read(userCountryProvider)),
-                           reference: reference,
-                         );
+                        await _doTopup(
+                          amount: amt,
+                          method: selectedMethod!,
+                          currency:
+                              _currencyForCountry(ref.read(userCountryProvider)),
+                          reference: reference,
+                        );
                       },
               ),
             ],
@@ -541,7 +544,7 @@ class _WalletScreenState extends ConsumerState<WalletScreen> {
                       const SizedBox(height: 4),
                       walletAsync.when(
                         data: (w) => Text(
-                          '1 point = 1,000 UGX (rate ${w.exchangeRate.toStringAsFixed(4)} ${w.displayCurrency}/UGX)',
+                          '1 point = 1,000 UGX (Exchange rate: ${w.exchangeRate.toStringAsFixed(4)} ${w.displayCurrency} per UGX)',
                           style: const TextStyle(color: Colors.white60, fontSize: 11),
                         ),
                         loading: () => const SizedBox.shrink(),
