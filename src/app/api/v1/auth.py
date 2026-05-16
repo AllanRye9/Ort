@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from passlib.context import CryptContext
 from jose import jwt
 from pydantic import BaseModel, Field
+from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError, DataError
 from sqlalchemy.orm import Session
 
@@ -32,6 +33,10 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
 
 
+def _normalize_email(value: str) -> str:
+    return value.strip().lower()
+
+
 def _create_access_token(data: dict) -> str:
     to_encode = data.copy()
     expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -54,7 +59,8 @@ def _make_unique_slug(db: Session, base: str) -> str:
 
 @router.post("/login", response_model=TokenResponse)
 def login(payload: LoginRequest, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == payload.email).first()
+    normalized_email = _normalize_email(str(payload.email))
+    user = db.query(User).filter(func.lower(User.email) == normalized_email).first()
     try:
         password_matches = user and pwd_context.verify(payload.password, user.password_hash)
     except ValueError:
@@ -81,8 +87,10 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
     - **organization**: creates a User account and a Tenant whose type is
       determined by ``org_type`` (ngo | government | enterprise | sme).
     """
+    normalized_email = _normalize_email(str(payload.email))
+
     # Prevent duplicate emails
-    if db.query(User).filter(User.email == payload.email).first():
+    if db.query(User).filter(func.lower(User.email) == normalized_email).first():
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="An account with this email already exists",
@@ -109,7 +117,7 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
         role=effective_role,
         first_name=payload.first_name.strip(),
         last_name=payload.last_name.strip(),
-        email=payload.email,
+        email=normalized_email,
         phone=payload.phone,
         password_hash=password_hash,
         license_number=payload.license_number,
@@ -171,7 +179,11 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
             slug=slug,
             tenant_type=tenant_type,
             phone=payload.business_phone or payload.phone,
-            email=str(payload.business_email) if payload.business_email else payload.email,
+            email=(
+                _normalize_email(str(payload.business_email))
+                if payload.business_email
+                else normalized_email
+            ),
             address=payload.address,
             country=payload.country,
         )
@@ -230,7 +242,7 @@ def admin_login(payload: AdminLoginRequest, db: Session = Depends(get_db)):
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Admin credentials are not configured on this server.",
         )
-    login_identifier = payload.username.lower()
+    login_identifier = _normalize_email(payload.username)
     email_match = admin_user.email.lower() == login_identifier
     uid_match = (admin_user.user_uid or "").lower() == login_identifier
     if not (email_match or uid_match):
@@ -273,8 +285,13 @@ def admin_setup(payload: AdminSetupRequest, db: Session = Depends(get_db)):
             status_code=status.HTTP_409_CONFLICT,
             detail="An admin account already exists.",
         )
-    admin_email = payload.username if "@" in payload.username else f"{payload.username}@ort.admin"
-    if db.query(User).filter(User.email == admin_email).first():
+    normalized_username = payload.username.strip().lower()
+    admin_email = (
+        normalized_username
+        if "@" in normalized_username
+        else f"{normalized_username}@ort.admin"
+    )
+    if db.query(User).filter(func.lower(User.email) == admin_email).first():
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="An account with that username already exists.",

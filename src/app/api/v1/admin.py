@@ -4,6 +4,7 @@ All endpoints require the caller to be authenticated with role == 'admin'.
 """
 import logging
 import os
+from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import List, Optional
 
@@ -21,8 +22,9 @@ from app.models.models import (
 )
 from app.models.marketplace_models import (
     AdminLog, AgricultureListing, ManufacturingProduct,
-    Message, Notification, Order, SupportTicket, Tenant,
+    Message, Notification, Order, ProductTracking, SupportTicket, Tenant,
 )
+from app.utils.countries import normalize_country_name
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -136,6 +138,133 @@ def get_dashboard_stats(
         "total_support_tickets": total_tickets,
         "total_agriculture_listings": total_agriculture,
         "total_manufacturing_products": total_manufacturing,
+    }
+
+
+def _extract_country_from_location(raw: Optional[str]) -> Optional[str]:
+    if not raw:
+        return None
+    parts = [part.strip() for part in raw.split(",") if part.strip()]
+    if not parts:
+        return None
+    return normalize_country_name(parts[-1])
+
+
+@router.get("/dashboard/location-analytics")
+def get_dashboard_location_analytics(
+    days: int = Query(30, ge=1, le=365),
+    top_n: int = Query(10, ge=3, le=25),
+    admin: User = Depends(_get_admin_user),
+    db: Session = Depends(get_db),
+):
+    """Location and country analytics for tracking and marketplace activity."""
+    since = datetime.utcnow() - timedelta(days=days)
+
+    tracking_events = (
+        db.query(
+            ProductTracking.id,
+            ProductTracking.order_id,
+            ProductTracking.listing_type,
+            ProductTracking.listing_id,
+            ProductTracking.status,
+            ProductTracking.location,
+            ProductTracking.created_at,
+        )
+        .filter(ProductTracking.created_at >= since)
+        .order_by(
+            ProductTracking.order_id.asc(),
+            ProductTracking.listing_type.asc(),
+            ProductTracking.listing_id.asc(),
+            ProductTracking.created_at.asc(),
+        )
+        .all()
+    )
+
+    location_counts: dict[str, int] = defaultdict(int)
+    country_counts: dict[str, int] = defaultdict(int)
+    transition_counts: dict[tuple[str, str], int] = defaultdict(int)
+    last_status_per_resource: dict[str, str] = {}
+
+    for event in tracking_events:
+        location = (event.location or "").strip()
+        if location:
+            location_counts[location] += 1
+            country = _extract_country_from_location(location)
+            if country:
+                country_counts[country] += 1
+
+        status = (event.status or "").strip()
+        if not status:
+            continue
+        if event.order_id is not None:
+            resource_key = f"order:{event.order_id}"
+        elif event.listing_type and event.listing_id is not None:
+            resource_key = f"{event.listing_type}:{event.listing_id}"
+        else:
+            resource_key = f"event:{event.id}"
+        previous = last_status_per_resource.get(resource_key)
+        if previous and previous != status:
+            transition_counts[(previous, status)] += 1
+        last_status_per_resource[resource_key] = status
+
+    agri_locations = (
+        db.query(AgricultureListing.location)
+        .filter(
+            AgricultureListing.created_at >= since,
+            AgricultureListing.is_deleted == False,  # noqa: E712
+        )
+        .all()
+    )
+    manufacturing_countries = (
+        db.query(ManufacturingProduct.country_of_origin)
+        .filter(
+            ManufacturingProduct.created_at >= since,
+            ManufacturingProduct.is_deleted == False,  # noqa: E712
+        )
+        .all()
+    )
+
+    listing_country_counts: dict[str, int] = defaultdict(int)
+    for (location,) in agri_locations:
+        country = _extract_country_from_location(location)
+        if country:
+            listing_country_counts[country] += 1
+    for (country_of_origin,) in manufacturing_countries:
+        country = normalize_country_name(country_of_origin)
+        if country:
+            listing_country_counts[country] += 1
+
+    top_locations = sorted(
+        location_counts.items(), key=lambda item: (-item[1], item[0].lower())
+    )[:top_n]
+    top_tracking_countries = sorted(
+        country_counts.items(), key=lambda item: (-item[1], item[0].lower())
+    )[:top_n]
+    top_listing_countries = sorted(
+        listing_country_counts.items(), key=lambda item: (-item[1], item[0].lower())
+    )[:top_n]
+    top_transitions = sorted(
+        transition_counts.items(), key=lambda item: (-item[1], item[0][0], item[0][1])
+    )[:top_n]
+
+    return {
+        "period_days": days,
+        "tracking_event_count": len(tracking_events),
+        "top_tracking_locations": [
+            {"location": location, "count": count} for location, count in top_locations
+        ],
+        "top_tracking_countries": [
+            {"country": country, "count": count}
+            for country, count in top_tracking_countries
+        ],
+        "top_listing_countries": [
+            {"country": country, "count": count}
+            for country, count in top_listing_countries
+        ],
+        "tracking_status_transitions": [
+            {"from_status": source, "to_status": target, "count": count}
+            for (source, target), count in top_transitions
+        ],
     }
 
 
