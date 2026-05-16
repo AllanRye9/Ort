@@ -1,6 +1,4 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'auth_provider.dart';
@@ -301,6 +299,8 @@ class MainShell extends ConsumerStatefulWidget {
 
 class _MainShellState extends ConsumerState<MainShell> {
   DateTime? _lastBackPress;
+  double _menuFabLeft = 16;
+  double _menuFabBottom = 120;
 
   static const _tabs = [
     ('/home', Icons.home_outlined, Icons.home_rounded, 'Home'),
@@ -330,20 +330,25 @@ class _MainShellState extends ConsumerState<MainShell> {
     }
     // On the root/home level: require a second tap within
     // 2 seconds to exit.
+    final currentTab = _currentIndex(context);
+    if (currentTab != 0) {
+      context.go('/home');
+      return false;
+    }
     final now = DateTime.now();
     if (_lastBackPress == null ||
         now.difference(_lastBackPress!) > const Duration(seconds: 2)) {
       _lastBackPress = now;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Press back again to exit'),
+          content: Text('You are already on Home'),
           duration: Duration(seconds: 2),
           behavior: SnackBarBehavior.floating,
         ),
       );
       return false;
     }
-    return true;
+    return false;
   }
 
   @override
@@ -400,19 +405,49 @@ class _MainShellState extends ConsumerState<MainShell> {
       canPop: false,
       onPopInvokedWithResult: (didPop, _) async {
         if (didPop) return;
-        final shouldExit = await _onWillPop(context);
-        if (shouldExit && context.mounted) {
-          // SystemNavigator.pop() is Android-only; on web there is no such
-          // concept (and it would throw), so skip it.
-          if (!kIsWeb) await SystemNavigator.pop();
-        }
+        await _onWillPop(context);
       },
       child: Scaffold(
-         body: widget.child,
-         floatingActionButton: FloatingActionButton.small(
-           heroTag: 'global-nav-fab',
-           onPressed: () => _showMobileNavigationSheet(context, role),
-           child: const Icon(Icons.menu),
+         body: LayoutBuilder(
+           builder: (ctx, constraints) {
+             const fabSize = 40.0;
+             final maxLeft = (constraints.maxWidth - fabSize) > 0
+                 ? (constraints.maxWidth - fabSize)
+                 : 0.0;
+             final maxBottom = (constraints.maxHeight - fabSize - 80) > 80
+                 ? (constraints.maxHeight - fabSize - 80)
+                 : 80.0;
+             _menuFabLeft = _menuFabLeft.clamp(0.0, maxLeft).toDouble();
+             _menuFabBottom = _menuFabBottom.clamp(80.0, maxBottom).toDouble();
+             return Stack(
+               children: [
+                 Positioned.fill(child: widget.child),
+                 Positioned(
+                   left: _menuFabLeft,
+                   bottom: _menuFabBottom,
+                   child: GestureDetector(
+                     onPanUpdate: (details) {
+                       setState(() {
+                          _menuFabLeft =
+                             (_menuFabLeft + details.delta.dx)
+                                 .clamp(0.0, maxLeft)
+                                 .toDouble();
+                          _menuFabBottom =
+                             (_menuFabBottom - details.delta.dy)
+                                 .clamp(80.0, maxBottom)
+                                 .toDouble();
+                       });
+                     },
+                     child: FloatingActionButton.small(
+                       heroTag: 'global-nav-fab',
+                       onPressed: () => _showMobileNavigationSheet(context, role),
+                       child: const Icon(Icons.menu),
+                     ),
+                   ),
+                 ),
+               ],
+             );
+           },
          ),
          bottomNavigationBar: NavigationBarTheme(
           data: NavigationBarThemeData(

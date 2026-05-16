@@ -354,6 +354,26 @@ class _ReadView extends StatelessWidget {
                   },
                 ),
               ),
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.symmetric(horizontal: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.red.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.red.withValues(alpha: 0.22)),
+                ),
+                child: Text(
+                  'Danger Zone',
+                  style: TextStyle(
+                    color: Colors.red[800],
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
               Consumer(
                 builder: (ctx, ref, _) => _ProfileTile(
                   icon: Icons.delete_forever_outlined,
