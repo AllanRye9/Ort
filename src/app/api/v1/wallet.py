@@ -160,7 +160,10 @@ def _points_to_ugx(points: int) -> int:
 def _get_mtn_subscription_keys() -> list[str]:
     """Return MTN subscription keys in primary, secondary, then legacy order.
 
-    Duplicate values are removed while preserving that priority.
+    Reads `MTN_COLLECTION_PRIMARY_SUBSCRIPTION_KEY`,
+    `MTN_COLLECTION_SECONDARY_SUBSCRIPTION_KEY`, then the legacy
+    `MTN_COLLECTION_SUBSCRIPTION_KEY`. Duplicate or empty values are removed
+    while preserving that priority.
     """
     keys = [
         os.getenv("MTN_COLLECTION_PRIMARY_SUBSCRIPTION_KEY"),
@@ -237,10 +240,13 @@ def _post_mtn_request(
             continue
         return response, subscription_key
     if last_response is None:
-        raise RuntimeError(
-            "MTN request failed because no subscription keys were provided. "
-            "Set MTN_COLLECTION_PRIMARY_SUBSCRIPTION_KEY or "
-            "MTN_COLLECTION_SECONDARY_SUBSCRIPTION_KEY."
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=(
+                "MTN request failed because no subscription keys were "
+                "provided. Set MTN_COLLECTION_PRIMARY_SUBSCRIPTION_KEY or "
+                "MTN_COLLECTION_SECONDARY_SUBSCRIPTION_KEY."
+            ),
         )
     return last_response, last_key
 
@@ -251,7 +257,11 @@ def _provision_mtn_api_user(
     subscription_keys: list[str],
     callback_host: str | None,
 ) -> tuple[str, str]:
-    """Create an MTN API user and API key, returning `(api_user, api_key)`."""
+    """Create an MTN API user and API key, returning `(api_user, api_key)`.
+
+    Raises HTTPException with status 503 for missing callback configuration and
+    502 for MTN provisioning or API key generation failures.
+    """
     if not callback_host:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
