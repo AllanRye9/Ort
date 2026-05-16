@@ -158,6 +158,10 @@ def _points_to_ugx(points: int) -> int:
 
 
 def _get_mtn_subscription_keys() -> list[str]:
+    """Return MTN subscription keys in primary, secondary, then legacy order.
+
+    Duplicate values are removed while preserving that priority.
+    """
     keys = [
         os.getenv("MTN_COLLECTION_PRIMARY_SUBSCRIPTION_KEY"),
         os.getenv("MTN_COLLECTION_SECONDARY_SUBSCRIPTION_KEY"),
@@ -171,6 +175,7 @@ def _get_mtn_subscription_keys() -> list[str]:
 
 
 def _get_mtn_callback_host() -> str | None:
+    """Return the MTN callback host used during API user provisioning."""
     callback_host = os.getenv("MTN_COLLECTION_CALLBACK_HOST")
     if callback_host:
         return callback_host
@@ -192,6 +197,7 @@ def _post_mtn_request(
     headers: dict[str, str] | None = None,
     json: dict | None = None,
 ) -> tuple[httpx.Response, str]:
+    """POST to MTN with ordered subscription keys, retrying on auth failure."""
     base_headers = headers or {}
     last_response: httpx.Response | None = None
     last_key = ""
@@ -232,6 +238,7 @@ def _provision_mtn_api_user(
     subscription_keys: list[str],
     callback_host: str | None,
 ) -> tuple[str, str]:
+    """Create an MTN API user and API key, returning `(api_user, api_key)`."""
     if not callback_host:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
