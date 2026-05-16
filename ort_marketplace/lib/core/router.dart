@@ -298,9 +298,12 @@ class MainShell extends ConsumerStatefulWidget {
 }
 
 class _MainShellState extends ConsumerState<MainShell> {
+  // Default launch position for the draggable menu button on small screens.
   static const _initialMenuFabLeft = 16.0;
   static const _initialMenuFabBottom = 120.0;
+  // Matches FloatingActionButton.small diameter.
   static const _draggableFabSize = 40.0;
+  // Keep the draggable button above the bottom navigation bar.
   static const _menuFabMinBottom = 80.0;
   double _menuFabLeft = _initialMenuFabLeft;
   double _menuFabBottom = _initialMenuFabBottom;
@@ -338,7 +341,7 @@ class _MainShellState extends ConsumerState<MainShell> {
     }
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Back exit is disabled to prevent accidental app close'),
+        content: Text('Use menu tabs to navigate; close app from system controls'),
         duration: Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
       ),
