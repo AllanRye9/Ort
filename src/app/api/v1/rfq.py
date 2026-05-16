@@ -67,6 +67,8 @@ def create_rfq(payload: RFQCreate, db: Session = Depends(get_db)):
             raise HTTPException(status_code=404, detail="Property not found")
         if prop.pricing_type == "fixed":
             raise HTTPException(status_code=400, detail="Bidding is disabled for this listing")
+        if payload.buyer_id is not None and prop.agent_id == payload.buyer_id:
+            raise HTTPException(status_code=400, detail="You cannot bid on your own listing")
     obj = RFQ(**payload.model_dump())
     db.add(obj)
     db.flush()
@@ -79,6 +81,8 @@ def create_rfq(payload: RFQCreate, db: Session = Depends(get_db)):
             .first()
         )
         seller_owner_id = tenant.owner_user_id if tenant else None
+        if payload.buyer_id is not None and seller_owner_id == payload.buyer_id:
+            raise HTTPException(status_code=400, detail="You cannot bid on your own listing")
 
     buyer = None
     if payload.buyer_id is not None:

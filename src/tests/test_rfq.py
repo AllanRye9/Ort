@@ -16,6 +16,13 @@ RFQ_PAYLOAD = {
     "currency": "USD",
 }
 
+TENANT_PAYLOAD = {
+    "name": "RFQ Seller",
+    "slug": "rfq-seller",
+    "tenant_type": "sme",
+    "email": "rfq.seller@example.com",
+}
+
 PROPERTY_PAYLOAD = {
     "title": "Fixed Price Property",
     "property_type": "house",
@@ -27,6 +34,15 @@ PROPERTY_PAYLOAD = {
 
 def _create_user(client):
     resp = client.post("/api/v1/users/", json=USER_PAYLOAD)
+    assert resp.status_code == 201, resp.text
+    return resp.json()
+
+
+def _create_tenant(client, owner_user_id):
+    resp = client.post(
+        "/api/v1/tenants/",
+        json={**TENANT_PAYLOAD, "owner_user_id": owner_user_id},
+    )
     assert resp.status_code == 201, resp.text
     return resp.json()
 
@@ -107,3 +123,41 @@ def test_create_property_bid_rejects_fixed_pricing(client):
         },
     )
     assert resp.status_code == 400
+
+
+def test_create_property_bid_rejects_own_listing(client):
+    user = _create_user(client)
+    prop_resp = client.post(
+        "/api/v1/properties/",
+        json={**PROPERTY_PAYLOAD, "agent_id": user["id"], "pricing_type": "negotiable"},
+    )
+    assert prop_resp.status_code == 201, prop_resp.text
+    prop = prop_resp.json()
+
+    resp = client.post(
+        "/api/v1/rfq/",
+        json={
+            "title": "Own listing bid",
+            "buyer_id": user["id"],
+            "property_id": prop["id"],
+            "target_price": "200000.00",
+            "currency": "USD",
+        },
+    )
+    assert resp.status_code == 400
+    assert resp.json()["detail"] == "You cannot bid on your own listing"
+
+
+def test_create_rfq_rejects_same_tenant_owner(client):
+    user = _create_user(client)
+    tenant = _create_tenant(client, user["id"])
+    resp = client.post(
+        "/api/v1/rfq/",
+        json={
+            **RFQ_PAYLOAD,
+            "buyer_id": user["id"],
+            "seller_tenant_id": tenant["id"],
+        },
+    )
+    assert resp.status_code == 400
+    assert resp.json()["detail"] == "You cannot bid on your own listing"

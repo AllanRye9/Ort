@@ -105,17 +105,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     }
 
     // Derive currency from the property's country if available.
-    final country = p.country?.toLowerCase();
-    final currencySymbol = country == 'uganda'
-        ? 'UGX '
-        : country == 'united arab emirates'
-            ? 'AED '
-            : '\$';
-    final currencyCode = country == 'uganda'
-        ? 'UGX'
-        : country == 'united arab emirates'
-            ? 'AED'
-            : 'USD';
+    final currencySymbol = currencyPrefixForCountry(p.country);
+    final currencyCode = currencyCodeForCountry(p.country);
 
     final bidCtrl =
         TextEditingController(text: p.price.toStringAsFixed(0));
@@ -305,6 +296,15 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
           ),
         );
       }
+      return;
+    }
+    if (agentId == userId) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('You cannot chat about your own listing.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
       return;
     }
 

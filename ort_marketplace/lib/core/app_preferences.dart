@@ -239,6 +239,8 @@ enum LocationAvailabilityStatus {
 final locationAvailabilityProvider =
     StateProvider<LocationAvailabilityStatus>((_) => LocationAvailabilityStatus.unknown);
 
+final sessionLocationPromptHandledProvider = StateProvider<bool>((_) => false);
+
 // ─── User country ─────────────────────────────────────────────────────────────
 
 /// The user's current country, auto-detected by GPS or manually set.
@@ -257,9 +259,10 @@ class UserCountryNotifier extends StateNotifier<String> {
   }
 
   Future<void> setCountry(String country) async {
-    state = country;
+    final normalized = normalizeCountryName(country) ?? country;
+    state = normalized;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_kUserCountryKey, country);
+    await prefs.setString(_kUserCountryKey, normalized);
   }
 
   /// Auto-detect the user's country from GPS.

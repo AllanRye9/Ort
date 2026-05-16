@@ -114,6 +114,15 @@ class _ManufacturingDetailScreenState extends ConsumerState<ManufacturingDetailS
         }
         return;
       }
+      if (recipientId == userId) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('You cannot chat about your own listing.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return;
+      }
       final convId = await api.findOrCreateConversation(
         initiatorId: userId,
         recipientId: recipientId,
@@ -222,6 +231,15 @@ class _ManufacturingDetailScreenState extends ConsumerState<ManufacturingDetailS
       ),
     );
     if (result == null || !mounted) return;
+    if (m.ownerUserId == userId) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('You cannot bid on your own listing.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
     try {
       await ref.read(apiServiceProvider).createRFQ({
         'title': 'Quote request for ${m.title}',

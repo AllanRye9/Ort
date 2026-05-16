@@ -69,3 +69,20 @@ def test_delete_agriculture_listing(client):
     resp = client.delete(f"/api/v1/agriculture/{listing['id']}")
     assert resp.status_code == 200
     assert client.get(f"/api/v1/agriculture/{listing['id']}").status_code == 404
+
+
+def test_filter_agriculture_matches_uae_alias(client):
+    tenant = _create_tenant(client)
+    created = client.post(
+        "/api/v1/agriculture/",
+        json={
+            **LISTING_BASE,
+            "tenant_id": tenant["id"],
+            "location": "Dubai, United Arab Emirates",
+        },
+    )
+    assert created.status_code == 201, created.text
+
+    resp = client.get("/api/v1/agriculture/", params={"country": "UAE"})
+    assert resp.status_code == 200
+    assert len(resp.json()) == 1

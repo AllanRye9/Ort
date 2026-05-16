@@ -812,6 +812,20 @@ class ApiService {
     await _dio.delete('/messages/$messageId', data: {'sender_id': senderId});
   }
 
+  Future<int> bulkDeleteMessages({
+    required int senderId,
+    required List<int> messageIds,
+  }) async {
+    final res = await _dio.post(
+      '/messages/bulk-delete',
+      data: {
+        'sender_id': senderId,
+        'message_ids': messageIds,
+      },
+    );
+    return (res.data as Map<String, dynamic>)['count'] as int? ?? 0;
+  }
+
   Future<Map<String, dynamic>> clearMessageBody(int messageId, int senderId) async {
     final res = await _dio.patch(
       '/messages/$messageId/body',

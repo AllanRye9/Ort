@@ -27,6 +27,51 @@ final _propertyImageProvider =
 class ConversationsScreen extends ConsumerWidget {
   const ConversationsScreen({super.key});
 
+  Future<void> _confirmDeleteConversation(
+    BuildContext context,
+    WidgetRef ref,
+    ConversationModel conversation,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete conversation?'),
+        content: Text(
+          'Delete "${conversation.subject ?? 'Conversation #${conversation.id}'}" and its messages?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(
+              'Delete',
+              style: TextStyle(color: Theme.of(ctx).colorScheme.error),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    final actorId = ref.read(authProvider).userId;
+    if (actorId == null) return;
+    try {
+      await ref.read(apiServiceProvider).deleteConversation(
+            conversationId: conversation.id,
+            actorId: actorId,
+          );
+      ref.invalidate(_conversationsProvider);
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(friendlyErrorMessage(error))),
+        );
+      }
+    }
+  }
+
   Future<void> _showNewConversationDialog(
       BuildContext context, WidgetRef ref) async {
     final subjectCtrl = TextEditingController();
@@ -120,10 +165,10 @@ class ConversationsScreen extends ConsumerWidget {
       ref.invalidate(_conversationsProvider);
       final conversationId = data['id'] as int;
       if (context.mounted) context.go('/messages/$conversationId');
-    } catch (_) {
+    } catch (error) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(friendlyErrorMessage())),
+          SnackBar(content: Text(friendlyErrorMessage(error))),
         );
       }
     }
@@ -168,12 +213,51 @@ class ConversationsScreen extends ConsumerWidget {
             location: ctrl.text.trim().isEmpty ? null : ctrl.text.trim(),
           );
       ref.invalidate(_conversationsProvider);
-    } catch (_) {
+    } catch (error) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(friendlyErrorMessage())),
+          SnackBar(content: Text(friendlyErrorMessage(error))),
         );
       }
+    }
+  }
+
+  Future<void> _showConversationActions(
+    BuildContext context,
+    WidgetRef ref,
+    ConversationModel conversation,
+  ) async {
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      builder: (sheetCtx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.chat_bubble_outline),
+              title: const Text('Open thread'),
+              onTap: () => Navigator.pop(sheetCtx, 'open'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.place_outlined),
+              title: const Text('Update location'),
+              onTap: () => Navigator.pop(sheetCtx, 'location'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline),
+              title: const Text('Delete conversation'),
+              onTap: () => Navigator.pop(sheetCtx, 'delete'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (action == 'open' && context.mounted) {
+      context.go('/messages/${conversation.id}');
+    } else if (action == 'location') {
+      await _editConversationLocation(context, ref, conversation);
+    } else if (action == 'delete') {
+      await _confirmDeleteConversation(context, ref, conversation);
     }
   }
 
@@ -232,16 +316,10 @@ class ConversationsScreen extends ConsumerWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        tooltip: 'Update location',
-                        onPressed: () => _editConversationLocation(context, ref, c),
-                        icon: const Icon(Icons.place_outlined, size: 20),
-                      ),
-                      const Icon(Icons.chevron_right),
-                    ],
+                  trailing: IconButton(
+                    tooltip: 'More actions',
+                    onPressed: () => _showConversationActions(context, ref, c),
+                    icon: const Icon(Icons.chevron_right),
                   ),
                   onTap: () => ctx.go('/messages/${c.id}'),
                 );

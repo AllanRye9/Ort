@@ -12,6 +12,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/api_service.dart';
 import '../../core/auth_provider.dart';
 import '../../core/friendly_error.dart';
+import '../../core/location_service.dart';
 import '../../models/models.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
@@ -32,6 +33,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   bool _loading = true;
   String? _error;
   List<MessageModel> _messages = [];
+  bool _selectionMode = false;
+  bool _showNewestFirst = false;
+  final Set<int> _selectedMessageIds = <int>{};
   Timer? _pollTimer;
 
   @override
@@ -84,17 +88,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
           .getMessages(widget.conversationId);
       if (mounted) {
         setState(() {
-          _messages = data
-              .map((e) => MessageModel.fromJson(e as Map<String, dynamic>))
-              .toList();
+          _messages = _sortMessages(
+            data
+                .map((e) => MessageModel.fromJson(e as Map<String, dynamic>))
+                .toList(),
+          );
           _loading = false;
         });
-        _scrollToTop();
+        _scrollToLatest();
       }
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = friendlyErrorMessage();
+          _error = friendlyErrorMessage(e);
           _loading = false;
         });
       }
@@ -107,26 +113,50 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
           .read(apiServiceProvider)
           .getMessages(widget.conversationId);
       if (!mounted) return;
-      final updated = data
-          .map((e) => MessageModel.fromJson(e as Map<String, dynamic>))
-          .toList();
-      final currentNewestId = _messages.isNotEmpty ? _messages.first.id : null;
-      final fetchedNewestId = updated.isNotEmpty ? updated.first.id : null;
+      final updated = _sortMessages(
+        data
+            .map((e) => MessageModel.fromJson(e as Map<String, dynamic>))
+            .toList(),
+      );
+      final currentNewestId = _messages.isNotEmpty
+          ? (_showNewestFirst ? _messages.first.id : _messages.last.id)
+          : null;
+      final fetchedNewestId = updated.isNotEmpty
+          ? (_showNewestFirst ? updated.first.id : updated.last.id)
+          : null;
       if (fetchedNewestId != currentNewestId ||
           updated.length != _messages.length) {
-        setState(() => _messages = updated);
-        _scrollToTop();
+        setState(() {
+          _messages = updated;
+          _selectedMessageIds.removeWhere(
+            (id) => !_messages.any((message) => message.id == id),
+          );
+          if (_selectedMessageIds.isEmpty) _selectionMode = false;
+        });
+        _scrollToLatest();
       }
     } catch (_) {
       // Silently ignore polling errors to avoid spamming the user
     }
   }
 
-  void _scrollToTop() {
+  List<MessageModel> _sortMessages(List<MessageModel> items) {
+    final copy = [...items];
+    copy.sort((a, b) {
+      final byTime = a.sentAt.compareTo(b.sentAt);
+      if (byTime != 0) return byTime;
+      return a.id.compareTo(b.id);
+    });
+    return _showNewestFirst ? copy.reversed.toList() : copy;
+  }
+
+  void _scrollToLatest() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
-          _scrollController.position.minScrollExtent,
+          _showNewestFirst
+              ? _scrollController.position.minScrollExtent
+              : _scrollController.position.maxScrollExtent,
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeOut,
         );
@@ -160,11 +190,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       final userId = ref.read(authProvider).userId;
       await ref.read(apiServiceProvider).deleteMessage(messageId, userId!);
       setState(() => _messages.removeWhere((m) => m.id == messageId));
-    } catch (_) {
+    } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(friendlyErrorMessage()),
+            content: Text(friendlyErrorMessage(error)),
             backgroundColor: Theme.of(context).colorScheme.error,
             behavior: SnackBarBehavior.floating,
           ),
@@ -205,15 +235,95 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
             actorId: userId,
           );
       if (mounted) context.go('/messages');
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(friendlyErrorMessage()),
+          content: Text(friendlyErrorMessage(error)),
           backgroundColor: Theme.of(context).colorScheme.error,
           behavior: SnackBarBehavior.floating,
         ),
       );
+    }
+  }
+
+  void _toggleSelection(MessageModel message) {
+    final currentUserId = ref.read(authProvider).userId;
+    if (message.senderId != currentUserId) return;
+    setState(() {
+      _selectionMode = true;
+      if (_selectedMessageIds.contains(message.id)) {
+        _selectedMessageIds.remove(message.id);
+      } else {
+        _selectedMessageIds.add(message.id);
+      }
+      if (_selectedMessageIds.isEmpty) _selectionMode = false;
+    });
+  }
+
+  Future<void> _deleteSelectedMessages() async {
+    final userId = ref.read(authProvider).userId;
+    if (userId == null || _selectedMessageIds.isEmpty) return;
+    try {
+      await ref.read(apiServiceProvider).bulkDeleteMessages(
+            senderId: userId,
+            messageIds: _selectedMessageIds.toList(),
+          );
+      setState(() {
+        _messages.removeWhere((message) => _selectedMessageIds.contains(message.id));
+        _selectedMessageIds.clear();
+        _selectionMode = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(friendlyErrorMessage(error)),
+          backgroundColor: Theme.of(context).colorScheme.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  Future<void> _showThreadActions() async {
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      builder: (sheetCtx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.select_all_outlined),
+              title: const Text('Select messages'),
+              onTap: () => Navigator.pop(sheetCtx, 'select'),
+            ),
+            ListTile(
+              leading: Icon(
+                _showNewestFirst ? Icons.south_rounded : Icons.north_rounded,
+              ),
+              title: Text(_showNewestFirst ? 'Show oldest first' : 'Show newest first'),
+              onTap: () => Navigator.pop(sheetCtx, 'sort'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_sweep_outlined),
+              title: const Text('Delete conversation'),
+              onTap: () => Navigator.pop(sheetCtx, 'conversation'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (action == 'select') {
+      setState(() => _selectionMode = true);
+    } else if (action == 'sort') {
+      setState(() {
+        _showNewestFirst = !_showNewestFirst;
+        _messages = _sortMessages(_messages);
+      });
+      _scrollToLatest();
+    } else if (action == 'conversation') {
+      await _confirmDeleteConversation();
     }
   }
 
@@ -252,11 +362,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         final idx = _messages.indexWhere((m) => m.id == messageId);
         if (idx >= 0) _messages[idx] = msg;
       });
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(friendlyErrorMessage()),
+          content: Text(friendlyErrorMessage(error)),
           backgroundColor: Theme.of(context).colorScheme.error,
           behavior: SnackBarBehavior.floating,
         ),
@@ -267,10 +377,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   Future<void> _send() async {
     final text = _controller.text.trim();
     if (text.isEmpty || _sending) return;
+    final userId = ref.read(authProvider).userId;
+    if (userId == null) return;
 
     setState(() => _sending = true);
     try {
-      final userId = ref.read(authProvider).userId;
       await ref.read(apiServiceProvider).sendMessage({
         'conversation_id': widget.conversationId,
         'sender_id': userId,
@@ -284,17 +395,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
           .getMessages(widget.conversationId);
       if (mounted) {
         setState(() {
-          _messages = data
-              .map((e) => MessageModel.fromJson(e as Map<String, dynamic>))
-              .toList();
+          _messages = _sortMessages(
+            data
+                .map((e) => MessageModel.fromJson(e as Map<String, dynamic>))
+                .toList(),
+          );
         });
-        _scrollToTop();
+        _scrollToLatest();
       }
-    } catch (_) {
+    } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(friendlyErrorMessage()),
+            content: Text(friendlyErrorMessage(error)),
             backgroundColor: Theme.of(context).colorScheme.error,
             behavior: SnackBarBehavior.floating,
           ),
@@ -329,6 +442,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       if (!mounted) return;
 
       final userId = ref.read(authProvider).userId;
+      if (userId == null) return;
       await ref.read(apiServiceProvider).sendMessage({
         'conversation_id': widget.conversationId,
         'sender_id': userId,
@@ -343,17 +457,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
           .getMessages(widget.conversationId);
       if (mounted) {
         setState(() {
-          _messages = data
-              .map((e) => MessageModel.fromJson(e as Map<String, dynamic>))
-              .toList();
+          _messages = _sortMessages(
+            data
+                .map((e) => MessageModel.fromJson(e as Map<String, dynamic>))
+                .toList(),
+          );
         });
-        _scrollToTop();
+        _scrollToLatest();
       }
-    } catch (_) {
+    } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(friendlyErrorMessage()),
+            content: Text(friendlyErrorMessage(error)),
             backgroundColor: Theme.of(context).colorScheme.error,
             behavior: SnackBarBehavior.floating,
           ),
@@ -361,6 +477,82 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       }
     } finally {
       if (mounted) setState(() => _uploadingAttachment = false);
+    }
+  }
+
+  Future<void> _shareLocation() async {
+    if (_uploadingAttachment) return;
+    final userId = ref.read(authProvider).userId;
+    if (userId == null) return;
+    try {
+      setState(() => _uploadingAttachment = true);
+      final position = await LocationService.instance.requestAndGetPosition();
+      if (position == null) {
+        throw Exception('Location is unavailable right now');
+      }
+      final geocode = await LocationService.instance.reverseGeocodePosition(
+        position.latitude,
+        position.longitude,
+      );
+      final label = geocode?.displayName ??
+          '${position.latitude.toStringAsFixed(5)}, ${position.longitude.toStringAsFixed(5)}';
+      await ref.read(apiServiceProvider).sendMessage({
+        'conversation_id': widget.conversationId,
+        'sender_id': userId,
+        'body': label,
+        'message_type': 'location',
+      });
+      final data = await ref
+          .read(apiServiceProvider)
+          .getMessages(widget.conversationId);
+      if (!mounted) return;
+      setState(() {
+        _messages = _sortMessages(
+          data
+              .map((e) => MessageModel.fromJson(e as Map<String, dynamic>))
+              .toList(),
+        );
+      });
+      _scrollToLatest();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(friendlyErrorMessage(error)),
+          backgroundColor: Theme.of(context).colorScheme.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _uploadingAttachment = false);
+    }
+  }
+
+  Future<void> _openAttachmentMenu() async {
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      builder: (sheetCtx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.attach_file_outlined),
+              title: const Text('Attach file'),
+              onTap: () => Navigator.pop(sheetCtx, 'file'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.my_location_outlined),
+              title: const Text('Share location'),
+              onTap: () => Navigator.pop(sheetCtx, 'location'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (action == 'file') {
+      await _pickAndSendFile();
+    } else if (action == 'location') {
+      await _shareLocation();
     }
   }
 
@@ -391,18 +583,39 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Conversation #${widget.conversationId}'),
+        title: Text(
+          _selectionMode
+              ? '${_selectedMessageIds.length} selected'
+              : 'Conversation #${widget.conversationId}',
+        ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Refresh',
-            onPressed: _loadMessages,
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete_sweep_outlined),
-            tooltip: 'Delete conversation',
-            onPressed: _confirmDeleteConversation,
-          ),
+          if (_selectionMode) ...[
+            IconButton(
+              icon: const Icon(Icons.delete_outline),
+              tooltip: 'Delete selected',
+              onPressed:
+                  _selectedMessageIds.isEmpty ? null : _deleteSelectedMessages,
+            ),
+            IconButton(
+              icon: const Icon(Icons.close),
+              tooltip: 'Exit selection',
+              onPressed: () => setState(() {
+                _selectionMode = false;
+                _selectedMessageIds.clear();
+              }),
+            ),
+          ] else ...[
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              tooltip: 'Refresh',
+              onPressed: _loadMessages,
+            ),
+            IconButton(
+              icon: const Icon(Icons.chevron_right),
+              tooltip: 'Thread actions',
+              onPressed: _showThreadActions,
+            ),
+          ],
         ],
       ),
       body: Column(
@@ -434,6 +647,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                             itemBuilder: (ctx, i) {
                               final m = _messages[i];
                               final isMe = m.senderId == currentUserId;
+                              final selected =
+                                  _selectedMessageIds.contains(m.id);
+                              final senderLabel = isMe ? 'You' : 'Sender';
                               final bubble = Padding(
                                 padding:
                                     const EdgeInsets.symmetric(vertical: 4),
@@ -460,39 +676,60 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                       ),
                                       const SizedBox(width: 6),
                                     ],
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 14, vertical: 10),
+                                     Container(
+                                       padding: const EdgeInsets.symmetric(
+                                           horizontal: 14, vertical: 10),
                                       constraints: BoxConstraints(
                                         maxWidth:
                                             MediaQuery.of(ctx).size.width *
                                                 0.65,
                                       ),
-                                      decoration: BoxDecoration(
-                                        color: isMe
-                                            ? Theme.of(ctx)
-                                                .colorScheme
-                                                .primary
-                                            : Colors.grey[200],
-                                        borderRadius:
-                                            BorderRadius.circular(16),
-                                      ),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.end,
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          if (m.messageType == 'file' &&
-                                              m.attachmentUrl != null)
-                                            _FileBubble(
-                                              filename: m.attachmentFilename ??
-                                                  m.body,
-                                              url: m.attachmentUrl!,
-                                              isMe: isMe,
-                                            )
-                                          else
-                                            Text(
-                                              m.body,
+                                       decoration: BoxDecoration(
+                                         color: isMe
+                                             ? Theme.of(ctx)
+                                                 .colorScheme
+                                                 .primary
+                                             : Colors.grey[200],
+                                         borderRadius:
+                                             BorderRadius.circular(16),
+                                         border: selected
+                                             ? Border.all(
+                                                 color: Theme.of(ctx)
+                                                     .colorScheme
+                                                     .tertiary,
+                                                 width: 2,
+                                               )
+                                             : null,
+                                       ),
+                                       child: Column(
+                                         crossAxisAlignment:
+                                             CrossAxisAlignment.start,
+                                         mainAxisSize: MainAxisSize.min,
+                                         children: [
+                                           Text(
+                                             senderLabel,
+                                             style: TextStyle(
+                                               fontSize: 10,
+                                               fontWeight: FontWeight.w700,
+                                               color: isMe
+                                                   ? Colors.white70
+                                                   : Colors.black45,
+                                             ),
+                                           ),
+                                           const SizedBox(height: 4),
+                                           if (m.messageType == 'file' &&
+                                               m.attachmentUrl != null)
+                                             _FileBubble(
+                                               filename: m.attachmentFilename ??
+                                                   m.body,
+                                               url: m.attachmentUrl!,
+                                               isMe: isMe,
+                                             )
+                                           else if (m.messageType == 'location')
+                                             _LocationBubble(body: m.body, isMe: isMe)
+                                           else
+                                             Text(
+                                               m.body,
                                               style: TextStyle(
                                                 color: isMe
                                                     ? Colors.white
@@ -509,13 +746,36 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                                   : Colors.black38,
                                             ),
                                           ),
-                                        ],
-                                      ),
-                                    ),
-                                    if (isMe) const SizedBox(width: 6),
+                                           if (selected) ...[
+                                             const SizedBox(height: 4),
+                                             Align(
+                                               alignment: Alignment.centerRight,
+                                               child: Icon(
+                                                 Icons.check_circle,
+                                                 size: 14,
+                                                 color: isMe
+                                                     ? Colors.white
+                                                     : Theme.of(ctx)
+                                                         .colorScheme
+                                                         .primary,
+                                               ),
+                                             ),
+                                           ],
+                                         ],
+                                       ),
+                                     ),
+                                     if (isMe) const SizedBox(width: 6),
                                   ],
                                 ),
                               );
+                              if (_selectionMode) {
+                                return GestureDetector(
+                                  onTap: isMe ? () => _toggleSelection(m) : null,
+                                  onLongPress:
+                                      isMe ? () => _toggleSelection(m) : null,
+                                  child: bubble,
+                                );
+                              }
                               if (!isMe) return bubble;
                               return GestureDetector(
                                 onLongPress: () async {
@@ -524,10 +784,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                     builder: (sheetCtx) => SafeArea(
                                       child: Column(
                                         mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          ListTile(
-                                            leading: const Icon(Icons.edit_off_outlined),
-                                            title: const Text('Delete body only'),
+                                         children: [
+                                           ListTile(
+                                             leading: const Icon(Icons.select_all_outlined),
+                                             title: const Text('Select message'),
+                                             onTap: () => Navigator.pop(sheetCtx, 'select'),
+                                           ),
+                                           ListTile(
+                                             leading: const Icon(Icons.edit_off_outlined),
+                                             title: const Text('Delete body only'),
                                             onTap: () => Navigator.pop(sheetCtx, 'clear'),
                                           ),
                                           ListTile(
@@ -543,6 +808,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                     _confirmClearBody(m.id);
                                   } else if (action == 'delete') {
                                     _confirmDelete(m.id);
+                                  } else if (action == 'select') {
+                                    _toggleSelection(m);
                                   }
                                 },
                                 child: bubble,
@@ -557,20 +824,20 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
             child: Row(
               children: [
                 // Attachment button
-                _uploadingAttachment
-                    ? const SizedBox(
-                        width: 40,
-                        height: 40,
+                 _uploadingAttachment
+                     ? const SizedBox(
+                         width: 40,
+                         height: 40,
                         child: Padding(
                           padding: EdgeInsets.all(10),
                           child: CircularProgressIndicator(strokeWidth: 2),
                         ),
                       )
-                    : IconButton(
-                        icon: const Icon(Icons.attach_file_outlined),
-                        onPressed: _pickAndSendFile,
-                        tooltip: 'Attach file',
-                      ),
+                     : IconButton(
+                         icon: const Icon(Icons.attach_file_outlined),
+                         onPressed: _openAttachmentMenu,
+                         tooltip: 'Attach or share',
+                       ),
                 Expanded(
                   child: TextField(
                     controller: _controller,
@@ -604,6 +871,44 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
           ),
         ],
       ),
+    );
+  }
+}
+
+class _LocationBubble extends StatelessWidget {
+  const _LocationBubble({required this.body, required this.isMe});
+
+  final String body;
+  final bool isMe;
+
+  @override
+  Widget build(BuildContext context) {
+    final textColor = isMe ? Colors.white : Colors.black87;
+    final subColor = isMe ? Colors.white70 : Colors.black54;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(Icons.location_on_outlined, color: textColor, size: 20),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Shared location',
+                style: TextStyle(
+                  color: subColor,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(body, style: TextStyle(color: textColor)),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
