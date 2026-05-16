@@ -3,7 +3,7 @@ from app.api.v1 import wallet
 from app.schemas.marketplace_schemas import WalletTopupRequest
 
 
-class _FakeResponse:
+class MockResponse:
     def __init__(self, status_code, json_data=None, text=""):
         self.status_code = status_code
         self._json_data = json_data or {}
@@ -13,7 +13,7 @@ class _FakeResponse:
         return self._json_data
 
 
-class _FakeClient:
+class MockClient:
     def __init__(self, responses, calls):
         self._responses = list(responses)
         self.calls = calls
@@ -65,12 +65,12 @@ def test_process_mtn_payment_provisions_api_user(monkeypatch):
     monkeypatch.setenv("MTN_COLLECTION_BASE_URL", base_url)
 
     calls = []
-    fake_client = _FakeClient(
+    fake_client = MockClient(
         [
-            _FakeResponse(201),
-            _FakeResponse(201, {"apiKey": "generated-key"}),
-            _FakeResponse(200, {"access_token": "access-token"}),
-            _FakeResponse(202),
+            MockResponse(201),
+            MockResponse(201, {"apiKey": "generated-key"}),
+            MockResponse(200, {"access_token": "access-token"}),
+            MockResponse(202),
         ],
         calls,
     )
@@ -115,11 +115,11 @@ def test_process_mtn_payment_retries_with_secondary_key(monkeypatch):
     monkeypatch.setenv("MTN_COLLECTION_BASE_URL", base_url)
 
     calls = []
-    fake_client = _FakeClient(
+    fake_client = MockClient(
         [
-            _FakeResponse(401, text="unauthorized"),
-            _FakeResponse(200, {"access_token": "access-token"}),
-            _FakeResponse(202),
+            MockResponse(401, text="unauthorized"),
+            MockResponse(200, {"access_token": "access-token"}),
+            MockResponse(202),
         ],
         calls,
     )
