@@ -11,6 +11,7 @@ import os
 import time
 import uuid
 from typing import List
+from urllib.parse import urlparse
 import httpx
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -53,6 +54,7 @@ _FX_API_TIMEOUT_SECONDS = float(os.getenv("FX_API_TIMEOUT_SECONDS", "4.0"))
 _MTN_API_TIMEOUT_SECONDS = float(os.getenv("MTN_API_TIMEOUT_SECONDS", "15.0"))
 _fx_cache: dict[str, tuple[float, float]] = {}
 _logger = logging.getLogger(__name__)
+_MTN_AUTH_FAILURE_STATUS_CODES = {401, 403}
 
 
 def _get_current_user(
@@ -138,22 +140,154 @@ def _points_to_ugx(points: int) -> int:
     return points * POINT_UGX_VALUE
 
 
+def _get_mtn_subscription_keys() -> list[str]:
+    keys = [
+        os.getenv("MTN_COLLECTION_PRIMARY_SUBSCRIPTION_KEY"),
+        os.getenv("MTN_COLLECTION_SECONDARY_SUBSCRIPTION_KEY"),
+        os.getenv("MTN_COLLECTION_SUBSCRIPTION_KEY"),
+    ]
+    resolved: list[str] = []
+    for key in keys:
+        if key and key not in resolved:
+            resolved.append(key)
+    return resolved
+
+
+def _get_mtn_callback_host() -> str | None:
+    callback_host = os.getenv("MTN_COLLECTION_CALLBACK_HOST")
+    if callback_host:
+        return callback_host
+    callback_url = os.getenv("MTN_COLLECTION_CALLBACK_URL")
+    if not callback_url:
+        return None
+    parsed = urlparse(callback_url)
+    if parsed.hostname:
+        return parsed.hostname
+    return callback_url
+
+
+def _post_mtn_request(
+    client: httpx.Client,
+    url: str,
+    subscription_keys: list[str],
+    headers: dict[str, str] | None = None,
+    json: dict | None = None,
+) -> tuple[httpx.Response, str]:
+    base_headers = headers or {}
+    last_response: httpx.Response | None = None
+    last_key = ""
+    for index, subscription_key in enumerate(subscription_keys):
+        response = client.post(
+            url,
+            headers={
+                **base_headers,
+                "Ocp-Apim-Subscription-Key": subscription_key,
+            },
+            json=json,
+        )
+        if response.status_code in _MTN_AUTH_FAILURE_STATUS_CODES and index < len(subscription_keys) - 1:
+            _logger.warning(
+                "MTN request to %s failed with subscription key %s (status=%s); retrying with fallback key",
+                url,
+                index + 1,
+                response.status_code,
+            )
+            last_response = response
+            last_key = subscription_key
+            continue
+        return response, subscription_key
+    if last_response is None:
+        raise RuntimeError("No MTN subscription keys available for request.")
+    return last_response, last_key
+
+
+def _provision_mtn_api_user(
+    client: httpx.Client,
+    base_url: str,
+    subscription_keys: list[str],
+    callback_host: str | None,
+) -> tuple[str, str]:
+    if not callback_host:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=(
+                "MTN Mobile Money provisioning requires MTN_COLLECTION_CALLBACK_HOST "
+                "or MTN_COLLECTION_CALLBACK_URL."
+            ),
+        )
+    api_user = str(uuid.uuid4())
+    user_res, active_key = _post_mtn_request(
+        client,
+        f"{base_url}/v1_0/apiuser",
+        subscription_keys,
+        headers={
+            "Content-Type": "application/json",
+            "X-Reference-Id": api_user,
+        },
+        json={"providerCallbackHost": callback_host},
+    )
+    if user_res.status_code >= 400:
+        _logger.error(
+            "MTN API user provisioning failed (status=%s): %s",
+            user_res.status_code,
+            user_res.text,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Failed to provision MTN Mobile Money API user.",
+        )
+
+    key_res = client.post(
+        f"{base_url}/v1_0/apiuser/{api_user}/apikey",
+        headers={
+            "Content-Type": "application/json",
+            "Ocp-Apim-Subscription-Key": active_key,
+        },
+    )
+    if key_res.status_code in _MTN_AUTH_FAILURE_STATUS_CODES and active_key != subscription_keys[-1]:
+        key_res, _ = _post_mtn_request(
+            client,
+            f"{base_url}/v1_0/apiuser/{api_user}/apikey",
+            subscription_keys,
+            headers={"Content-Type": "application/json"},
+        )
+    if key_res.status_code >= 400:
+        _logger.error(
+            "MTN API key generation failed (status=%s): %s",
+            key_res.status_code,
+            key_res.text,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Failed to generate MTN Mobile Money API key.",
+        )
+
+    api_key = (key_res.json() or {}).get("apiKey")
+    if not api_key:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="MTN API key generation returned no apiKey.",
+        )
+    return api_user, api_key
+
+
 def _process_mtn_payment(payload: WalletTopupRequest) -> str:
     """Charge MTN Mobile Money using the MoMo Collection API."""
     api_user = os.getenv("MTN_COLLECTION_USER_ID")
     api_key = os.getenv("MTN_COLLECTION_API_KEY")
-    subscription_key = os.getenv("MTN_COLLECTION_SUBSCRIPTION_KEY")
     target_env = os.getenv("MTN_COLLECTION_TARGET_ENV", "live")
     callback_url = os.getenv("MTN_COLLECTION_CALLBACK_URL")
-    base_url = os.getenv("MTN_COLLECTION_BASE_URL", "https://momodeveloper.mtn.com")
+    callback_host = _get_mtn_callback_host()
+    base_url = os.getenv("MTN_COLLECTION_BASE_URL", "https://momodeveloper.mtn.com").rstrip("/")
+    subscription_keys = _get_mtn_subscription_keys()
 
-    if not (api_user and api_key and subscription_key):
+    if not subscription_keys:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=(
                 "MTN Mobile Money is not configured. "
-                "Set MTN_COLLECTION_USER_ID, MTN_COLLECTION_API_KEY, and "
-                "MTN_COLLECTION_SUBSCRIPTION_KEY."
+                "Set MTN_COLLECTION_PRIMARY_SUBSCRIPTION_KEY or "
+                "MTN_COLLECTION_SECONDARY_SUBSCRIPTION_KEY."
             ),
         )
     if not payload.reference:
@@ -163,17 +297,23 @@ def _process_mtn_payment(payload: WalletTopupRequest) -> str:
         )
 
     # MTN token endpoint expects HTTP Basic auth with API user id and API key.
-    auth = base64.b64encode(f"{api_user}:{api_key}".encode("utf-8")).decode("utf-8")
     amount_ugx = _points_to_ugx(payload.amount)
     reference_id = str(uuid.uuid4())
 
     with httpx.Client(timeout=_MTN_API_TIMEOUT_SECONDS) as client:
-        token_res = client.post(
+        if not (api_user and api_key):
+            api_user, api_key = _provision_mtn_api_user(
+                client,
+                base_url,
+                subscription_keys,
+                callback_host,
+            )
+        auth = base64.b64encode(f"{api_user}:{api_key}".encode("utf-8")).decode("utf-8")
+        token_res, subscription_key = _post_mtn_request(
+            client,
             f"{base_url}/collection/token/",
-            headers={
-                "Authorization": f"Basic {auth}",
-                "Ocp-Apim-Subscription-Key": subscription_key,
-            },
+            subscription_keys,
+            headers={"Authorization": f"Basic {auth}"},
         )
         if token_res.status_code >= 400:
             _logger.error(
