@@ -504,30 +504,40 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   style: TextStyle(color: Colors.white, fontSize: 17)),
             ),
 
-            // ── Search bar + location banners + radius filter ───────────────
+            // ── Top controls + location banners ─────────────────────────────
             SliverToBoxAdapter(
               child: _ContentWrapper(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _SearchBar(onTap: () => context.go('/search')),
-                    const SizedBox(height: 8),
                     _HomeSectionCircles(
-                      onServiceTap: () => context.go('/manufacturing'),
+                      onDistanceTap: () => context.go('/distance-calculator'),
                       onMfgTap: () => context.go('/manufacturing'),
                       onAgricTap: () => context.go('/agriculture'),
                       onRealEstateTap: () => context.go('/properties'),
+                    ),
+                    const SizedBox(height: 8),
+                    _MarketplaceModeToggle(
+                      marketplaceMode: marketplaceMode,
+                      onChanged: (mode) {
+                        ref.read(marketplaceModeProvider.notifier).setMode(
+                          mode,
+                          locationStatus: ref.read(locationAvailabilityProvider),
+                        );
+                        _invalidateHomeFeeds();
+                      },
                     ),
                     const SizedBox(height: 8),
                     _DistanceOverview(
                       distanceText:
                           'Distance range: ${radiusKm.toStringAsFixed(0)} ${distanceUnit == DistanceUnit.km ? 'km' : 'mi'}',
                     ),
+                    const SizedBox(height: 8),
+                    _SearchBar(onTap: () => context.go('/search')),
+                    const SizedBox(height: 8),
                     if (offlineFallback) ...[
-                      const SizedBox(height: 8),
                       const _OfflineCacheBanner(),
                     ],
-                    const SizedBox(height: 8),
                     // Location denied – Local mode unavailable, forced to International
                     if (locationDenied)
                       _LocationBanner(
@@ -1010,13 +1020,13 @@ class _SearchBar extends StatelessWidget {
 
 class _HomeSectionCircles extends StatelessWidget {
   const _HomeSectionCircles({
-    required this.onServiceTap,
+    required this.onDistanceTap,
     required this.onMfgTap,
     required this.onAgricTap,
     required this.onRealEstateTap,
   });
 
-  final VoidCallback onServiceTap;
+  final VoidCallback onDistanceTap;
   final VoidCallback onMfgTap;
   final VoidCallback onAgricTap;
   final VoidCallback onRealEstateTap;
@@ -1026,11 +1036,103 @@ class _HomeSectionCircles extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        _AnimatedCircleButton(label: 'Service', icon: Icons.build_rounded, onTap: onServiceTap),
+        _AnimatedCircleButton(label: 'Distance', icon: Icons.near_me_rounded, onTap: onDistanceTap),
         _AnimatedCircleButton(label: 'Manufacturing', icon: Icons.precision_manufacturing_rounded, onTap: onMfgTap),
         _AnimatedCircleButton(label: 'Agriculture', icon: Icons.agriculture_rounded, onTap: onAgricTap),
         _AnimatedCircleButton(label: 'Real Estate', icon: Icons.home_work_outlined, onTap: onRealEstateTap),
       ],
+    );
+  }
+}
+
+class _MarketplaceModeToggle extends StatelessWidget {
+  const _MarketplaceModeToggle({
+    required this.marketplaceMode,
+    required this.onChanged,
+  });
+
+  final MarketplaceMode marketplaceMode;
+  final ValueChanged<MarketplaceMode> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerHighest.withValues(alpha: 0.65),
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _ModeChip(
+              label: 'Local',
+              icon: Icons.place_rounded,
+              selected: marketplaceMode == MarketplaceMode.local,
+              onTap: () => onChanged(MarketplaceMode.local),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: _ModeChip(
+              label: 'International',
+              icon: Icons.public_rounded,
+              selected: marketplaceMode == MarketplaceMode.international,
+              onTap: () => onChanged(MarketplaceMode.international),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ModeChip extends StatelessWidget {
+  const _ModeChip({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return InkWell(
+      borderRadius: BorderRadius.circular(18),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? cs.primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 14,
+              color: selected ? cs.onPrimary : cs.onSurfaceVariant,
+            ),
+            const SizedBox(width: 5),
+            Text(
+              label,
+              style: TextStyle(
+                color: selected ? cs.onPrimary : cs.onSurfaceVariant,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

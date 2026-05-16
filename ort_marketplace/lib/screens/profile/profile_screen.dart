@@ -383,6 +383,11 @@ class _ReadView extends StatelessWidget {
       case 'agent':
         return [
           _ProfileTile(
+            icon: Icons.list_alt_outlined,
+            label: 'My Listings',
+            onTap: () => context.go('/my-listings'),
+          ),
+          _ProfileTile(
             icon: Icons.people,
             label: 'My Clients',
             onTap: () => context.go('/my-clients'),
@@ -405,6 +410,11 @@ class _ReadView extends StatelessWidget {
         ];
       case 'company':
         return [
+          _ProfileTile(
+            icon: Icons.list_alt_outlined,
+            label: 'My Listings',
+            onTap: () => context.go('/my-listings'),
+          ),
           _ProfileTile(
             icon: Icons.precision_manufacturing_outlined,
             label: 'My Products',
@@ -433,6 +443,11 @@ class _ReadView extends StatelessWidget {
         ];
       case 'organization':
         return [
+          _ProfileTile(
+            icon: Icons.list_alt_outlined,
+            label: 'My Listings',
+            onTap: () => context.go('/my-listings'),
+          ),
           _ProfileTile(
             icon: Icons.business,
             label: 'My Organisation',

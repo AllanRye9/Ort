@@ -210,6 +210,12 @@ platform — e.g. Railway) before starting the application.
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | No | `60` | JWT token lifetime in minutes. |
 | `CORS_ORIGINS` | No | `*` | Comma-separated list of allowed CORS origins (e.g. `https://your-app.com,https://admin.your-app.com`).  Defaults to `*` (all origins) if not set. |
 | `PORT` | No | `8008` | Port the server binds to.  Set automatically by Railway; the `dockerfile` CMD reads `${PORT:-8008}`. |
+| `MTN_COLLECTION_USER_ID` | Yes (for MTN top-up) | — | MTN MoMo Collection API user ID. |
+| `MTN_COLLECTION_API_KEY` | Yes (for MTN top-up) | — | MTN MoMo Collection API key for the API user. |
+| `MTN_COLLECTION_SUBSCRIPTION_KEY` | Yes (for MTN top-up) | — | MTN Ocp-Apim subscription key for Collection product. |
+| `MTN_COLLECTION_TARGET_ENV` | No | `live` | MTN target environment (`live` or provider-specific value). |
+| `MTN_COLLECTION_BASE_URL` | No | `https://momodeveloper.mtn.com` | MTN Collection base URL. Override for production host as needed. |
+| `MTN_COLLECTION_CALLBACK_URL` | No | — | Public callback URL for asynchronous payment status updates. |
 
 ### Flutter / Dart-define variables
 
@@ -223,6 +229,28 @@ platform — e.g. Railway) before starting the application.
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/ort
 SECRET_KEY=my-local-dev-secret
 ```
+
+### MTN Mobile Money live integration
+
+Wallet top-up now supports live MTN Mobile Money request-to-pay calls via `/api/v1/wallet/topup` when `payment_method` is `mtn`.
+
+Required setup:
+
+1. Create/enable an MTN MoMo Collection application.
+2. Set the MTN variables above in your environment.
+3. Send top-up requests with:
+   - `amount`: number of points to credit
+   - `payment_method`: `mtn`
+   - `reference`: payer MSISDN
+
+Notes:
+- Base wallet conversion is **1 point = 1,000 UGX**.
+- Wallet responses include:
+  - `ugx_value` (points converted to UGX),
+  - `display_currency`,
+  - `display_amount`,
+  - `exchange_rate`.
+- Non-MTN methods (`airtel`, `card`) continue to credit wallet points directly.
 
 > SQLite is used automatically when `DATABASE_URL` is not set, so **no
 > database setup is needed for local development**.

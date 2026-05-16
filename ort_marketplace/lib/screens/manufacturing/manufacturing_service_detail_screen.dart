@@ -128,6 +128,12 @@ class _ManufacturingServiceDetailScreenState
         recipientId: recipientId,
         subject: 'Enquiry about: ${s.title}',
       );
+      await api.sendMessage({
+        'conversation_id': convId,
+        'sender_id': userId,
+        'body': 'Contact request about service "${s.title}"${s.location != null ? ' at ${s.location}' : ''}.',
+        'message_type': 'text',
+      });
       if (mounted) context.push('/messages/$convId');
     } catch (e) {
       if (mounted) {
