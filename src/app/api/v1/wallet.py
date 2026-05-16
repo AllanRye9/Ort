@@ -178,8 +178,9 @@ def _get_mtn_callback_host() -> str | None:
     """Return the provisioning callback host.
 
     `MTN_COLLECTION_CALLBACK_HOST` takes precedence. Otherwise the hostname is
-    derived from `MTN_COLLECTION_CALLBACK_URL`. Returns `None` when no host can
-    be resolved.
+    derived from `MTN_COLLECTION_CALLBACK_URL`, while scheme-less values are
+    treated as already-normalized hosts. Returns `None` when no host can be
+    resolved.
     """
     callback_host = os.getenv("MTN_COLLECTION_CALLBACK_HOST")
     if callback_host:
@@ -237,7 +238,9 @@ def _post_mtn_request(
         return response, subscription_key
     if last_response is None:
         raise RuntimeError(
-            "MTN request failed because no subscription keys were provided."
+            "MTN request failed because no subscription keys were provided. "
+            "Set MTN_COLLECTION_PRIMARY_SUBSCRIPTION_KEY or "
+            "MTN_COLLECTION_SECONDARY_SUBSCRIPTION_KEY."
         )
     return last_response, last_key
 
@@ -259,7 +262,7 @@ def _provision_mtn_api_user(
             ),
         )
     api_user = str(uuid.uuid4())
-    user_res, active_key = _post_mtn_request(
+    user_res, _ = _post_mtn_request(
         client,
         f"{base_url}/v1_0/apiuser",
         subscription_keys,
@@ -280,23 +283,12 @@ def _provision_mtn_api_user(
             detail="Failed to provision MTN Mobile Money API user.",
         )
 
-    key_res = client.post(
+    key_res, _ = _post_mtn_request(
+        client,
         f"{base_url}/v1_0/apiuser/{api_user}/apikey",
-        headers={
-            "Content-Type": "application/json",
-            "Ocp-Apim-Subscription-Key": active_key,
-        },
+        subscription_keys,
+        headers={"Content-Type": "application/json"},
     )
-    if (
-        key_res.status_code in _MTN_AUTH_FAILURE_STATUS_CODES
-        and active_key != subscription_keys[-1]
-    ):
-        key_res, _ = _post_mtn_request(
-            client,
-            f"{base_url}/v1_0/apiuser/{api_user}/apikey",
-            subscription_keys,
-            headers={"Content-Type": "application/json"},
-        )
     if key_res.status_code >= 400:
         _logger.error(
             "MTN API key generation failed (status=%s): %s",

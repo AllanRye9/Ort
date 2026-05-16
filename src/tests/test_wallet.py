@@ -1,6 +1,7 @@
 """Tests for MTN wallet top-up integration helpers."""
 from app.api.v1 import wallet
 from app.schemas.marketplace_schemas import WalletTopupRequest
+from fastapi import HTTPException
 
 
 class MockResponse:
@@ -97,6 +98,31 @@ def test_process_mtn_payment_provisions_api_user(monkeypatch):
     assert calls[3]["headers"]["Ocp-Apim-Subscription-Key"] == "primary-key"
     assert calls[3]["json"]["amount"] == "2000"
     assert calls[3]["json"]["payer"]["partyId"] == "256700000001"
+
+
+def test_process_mtn_payment_requires_callback_host(monkeypatch):
+    monkeypatch.setenv(
+        "MTN_COLLECTION_PRIMARY_SUBSCRIPTION_KEY",
+        "primary-key",
+    )
+    monkeypatch.delenv("MTN_COLLECTION_CALLBACK_HOST", raising=False)
+    monkeypatch.delenv("MTN_COLLECTION_CALLBACK_URL", raising=False)
+    monkeypatch.delenv("MTN_COLLECTION_USER_ID", raising=False)
+    monkeypatch.delenv("MTN_COLLECTION_API_KEY", raising=False)
+
+    try:
+        wallet._process_mtn_payment(
+            WalletTopupRequest(
+                amount=1,
+                payment_method="mtn",
+                reference="256700000003",
+            )
+        )
+    except HTTPException as exc:
+        assert exc.status_code == 503
+        assert "MTN_COLLECTION_CALLBACK_HOST" in exc.detail
+    else:
+        raise AssertionError("Expected MTN callback host error")
 
 
 def test_process_mtn_payment_retries_with_secondary_key(monkeypatch):
