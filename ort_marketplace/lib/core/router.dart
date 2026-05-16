@@ -301,6 +301,7 @@ class _MainShellState extends ConsumerState<MainShell> {
   DateTime? _lastBackPress;
   double _menuFabLeft = 16;
   double _menuFabBottom = 120;
+  static const _draggableFabSize = 40.0;
 
   static const _tabs = [
     ('/home', Icons.home_outlined, Icons.home_rounded, 'Home'),
@@ -338,10 +339,10 @@ class _MainShellState extends ConsumerState<MainShell> {
     final now = DateTime.now();
     if (_lastBackPress == null ||
         now.difference(_lastBackPress!) > const Duration(seconds: 2)) {
-      _lastBackPress = now;
+        _lastBackPress = now;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('You are already on Home'),
+          content: Text('Already at Home screen'),
           duration: Duration(seconds: 2),
           behavior: SnackBarBehavior.floating,
         ),
@@ -410,12 +411,11 @@ class _MainShellState extends ConsumerState<MainShell> {
       child: Scaffold(
          body: LayoutBuilder(
            builder: (ctx, constraints) {
-             const fabSize = 40.0;
-             final maxLeft = (constraints.maxWidth - fabSize) > 0
-                 ? (constraints.maxWidth - fabSize)
+             final maxLeft = (constraints.maxWidth - _draggableFabSize) > 0
+                 ? (constraints.maxWidth - _draggableFabSize)
                  : 0.0;
-             final maxBottom = (constraints.maxHeight - fabSize - 80) > 80
-                 ? (constraints.maxHeight - fabSize - 80)
+             final maxBottom = (constraints.maxHeight - _draggableFabSize - 80) > 80
+                 ? (constraints.maxHeight - _draggableFabSize - 80)
                  : 80.0;
              _menuFabLeft = _menuFabLeft.clamp(0.0, maxLeft).toDouble();
              _menuFabBottom = _menuFabBottom.clamp(80.0, maxBottom).toDouble();
