@@ -67,6 +67,15 @@ def test_register_duplicate_email(client):
     assert resp.status_code == 409
 
 
+def test_register_duplicate_email_case_insensitive(client):
+    client.post("/api/v1/auth/register", json=AGENT_PAYLOAD)
+    resp = client.post(
+        "/api/v1/auth/register",
+        json={**AGENT_PAYLOAD, "email": "JANE.DOE@EXAMPLE.COM"},
+    )
+    assert resp.status_code == 409
+
+
 def test_register_missing_company_name(client):
     payload = {**COMPANY_PAYLOAD, "email": "new@acme.com", "company_name": None}
     resp = client.post("/api/v1/auth/register", json=payload)
@@ -106,6 +115,15 @@ def test_login_success(client):
     assert "access_token" in data
     assert data["token_type"] == "bearer"
     assert data["role"] == "agent"
+
+
+def test_login_case_insensitive_email(client):
+    client.post("/api/v1/auth/register", json=AGENT_PAYLOAD)
+    resp = client.post(
+        "/api/v1/auth/login",
+        json={"email": "JANE.DOE@EXAMPLE.COM", "password": AGENT_PAYLOAD["password"]},
+    )
+    assert resp.status_code == 200, resp.text
 
 
 def test_login_wrong_password(client):
