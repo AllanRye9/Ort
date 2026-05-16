@@ -649,7 +649,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                               final isMe = m.senderId == currentUserId;
                               final selected =
                                   _selectedMessageIds.contains(m.id);
-                              final senderLabel = isMe ? 'You' : 'Sender';
+                              final senderLabel = isMe ? 'You' : 'Other user';
                               final bubble = Padding(
                                 padding:
                                     const EdgeInsets.symmetric(vertical: 4),

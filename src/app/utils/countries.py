@@ -15,6 +15,13 @@ _CANONICAL_COUNTRY_ALIASES = {
     "united states": {"united states", "usa", "u.s.a", "us", "u.s", "america"},
 }
 
+_CANONICAL_COUNTRY_DISPLAY = {
+    "uganda": "Uganda",
+    "united arab emirates": "United Arab Emirates",
+    "united kingdom": "United Kingdom",
+    "united states": "United States",
+}
+
 
 def _tokenize_country(value: str | None) -> str:
     cleaned = re.sub(r"[^a-z0-9]+", " ", (value or "").strip().lower())
@@ -27,7 +34,7 @@ def normalize_country_name(value: str | None) -> str | None:
         return None
     for canonical, aliases in _CANONICAL_COUNTRY_ALIASES.items():
         if tokenized == canonical or tokenized in aliases:
-            return canonical.title() if canonical != "united arab emirates" else "United Arab Emirates"
+            return _CANONICAL_COUNTRY_DISPLAY.get(canonical, canonical.title())
     return " ".join(part.capitalize() for part in tokenized.split())
 
 
