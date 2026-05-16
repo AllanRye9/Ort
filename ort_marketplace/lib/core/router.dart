@@ -290,16 +290,16 @@ final routerProvider = Provider<GoRouter>((ref) {
 
 // ─── Bottom-navigation shell ──────────────────────────────────────────────────
 
-class MainShell extends StatefulWidget {
+class MainShell extends ConsumerStatefulWidget {
   const MainShell({super.key, required this.child});
 
   final Widget child;
 
   @override
-  State<MainShell> createState() => _MainShellState();
+  ConsumerState<MainShell> createState() => _MainShellState();
 }
 
-class _MainShellState extends State<MainShell> {
+class _MainShellState extends ConsumerState<MainShell> {
   DateTime? _lastBackPress;
 
   static const _tabs = [
@@ -351,6 +351,7 @@ class _MainShellState extends State<MainShell> {
     final index = _currentIndex(context);
     final width = MediaQuery.sizeOf(context).width;
     final isWide = width >= 600;
+    final role = ref.watch(authProvider).role ?? 'user';
 
     // ── Wide layout: NavigationRail on the left ──────────────────────────────
     if (isWide) {
@@ -407,8 +408,13 @@ class _MainShellState extends State<MainShell> {
         }
       },
       child: Scaffold(
-        body: widget.child,
-        bottomNavigationBar: NavigationBarTheme(
+         body: widget.child,
+         floatingActionButton: FloatingActionButton.small(
+           heroTag: 'global-nav-fab',
+           onPressed: () => _showMobileNavigationSheet(context, role),
+           child: const Icon(Icons.menu),
+         ),
+         bottomNavigationBar: NavigationBarTheme(
           data: NavigationBarThemeData(
             height: 74,
             labelTextStyle: WidgetStateProperty.resolveWith<TextStyle?>(
@@ -434,6 +440,45 @@ class _MainShellState extends State<MainShell> {
                 )
                 .toList(),
           ),
+        ),
+      ),
+    );
+  }
+
+  void _showMobileNavigationSheet(BuildContext context, String role) {
+    final links = <(String route, IconData icon, String label)>[
+      ('/home', Icons.home_outlined, 'Home'),
+      ('/properties', Icons.apartment_outlined, 'Properties'),
+      ('/agriculture', Icons.grass_outlined, 'Agriculture'),
+      ('/manufacturing', Icons.precision_manufacturing_outlined, 'Manufacturing'),
+      ('/messages', Icons.chat_bubble_outline, 'Messages'),
+      ('/profile', Icons.person_outline_rounded, 'Profile'),
+      ('/wallet', Icons.account_balance_wallet_outlined, 'My Wallet'),
+      ('/saved', Icons.bookmark_border, 'Saved Items'),
+      ('/settings', Icons.settings_outlined, 'Settings'),
+      if (role == 'user') ('/my-rfqs', Icons.request_quote_outlined, 'My RFQs'),
+      if (role != 'user') ('/orders', Icons.shopping_bag_outlined, 'My Orders'),
+      ('/my-reviews', Icons.star_border, 'My Reviews'),
+    ];
+
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: ListView.builder(
+          shrinkWrap: true,
+          itemCount: links.length,
+          itemBuilder: (_, i) {
+            final link = links[i];
+            return ListTile(
+              leading: Icon(link.$2),
+              title: Text(link.$3),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                context.go(link.$1);
+              },
+            );
+          },
         ),
       ),
     );

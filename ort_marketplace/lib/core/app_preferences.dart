@@ -310,11 +310,15 @@ String currencyCodeForCountry(String? country) {
 
 class DisplayCurrencyNotifier extends StateNotifier<String> {
   DisplayCurrencyNotifier(this._ref) : super('USD') {
-    _load();
-    refreshFromLocation();
+    _initialize();
   }
 
   final Ref _ref;
+
+  Future<void> _initialize() async {
+    await _load();
+    await refreshFromLocation();
+  }
 
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
