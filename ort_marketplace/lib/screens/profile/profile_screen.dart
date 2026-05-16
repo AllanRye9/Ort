@@ -405,7 +405,7 @@ class _ReadView extends StatelessWidget {
           _ProfileTile(
             icon: Icons.star_border,
             label: 'My Reviews',
-            onTap: () => _showComingSoon(context, 'My Reviews'),
+            onTap: () => context.go('/my-reviews'),
           ),
         ];
       case 'company':
@@ -421,14 +421,14 @@ class _ReadView extends StatelessWidget {
             onTap: () => context.go('/manufacturing'),
           ),
           _ProfileTile(
-            icon: Icons.request_quote,
-            label: 'My RFQs',
-            onTap: () => _showComingSoon(context, 'My RFQs'),
-          ),
-          _ProfileTile(
             icon: Icons.shopping_bag,
             label: 'My Orders',
             onTap: () => context.go('/orders'),
+          ),
+          _ProfileTile(
+            icon: Icons.star_border,
+            label: 'My Reviews',
+            onTap: () => context.go('/my-reviews'),
           ),
           _ProfileTile(
             icon: Icons.business,
@@ -454,9 +454,14 @@ class _ReadView extends StatelessWidget {
             onTap: () => _showComingSoon(context, 'My Organisation'),
           ),
           _ProfileTile(
-            icon: Icons.request_quote,
-            label: 'My RFQs',
-            onTap: () => _showComingSoon(context, 'My RFQs'),
+            icon: Icons.shopping_bag,
+            label: 'My Orders',
+            onTap: () => context.go('/orders'),
+          ),
+          _ProfileTile(
+            icon: Icons.star_border,
+            label: 'My Reviews',
+            onTap: () => context.go('/my-reviews'),
           ),
           _ProfileTile(
             icon: Icons.subscriptions,
@@ -467,19 +472,14 @@ class _ReadView extends StatelessWidget {
       case 'user':
         return [
           _ProfileTile(
-            icon: Icons.shopping_bag,
-            label: 'My Orders',
-            onTap: () => context.go('/orders'),
-          ),
-          _ProfileTile(
             icon: Icons.request_quote,
             label: 'My RFQs',
-            onTap: () => _showComingSoon(context, 'My RFQs'),
+            onTap: () => context.go('/my-rfqs'),
           ),
           _ProfileTile(
             icon: Icons.star_border,
             label: 'My Reviews',
-            onTap: () => _showComingSoon(context, 'My Reviews'),
+            onTap: () => context.go('/my-reviews'),
           ),
           _ProfileTile(
             icon: Icons.chat_bubble_outline,
@@ -501,14 +501,14 @@ class _ReadView extends StatelessWidget {
   List<Widget> _userDefaultTiles(BuildContext context) {
     return [
       _ProfileTile(
-        icon: Icons.shopping_bag,
-        label: 'My Orders',
-        onTap: () => context.go('/orders'),
+        icon: Icons.request_quote,
+        label: 'My RFQs',
+        onTap: () => context.go('/my-rfqs'),
       ),
       _ProfileTile(
         icon: Icons.star_border,
         label: 'My Reviews',
-        onTap: () => _showComingSoon(context, 'My Reviews'),
+        onTap: () => context.go('/my-reviews'),
       ),
     ];
   }

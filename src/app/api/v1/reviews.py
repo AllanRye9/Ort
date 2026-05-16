@@ -14,12 +14,15 @@ router = APIRouter(prefix="/reviews", tags=["reviews"])
 def list_reviews(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
+    reviewer_id: Optional[int] = Query(None),
     tenant_id: Optional[int] = Query(None),
     property_id: Optional[int] = Query(None),
     agent_id: Optional[int] = Query(None),
     db: Session = Depends(get_db),
 ):
     q = db.query(Review)
+    if reviewer_id:
+        q = q.filter(Review.reviewer_id == reviewer_id)
     if tenant_id:
         q = q.filter(Review.reviewed_tenant_id == tenant_id)
     if property_id:
