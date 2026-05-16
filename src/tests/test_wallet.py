@@ -46,8 +46,15 @@ def test_get_mtn_callback_host_prefers_explicit_host(monkeypatch):
 
 
 def test_process_mtn_payment_provisions_api_user(monkeypatch):
-    monkeypatch.setenv("MTN_COLLECTION_PRIMARY_SUBSCRIPTION_KEY", "primary-key")
-    monkeypatch.delenv("MTN_COLLECTION_SECONDARY_SUBSCRIPTION_KEY", raising=False)
+    base_url = "https://sandbox.momodeveloper.mtn.com"
+    monkeypatch.setenv(
+        "MTN_COLLECTION_PRIMARY_SUBSCRIPTION_KEY",
+        "primary-key",
+    )
+    monkeypatch.delenv(
+        "MTN_COLLECTION_SECONDARY_SUBSCRIPTION_KEY",
+        raising=False,
+    )
     monkeypatch.delenv("MTN_COLLECTION_SUBSCRIPTION_KEY", raising=False)
     monkeypatch.delenv("MTN_COLLECTION_USER_ID", raising=False)
     monkeypatch.delenv("MTN_COLLECTION_API_KEY", raising=False)
@@ -55,7 +62,7 @@ def test_process_mtn_payment_provisions_api_user(monkeypatch):
         "MTN_COLLECTION_CALLBACK_URL",
         "https://merchant.example.com/api/v1/wallet/callback",
     )
-    monkeypatch.setenv("MTN_COLLECTION_BASE_URL", "https://sandbox.momodeveloper.mtn.com")
+    monkeypatch.setenv("MTN_COLLECTION_BASE_URL", base_url)
 
     calls = []
     fake_client = _FakeClient(
@@ -70,28 +77,42 @@ def test_process_mtn_payment_provisions_api_user(monkeypatch):
     monkeypatch.setattr(wallet.httpx, "Client", lambda timeout: fake_client)
 
     reference_id = wallet._process_mtn_payment(
-        WalletTopupRequest(amount=2, payment_method="mtn", reference="256700000001")
+        WalletTopupRequest(
+            amount=2,
+            payment_method="mtn",
+            reference="256700000001",
+        )
     )
 
     assert reference_id
-    assert calls[0]["url"] == "https://sandbox.momodeveloper.mtn.com/v1_0/apiuser"
+    assert calls[0]["url"] == f"{base_url}/v1_0/apiuser"
     assert calls[0]["headers"]["Ocp-Apim-Subscription-Key"] == "primary-key"
     assert calls[0]["json"] == {"providerCallbackHost": "merchant.example.com"}
-    assert calls[1]["url"].endswith(f"/v1_0/apiuser/{calls[0]['headers']['X-Reference-Id']}/apikey")
-    assert calls[2]["url"] == "https://sandbox.momodeveloper.mtn.com/collection/token/"
+    assert calls[1]["url"].endswith(
+        f"/v1_0/apiuser/{calls[0]['headers']['X-Reference-Id']}/apikey"
+    )
+    assert calls[2]["url"] == f"{base_url}/collection/token/"
     assert calls[2]["headers"]["Authorization"].startswith("Basic ")
-    assert calls[3]["url"] == "https://sandbox.momodeveloper.mtn.com/collection/v1_0/requesttopay"
+    assert calls[3]["url"] == f"{base_url}/collection/v1_0/requesttopay"
     assert calls[3]["headers"]["Ocp-Apim-Subscription-Key"] == "primary-key"
     assert calls[3]["json"]["amount"] == "2000"
     assert calls[3]["json"]["payer"]["partyId"] == "256700000001"
 
 
-def test_process_mtn_payment_retries_with_secondary_subscription_key(monkeypatch):
-    monkeypatch.setenv("MTN_COLLECTION_PRIMARY_SUBSCRIPTION_KEY", "primary-key")
-    monkeypatch.setenv("MTN_COLLECTION_SECONDARY_SUBSCRIPTION_KEY", "secondary-key")
+def test_process_mtn_payment_retries_with_secondary_key(monkeypatch):
+    base_url = "https://sandbox.momodeveloper.mtn.com/"
+    normalized_base_url = base_url.rstrip("/")
+    monkeypatch.setenv(
+        "MTN_COLLECTION_PRIMARY_SUBSCRIPTION_KEY",
+        "primary-key",
+    )
+    monkeypatch.setenv(
+        "MTN_COLLECTION_SECONDARY_SUBSCRIPTION_KEY",
+        "secondary-key",
+    )
     monkeypatch.setenv("MTN_COLLECTION_USER_ID", "api-user")
     monkeypatch.setenv("MTN_COLLECTION_API_KEY", "api-key")
-    monkeypatch.setenv("MTN_COLLECTION_BASE_URL", "https://sandbox.momodeveloper.mtn.com/")
+    monkeypatch.setenv("MTN_COLLECTION_BASE_URL", base_url)
 
     calls = []
     fake_client = _FakeClient(
@@ -105,11 +126,16 @@ def test_process_mtn_payment_retries_with_secondary_subscription_key(monkeypatch
     monkeypatch.setattr(wallet.httpx, "Client", lambda timeout: fake_client)
 
     wallet._process_mtn_payment(
-        WalletTopupRequest(amount=1, payment_method="mtn", reference="256700000002")
+        WalletTopupRequest(
+            amount=1,
+            payment_method="mtn",
+            reference="256700000002",
+        )
     )
 
-    assert calls[0]["url"] == "https://sandbox.momodeveloper.mtn.com/collection/token/"
+    request_to_pay_url = f"{normalized_base_url}/collection/v1_0/requesttopay"
+    assert calls[0]["url"] == f"{normalized_base_url}/collection/token/"
     assert calls[0]["headers"]["Ocp-Apim-Subscription-Key"] == "primary-key"
     assert calls[1]["headers"]["Ocp-Apim-Subscription-Key"] == "secondary-key"
-    assert calls[2]["url"] == "https://sandbox.momodeveloper.mtn.com/collection/v1_0/requesttopay"
+    assert calls[2]["url"] == request_to_pay_url
     assert calls[2]["headers"]["Ocp-Apim-Subscription-Key"] == "secondary-key"
