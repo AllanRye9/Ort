@@ -23,6 +23,23 @@ from app.schemas.marketplace_schemas import (
 
 router = APIRouter(prefix="/orders", tags=["orders"])
 
+_ORDER_ITEM_REFERENCE_FIELDS = (
+    "property_id",
+    "agriculture_listing_id",
+    "manufacturing_product_id",
+    "manufacturing_service_id",
+)
+
+_ORDER_STATUS_TO_TRACKING = {
+    "pending": "order_placed",
+    "confirmed": "processing",
+    "processing": "processing",
+    "shipped": "shipped",
+    "delivered": "delivered",
+    "cancelled": "cancelled",
+    "disputed": "processing",
+}
+
 
 def _generate_order_number() -> str:
     return f"ORD-{uuid.uuid4().hex[:10].upper()}"
@@ -70,12 +87,7 @@ def get_order(order_id: int, db: Session = Depends(get_db)):
 def create_order(payload: OrderCreate, db: Session = Depends(get_db)):
     items_data = payload.items
     for item in items_data:
-        refs = [
-            item.property_id,
-            item.agriculture_listing_id,
-            item.manufacturing_product_id,
-            item.manufacturing_service_id,
-        ]
+        refs = [getattr(item, field) for field in _ORDER_ITEM_REFERENCE_FIELDS]
         if sum(1 for ref in refs if ref is not None) != 1:
             raise HTTPException(
                 status_code=400,
@@ -249,19 +261,10 @@ def update_order(order_id: int, payload: OrderUpdate, db: Session = Depends(get_
                 )
             )
 
-        status_map = {
-            "pending": "order_placed",
-            "confirmed": "processing",
-            "processing": "processing",
-            "shipped": "shipped",
-            "delivered": "delivered",
-            "cancelled": "cancelled",
-            "disputed": "processing",
-        }
         db.add(
             ProductTracking(
                 order_id=obj.id,
-                status=status_map.get(payload.status, "processing"),
+                status=_ORDER_STATUS_TO_TRACKING.get(payload.status, "processing"),
                 description=f"Order {obj.order_number} status changed to {payload.status}.",
             )
         )
