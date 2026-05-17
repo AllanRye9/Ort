@@ -263,6 +263,7 @@ class ManufacturingService(Base):
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
     owner = relationship("User", foreign_keys=[owner_user_id])
+    order_items = relationship("OrderItem", back_populates="manufacturing_service")
 
 
 # ---------------------------------------------------------------------------
@@ -328,6 +329,9 @@ class OrderItem(Base):
     manufacturing_product_id = Column(
         Integer, ForeignKey("manufacturing_products.id", ondelete="SET NULL"), nullable=True
     )
+    manufacturing_service_id = Column(
+        Integer, ForeignKey("manufacturing_services.id", ondelete="SET NULL"), nullable=True
+    )
     quantity = Column(Float, nullable=False, default=1)
     unit_price = Column(DECIMAL(12, 2), nullable=False)
     subtotal = Column(DECIMAL(14, 2), nullable=False)
@@ -335,6 +339,7 @@ class OrderItem(Base):
     order = relationship("Order", back_populates="items")
     agriculture_listing = relationship("AgricultureListing", back_populates="order_items")
     manufacturing_product = relationship("ManufacturingProduct", back_populates="order_items")
+    manufacturing_service = relationship("ManufacturingService", back_populates="order_items")
 
 
 # ---------------------------------------------------------------------------

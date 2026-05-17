@@ -241,7 +241,31 @@ enum LocationAvailabilityStatus {
 final locationAvailabilityProvider =
     StateProvider<LocationAvailabilityStatus>((_) => LocationAvailabilityStatus.unknown);
 
-final sessionLocationPromptHandledProvider = StateProvider<bool>((_) => false);
+const _kLocationPromptShownKey = 'location_prompt_shown';
+
+class LocationPromptShownNotifier extends StateNotifier<bool> {
+  LocationPromptShownNotifier() : super(false) {
+    _load();
+  }
+
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    state = prefs.getBool(_kLocationPromptShownKey) ?? false;
+  }
+
+  Future<void> markShown() async {
+    if (state) return;
+    state = true;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kLocationPromptShownKey, true);
+  }
+}
+
+final locationPromptShownProvider =
+    StateNotifierProvider<LocationPromptShownNotifier, bool>(
+  (_) => LocationPromptShownNotifier(),
+);
+
 final sessionLocationServiceDialogShownProvider = StateProvider<bool>((_) => false);
 
 // ─── User country ─────────────────────────────────────────────────────────────

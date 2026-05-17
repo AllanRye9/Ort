@@ -8,6 +8,7 @@ import '../../core/listing_providers.dart';
 import '../../core/friendly_error.dart';
 import '../../models/models.dart';
 import '../../widgets/listing_card.dart';
+import '../../widgets/search_image_button.dart';
 
 // ─── Filter state ─────────────────────────────────────────────────────────────
 
@@ -191,7 +192,9 @@ final _searchResultsProvider =
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 class SearchScreen extends ConsumerStatefulWidget {
-  const SearchScreen({super.key});
+  const SearchScreen({super.key, this.initialQuery});
+
+  final String? initialQuery;
 
   @override
   ConsumerState<SearchScreen> createState() => _SearchScreenState();
@@ -199,6 +202,19 @@ class SearchScreen extends ConsumerStatefulWidget {
 
 class _SearchScreenState extends ConsumerState<SearchScreen> {
   final _ctrl = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    final initial = widget.initialQuery?.trim();
+    if (initial != null && initial.isNotEmpty) {
+      _ctrl.text = initial;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _submit();
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -273,6 +289,19 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           textInputAction: TextInputAction.search,
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.image_search, color: Colors.white),
+            tooltip: 'Search with image',
+            onPressed: () => triggerImageSearch(
+              context: context,
+              ref: ref,
+              onQuery: (query) {
+                _ctrl.text = query;
+                _submit();
+                setState(() {});
+              },
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.search, color: Colors.white),
             onPressed: _submit,
