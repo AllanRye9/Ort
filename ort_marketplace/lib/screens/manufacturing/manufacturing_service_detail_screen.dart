@@ -232,10 +232,7 @@ class _ManufacturingServiceDetailScreenState
     final auth = ref.watch(authProvider);
     final mode = ref.watch(marketplaceModeProvider);
     final userCountry = ref.watch(userCountryProvider);
-    final isOwner = auth.isAuthenticated &&
-        (auth.role == 'company' ||
-            auth.role == 'organization' ||
-            auth.role == 'agent');
+    final isAdmin = auth.role == 'admin';
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -256,9 +253,13 @@ class _ManufacturingServiceDetailScreenState
           onPressed: () => context.pop(),
         ),
         actions: [
-          if (isOwner)
-            async.maybeWhen(
-              data: (s) => Row(
+          async.maybeWhen(
+            data: (s) {
+              final canManage = auth.isAuthenticated &&
+                  (isAdmin ||
+                      (auth.userId != null && s.ownerUserId == auth.userId));
+              if (!canManage) return const SizedBox.shrink();
+              return Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
@@ -288,9 +289,10 @@ class _ManufacturingServiceDetailScreenState
                     ),
                   ),
                 ],
-              ),
-              orElse: () => const SizedBox.shrink(),
-            ),
+              );
+            },
+            orElse: () => const SizedBox.shrink(),
+          ),
           Container(
             margin: const EdgeInsets.only(right: 8),
             decoration: const BoxDecoration(

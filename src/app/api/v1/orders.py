@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 
 from app.database.database import get_db
+from app.dependencies import get_current_user
 from app.models.models import User
 from app.models.marketplace_models import (
     Order,
@@ -183,10 +184,19 @@ def update_order(order_id: int, payload: OrderUpdate, db: Session = Depends(get_
 
 
 @router.delete("/{order_id}", status_code=status.HTTP_200_OK)
-def cancel_order(order_id: int, db: Session = Depends(get_db)):
+def cancel_order(
+    order_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     obj = db.query(Order).filter(Order.id == order_id).first()
     if not obj:
         raise HTTPException(status_code=404, detail="Order not found")
+    if current_user.role != "admin" and obj.buyer_user_id != current_user.id:
+        raise HTTPException(
+            status_code=403,
+            detail="Insufficient permissions: only the order creator or an admin can cancel this order",
+        )
     obj.status = "cancelled"
     db.commit()
     return {"message": "Order cancelled successfully"}

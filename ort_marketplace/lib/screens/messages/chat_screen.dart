@@ -203,50 +203,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     }
   }
 
-  Future<void> _confirmDeleteConversation() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete conversation?'),
-        content: const Text(
-          'This will remove the full conversation thread and its messages.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(
-              'Delete',
-              style: TextStyle(color: Theme.of(ctx).colorScheme.error),
-            ),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-    try {
-      final userId = ref.read(authProvider).userId;
-      if (userId == null) return;
-      await ref.read(apiServiceProvider).deleteConversation(
-            conversationId: widget.conversationId,
-            actorId: userId,
-          );
-      if (mounted) context.go('/messages');
-    } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(friendlyErrorMessage(error)),
-          backgroundColor: Theme.of(context).colorScheme.error,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
-  }
-
   void _toggleSelection(MessageModel message) {
     final currentUserId = ref.read(authProvider).userId;
     if (message.senderId != currentUserId) return;
@@ -305,11 +261,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
               title: Text(_showNewestFirst ? 'Show oldest first' : 'Show newest first'),
               onTap: () => Navigator.pop(sheetCtx, 'sort'),
             ),
-            ListTile(
-              leading: const Icon(Icons.delete_sweep_outlined),
-              title: const Text('Delete conversation'),
-              onTap: () => Navigator.pop(sheetCtx, 'conversation'),
-            ),
           ],
         ),
       ),
@@ -322,8 +273,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         _messages = _sortMessages(_messages);
       });
       _scrollToLatest();
-    } else if (action == 'conversation') {
-      await _confirmDeleteConversation();
     }
   }
 

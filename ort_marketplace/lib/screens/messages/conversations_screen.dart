@@ -227,6 +227,9 @@ class ConversationsScreen extends ConsumerWidget {
     WidgetRef ref,
     ConversationModel conversation,
   ) async {
+    final auth = ref.read(authProvider);
+    final canDeleteConversation = auth.userId != null &&
+        (auth.role == 'admin' || conversation.initiatorId == auth.userId);
     final action = await showModalBottomSheet<String>(
       context: context,
       builder: (sheetCtx) => SafeArea(
@@ -243,11 +246,12 @@ class ConversationsScreen extends ConsumerWidget {
               title: const Text('Update location'),
               onTap: () => Navigator.pop(sheetCtx, 'location'),
             ),
-            ListTile(
-              leading: const Icon(Icons.delete_outline),
-              title: const Text('Delete conversation'),
-              onTap: () => Navigator.pop(sheetCtx, 'delete'),
-            ),
+            if (canDeleteConversation)
+              ListTile(
+                leading: const Icon(Icons.delete_outline),
+                title: const Text('Delete conversation'),
+                onTap: () => Navigator.pop(sheetCtx, 'delete'),
+              ),
           ],
         ),
       ),

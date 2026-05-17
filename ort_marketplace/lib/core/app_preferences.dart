@@ -5,6 +5,8 @@
 ///
 /// All are persisted via [SharedPreferences] so they survive restarts.
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -292,9 +294,47 @@ final userCountryProvider =
 const _kDisplayCurrencyKey = 'display_currency';
 
 /// ORT's default marketplace policy is Uganda-first:
-/// Uganda users see UGX, while non-Uganda users default to USD.
+/// Uganda is the base market; countries map to their local currencies when
+/// known, and USD is used as the safe global fallback.
 String currencyCodeForCountry(String? country) {
-  return country?.trim().toLowerCase() == 'uganda' ? 'UGX' : 'USD';
+  final normalized = normalizeCountryName(country)?.toLowerCase();
+  const mapping = {
+    'uganda': 'UGX',
+    'south sudan': 'SSP',
+    'kenya': 'KES',
+    'tanzania': 'TZS',
+    'rwanda': 'RWF',
+    'burundi': 'BIF',
+    'ethiopia': 'ETB',
+    'nigeria': 'NGN',
+    'ghana': 'GHS',
+    'south africa': 'ZAR',
+    'zambia': 'ZMW',
+    'malawi': 'MWK',
+    'mozambique': 'MZN',
+    'botswana': 'BWP',
+    'namibia': 'NAD',
+    'egypt': 'EGP',
+    'morocco': 'MAD',
+    'algeria': 'DZD',
+    'tunisia': 'TND',
+    'united arab emirates': 'AED',
+    'united states': 'USD',
+    'united kingdom': 'GBP',
+    'european union': 'EUR',
+    'germany': 'EUR',
+    'france': 'EUR',
+    'italy': 'EUR',
+    'spain': 'EUR',
+    'india': 'INR',
+    'china': 'CNY',
+    'japan': 'JPY',
+    'canada': 'CAD',
+    'australia': 'AUD',
+    'new zealand': 'NZD',
+    'switzerland': 'CHF',
+  };
+  return mapping[normalized] ?? 'USD';
 }
 
 class DisplayCurrencyNotifier extends StateNotifier<String> {
@@ -304,10 +344,16 @@ class DisplayCurrencyNotifier extends StateNotifier<String> {
 
   final Ref _ref;
   Future<void>? _refreshInFlight;
+  Timer? _backgroundRefreshTimer;
+  static const _kBackgroundRefreshInterval = Duration(minutes: 2);
 
   Future<void> _initialize() async {
     await _load();
     await refreshFromLocation();
+    _backgroundRefreshTimer ??= Timer.periodic(
+      _kBackgroundRefreshInterval,
+      (_) => refreshFromLocation(),
+    );
   }
 
   Future<void> _load() async {
@@ -361,9 +407,17 @@ class DisplayCurrencyNotifier extends StateNotifier<String> {
   }
 
   Future<void> _setCurrency(String currency) async {
-    state = currency;
+    final normalized = currency.toUpperCase();
+    if (state == normalized) return;
+    state = normalized;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_kDisplayCurrencyKey, currency);
+    await prefs.setString(_kDisplayCurrencyKey, normalized);
+  }
+
+  @override
+  void dispose() {
+    _backgroundRefreshTimer?.cancel();
+    super.dispose();
   }
 }
 
