@@ -7,6 +7,7 @@ import 'package:latlong2/latlong.dart';
 import '../../core/api_service.dart';
 import '../../core/location_service.dart';
 import '../../models/models.dart';
+import '../../widgets/search_image_button.dart';
 
 // ─── Haversine helper ─────────────────────────────────────────────────────────
 
@@ -176,10 +177,22 @@ class _DistanceCalculatorScreenState
                 Expanded(
                   child: TextField(
                     controller: _pointACtrl,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       hintText: 'City, address or coordinates…',
                       isDense: true,
                       border: OutlineInputBorder(),
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.image_search, size: 18),
+                        tooltip: 'Search with image',
+                        onPressed: () => triggerImageSearch(
+                          context: context,
+                          ref: ref,
+                          onQuery: (query) {
+                            _pointACtrl.text = query;
+                            _geocodeManual(forA: true);
+                          },
+                        ),
+                      ),
                     ),
                     onSubmitted: (_) => _geocodeManual(forA: true),
                     textInputAction: TextInputAction.search,
@@ -219,10 +232,22 @@ class _DistanceCalculatorScreenState
                 Expanded(
                   child: TextField(
                     controller: _pointBCtrl,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       hintText: 'City, address, or pick a listing…',
                       isDense: true,
                       border: OutlineInputBorder(),
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.image_search, size: 18),
+                        tooltip: 'Search with image',
+                        onPressed: () => triggerImageSearch(
+                          context: context,
+                          ref: ref,
+                          onQuery: (query) {
+                            _pointBCtrl.text = query;
+                            _geocodeManual(forA: false);
+                          },
+                        ),
+                      ),
                     ),
                     onSubmitted: (_) => _geocodeManual(forA: false),
                     textInputAction: TextInputAction.search,

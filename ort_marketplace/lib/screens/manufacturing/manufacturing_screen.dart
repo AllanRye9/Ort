@@ -11,6 +11,7 @@ import '../../core/responsive.dart';
 import '../../models/models.dart';
 import '../../widgets/listing_card.dart';
 import '../../widgets/mode_filter_bar.dart';
+import '../../widgets/search_image_button.dart';
 
 class ManufacturingScreen extends ConsumerStatefulWidget {
   const ManufacturingScreen({super.key});
@@ -630,6 +631,19 @@ class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen>
                   ),
                 ),
                 const SizedBox(width: 8),
+                IconButton.outlined(
+                  icon: const Icon(Icons.image_search, size: 20),
+                  tooltip: 'Search with image',
+                  onPressed: () => triggerImageSearch(
+                    context: context,
+                    ref: ref,
+                    onQuery: (query) {
+                      _searchCtrl.text = query;
+                      _applySearch();
+                    },
+                  ),
+                ),
+                const SizedBox(width: 8),
                 Badge(
                   isLabelVisible: _hasActiveFilters,
                   child: IconButton.outlined(
@@ -901,32 +915,51 @@ class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen>
         // ── Search bar ─────────────────────────────────────────────
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: ValueListenableBuilder<TextEditingValue>(
-            valueListenable: _svcSearchCtrl,
-            builder: (context, value, _) => TextField(
-              controller: _svcSearchCtrl,
-              textInputAction: TextInputAction.search,
-              decoration: InputDecoration(
-                hintText: 'Search services…',
-                prefixIcon: const Icon(Icons.search, size: 20),
-                suffixIcon: value.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear, size: 18),
-                        onPressed: () {
-                          _svcSearchCtrl.clear();
-                          _applySvcSearch();
-                        },
-                      )
-                    : null,
-                isDense: true,
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
+          child: Row(
+            children: [
+              Expanded(
+                child: ValueListenableBuilder<TextEditingValue>(
+                  valueListenable: _svcSearchCtrl,
+                  builder: (context, value, _) => TextField(
+                    controller: _svcSearchCtrl,
+                    textInputAction: TextInputAction.search,
+                    decoration: InputDecoration(
+                      hintText: 'Search services…',
+                      prefixIcon: const Icon(Icons.search, size: 20),
+                      suffixIcon: value.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, size: 18),
+                              onPressed: () {
+                                _svcSearchCtrl.clear();
+                                _applySvcSearch();
+                              },
+                            )
+                          : null,
+                      isDense: true,
+                      contentPadding:
+                          const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    onSubmitted: (_) => _applySvcSearch(),
+                  ),
                 ),
               ),
-              onSubmitted: (_) => _applySvcSearch(),
-            ),
+              const SizedBox(width: 8),
+              IconButton.outlined(
+                icon: const Icon(Icons.image_search, size: 20),
+                tooltip: 'Search with image',
+                onPressed: () => triggerImageSearch(
+                  context: context,
+                  ref: ref,
+                  onQuery: (query) {
+                    _svcSearchCtrl.text = query;
+                    _applySvcSearch();
+                  },
+                ),
+              ),
+            ],
           ),
         ),
         // ── Mode indicator / international country filter ──────────

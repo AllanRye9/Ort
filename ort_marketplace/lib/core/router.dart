@@ -137,7 +137,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
       GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),
       // Full-screen routes (no bottom nav)
-      GoRoute(path: '/search', builder: (_, __) => const SearchScreen()),
+      GoRoute(
+        path: '/search',
+        builder: (_, state) => SearchScreen(
+          initialQuery: state.uri.queryParameters['q'],
+        ),
+      ),
       GoRoute(
         path: '/distance-calculator',
         builder: (_, __) => const DistanceCalculatorScreen(),
