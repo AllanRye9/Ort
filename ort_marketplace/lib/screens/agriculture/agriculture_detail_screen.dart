@@ -431,10 +431,14 @@ class _AgricultureDetailScreenState extends ConsumerState<AgricultureDetailScree
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Error: $e')),
-        data: (a) => SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+        data: (a) {
+          final isOwner = auth.isAuthenticated &&
+              auth.userId != null &&
+              a.ownerUserId == auth.userId;
+          return SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
               ImageGallery(
                 imageUrls: a.images,
                 height: 240,
@@ -607,9 +611,10 @@ class _AgricultureDetailScreenState extends ConsumerState<AgricultureDetailScree
                   ],
                 ),
               ),
-            ],
-          ),
-        ),
+              ],
+            ),
+          );
+        },
       ),
       bottomNavigationBar: async.maybeWhen(
         data: (a) => Container(
