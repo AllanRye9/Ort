@@ -7,9 +7,11 @@ import '../../core/api_service.dart';
 import '../../core/app_preferences.dart';
 import '../../core/auth_provider.dart';
 import '../../core/listing_providers.dart';
+import '../../core/navigation_service.dart';
 import '../../models/models.dart';
 import '../../widgets/image_gallery.dart';
 import '../../widgets/listing_widgets.dart';
+import '../../widgets/navigation_widgets.dart';
 import '../../widgets/promote_listing_button.dart';
 
 final _agriDetailProvider =
@@ -342,6 +344,15 @@ class _AgricultureDetailScreenState extends ConsumerState<AgricultureDetailScree
     final mode = ref.watch(marketplaceModeProvider);
     final userCountry = ref.watch(userCountryProvider);
     final isAdmin = auth.role == 'admin';
+
+    // Set breadcrumbs for this screen
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      NavigationService().setBreadcrumbs([
+        ('Agriculture', () => context.goAgriculture()),
+        ('Detail', () {}),
+      ]);
+    });
+
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(

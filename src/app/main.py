@@ -14,6 +14,7 @@ from .api.v1.api import router
 from .api.v1.const_admin import router as const_admin_router
 from .api.v1.medi_portal import router as medi_portal_router
 from .api.v1.web_portal import router as web_portal_router
+from .exceptions import AppException
 
 # Import marketplace models so their tables are registered with Base
 from .models import marketplace_models  # noqa: F401
@@ -116,13 +117,30 @@ app.add_middleware(RequestLoggingMiddleware)
 
 
 # ---------------------------------------------------------------------------
-# Global exception handler – catches any exception that escapes route handlers
-# and logs the full traceback before returning a generic 500 response.
-# Without this, Starlette swallows the traceback and Railway only sees a
-# connection-reset, which shows up as "Application failed to respond".
+# Exception handlers – structured error responses
+# Catches AppException (custom business logic errors) and generic exceptions.
 # ---------------------------------------------------------------------------
+@app.exception_handler(AppException)
+async def app_exception_handler(request: Request, exc: AppException):
+    """Handle custom application exceptions with structured error format."""
+    log_level = logging.WARNING if exc.status_code < 500 else logging.ERROR
+    logger.log(
+        log_level,
+        "AppException on %s %s: [%s] %s",
+        request.method,
+        request.url.path,
+        exc.error_code.value,
+        exc.message,
+    )
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=exc.to_dict(),
+    )
+
+
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception):
+    """Handle unhandled exceptions with full traceback logging."""
     tb = traceback.format_exc()
     logger.error(
         "Unhandled exception on %s %s:\n%s",
@@ -132,7 +150,11 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
     )
     return JSONResponse(
         status_code=500,
-        content={"detail": "Internal server error", "type": type(exc).__name__},
+        content={
+            "detail": "Internal server error",
+            "error_code": "INTERNAL_ERROR",
+            "type": type(exc).__name__,
+        },
     )
 
 
