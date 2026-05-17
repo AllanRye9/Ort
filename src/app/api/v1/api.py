@@ -484,10 +484,19 @@ def update_property_status(
 
 
 @router.delete("/properties/{property_id}", status_code=status.HTTP_200_OK)
-def delete_property(property_id: int, db: Session = Depends(get_db)):
+def delete_property(
+    property_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(_get_current_user),
+):
     prop = db.query(Property).filter(Property.id == property_id, Property.is_deleted == False).first()
     if not prop:
         raise HTTPException(status_code=404, detail="Property not found")
+    if current_user.role != "admin" and prop.agent_id != current_user.id:
+        raise HTTPException(
+            status_code=403,
+            detail="Insufficient permissions: only the creator or an admin can delete this property",
+        )
 
     prop.is_deleted = True
     db.commit()
@@ -538,10 +547,20 @@ def create_property_image(image: PropertyImageCreate, db: Session = Depends(get_
 
 
 @router.delete("/property-images/{image_id}", status_code=status.HTTP_200_OK)
-def delete_property_image(image_id: int, db: Session = Depends(get_db)):
+def delete_property_image(
+    image_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(_get_current_user),
+):
     image = db.query(PropertyImage).filter(PropertyImage.id == image_id).first()
     if not image:
         raise HTTPException(status_code=404, detail="Property image not found")
+    prop = db.query(Property).filter(Property.id == image.property_id).first()
+    if current_user.role != "admin" and (prop is None or prop.agent_id != current_user.id):
+        raise HTTPException(
+            status_code=403,
+            detail="Insufficient permissions: only the creator or an admin can delete this image",
+        )
 
     db.delete(image)
     db.commit()

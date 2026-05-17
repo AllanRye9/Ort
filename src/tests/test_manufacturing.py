@@ -15,11 +15,31 @@ PRODUCT_BASE = {
     "is_locally_made": True,
 }
 
+OWNER_PAYLOAD = {
+    "role": "agent",
+    "first_name": "Mfg",
+    "last_name": "Owner",
+    "email": "mfg.owner@example.com",
+    "password": "TestPass1!",
+}
+
 
 def _create_tenant(client):
     resp = client.post("/api/v1/tenants/", json=TENANT_PAYLOAD)
     assert resp.status_code == 201, resp.text
     return resp.json()
+
+
+def _create_user(client):
+    resp = client.post("/api/v1/users/", json=OWNER_PAYLOAD)
+    assert resp.status_code == 201, resp.text
+    return resp.json()
+
+
+def _auth_headers(client, email, password):
+    resp = client.post("/api/v1/auth/login", json={"email": email, "password": password})
+    assert resp.status_code == 200, resp.text
+    return {"Authorization": f"Bearer {resp.json()['access_token']}"}
 
 
 def test_list_manufacturing_empty(client):
@@ -64,10 +84,12 @@ def test_update_manufacturing_product(client):
 
 
 def test_delete_manufacturing_product(client):
+    owner = _create_user(client)
     tenant = _create_tenant(client)
-    payload = {**PRODUCT_BASE, "tenant_id": tenant["id"]}
+    payload = {**PRODUCT_BASE, "tenant_id": tenant["id"], "owner_user_id": owner["id"]}
     product = client.post("/api/v1/manufacturing/", json=payload).json()
-    resp = client.delete(f"/api/v1/manufacturing/{product['id']}")
+    headers = _auth_headers(client, OWNER_PAYLOAD["email"], OWNER_PAYLOAD["password"])
+    resp = client.delete(f"/api/v1/manufacturing/{product['id']}", headers=headers)
     assert resp.status_code == 200
     assert client.get(f"/api/v1/manufacturing/{product['id']}").status_code == 404
 

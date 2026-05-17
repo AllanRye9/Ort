@@ -341,10 +341,7 @@ class _AgricultureDetailScreenState extends ConsumerState<AgricultureDetailScree
     final auth = ref.watch(authProvider);
     final mode = ref.watch(marketplaceModeProvider);
     final userCountry = ref.watch(userCountryProvider);
-    final isOwner = auth.isAuthenticated &&
-        (auth.role == 'company' ||
-            auth.role == 'organization' ||
-            auth.role == 'agent');
+    final isAdmin = auth.role == 'admin';
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
@@ -364,9 +361,13 @@ class _AgricultureDetailScreenState extends ConsumerState<AgricultureDetailScree
           onPressed: () => context.pop(),
         ),
         actions: [
-          if (isOwner)
-            async.maybeWhen(
-              data: (a) => Row(
+          async.maybeWhen(
+            data: (a) {
+              final canManage = auth.isAuthenticated &&
+                  (isAdmin ||
+                      (auth.userId != null && a.ownerUserId == auth.userId));
+              if (!canManage) return const SizedBox.shrink();
+              return Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
@@ -396,9 +397,10 @@ class _AgricultureDetailScreenState extends ConsumerState<AgricultureDetailScree
                     ),
                   ),
                 ],
-              ),
-              orElse: () => const SizedBox.shrink(),
-            ),
+              );
+            },
+            orElse: () => const SizedBox.shrink(),
+          ),
           Container(
             margin: const EdgeInsets.only(right: 8),
             decoration: const BoxDecoration(
