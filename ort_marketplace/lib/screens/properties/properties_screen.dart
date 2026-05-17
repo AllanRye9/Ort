@@ -11,6 +11,7 @@ import '../../core/responsive.dart';
 import '../../models/models.dart';
 import '../../widgets/listing_card.dart';
 import '../../widgets/mode_filter_bar.dart';
+import '../../widgets/search_image_button.dart';
 
 class PropertiesScreen extends ConsumerStatefulWidget {
   const PropertiesScreen({super.key});
@@ -484,6 +485,19 @@ class _PropertiesScreenState extends ConsumerState<PropertiesScreen> {
                       ),
                       onSubmitted: (_) => _applySearch(),
                     ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton.outlined(
+                  icon: const Icon(Icons.image_search, size: 20),
+                  tooltip: 'Search with image',
+                  onPressed: () => triggerImageSearch(
+                    context: context,
+                    ref: ref,
+                    onQuery: (query) {
+                      _searchCtrl.text = query;
+                      _applySearch();
+                    },
                   ),
                 ),
                 const SizedBox(width: 8),

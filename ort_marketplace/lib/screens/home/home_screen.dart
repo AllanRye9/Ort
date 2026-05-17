@@ -17,6 +17,7 @@ import '../../core/location_service.dart';
 import '../../core/responsive.dart';
 import '../../core/theme.dart';
 import '../../models/models.dart';
+import '../../widgets/search_image_button.dart';
 
 // Provider for current user (for avatar in hero banner)
 final _homeUserProvider = FutureProvider.autoDispose<UserModel?>((ref) async {
@@ -170,21 +171,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   Future<void> _maybeRequestLocation() async {
     // Already have a position – nothing to do.
     if (ref.read(userLocationProvider) != null) return;
-    if (ref.read(sessionLocationPromptHandledProvider)) return;
+    if (ref.read(locationPromptShownProvider)) return;
 
     final mode = ref.read(marketplaceModeProvider);
     if (mode == MarketplaceMode.international) {
       // Schedule the prompt after 5 minutes.
       _intlLocationTimer ??= Timer(const Duration(minutes: 5), () async {
         if (!mounted) return;
-        ref.read(sessionLocationPromptHandledProvider.notifier).state = true;
+        await ref.read(locationPromptShownProvider.notifier).markShown();
         _initLocation();
       });
       return;
     }
 
     // Local mode: request immediately.
-    ref.read(sessionLocationPromptHandledProvider.notifier).state = true;
+    await ref.read(locationPromptShownProvider.notifier).markShown();
     _initLocation();
   }
 
@@ -525,12 +526,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     ),
                   ),
                 IconButton(
-                  icon: const Icon(Icons.auto_awesome_outlined,
-                      color: Colors.white),
-                  onPressed: () => context.push('/ai-assistant'),
-                  tooltip: 'ORT AI Assistant',
-                ),
-                IconButton(
                   icon: const Icon(Icons.notifications_outlined,
                       color: Colors.white),
                   onPressed: () => context.go('/notifications'),
@@ -552,6 +547,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       onServicesTap: () => context.go('/manufacturing'),
                       onAgricTap: () => context.go('/agriculture'),
                       onRealEstateTap: () => context.go('/properties'),
+                      onAiTap: () => context.push('/ai-assistant'),
                     ),
                     const SizedBox(height: 8),
                     _MarketplaceModeToggle(
@@ -616,14 +612,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     // Radius filter logic runs in background; UI chips removed.
                   ],
                 ),
-              ),
-            ),
-
-            // ── AI Assistant ─────────────────────────────────────────────────
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(0, 4, 0, 12),
-                child: _ContentWrapper(child: const _AiWidget()),
               ),
             ),
 
@@ -1072,6 +1060,16 @@ class _SearchBar extends ConsumerWidget {
                 ],
               ),
             ),
+            IconButton(
+              icon: Icon(Icons.image_search_rounded, color: cs.primary, size: 20),
+              tooltip: 'Search with image',
+              onPressed: () => triggerImageSearch(
+                context: context,
+                ref: ref,
+                onQuery: (query) =>
+                    context.go('/search?q=${Uri.encodeQueryComponent(query)}'),
+              ),
+            ),
           ],
         ),
       ),
@@ -1086,6 +1084,7 @@ class _HomeSectionCircles extends StatelessWidget {
     required this.onAgricTap,
     required this.onRealEstateTap,
     required this.onServicesTap,
+    required this.onAiTap,
   });
 
   final VoidCallback onDistanceTap;
@@ -1093,6 +1092,7 @@ class _HomeSectionCircles extends StatelessWidget {
   final VoidCallback onAgricTap;
   final VoidCallback onRealEstateTap;
   final VoidCallback onServicesTap;
+  final VoidCallback onAiTap;
 
   @override
   Widget build(BuildContext context) {
@@ -1102,11 +1102,13 @@ class _HomeSectionCircles extends StatelessWidget {
       ('Real Estate', Icons.home_work_outlined, onRealEstateTap),
       ('Services', Icons.build_circle_outlined, onServicesTap),
       ('Distance', Icons.near_me_rounded, onDistanceTap),
+      ('AI', Icons.auto_awesome_rounded, onAiTap),
     ];
     return LayoutBuilder(
       builder: (context, constraints) {
         final isCompact = constraints.maxWidth < 520;
-        final columns = isCompact ? 3 : 5;
+        // Keep a single six-item row on non-compact layouts.
+        final columns = isCompact ? 3 : 6;
         final spacing = 10.0;
         final totalSpacing = spacing * (columns - 1);
         final itemWidth = (constraints.maxWidth - totalSpacing) / columns;
