@@ -345,7 +345,7 @@ class DisplayCurrencyNotifier extends StateNotifier<String> {
   final Ref _ref;
   Future<void>? _refreshInFlight;
   Timer? _backgroundRefreshTimer;
-  static const _kBackgroundRefreshInterval = Duration(seconds: 45);
+  static const _kBackgroundRefreshInterval = Duration(minutes: 2);
 
   Future<void> _initialize() async {
     await _load();
@@ -407,9 +407,11 @@ class DisplayCurrencyNotifier extends StateNotifier<String> {
   }
 
   Future<void> _setCurrency(String currency) async {
-    state = currency;
+    final normalized = currency.toUpperCase();
+    if (state == normalized) return;
+    state = normalized;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_kDisplayCurrencyKey, currency);
+    await prefs.setString(_kDisplayCurrencyKey, normalized);
   }
 
   @override
