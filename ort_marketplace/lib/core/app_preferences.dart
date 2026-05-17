@@ -254,7 +254,6 @@ class LocationPromptShownNotifier extends StateNotifier<bool> {
   }
 
   Future<void> markShown() async {
-    if (state) return;
     state = true;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_kLocationPromptShownKey, true);
