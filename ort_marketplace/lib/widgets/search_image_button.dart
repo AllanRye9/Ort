@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -29,7 +30,8 @@ Future<void> triggerImageSearch({
           filename: filename,
           mimeType: _mimeTypeFromFilename(filename),
         );
-  } catch (_) {
+  } catch (e) {
+    debugPrint('Image upload failed: $e');
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Image upload failed. Please try again.')),
