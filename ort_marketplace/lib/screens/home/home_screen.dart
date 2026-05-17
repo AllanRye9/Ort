@@ -1107,7 +1107,7 @@ class _HomeSectionCircles extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isCompact = constraints.maxWidth < 520;
-        final columns = isCompact ? 3 : items.length;
+        final columns = isCompact ? 3 : 6;
         final spacing = 10.0;
         final totalSpacing = spacing * (columns - 1);
         final itemWidth = (constraints.maxWidth - totalSpacing) / columns;

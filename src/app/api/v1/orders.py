@@ -87,8 +87,11 @@ def get_order(order_id: int, db: Session = Depends(get_db)):
 def create_order(payload: OrderCreate, db: Session = Depends(get_db)):
     items_data = payload.items
     for item in items_data:
-        refs = [getattr(item, field) for field in _ORDER_ITEM_REFERENCE_FIELDS]
-        if sum(1 for ref in refs if ref is not None) != 1:
+        non_none_count = sum(
+            getattr(item, field) is not None
+            for field in _ORDER_ITEM_REFERENCE_FIELDS
+        )
+        if non_none_count != 1:
             raise HTTPException(
                 status_code=400,
                 detail="Each order item must reference exactly one listing type.",

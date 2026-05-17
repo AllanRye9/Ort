@@ -23,11 +23,19 @@ Future<void> triggerImageSearch({
   }
 
   final filename = picked.name.isNotEmpty ? picked.name : 'image.jpg';
-  await ref.read(apiServiceProvider).uploadImage(
-        bytes: bytes,
-        filename: filename,
-        mimeType: _mimeTypeFromFilename(filename),
-      );
+  try {
+    await ref.read(apiServiceProvider).uploadImage(
+          bytes: bytes,
+          filename: filename,
+          mimeType: _mimeTypeFromFilename(filename),
+        );
+  } catch (_) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Image upload failed. Please try again.')),
+    );
+    return;
+  }
 
   final query = await _confirmQuery(
     context,
