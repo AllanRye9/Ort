@@ -445,6 +445,7 @@ class OrderItemCreate(BaseModel):
     property_id: Optional[int] = None
     agriculture_listing_id: Optional[int] = None
     manufacturing_product_id: Optional[int] = None
+    manufacturing_service_id: Optional[int] = None
     quantity: float = Field(..., gt=0)
     unit_price: Decimal = Field(..., gt=0)
 
@@ -454,6 +455,7 @@ class OrderItemResponse(BaseModel):
     property_id: Optional[int] = None
     agriculture_listing_id: Optional[int] = None
     manufacturing_product_id: Optional[int] = None
+    manufacturing_service_id: Optional[int] = None
     quantity: float
     unit_price: Decimal
     subtotal: Decimal

@@ -156,6 +156,72 @@ class _ManufacturingServiceDetailScreenState
     }
   }
 
+  Future<void> _orderNow(ManufacturingServiceModel s) async {
+    final userId = ref.read(authProvider).userId;
+    if (userId == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please sign in to place an order.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      return;
+    }
+    if (s.tenantId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('This service has no provider tenant – cannot place order.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (ctx) => _OrderDialog(
+        title: s.title,
+        unitPrice: s.price,
+        unit: s.pricingUnit,
+      ),
+    );
+    if (result == null || !mounted) return;
+    final qty = result['quantity'] as double? ?? 1.0;
+    try {
+      await ref.read(apiServiceProvider).createOrder({
+        'seller_tenant_id': s.tenantId,
+        'buyer_user_id': userId,
+        'delivery_address': result['address'] as String?,
+        'notes': result['notes'] as String?,
+        'items': [
+          {
+            'manufacturing_service_id': s.id,
+            'quantity': qty,
+            'unit_price': s.price,
+          }
+        ],
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Order placed! Check Orders for status.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Order failed: $e'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _deleteListing(ManufacturingServiceModel s) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -514,6 +580,14 @@ class _ManufacturingServiceDetailScreenState
                   onPressed: () => _contactProvider(s),
                 ),
               ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.shopping_cart_outlined, size: 16),
+                  label: const Text('Order'),
+                  onPressed: () => _orderNow(s),
+                ),
+              ),
             ],
           ),
         ),
@@ -553,6 +627,108 @@ class _InfoChip extends StatelessWidget {
           ),
         ),
       );
+}
+
+class _OrderDialog extends StatefulWidget {
+  const _OrderDialog({
+    required this.title,
+    required this.unitPrice,
+    this.unit,
+  });
+  final String title;
+  final double unitPrice;
+  final String? unit;
+
+  @override
+  State<_OrderDialog> createState() => _OrderDialogState();
+}
+
+class _OrderDialogState extends State<_OrderDialog> {
+  final _qtyCtrl = TextEditingController(text: '1');
+  final _addrCtrl = TextEditingController();
+  final _notesCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _qtyCtrl.dispose();
+    _addrCtrl.dispose();
+    _notesCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final qty = double.tryParse(_qtyCtrl.text) ?? 1.0;
+    final total = qty * widget.unitPrice;
+    return AlertDialog(
+      title: const Text('Place Order'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(widget.title,
+                style: const TextStyle(color: Colors.grey, fontSize: 13)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _qtyCtrl,
+              keyboardType: TextInputType.number,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                labelText: 'Quantity${widget.unit != null ? ' (${widget.unit})' : ''}',
+                border: const OutlineInputBorder(),
+                isDense: true,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Total: \$${total.toStringAsFixed(2)}',
+              style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.primary),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _addrCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Service address',
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _notesCtrl,
+              maxLines: 2,
+              decoration: const InputDecoration(
+                labelText: 'Notes (optional)',
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            final q = double.tryParse(_qtyCtrl.text);
+            if (q == null || q <= 0) return;
+            Navigator.of(context).pop({
+              'quantity': q,
+              'address': _addrCtrl.text.trim(),
+              'notes': _notesCtrl.text.trim(),
+            });
+          },
+          child: const Text('Place Order'),
+        ),
+      ],
+    );
+  }
 }
 
 class _StatusBadge extends StatelessWidget {
