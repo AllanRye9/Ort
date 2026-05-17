@@ -188,10 +188,26 @@ def update_listing(listing_id: int, payload: AgricultureListingUpdate, db: Sessi
 
 
 @router.delete("/{listing_id}", status_code=status.HTTP_200_OK)
-def delete_listing(listing_id: int, db: Session = Depends(get_db)):
+def delete_listing(
+    listing_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     obj = db.query(AgricultureListing).filter(AgricultureListing.id == listing_id, AgricultureListing.is_deleted == False).first()
     if not obj:
         raise HTTPException(status_code=404, detail="Agriculture listing not found")
+    if current_user.role != "admin":
+        allowed = False
+        if obj.tenant_id is not None:
+            tenant = db.query(Tenant).filter(Tenant.id == obj.tenant_id).first()
+            allowed = tenant is not None and tenant.owner_user_id == current_user.id
+        elif obj.owner_user_id is not None:
+            allowed = obj.owner_user_id == current_user.id
+        if not allowed:
+            raise HTTPException(
+                status_code=403,
+                detail="Insufficient permissions: only the creator or an admin can delete this listing",
+            )
     obj.is_deleted = True
     db.commit()
     return {"message": "Agriculture listing deleted successfully"}

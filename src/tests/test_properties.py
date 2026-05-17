@@ -12,12 +12,32 @@ PROPERTY_PAYLOAD = {
     "area_sqft": 1500,
 }
 
+AGENT_PAYLOAD = {
+    "role": "agent",
+    "first_name": "Prop",
+    "last_name": "Owner",
+    "email": "prop.owner@example.com",
+    "password": "TestPass1!",
+}
+
 
 def _create_property(client, payload=None):
     payload = payload or PROPERTY_PAYLOAD
     resp = client.post("/api/v1/properties/", json=payload)
     assert resp.status_code == 201, resp.text
     return resp.json()
+
+
+def _create_user(client):
+    resp = client.post("/api/v1/users/", json=AGENT_PAYLOAD)
+    assert resp.status_code == 201, resp.text
+    return resp.json()
+
+
+def _auth_headers(client, email, password):
+    resp = client.post("/api/v1/auth/login", json={"email": email, "password": password})
+    assert resp.status_code == 200, resp.text
+    return {"Authorization": f"Bearer {resp.json()['access_token']}"}
 
 
 def test_list_properties_empty(client):
@@ -61,8 +81,10 @@ def test_update_property_status(client):
 
 
 def test_delete_property(client):
-    prop = _create_property(client)
-    resp = client.delete(f"/api/v1/properties/{prop['id']}")
+    owner = _create_user(client)
+    prop = _create_property(client, {**PROPERTY_PAYLOAD, "agent_id": owner["id"]})
+    headers = _auth_headers(client, AGENT_PAYLOAD["email"], AGENT_PAYLOAD["password"])
+    resp = client.delete(f"/api/v1/properties/{prop['id']}", headers=headers)
     assert resp.status_code == 200
     assert client.get(f"/api/v1/properties/{prop['id']}").status_code == 404
 

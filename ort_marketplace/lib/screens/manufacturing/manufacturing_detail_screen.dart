@@ -342,10 +342,7 @@ class _ManufacturingDetailScreenState extends ConsumerState<ManufacturingDetailS
     final auth = ref.watch(authProvider);
     final mode = ref.watch(marketplaceModeProvider);
     final userCountry = ref.watch(userCountryProvider);
-    final isOwner = auth.isAuthenticated &&
-        (auth.role == 'company' ||
-            auth.role == 'organization' ||
-            auth.role == 'agent');
+    final isAdmin = auth.role == 'admin';
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
@@ -365,9 +362,13 @@ class _ManufacturingDetailScreenState extends ConsumerState<ManufacturingDetailS
           onPressed: () => context.pop(),
         ),
         actions: [
-          if (isOwner)
-            async.maybeWhen(
-              data: (m) => Row(
+          async.maybeWhen(
+            data: (m) {
+              final canManage = auth.isAuthenticated &&
+                  (isAdmin ||
+                      (auth.userId != null && m.ownerUserId == auth.userId));
+              if (!canManage) return const SizedBox.shrink();
+              return Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
@@ -397,9 +398,10 @@ class _ManufacturingDetailScreenState extends ConsumerState<ManufacturingDetailS
                     ),
                   ),
                 ],
-              ),
-              orElse: () => const SizedBox.shrink(),
-            ),
+              );
+            },
+            orElse: () => const SizedBox.shrink(),
+          ),
           Container(
             margin: const EdgeInsets.only(right: 8),
             decoration: const BoxDecoration(

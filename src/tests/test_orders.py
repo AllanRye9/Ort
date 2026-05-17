@@ -20,6 +20,14 @@ ORDER_ITEM = {
     "unit_price": "5.00",
 }
 
+BUYER_PAYLOAD = {
+    "role": "user",
+    "first_name": "Order",
+    "last_name": "Buyer",
+    "email": "order.buyer@example.com",
+    "password": "TestPass1!",
+}
+
 
 def _build_order(seller_id):
     return {
@@ -27,6 +35,18 @@ def _build_order(seller_id):
         "currency": "USD",
         "items": [ORDER_ITEM],
     }
+
+
+def _create_user(client):
+    resp = client.post("/api/v1/users/", json=BUYER_PAYLOAD)
+    assert resp.status_code == 201, resp.text
+    return resp.json()
+
+
+def _auth_headers(client, email, password):
+    resp = client.post("/api/v1/auth/login", json={"email": email, "password": password})
+    assert resp.status_code == 200, resp.text
+    return {"Authorization": f"Bearer {resp.json()['access_token']}"}
 
 
 def test_list_orders_empty(client):
@@ -69,9 +89,14 @@ def test_update_order_status(client):
 
 
 def test_cancel_order(client):
+    buyer = _create_user(client)
     tenant = _create_tenant(client)
-    order = client.post("/api/v1/orders/", json=_build_order(tenant["id"])).json()
-    resp = client.delete(f"/api/v1/orders/{order['id']}")
+    order = client.post(
+        "/api/v1/orders/",
+        json={**_build_order(tenant["id"]), "buyer_user_id": buyer["id"]},
+    ).json()
+    headers = _auth_headers(client, BUYER_PAYLOAD["email"], BUYER_PAYLOAD["password"])
+    resp = client.delete(f"/api/v1/orders/{order['id']}", headers=headers)
     assert resp.status_code == 200
     updated = client.get(f"/api/v1/orders/{order['id']}").json()
     assert updated["status"] == "cancelled"

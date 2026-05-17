@@ -362,8 +362,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
   Widget build(BuildContext context) {
     final async = ref.watch(_propertyDetailProvider(widget.id));
     final auth = ref.watch(authProvider);
-    final isOwner = auth.isAuthenticated &&
-        (auth.role == 'agent' || auth.role == 'company' || auth.role == 'organization');
+    final isAdmin = auth.role == 'admin';
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
@@ -383,9 +382,12 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
           onPressed: () => context.pop(),
         ),
         actions: [
-          if (isOwner)
-            async.maybeWhen(
-              data: (p) => Row(
+          async.maybeWhen(
+            data: (p) {
+              final canManage = auth.isAuthenticated &&
+                  (isAdmin || (auth.userId != null && p.agentId == auth.userId));
+              if (!canManage) return const SizedBox.shrink();
+              return Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
@@ -415,9 +417,10 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                     ),
                   ),
                 ],
-              ),
-              orElse: () => const SizedBox.shrink(),
-            ),
+              );
+            },
+            orElse: () => const SizedBox.shrink(),
+          ),
           Container(
             margin: const EdgeInsets.only(right: 8),
             decoration: const BoxDecoration(

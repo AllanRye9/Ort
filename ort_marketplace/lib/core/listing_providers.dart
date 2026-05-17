@@ -20,6 +20,7 @@ import '../models/models.dart';
 
 const _kToUsdRates = {
   'UGX': 0.000272, // Ugandan Shilling  ≈ 0.000272 USD
+  'SSP': 0.0013,   // South Sudanese Pound
   'AED': 0.2722940776, // UAE Dirham fixed peg (≈ 3.6725 AED : 1 USD)
   'USD': 1.0,
   'EUR': 1.08,
@@ -27,12 +28,27 @@ const _kToUsdRates = {
   'KES': 0.0077,   // Kenyan Shilling
   'TZS': 0.00039,  // Tanzanian Shilling
   'RWF': 0.00087,  // Rwandan Franc
+  'BIF': 0.00035,  // Burundian Franc
   'ETB': 0.0088,   // Ethiopian Birr
+  'GHS': 0.067,    // Ghanaian Cedi
   'NGN': 0.00062,  // Nigerian Naira
   'ZAR': 0.054,    // South African Rand
+  'ZMW': 0.037,    // Zambian Kwacha
+  'MWK': 0.00058,  // Malawian Kwacha
+  'MZN': 0.016,    // Mozambican Metical
+  'BWP': 0.073,    // Botswana Pula
+  'NAD': 0.054,    // Namibian Dollar
   'EGP': 0.021,    // Egyptian Pound
+  'MAD': 0.1,      // Moroccan Dirham
+  'DZD': 0.0074,   // Algerian Dinar
+  'TND': 0.32,     // Tunisian Dinar
   'CNY': 0.137,    // Chinese Yuan
   'INR': 0.012,    // Indian Rupee
+  'JPY': 0.0064,   // Japanese Yen
+  'CAD': 0.73,     // Canadian Dollar
+  'AUD': 0.66,     // Australian Dollar
+  'NZD': 0.61,     // New Zealand Dollar
+  'CHF': 1.1,      // Swiss Franc
 };
 
 /// Converts [amount] between supported currencies using the shared USD rate
@@ -86,13 +102,43 @@ String formatCurrency(
 /// Returns the currency code for the given country name.
 /// Defaults to 'USD' when the country is not specifically recognised.
 String currencyCodeForCountry(String? country) {
-  if (matchesCountry(country, 'Uganda')) {
-    return 'UGX';
-  }
-  if (matchesCountry(country, 'United Arab Emirates')) {
-    return 'AED';
-  }
-  return 'USD';
+  final normalized = normalizeCountryName(country)?.toLowerCase();
+  const mapping = {
+    'uganda': 'UGX',
+    'south sudan': 'SSP',
+    'kenya': 'KES',
+    'tanzania': 'TZS',
+    'rwanda': 'RWF',
+    'burundi': 'BIF',
+    'ethiopia': 'ETB',
+    'nigeria': 'NGN',
+    'ghana': 'GHS',
+    'south africa': 'ZAR',
+    'zambia': 'ZMW',
+    'malawi': 'MWK',
+    'mozambique': 'MZN',
+    'botswana': 'BWP',
+    'namibia': 'NAD',
+    'egypt': 'EGP',
+    'morocco': 'MAD',
+    'algeria': 'DZD',
+    'tunisia': 'TND',
+    'united arab emirates': 'AED',
+    'united states': 'USD',
+    'united kingdom': 'GBP',
+    'germany': 'EUR',
+    'france': 'EUR',
+    'italy': 'EUR',
+    'spain': 'EUR',
+    'india': 'INR',
+    'china': 'CNY',
+    'japan': 'JPY',
+    'canada': 'CAD',
+    'australia': 'AUD',
+    'new zealand': 'NZD',
+    'switzerland': 'CHF',
+  };
+  return mapping[normalized] ?? 'USD';
 }
 
 /// Returns the currency symbol / prefix for the given country.
@@ -376,10 +422,13 @@ final sortedHomePropertiesProvider =
     Provider<AsyncValue<List<PropertyModel>>>((ref) {
   final data = ref.watch(homePropertiesProvider);
   final loc = ref.watch(userLocationProvider);
+  final mode = ref.watch(marketplaceModeProvider);
   final recentlyViewed = ref.watch(recentlyViewedProvider);
   ref.watch(radiusFilterProvider); // trigger re-sort on radius change
   return data.whenData((items) {
-    final byDist = sortedByDistance(items, loc, (p) => p.latitude, (p) => p.longitude);
+    final byDist = mode == MarketplaceMode.local
+        ? sortedByDistance(items, loc, (p) => p.latitude, (p) => p.longitude)
+        : items;
     return applyPersonalization(byDist, recentlyViewed, 'property', (p) => p.id);
   });
 });
@@ -388,10 +437,13 @@ final sortedHomeAgricultureProvider =
     Provider<AsyncValue<List<AgricultureListingModel>>>((ref) {
   final data = ref.watch(homeAgricultureProvider);
   final loc = ref.watch(userLocationProvider);
+  final mode = ref.watch(marketplaceModeProvider);
   final recentlyViewed = ref.watch(recentlyViewedProvider);
   ref.watch(radiusFilterProvider);
   return data.whenData((items) {
-    final byDist = sortedByDistance(items, loc, (a) => a.latitude, (a) => a.longitude);
+    final byDist = mode == MarketplaceMode.local
+        ? sortedByDistance(items, loc, (a) => a.latitude, (a) => a.longitude)
+        : items;
     return applyPersonalization(byDist, recentlyViewed, 'agriculture', (a) => a.id);
   });
 });
@@ -400,10 +452,13 @@ final sortedHomeMfgProvider =
     Provider<AsyncValue<List<ManufacturingProductModel>>>((ref) {
   final data = ref.watch(homeMfgProvider);
   final loc = ref.watch(userLocationProvider);
+  final mode = ref.watch(marketplaceModeProvider);
   final recentlyViewed = ref.watch(recentlyViewedProvider);
   ref.watch(radiusFilterProvider);
   return data.whenData((items) {
-    final byDist = sortedByDistance(items, loc, (m) => m.latitude, (m) => m.longitude);
+    final byDist = mode == MarketplaceMode.local
+        ? sortedByDistance(items, loc, (m) => m.latitude, (m) => m.longitude)
+        : items;
     return applyPersonalization(byDist, recentlyViewed, 'manufacturing', (m) => m.id);
   });
 });
@@ -412,10 +467,13 @@ final sortedHomeServicesProvider =
     Provider<AsyncValue<List<ManufacturingServiceModel>>>((ref) {
   final data = ref.watch(homeServicesProvider);
   final loc = ref.watch(userLocationProvider);
+  final mode = ref.watch(marketplaceModeProvider);
   final recentlyViewed = ref.watch(recentlyViewedProvider);
   ref.watch(radiusFilterProvider);
   return data.whenData((items) {
-    final byDist = sortedByDistance(items, loc, (s) => s.latitude, (s) => s.longitude);
+    final byDist = mode == MarketplaceMode.local
+        ? sortedByDistance(items, loc, (s) => s.latitude, (s) => s.longitude)
+        : items;
     return applyPersonalization(byDist, recentlyViewed, 'manufacturing_service', (s) => s.id);
   });
 });

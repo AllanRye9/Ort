@@ -456,6 +456,7 @@ class ManufacturingServiceModel {
   const ManufacturingServiceModel({
     required this.id,
     this.tenantId,
+    this.ownerUserId,
     required this.title,
     this.description,
     this.serviceType,
@@ -479,6 +480,7 @@ class ManufacturingServiceModel {
 
   final int id;
   final int? tenantId;
+  final int? ownerUserId;
   final String title;
   final String? description;
   final String? serviceType;
@@ -503,6 +505,7 @@ class ManufacturingServiceModel {
       ManufacturingServiceModel(
         id: j['id'] as int,
         tenantId: j['tenant_id'] as int?,
+        ownerUserId: j['owner_user_id'] as int?,
         title: j['title'] as String,
         description: j['description'] as String?,
         serviceType: j['service_type'] as String?,
