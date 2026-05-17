@@ -717,7 +717,15 @@ class _OrderDialogState extends State<_OrderDialog> {
         ElevatedButton(
           onPressed: () {
             final q = double.tryParse(_qtyCtrl.text);
-            if (q == null || q <= 0) return;
+            if (q == null || q <= 0) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Enter a valid quantity greater than zero.'),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+              return;
+            }
             Navigator.of(context).pop({
               'quantity': q,
               'address': _addrCtrl.text.trim(),
