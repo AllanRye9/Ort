@@ -210,10 +210,26 @@ def update_product(product_id: int, payload: ManufacturingProductUpdate, db: Ses
 
 
 @router.delete("/{product_id}", status_code=status.HTTP_200_OK)
-def delete_product(product_id: int, db: Session = Depends(get_db)):
+def delete_product(
+    product_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     obj = db.query(ManufacturingProduct).filter(ManufacturingProduct.id == product_id, ManufacturingProduct.is_deleted == False).first()
     if not obj:
         raise HTTPException(status_code=404, detail="Manufacturing product not found")
+    if current_user.role != "admin":
+        allowed = False
+        if obj.tenant_id is not None:
+            tenant = db.query(Tenant).filter(Tenant.id == obj.tenant_id).first()
+            allowed = tenant is not None and tenant.owner_user_id == current_user.id
+        elif obj.owner_user_id is not None:
+            allowed = obj.owner_user_id == current_user.id
+        if not allowed:
+            raise HTTPException(
+                status_code=403,
+                detail="Insufficient permissions: only the creator or an admin can delete this product",
+            )
     obj.is_deleted = True
     db.commit()
     return {"message": "Manufacturing product deleted successfully"}
@@ -368,14 +384,29 @@ def update_service(service_id: int, payload: ManufacturingServiceUpdate, db: Ses
 
 
 @services_router.delete("/{service_id}", status_code=status.HTTP_200_OK)
-def delete_service(service_id: int, db: Session = Depends(get_db)):
+def delete_service(
+    service_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     obj = db.query(ManufacturingService).filter(
         ManufacturingService.id == service_id,
         ManufacturingService.is_deleted == False,
     ).first()
     if not obj:
         raise HTTPException(status_code=404, detail="Manufacturing service not found")
+    if current_user.role != "admin":
+        allowed = False
+        if obj.tenant_id is not None:
+            tenant = db.query(Tenant).filter(Tenant.id == obj.tenant_id).first()
+            allowed = tenant is not None and tenant.owner_user_id == current_user.id
+        elif obj.owner_user_id is not None:
+            allowed = obj.owner_user_id == current_user.id
+        if not allowed:
+            raise HTTPException(
+                status_code=403,
+                detail="Insufficient permissions: only the creator or an admin can delete this service",
+            )
     obj.is_deleted = True
     db.commit()
     return {"message": "Manufacturing service deleted successfully"}
-

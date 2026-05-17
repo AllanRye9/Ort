@@ -14,11 +14,31 @@ LISTING_BASE = {
     "unit": "kg",
 }
 
+OWNER_PAYLOAD = {
+    "role": "agent",
+    "first_name": "Agri",
+    "last_name": "Owner",
+    "email": "agri.owner@example.com",
+    "password": "TestPass1!",
+}
+
 
 def _create_tenant(client):
     resp = client.post("/api/v1/tenants/", json=TENANT_PAYLOAD)
     assert resp.status_code == 201, resp.text
     return resp.json()
+
+
+def _create_user(client):
+    resp = client.post("/api/v1/users/", json=OWNER_PAYLOAD)
+    assert resp.status_code == 201, resp.text
+    return resp.json()
+
+
+def _auth_headers(client, email, password):
+    resp = client.post("/api/v1/auth/login", json={"email": email, "password": password})
+    assert resp.status_code == 200, resp.text
+    return {"Authorization": f"Bearer {resp.json()['access_token']}"}
 
 
 def test_list_agriculture_listings_empty(client):
@@ -63,10 +83,12 @@ def test_update_agriculture_listing(client):
 
 
 def test_delete_agriculture_listing(client):
+    owner = _create_user(client)
     tenant = _create_tenant(client)
-    payload = {**LISTING_BASE, "tenant_id": tenant["id"]}
+    payload = {**LISTING_BASE, "tenant_id": tenant["id"], "owner_user_id": owner["id"]}
     listing = client.post("/api/v1/agriculture/", json=payload).json()
-    resp = client.delete(f"/api/v1/agriculture/{listing['id']}")
+    headers = _auth_headers(client, OWNER_PAYLOAD["email"], OWNER_PAYLOAD["password"])
+    resp = client.delete(f"/api/v1/agriculture/{listing['id']}", headers=headers)
     assert resp.status_code == 200
     assert client.get(f"/api/v1/agriculture/{listing['id']}").status_code == 404
 

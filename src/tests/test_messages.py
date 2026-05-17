@@ -30,6 +30,12 @@ def _create_user(client, payload):
     return resp.json()
 
 
+def _auth_headers(client, email, password):
+    resp = client.post("/api/v1/auth/login", json={"email": email, "password": password})
+    assert resp.status_code == 200, resp.text
+    return {"Authorization": f"Bearer {resp.json()['access_token']}"}
+
+
 def test_create_conversation(client):
     a = _create_user(client, USER_A)
     b = _create_user(client, USER_B)
@@ -172,12 +178,14 @@ def test_bulk_delete_messages(client):
         json={"conversation_id": conv["id"], "sender_id": a["id"], "body": "Second"},
     ).json()
 
+    headers = _auth_headers(client, USER_A["email"], USER_A["password"])
     resp = client.post(
         "/api/v1/messages/bulk-delete",
         json={
             "sender_id": a["id"],
             "message_ids": [first["id"], second["id"]],
         },
+        headers=headers,
     )
     assert resp.status_code == 200, resp.text
     assert resp.json()["count"] == 2

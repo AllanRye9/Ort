@@ -4,6 +4,8 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 
 from app.database.database import get_db
+from app.dependencies import get_current_user
+from app.models.models import User
 from app.models.marketplace_models import Review
 from app.schemas.marketplace_schemas import ReviewCreate, ReviewResponse
 
@@ -65,10 +67,19 @@ def create_review(payload: ReviewCreate, db: Session = Depends(get_db)):
 
 
 @router.delete("/{review_id}", status_code=status.HTTP_200_OK)
-def delete_review(review_id: int, db: Session = Depends(get_db)):
+def delete_review(
+    review_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     obj = db.query(Review).filter(Review.id == review_id).first()
     if not obj:
         raise HTTPException(status_code=404, detail="Review not found")
+    if current_user.role != "admin" and obj.reviewer_id != current_user.id:
+        raise HTTPException(
+            status_code=403,
+            detail="Insufficient permissions: only the review creator or an admin can delete this review",
+        )
     db.delete(obj)
     db.commit()
     return {"message": "Review deleted successfully"}

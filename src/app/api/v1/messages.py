@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 
 from app.database.database import get_db
+from app.dependencies import get_current_user
 from app.models.models import User
 from app.models.marketplace_models import Conversation, Message, Notification
 from app.schemas.marketplace_schemas import (
@@ -243,11 +244,11 @@ def mark_as_read(message_id: int, db: Session = Depends(get_db)):
 
 
 class MessageDeleteRequest(BaseModel):
-    sender_id: int
+    sender_id: Optional[int] = None
 
 
 class BulkMessageDeleteRequest(BaseModel):
-    sender_id: int
+    sender_id: Optional[int] = None
     message_ids: List[int]
 
 
@@ -270,13 +271,17 @@ def delete_message(
     message_id: int,
     payload: MessageDeleteRequest,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
-    """Soft-delete a message.  Only the original sender may delete it."""
+    """Soft-delete a message. Only the original sender or an admin may delete it."""
     obj = db.query(Message).filter(Message.id == message_id, Message.is_deleted.is_(False)).first()
     if not obj:
         raise HTTPException(status_code=404, detail="Message not found")
-    if obj.sender_id != payload.sender_id:
-        raise HTTPException(status_code=403, detail="You can only delete your own messages")
+    if current_user.role != "admin" and obj.sender_id != current_user.id:
+        raise HTTPException(
+            status_code=403,
+            detail="Insufficient permissions: only the message creator or an admin can delete this message",
+        )
     obj.is_deleted = True
     db.commit()
     return {"message": "Message deleted"}
@@ -286,6 +291,7 @@ def delete_message(
 def bulk_delete_messages(
     payload: BulkMessageDeleteRequest,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     message_ids = sorted({mid for mid in payload.message_ids if isinstance(mid, int)})
     if not message_ids:
@@ -297,8 +303,11 @@ def bulk_delete_messages(
     )
     if len(items) != len(message_ids):
         raise HTTPException(status_code=404, detail="One or more messages were not found")
-    if any(item.sender_id != payload.sender_id for item in items):
-        raise HTTPException(status_code=403, detail="You can only delete your own messages")
+    if current_user.role != "admin" and any(item.sender_id != current_user.id for item in items):
+        raise HTTPException(
+            status_code=403,
+            detail="Insufficient permissions: only message creators or an admin can delete these messages",
+        )
     for item in items:
         item.is_deleted = True
     db.commit()
@@ -347,12 +356,16 @@ def delete_conversation(
     conversation_id: int,
     payload: ConversationDeleteRequest,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     obj = db.query(Conversation).filter(Conversation.id == conversation_id).first()
     if not obj:
         raise HTTPException(status_code=404, detail="Conversation not found")
-    if payload.actor_id not in {obj.initiator_id, obj.recipient_id}:
-        raise HTTPException(status_code=403, detail="Not allowed to delete this conversation")
+    if current_user.role != "admin" and current_user.id != obj.initiator_id:
+        raise HTTPException(
+            status_code=403,
+            detail="Insufficient permissions: only the conversation creator or an admin can delete this conversation",
+        )
     db.delete(obj)
     db.commit()
     return {"message": "Conversation deleted"}

@@ -42,6 +42,28 @@ final _homeWalletPointsProvider = FutureProvider.autoDispose<int?>((ref) async {
   }
 });
 
+final _searchPreviewImageProvider = Provider<String?>((ref) {
+  final properties = ref.watch(homePropertiesProvider).valueOrNull;
+  if (properties != null && properties.isNotEmpty && properties.first.imageUrls.isNotEmpty) {
+    return properties.first.imageUrls.first;
+  }
+  final agri = ref.watch(homeAgricultureProvider).valueOrNull;
+  if (agri != null &&
+      agri.isNotEmpty &&
+      agri.first.images != null &&
+      agri.first.images!.isNotEmpty) {
+    return agri.first.images!.first;
+  }
+  final mfg = ref.watch(homeMfgProvider).valueOrNull;
+  if (mfg != null &&
+      mfg.isNotEmpty &&
+      mfg.first.images != null &&
+      mfg.first.images!.isNotEmpty) {
+    return mfg.first.images!.first;
+  }
+  return null;
+});
+
 // ─── Distance helper ──────────────────────────────────────────────────────────
 
 /// Returns the distance in km from [userLoc] to [lat]/[lon], or null if any
@@ -971,14 +993,15 @@ class _HeroBannerState extends State<_HeroBanner>
 
 // ─── Search bar ───────────────────────────────────────────────────────────────
 
-class _SearchBar extends StatelessWidget {
+class _SearchBar extends ConsumerWidget {
   const _SearchBar({required this.onTap});
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final previewImage = ref.watch(_searchPreviewImageProvider);
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -999,6 +1022,22 @@ class _SearchBar extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
         child: Row(
           children: [
+            if (previewImage != null) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: CachedNetworkImage(
+                  imageUrl: previewImage,
+                  width: 28,
+                  height: 28,
+                  fit: BoxFit.cover,
+                  errorWidget: (_, __, ___) =>
+                      Icon(Icons.image_outlined, color: cs.primary, size: 18),
+                  placeholder: (_, __) =>
+                      Icon(Icons.image_outlined, color: cs.primary, size: 18),
+                ),
+              ),
+              const SizedBox(width: 10),
+            ],
             Icon(Icons.search, color: cs.primary, size: 22),
             const SizedBox(width: 10),
             Expanded(

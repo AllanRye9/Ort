@@ -21,6 +21,12 @@ def _create_user(client):
     return resp.json()
 
 
+def _auth_headers(client, email, password):
+    resp = client.post("/api/v1/auth/login", json={"email": email, "password": password})
+    assert resp.status_code == 200, resp.text
+    return {"Authorization": f"Bearer {resp.json()['access_token']}"}
+
+
 def _create_tenant(client):
     resp = client.post("/api/v1/tenants/", json=TENANT_PAYLOAD)
     assert resp.status_code == 201, resp.text
@@ -81,6 +87,7 @@ def test_delete_review(client):
         "/api/v1/reviews/",
         json={"reviewer_id": user["id"], "reviewed_tenant_id": tenant["id"], "rating": 3},
     ).json()
-    resp = client.delete(f"/api/v1/reviews/{review['id']}")
+    headers = _auth_headers(client, USER_PAYLOAD["email"], USER_PAYLOAD["password"])
+    resp = client.delete(f"/api/v1/reviews/{review['id']}", headers=headers)
     assert resp.status_code == 200
     assert client.get(f"/api/v1/reviews/{review['id']}").status_code == 404
