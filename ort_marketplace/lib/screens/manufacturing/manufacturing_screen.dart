@@ -70,6 +70,8 @@ class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen>
     'consultation', 'other',
   ];
 
+  bool _tabIndexInitialized = false;
+
   @override
   void initState() {
     super.initState();
@@ -81,6 +83,20 @@ class _ManufacturingScreenState extends ConsumerState<ManufacturingScreen>
     _lastIntlFilter = ref.read(intlCountryFilterProvider);
     _loadListings();
     _loadServices();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_tabIndexInitialized) {
+      final queryTab = GoRouterState.of(context).uri.queryParameters['tab']?.toLowerCase();
+      if (queryTab == 'services') {
+        _tabCtrl.index = 1;
+      } else if (queryTab == 'products') {
+        _tabCtrl.index = 0;
+      }
+      _tabIndexInitialized = true;
+    }
   }
 
   @override

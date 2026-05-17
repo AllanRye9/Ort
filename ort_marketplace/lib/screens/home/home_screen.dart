@@ -543,8 +543,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   children: [
                     _HomeSectionCircles(
                       onDistanceTap: () => context.go('/distance-calculator'),
-                      onProductsTap: () => context.go('/manufacturing'),
-                      onServicesTap: () => context.go('/manufacturing'),
+                      onProductsTap: () => context.go('/manufacturing?tab=products'),
+                      onServicesTap: () => context.go('/manufacturing?tab=services'),
                       onAgricTap: () => context.go('/agriculture'),
                       onRealEstateTap: () => context.go('/properties'),
                       onAiTap: () => context.push('/ai-assistant'),
@@ -628,7 +628,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               child: _ContentWrapper(
                 child: _SectionHeader(
                   title: 'Services',
-                  onSeeAll: () => context.go('/manufacturing'),
+                  onSeeAll: () => context.go('/manufacturing?tab=services'),
                 ),
               ),
             ),
@@ -667,7 +667,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               child: _ContentWrapper(
                 child: _SectionHeader(
                   title: 'Manufacturing',
-                  onSeeAll: () => context.go('/manufacturing'),
+                  onSeeAll: () => context.go('/manufacturing?tab=products'),
                 ),
               ),
             ),
