@@ -432,10 +432,14 @@ class _ManufacturingDetailScreenState extends ConsumerState<ManufacturingDetailS
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Error: $e')),
-        data: (m) => SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+        data: (m) {
+          final isOwner = auth.isAuthenticated &&
+              auth.userId != null &&
+              m.ownerUserId == auth.userId;
+          return SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
               ImageGallery(
                 imageUrls: m.images,
                 height: 240,
@@ -605,9 +609,10 @@ class _ManufacturingDetailScreenState extends ConsumerState<ManufacturingDetailS
                   ],
                 ),
               ),
-            ],
-          ),
-        ),
+              ],
+            ),
+          );
+        },
       ),
       bottomNavigationBar: async.maybeWhen(
         data: (m) => Container(
