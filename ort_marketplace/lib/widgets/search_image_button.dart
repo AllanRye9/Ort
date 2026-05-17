@@ -29,13 +29,50 @@ Future<void> triggerImageSearch({
         mimeType: _mimeTypeFromFilename(filename),
       );
 
-  final query = _queryFromFilename(filename);
+  final query = await _confirmQuery(
+    context,
+    suggested: _queryFromFilename(filename),
+  );
+  if (query == null || query.trim().isEmpty) return;
   onQuery(query);
 
   if (!context.mounted) return;
   ScaffoldMessenger.of(context).showSnackBar(
     const SnackBar(content: Text('Image search started.')),
   );
+}
+
+Future<String?> _confirmQuery(
+  BuildContext context, {
+  required String suggested,
+}) async {
+  final ctrl = TextEditingController(text: suggested);
+  final query = await showDialog<String>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Image search'),
+      content: TextField(
+        controller: ctrl,
+        autofocus: true,
+        decoration: const InputDecoration(
+          labelText: 'Search keywords',
+          hintText: 'Describe what to search',
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(ctx).pop(),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: () => Navigator.of(ctx).pop(ctrl.text.trim()),
+          child: const Text('Search'),
+        ),
+      ],
+    ),
+  );
+  ctrl.dispose();
+  return query;
 }
 
 String _queryFromFilename(String filename) {
