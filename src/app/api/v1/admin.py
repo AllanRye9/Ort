@@ -22,7 +22,7 @@ from app.models.models import (
 )
 from app.models.marketplace_models import (
     AdminLog, AgricultureListing, ManufacturingProduct,
-    Message, Notification, Order, ProductTracking, SupportTicket, Tenant,
+    Message, Notification, Order, ProductTracking, ServiceListing, SupportTicket, Tenant,
 )
 from app.utils.countries import normalize_country_name
 
@@ -111,7 +111,6 @@ def get_dashboard_stats(
         row[0]: row[1]
         for row in db.query(User.role, func.count(User.id)).group_by(User.role).all()
     }
-    total_properties = db.query(func.count(Property.id)).scalar()
     total_tenants = db.query(func.count(Tenant.id)).scalar()
     total_orders = db.query(func.count(Order.id)).scalar()
     pending_orders = db.query(func.count(Order.id)).filter(Order.status == "pending").scalar()
@@ -120,6 +119,7 @@ def get_dashboard_stats(
     total_tickets = db.query(func.count(SupportTicket.id)).scalar()
     total_agriculture = db.query(func.count(AgricultureListing.id)).scalar()
     total_manufacturing = db.query(func.count(ManufacturingProduct.id)).scalar()
+    total_services = db.query(func.count(ServiceListing.id)).filter(ServiceListing.is_deleted == False).scalar()
 
     # New users in the last 30 days
     thirty_days_ago = datetime.utcnow() - timedelta(days=30)
@@ -129,7 +129,6 @@ def get_dashboard_stats(
         "total_users": total_users,
         "users_by_role": users_by_role,
         "new_users_last_30_days": new_users_30d,
-        "total_properties": total_properties,
         "total_tenants": total_tenants,
         "total_orders": total_orders,
         "pending_orders": pending_orders,
@@ -138,6 +137,7 @@ def get_dashboard_stats(
         "total_support_tickets": total_tickets,
         "total_agriculture_listings": total_agriculture,
         "total_manufacturing_products": total_manufacturing,
+        "total_services": total_services,
     }
 
 
@@ -561,28 +561,89 @@ def admin_delete_manufacturing(
     return {"message": "Manufacturing product deleted"}
 
 
+# ─── Services Content ─────────────────────────────────────────────────────────
+
+@router.get("/content/services/")
+def admin_list_services(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=200),
+    status_filter: Optional[str] = Query(None, alias="status"),
+    admin: User = Depends(_get_admin_user),
+    db: Session = Depends(get_db),
+):
+    q = db.query(ServiceListing).filter(ServiceListing.is_deleted == False)
+    if status_filter:
+        q = q.filter(ServiceListing.status == status_filter)
+    total = q.count()
+    items = q.order_by(ServiceListing.created_at.desc()).offset(skip).limit(limit).all()
+    return {
+        "total": total,
+        "services": [
+            {
+                "id": i.id,
+                "title": i.title,
+                "category": i.category,
+                "status": i.status,
+                "country": i.country,
+                "city": i.city,
+                "pricing_type": i.pricing_type,
+                "price": float(i.price) if i.price else None,
+                "price_currency": i.price_currency or "UGX",
+                "is_flash_deal": i.is_flash_deal,
+                "is_today_deal": i.is_today_deal,
+                "tenant_id": i.tenant_id,
+                "posted_by_user_id": i.posted_by_user_id,
+                "created_at": i.created_at,
+            }
+            for i in items
+        ],
+    }
+
+
+@router.patch("/content/services/{service_id}/status")
+def admin_update_service_status(
+    service_id: int,
+    new_status: str = Query(...),
+    admin: User = Depends(_get_admin_user),
+    db: Session = Depends(get_db),
+):
+    item = db.query(ServiceListing).filter(ServiceListing.id == service_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Service listing not found")
+    item.status = new_status
+    _log_action(db, admin, "update_service_status", "services", service_id, new_status)
+    db.commit()
+    return {"message": "Status updated", "status": new_status}
+
+
+@router.delete("/content/services/{service_id}")
+def admin_delete_service(
+    service_id: int,
+    admin: User = Depends(_get_admin_user),
+    db: Session = Depends(get_db),
+):
+    item = db.query(ServiceListing).filter(ServiceListing.id == service_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Service listing not found")
+    item.is_deleted = True
+    _log_action(db, admin, "delete_service", "services", service_id)
+    db.commit()
+    return {"message": "Service listing deleted"}
+
+
 # ─── Deleted Items ────────────────────────────────────────────────────────────
 
 @router.get("/deleted/")
 def admin_list_deleted_items(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
-    content_type: Optional[str] = Query(None),  # "properties", "agriculture", "manufacturing"
+    content_type: Optional[str] = Query(None),  # "agriculture", "manufacturing", "services"
     admin: User = Depends(_get_admin_user),
     db: Session = Depends(get_db),
 ):
-    """List all soft-deleted items across properties, agriculture and manufacturing."""
+    """List all soft-deleted items across agriculture, manufacturing, and services."""
     items = []
     total = 0
-
-    if content_type in (None, "properties"):
-        q = db.query(Property).filter(Property.is_deleted == True)
-        props = q.offset(skip).limit(limit).all()
-        total += q.count()
-        items.extend([
-            {"id": p.id, "type": "properties", "title": p.title, "status": p.status, "created_at": p.created_at}
-            for p in props
-        ])
 
     if content_type in (None, "agriculture"):
         q = db.query(AgricultureListing).filter(AgricultureListing.is_deleted == True)
@@ -602,6 +663,15 @@ def admin_list_deleted_items(
             for m in mfg
         ])
 
+    if content_type in (None, "services"):
+        q = db.query(ServiceListing).filter(ServiceListing.is_deleted == True)
+        svcs = q.offset(skip).limit(limit).all()
+        total += q.count()
+        items.extend([
+            {"id": s.id, "type": "services", "title": s.title, "status": s.status, "created_at": s.created_at}
+            for s in svcs
+        ])
+
     return {"total": total, "items": items}
 
 
@@ -613,12 +683,12 @@ def admin_purge_deleted_item(
     db: Session = Depends(get_db),
 ):
     """Permanently delete a soft-deleted item from the database."""
-    if content_type == "properties":
-        obj = db.query(Property).filter(Property.id == item_id, Property.is_deleted == True).first()
-    elif content_type == "agriculture":
+    if content_type == "agriculture":
         obj = db.query(AgricultureListing).filter(AgricultureListing.id == item_id, AgricultureListing.is_deleted == True).first()
     elif content_type == "manufacturing":
         obj = db.query(ManufacturingProduct).filter(ManufacturingProduct.id == item_id, ManufacturingProduct.is_deleted == True).first()
+    elif content_type == "services":
+        obj = db.query(ServiceListing).filter(ServiceListing.id == item_id, ServiceListing.is_deleted == True).first()
     else:
         raise HTTPException(status_code=400, detail="Invalid content type")
 
@@ -639,12 +709,12 @@ def admin_restore_deleted_item(
     db: Session = Depends(get_db),
 ):
     """Restore a soft-deleted item."""
-    if content_type == "properties":
-        obj = db.query(Property).filter(Property.id == item_id, Property.is_deleted == True).first()
-    elif content_type == "agriculture":
+    if content_type == "agriculture":
         obj = db.query(AgricultureListing).filter(AgricultureListing.id == item_id, AgricultureListing.is_deleted == True).first()
     elif content_type == "manufacturing":
         obj = db.query(ManufacturingProduct).filter(ManufacturingProduct.id == item_id, ManufacturingProduct.is_deleted == True).first()
+    elif content_type == "services":
+        obj = db.query(ServiceListing).filter(ServiceListing.id == item_id, ServiceListing.is_deleted == True).first()
     else:
         raise HTTPException(status_code=400, detail="Invalid content type")
 
@@ -748,12 +818,12 @@ def admin_reports_overview(
     since = datetime.utcnow() - timedelta(days=days)
 
     new_users = db.query(func.count(User.id)).filter(User.created_at >= since).scalar()
-    new_properties = db.query(func.count(Property.id)).filter(Property.created_at >= since).scalar()
     new_orders = db.query(func.count(Order.id)).filter(Order.created_at >= since).scalar()
     # Message uses `sent_at` instead of `created_at`
     new_messages = db.query(func.count(Message.id)).filter(Message.sent_at >= since).scalar()
     new_agriculture = db.query(func.count(AgricultureListing.id)).filter(AgricultureListing.created_at >= since).scalar()
     new_manufacturing = db.query(func.count(ManufacturingProduct.id)).filter(ManufacturingProduct.created_at >= since).scalar()
+    new_services = db.query(func.count(ServiceListing.id)).filter(ServiceListing.created_at >= since, ServiceListing.is_deleted == False).scalar()
 
     orders_by_status = {
         row[0]: row[1]
@@ -763,11 +833,11 @@ def admin_reports_overview(
     return {
         "period_days": days,
         "new_users": new_users,
-        "new_properties": new_properties,
         "new_orders": new_orders,
         "new_messages": new_messages,
         "new_agriculture_listings": new_agriculture,
         "new_manufacturing_products": new_manufacturing,
+        "new_services": new_services,
         "orders_by_status": orders_by_status,
     }
 

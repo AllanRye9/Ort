@@ -1,7 +1,7 @@
 """
 Public web marketplace portal served at /web.
 
-No authentication required to browse listings.  Anyone can view properties,
+No authentication required to browse listings.  Anyone can view agriculture,
 agriculture listings, and manufacturing products.  Authentication is handled
 by the /medi portal for posting / managing listings.
 """
@@ -78,9 +78,9 @@ _HTML = r"""<!DOCTYPE html>
     </a>
     <!-- Desktop category nav -->
     <nav class="hidden md:flex items-center gap-1">
-      <button onclick="switchTab('properties')"   id="tab-properties"   class="tab-nav-btn active">🏠 Properties</button>
-      <button onclick="switchTab('agriculture')"  id="tab-agriculture"  class="tab-nav-btn">🌾 Agriculture</button>
+      <button onclick="switchTab('agriculture')"  id="tab-agriculture"  class="tab-nav-btn active">🌾 Agriculture</button>
       <button onclick="switchTab('manufacturing')" id="tab-manufacturing" class="tab-nav-btn">🏭 Manufacturing</button>
+      <button onclick="switchTab('services')"      id="tab-services"      class="tab-nav-btn">🛠️ Services</button>
     </nav>
     <!-- Actions -->
     <div class="flex items-center gap-2 shrink-0">
@@ -101,17 +101,17 @@ _HTML = r"""<!DOCTYPE html>
   </div>
   <!-- Mobile category tabs -->
   <div class="md:hidden border-t flex">
-    <button onclick="switchTab('properties')"   id="mob-tab-properties"   class="mob-tab-btn active">🏠 Props</button>
-    <button onclick="switchTab('agriculture')"  id="mob-tab-agriculture"  class="mob-tab-btn">🌾 Agri</button>
+    <button onclick="switchTab('agriculture')"  id="mob-tab-agriculture"  class="mob-tab-btn active">🌾 Agri</button>
     <button onclick="switchTab('manufacturing')" id="mob-tab-manufacturing" class="mob-tab-btn">🏭 Manu</button>
+    <button onclick="switchTab('services')"      id="mob-tab-services"      class="mob-tab-btn">🛠️ Svc</button>
   </div>
 </header>
 
 <!-- ═══ HERO ═════════════════════════════════════════════════════════════════ -->
 <section class="bg-gradient-to-br from-green-900 to-green-700 text-white py-14 px-4">
   <div class="max-w-3xl mx-auto text-center">
-    <h1 class="text-3xl sm:text-4xl font-bold mb-3">Discover Properties, Agriculture &amp; Goods</h1>
-    <p class="text-green-200 mb-7 text-lg">Browse thousands of listings — no sign-up required</p>
+    <h1 class="text-3xl sm:text-4xl font-bold mb-3">Discover Agriculture, Manufacturing &amp; Services</h1>
+    <p class="text-green-200 mb-7 text-lg">Browse thousands of African market listings — no sign-up required</p>
     <div class="flex gap-2 max-w-xl mx-auto">
       <input id="searchInput" type="text" placeholder="Search listings by title, location, category…"
         class="flex-1 rounded-lg px-4 py-3 text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-green-400 min-w-0"/>
@@ -126,21 +126,8 @@ _HTML = r"""<!DOCTYPE html>
 <!-- ═══ MAIN CONTENT ══════════════════════════════════════════════════════════ -->
 <main class="max-w-7xl mx-auto px-4 py-8">
 
-  <!-- Properties section -->
-  <section id="sec-properties">
-    <div class="flex items-center justify-between mb-5">
-      <h2 class="text-xl font-bold text-gray-800">🏠 Properties</h2>
-      <span id="props-count" class="text-sm text-gray-500"></span>
-    </div>
-    <div id="props-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-      <div class="col-span-full flex justify-center py-16">
-        <div class="w-8 h-8 border-4 border-green-600 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    </div>
-  </section>
-
   <!-- Agriculture section -->
-  <section id="sec-agriculture" class="hidden">
+  <section id="sec-agriculture">
     <div class="flex items-center justify-between mb-5">
       <h2 class="text-xl font-bold text-gray-800">🌾 Agriculture</h2>
       <span id="agri-count" class="text-sm text-gray-500"></span>
@@ -159,6 +146,19 @@ _HTML = r"""<!DOCTYPE html>
       <span id="manu-count" class="text-sm text-gray-500"></span>
     </div>
     <div id="manu-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+      <div class="col-span-full flex justify-center py-16">
+        <div class="w-8 h-8 border-4 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Services section -->
+  <section id="sec-services" class="hidden">
+    <div class="flex items-center justify-between mb-5">
+      <h2 class="text-xl font-bold text-gray-800">🛠️ Services</h2>
+      <span id="svc-count" class="text-sm text-gray-500"></span>
+    </div>
+    <div id="svc-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
       <div class="col-span-full flex justify-center py-16">
         <div class="w-8 h-8 border-4 border-green-600 border-t-transparent rounded-full animate-spin"></div>
       </div>
@@ -198,7 +198,7 @@ _HTML = r"""<!DOCTYPE html>
         </div>
         <div>
           <span class="font-bold text-white text-lg">Ort Marketplace</span>
-          <p class="text-gray-500 text-xs mt-0.5">Properties · Agriculture · Manufacturing</p>
+          <p class="text-gray-500 text-xs mt-0.5">Agriculture · Manufacturing · Services</p>
         </div>
       </div>
       <nav class="flex gap-6 text-sm">
@@ -213,13 +213,19 @@ _HTML = r"""<!DOCTYPE html>
 
 <script>
 const API = '__API_BASE__';
-const allData = { properties: [], agriculture: [], manufacturing: [] };
-let currentTab = 'properties';
+const allData = { agriculture: [], manufacturing: [], services: [] };
+let currentTab = 'agriculture';
 let searchTerm = '';
 
 // ── Boot ───────────────────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
   loadAll();
+  // Handle ?tab= URL parameter for deep linking from landing page
+  const urlParams = new URLSearchParams(window.location.search);
+  const tabParam = urlParams.get('tab');
+  if (tabParam && ['agriculture','manufacturing','services'].includes(tabParam)) {
+    switchTab(tabParam);
+  }
   document.getElementById('searchInput').addEventListener('keydown', e => {
     if (e.key === 'Enter') applySearch();
   });
@@ -245,9 +251,9 @@ window.addEventListener('DOMContentLoaded', () => {
 
 async function loadAll() {
   await Promise.all([
-    fetchCategory('properties',   API + '/properties/?limit=50'),
     fetchCategory('agriculture',  API + '/agriculture/?limit=50'),
     fetchCategory('manufacturing', API + '/manufacturing/?limit=50'),
+    fetchCategory('services',     API + '/services/?limit=50'),
   ]);
 }
 
@@ -284,11 +290,11 @@ async function fetchCategory(type, url) {
 }
 
 function gridId(type) {
-  return type === 'properties' ? 'props' : type === 'agriculture' ? 'agri' : 'manu';
+  return type === 'agriculture' ? 'agri' : type === 'manufacturing' ? 'manu' : 'svc';
 }
 
 // ── Tab switching ──────────────────────────────────────────────────────────
-const TAB_SECTIONS = ['properties','agriculture','manufacturing'];
+const TAB_SECTIONS = ['agriculture','manufacturing','services'];
 
 function switchTab(tab) {
   currentTab = tab;
@@ -410,7 +416,7 @@ function getImage(item) {
 
 function getTitle(item, type) {
   return item.title || item.product_name || item.name ||
-    (type === 'agriculture' ? 'Agriculture Listing' : type === 'manufacturing' ? 'Product' : 'Property');
+    (type === 'agriculture' ? 'Agriculture Listing' : type === 'manufacturing' ? 'Product' : type === 'services' ? 'Service' : 'Listing');
 }
 
 function getPrice(item) {
@@ -426,8 +432,9 @@ function getPrice(item) {
 }
 
 function getMeta(item, type) {
-  if (type === 'properties')   return item.city || item.address || item.type || '';
   if (type === 'agriculture')  return item.category || item.crop_type || item.location || '';
+  if (type === 'manufacturing') return item.category || item.location || item.country || '';
+  if (type === 'services')     return item.category || item.city || item.country || '';
   return item.category || item.location || '';
 }
 
