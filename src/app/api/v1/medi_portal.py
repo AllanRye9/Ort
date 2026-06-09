@@ -323,6 +323,22 @@ _HTML = r"""<!DOCTYPE html>
           <p class="text-gray-400 text-sm">Loading…</p>
         </div>
       </div>
+
+      <!-- Services -->
+      <div class="bg-white rounded-2xl shadow p-5">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="font-semibold text-gray-700 text-sm flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-purple-500 inline-block"></span>Service Listings
+          </h3>
+          <button onclick="openSvcModal(null)"
+            class="bg-purple-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-purple-800 transition-colors flex items-center gap-1">
+            + New Service
+          </button>
+        </div>
+        <div id="servicesTable" class="overflow-x-auto">
+          <p class="text-gray-400 text-sm">Loading…</p>
+        </div>
+      </div>
     </section>
 
     <!-- ── Analytics section ──────────────────────────────────────────── -->
@@ -681,6 +697,108 @@ _HTML = r"""<!DOCTYPE html>
   </div>
 </div>
 
+<!-- ═══ Services Modal ════════════════════════════════════════════════════════ -->
+<div id="svcModal" class="hidden modal-backdrop">
+  <div class="modal-box">
+    <div class="flex items-center justify-between mb-5">
+      <h2 id="svcModalTitle" class="text-lg font-bold text-gray-800">New Service</h2>
+      <button onclick="closeSvcModal()" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+    </div>
+    <form onsubmit="saveSvc(); return false;" class="space-y-4">
+      <div class="form-grid">
+        <div>
+          <label class="form-label">Service Title *</label>
+          <input id="svcTitle" class="form-input" type="text" placeholder="e.g. Legal Consulting, IT Support"/>
+        </div>
+        <div>
+          <label class="form-label">Category *</label>
+          <input id="svcCategory" class="form-input" type="text" placeholder="e.g. Legal, IT, Transport, Health"/>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div>
+          <label class="form-label">Sub-category</label>
+          <input id="svcSubCategory" class="form-input" type="text" placeholder="e.g. Corporate Law, Web Dev"/>
+        </div>
+        <div>
+          <label class="form-label">Service Mode</label>
+          <select id="svcMode" class="form-input">
+            <option value="onsite">On-site</option>
+            <option value="remote">Remote</option>
+            <option value="hybrid">Hybrid</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div>
+          <label class="form-label">Pricing Type</label>
+          <select id="svcPricingType" class="form-input">
+            <option value="negotiable">Negotiable</option>
+            <option value="fixed">Fixed</option>
+            <option value="hourly">Hourly</option>
+            <option value="per_day">Per Day</option>
+            <option value="per_project">Per Project</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Price</label>
+          <input id="svcPrice" class="form-input" type="number" min="0" step="0.01" placeholder="Leave blank if negotiable"/>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div>
+          <label class="form-label">Currency</label>
+          <select id="svcCurrency" class="form-input">
+            <option value="UGX">UGX – Ugandan Shilling</option>
+            <option value="KES">KES – Kenyan Shilling</option>
+            <option value="TZS">TZS – Tanzanian Shilling</option>
+            <option value="RWF">RWF – Rwandan Franc</option>
+            <option value="NGN">NGN – Nigerian Naira</option>
+            <option value="GHS">GHS – Ghanaian Cedi</option>
+            <option value="USD">USD – US Dollar</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Country</label>
+          <input id="svcCountry" class="form-input" type="text" placeholder="e.g. Uganda"/>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div>
+          <label class="form-label">City</label>
+          <input id="svcCity" class="form-input" type="text" placeholder="e.g. Kampala"/>
+        </div>
+        <div>
+          <label class="form-label">WhatsApp Number</label>
+          <input id="svcWhatsapp" class="form-input" type="text" placeholder="+256 700 000000"/>
+        </div>
+      </div>
+      <div>
+        <label class="form-label">Description</label>
+        <textarea id="svcDesc" class="form-input" rows="3" placeholder="Describe your service, qualifications, experience…"></textarea>
+      </div>
+      <div>
+        <label class="form-label">Status</label>
+        <select id="svcStatus" class="form-input">
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+          <option value="pending_review">Pending Review</option>
+        </select>
+      </div>
+      <div class="flex gap-3 pt-2">
+        <button type="submit"
+          class="flex-1 bg-purple-700 hover:bg-purple-800 text-white font-medium py-2.5 rounded-lg text-sm transition-colors">
+          Save Service
+        </button>
+        <button type="button" onclick="closeSvcModal()"
+          class="flex-1 border border-gray-300 hover:bg-gray-50 font-medium py-2.5 rounded-lg text-sm transition-colors">
+          Cancel
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <script>
 const API = '__API_BASE__';
 let token = localStorage.getItem('medi_token') || '';
@@ -870,7 +988,7 @@ function refreshCurrent() {
 
 // ── Postings ───────────────────────────────────────────────────────────────
 async function loadPostings() {
-  await Promise.all([loadAgriculture(), loadManufacturing()]);
+  await Promise.all([loadAgriculture(), loadManufacturing(), loadServices()]);
 }
 
 async function loadAgriculture() {
@@ -1370,6 +1488,120 @@ document.getElementById('agriModal').addEventListener('click', function(e) {
 document.getElementById('manuModal').addEventListener('click', function(e) {
   if (e.target === this) closeManuModal();
 });
+document.getElementById('svcModal')?.addEventListener('click', function(e) {
+  if (e.target === this) closeSvcModal();
+});
+
+// ── Services CRUD ────────────────────────────────────────────────────────────
+async function loadServices() {
+  const el = document.getElementById('servicesTable');
+  if (!el) return;
+  try {
+    let url = `${API}/services/?limit=200`;
+    const uid = _currentUser?.id;
+    if (uid) url += `&posted_by_user_id=${uid}`;
+    const r = await fetch(url, { headers: authHeaders() });
+    if (!r.ok) { renderServicesTable(el, []); return; }
+    const data = await r.json();
+    const items = Array.isArray(data) ? data : (data.items || data.services || []);
+    renderServicesTable(el, items);
+  } catch { renderServicesTable(el, []); }
+}
+
+function renderServicesTable(el, items) {
+  if (!items.length) {
+    el.innerHTML = '<p class="text-gray-400 text-sm py-2">No service listings yet. Click "+ New Service" to add one.</p>';
+    return;
+  }
+  el.innerHTML = `<table class="min-w-full text-xs text-gray-700">
+    <thead><tr class="bg-gray-50 text-gray-500 uppercase text-xs">
+      <th class="px-3 py-2 text-left">Image</th>
+      <th class="px-3 py-2 text-left">Title</th>
+      <th class="px-3 py-2 text-left">Category</th>
+      <th class="px-3 py-2 text-left">Price</th>
+      <th class="px-3 py-2 text-left">Country</th>
+      <th class="px-3 py-2 text-left">Status</th>
+      <th class="px-3 py-2 text-left">Actions</th>
+    </tr></thead>
+    <tbody>${items.map(i=>`
+    <tr class="border-b hover:bg-gray-50">
+      <td class="px-3 py-2">${imgThumb(i.images)}</td>
+      <td class="px-3 py-2 font-medium max-w-[140px] truncate">${esc(i.title||'')}</td>
+      <td class="px-3 py-2">${esc(i.category||'')}</td>
+      <td class="px-3 py-2">${i.price ? (i.price_currency||'UGX')+' '+Number(i.price).toLocaleString() : i.pricing_type||'Negotiable'}</td>
+      <td class="px-3 py-2">${esc(i.country||'')}</td>
+      <td class="px-3 py-2"><span class="badge ${statusColor(i.status)}">${esc(i.status||'')}</span></td>
+      <td class="px-3 py-2 flex gap-1">
+        <button onclick="openSvcModal(${JSON.stringify(i).replace(/"/g,'&quot;')})" class="text-purple-600 hover:underline">Edit</button>
+        <button onclick="deleteSvc(${i.id})" class="text-red-500 hover:underline ml-1">Del</button>
+      </td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+}
+
+let _svcEditId = null;
+function openSvcModal(item) {
+  _svcEditId = item?.id || null;
+  const m = document.getElementById('svcModal');
+  if (!m) return;
+  document.getElementById('svcTitle').value = item?.title||'';
+  document.getElementById('svcCategory').value = item?.category||'';
+  document.getElementById('svcSubCategory').value = item?.sub_category||'';
+  document.getElementById('svcMode').value = item?.service_mode||'onsite';
+  document.getElementById('svcPricingType').value = item?.pricing_type||'negotiable';
+  document.getElementById('svcPrice').value = item?.price||'';
+  document.getElementById('svcCurrency').value = item?.price_currency||'UGX';
+  document.getElementById('svcCountry').value = item?.country||'Uganda';
+  document.getElementById('svcCity').value = item?.city||'';
+  document.getElementById('svcWhatsapp').value = item?.whatsapp_number||'';
+  document.getElementById('svcDesc').value = item?.description||'';
+  document.getElementById('svcStatus').value = item?.status||'active';
+  document.getElementById('svcModalTitle').textContent = _svcEditId ? 'Edit Service' : 'New Service';
+  m.classList.remove('hidden');
+}
+function closeSvcModal() {
+  document.getElementById('svcModal')?.classList.add('hidden');
+  _svcEditId = null;
+}
+async function saveSvc() {
+  const payload = {
+    title: document.getElementById('svcTitle').value.trim(),
+    category: document.getElementById('svcCategory').value.trim(),
+    sub_category: document.getElementById('svcSubCategory').value.trim()||null,
+    service_mode: document.getElementById('svcMode').value||null,
+    pricing_type: document.getElementById('svcPricingType').value,
+    price: parseFloat(document.getElementById('svcPrice').value)||null,
+    price_currency: document.getElementById('svcCurrency').value||'UGX',
+    country: document.getElementById('svcCountry').value.trim()||null,
+    city: document.getElementById('svcCity').value.trim()||null,
+    whatsapp_number: document.getElementById('svcWhatsapp').value.trim()||null,
+    description: document.getElementById('svcDesc').value.trim()||null,
+    status: document.getElementById('svcStatus').value,
+  };
+  if (!payload.title) { showToast('Title is required', true); return; }
+  if (!payload.category) { showToast('Category is required', true); return; }
+  try {
+    const url = _svcEditId ? `${API}/services/${_svcEditId}` : `${API}/services/`;
+    const method = _svcEditId ? 'PUT' : 'POST';
+    const r = await fetch(url, { method, headers: {...authHeaders(),'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    if (!r.ok) { const e=await r.json(); showToast(e.detail||'Save failed', true); return; }
+    showToast(_svcEditId ? 'Service updated' : 'Service created');
+    closeSvcModal();
+    loadServices();
+  } catch { showToast('Network error', true); }
+}
+async function deleteSvc(id) {
+  if (!confirm('Delete this service listing?')) return;
+  try {
+    const r = await fetch(`${API}/services/${id}`, { method: 'DELETE', headers: authHeaders() });
+    if (!r.ok) { showToast('Delete failed', true); return; }
+    showToast('Service deleted');
+    loadServices();
+  } catch { showToast('Network error', true); }
+}
+
+// Also call at init if postings section is active
+if (document.getElementById('servicesTable')) loadServices();
 </script>
 </body>
 </html>"""

@@ -309,8 +309,12 @@ _HTML = r"""<!DOCTYPE html>
     <!-- ── Content section ────────────────────────────────────────────── -->
     <section id="sec-content" class="p-6 space-y-4 hidden">
       <div class="flex gap-2 mb-4">
-        <button onclick="loadContent('properties')"
-          class="px-4 py-2 bg-green-700 text-white rounded-lg text-sm hover:bg-green-800 transition-colors">Properties</button>
+        <button onclick="loadContent('agriculture')"
+          class="px-4 py-2 bg-green-700 text-white rounded-lg text-sm hover:bg-green-800 transition-colors">Agriculture</button>
+        <button onclick="loadContent('manufacturing')"
+          class="px-4 py-2 bg-blue-700 text-white rounded-lg text-sm hover:bg-blue-800 transition-colors">Manufacturing</button>
+        <button onclick="loadContent('services')"
+          class="px-4 py-2 bg-purple-700 text-white rounded-lg text-sm hover:bg-purple-800 transition-colors">Services</button>
         <button onclick="loadContent('agriculture')"
           class="px-4 py-2 bg-green-100 text-green-800 rounded-lg text-sm hover:bg-green-200 transition-colors">Agriculture</button>
         <button onclick="loadContent('manufacturing')"
@@ -449,8 +453,12 @@ _HTML = r"""<!DOCTYPE html>
       <div class="flex gap-2 mb-4">
         <button onclick="loadDeleted('all')"
           class="px-4 py-2 bg-red-700 text-white rounded-lg text-sm hover:bg-red-800 transition-colors">All</button>
-        <button onclick="loadDeleted('properties')"
-          class="px-4 py-2 bg-red-100 text-red-800 rounded-lg text-sm hover:bg-red-200 transition-colors">Properties</button>
+        <button onclick="loadDeleted('agriculture')"
+          class="px-4 py-2 bg-red-100 text-red-800 rounded-lg text-sm hover:bg-red-200 transition-colors">Agriculture</button>
+        <button onclick="loadDeleted('manufacturing')"
+          class="px-4 py-2 bg-red-100 text-red-800 rounded-lg text-sm hover:bg-red-200 transition-colors">Manufacturing</button>
+        <button onclick="loadDeleted('services')"
+          class="px-4 py-2 bg-red-100 text-red-800 rounded-lg text-sm hover:bg-red-200 transition-colors">Services</button>
         <button onclick="loadDeleted('agriculture')"
           class="px-4 py-2 bg-red-100 text-red-800 rounded-lg text-sm hover:bg-red-200 transition-colors">Agriculture</button>
         <button onclick="loadDeleted('manufacturing')"
@@ -555,7 +563,7 @@ const DASHBOARD_TOP_N_ITEMS = 8;
 let token = localStorage.getItem('ort_admin_token');
 let currentSection = 'dashboard';
 let _usersOffset = 0, _contentOffset = 0, _ticketsOffset = 0, _logsOffset = 0;
-let _contentType = 'properties';
+let _contentType = 'agriculture';
 let _roleChart = null, _orderChart = null, _activityChart = null;
 let _regChart = null, _ordStatusChart = null;
 let _countryChart = null, _locationChart = null, _transitionChart = null;
@@ -701,7 +709,7 @@ function showSection(name) {
   document.getElementById('pageTitle').textContent = titles[name] || name;
   if (name === 'dashboard') loadDashboard();
   else if (name === 'users') { _usersOffset = 0; loadUsers(); }
-  else if (name === 'content') { _contentOffset = 0; loadContent('properties'); }
+  else if (name === 'content') { _contentOffset = 0; loadContent('agriculture'); }
   else if (name === 'reports') loadReports();
   else if (name === 'tickets') { _ticketsOffset = 0; loadTickets(); }
   else if (name === 'logs') { _logsOffset = 0; loadLogs(); }
@@ -752,7 +760,9 @@ function renderStats(s) {
   const cards = [
     {icon:'👥', label:'Total Users',       value: s.total_users??0,            color:'bg-green-50 text-green-700'},
     {icon:'🆕', label:'New Users (30d)',   value: s.new_users_last_30_days??0, color:'bg-blue-50 text-blue-700'},
-    {icon:'🏠', label:'Properties',        value: s.total_properties??0,       color:'bg-indigo-50 text-indigo-700'},
+    {icon:'🌾', label:'Agriculture',      value: s.total_agriculture_listings??0, color:'bg-green-50 text-green-700'},
+    {icon:'🏭', label:'Manufacturing',    value: s.total_manufacturing_products??0,color:'bg-blue-50 text-blue-700'},
+    {icon:'🛠️', label:'Services',          value: s.total_services??0,             color:'bg-purple-50 text-purple-700'},
     {icon:'🏢', label:'Tenants',           value: s.total_tenants??0,          color:'bg-purple-50 text-purple-700'},
     {icon:'📦', label:'Total Orders',      value: s.total_orders??0,           color:'bg-orange-50 text-orange-700'},
     {icon:'⏳', label:'Pending Orders',   value: s.pending_orders??0,         color:'bg-yellow-50 text-yellow-700'},
@@ -792,8 +802,8 @@ function renderOrderChart(data) {
 function renderActivityChart(r) {
   const ctx = document.getElementById('activityChart').getContext('2d');
   if (_activityChart) _activityChart.destroy();
-  const labels = ['New Users','New Properties','New Orders','New Messages','Agriculture','Manufacturing'];
-  const values = [r.new_users??0, r.new_properties??0, r.new_orders??0, r.new_messages??0, r.new_agriculture_listings??0, r.new_manufacturing_products??0];
+  const labels = ['New Users','Agriculture','Manufacturing','Services','New Orders','New Messages'];
+  const values = [r.new_users??0, r.new_agriculture_listings??0, r.new_manufacturing_products??0, r.new_services??0, r.new_orders??0, r.new_messages??0];
   _activityChart = new Chart(ctx, {
     type:'bar',
     data:{ labels, datasets:[{label:'Last 30 days', data:values, backgroundColor:['#166534','#15803d','#16a34a','#22c55e','#4ade80','#86efac']}] },
@@ -943,7 +953,7 @@ async function loadContent(type, offset) {
   _pagerCbs['content'] = (o) => loadContent(type, o);
   try {
     const data = await apiFetch('/admin/content/' + type + '/?' + params);
-    const items = data.properties || data.listings || data.products || [];
+    const items = data.properties || data.listings || data.products || data.services || data.items || [];
     const total = data.total||0;
     window._contentData = {};
     items.forEach(i => { window._contentData[i.id] = {type, id:i.id}; });
@@ -990,7 +1000,9 @@ async function loadReports() {
     ]);
     const cards = [
       {label:'New Users',        value:overview.new_users??0},
-      {label:'New Properties',   value:overview.new_properties??0},
+      {label:'New Agriculture',   value:overview.new_agriculture_listings??0},
+      {label:'New Manufacturing',  value:overview.new_manufacturing_products??0},
+      {label:'New Services',       value:overview.new_services??0},
       {label:'New Orders',       value:overview.new_orders??0},
       {label:'New Messages',     value:overview.new_messages??0},
       {label:'New Agri Listings',value:overview.new_agriculture_listings??0},

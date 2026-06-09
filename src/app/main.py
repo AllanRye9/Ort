@@ -14,6 +14,7 @@ from .api.v1.api import router
 from .api.v1.const_admin import router as const_admin_router
 from .api.v1.medi_portal import router as medi_portal_router
 from .api.v1.web_portal import router as web_portal_router
+from .api.v1.landing import router as landing_router
 from .exceptions import AppException
 
 # Import marketplace models so their tables are registered with Base
@@ -189,6 +190,9 @@ except Exception as exc:
 # Include all routes
 app.include_router(router, prefix="/api/v1")
 
+# Landing page at / (overrides the old simple JSON home)
+app.include_router(landing_router)
+
 # Backend admin console served at /const (no /api/v1 prefix)
 app.include_router(const_admin_router)
 
@@ -215,11 +219,6 @@ STATIC_DIR = _Path(__file__).parent / "static"
 STATIC_DIR.mkdir(parents=True, exist_ok=True)
 (STATIC_DIR / "listings").mkdir(exist_ok=True)
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
-
-
-@app.get("/")
-def home():
-    return {"message": "Welcome to Real Estate Management API", "docs": "/docs"}
 
 
 @app.get("/health")

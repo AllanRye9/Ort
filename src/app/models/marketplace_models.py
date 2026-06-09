@@ -691,3 +691,70 @@ class ProductTracking(Base):
     created_at = Column(DateTime, server_default=func.now())
 
     created_by = relationship("User", foreign_keys=[created_by_user_id])
+
+
+# ---------------------------------------------------------------------------
+# Service Listings  (3rd independent commerce module – no Real Estate)
+# ---------------------------------------------------------------------------
+
+class ServiceListing(Base):
+    """Professional, technical, and general service listings."""
+    __tablename__ = "service_listings"
+    __table_args__ = (
+        Index("ix_service_listings_tenant_id", "tenant_id"),
+        Index("ix_service_listings_category", "category"),
+        Index("ix_service_listings_country", "country"),
+        Index("ix_service_listings_status", "status"),
+    )
+
+    id = Column(Integer, primary_key=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="SET NULL"), nullable=True)
+    posted_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+
+    title = Column(String(255), nullable=False)
+    description = Column(Text)
+    category = Column(String(100), nullable=False)   # e.g. consulting, legal, transport, IT, health
+    sub_category = Column(String(100), nullable=True)
+    service_mode = Column(String(50), nullable=True)  # onsite | remote | hybrid
+
+    price = Column(DECIMAL(14, 2), nullable=True)
+    price_currency = Column(String(10), default="UGX", server_default="UGX")
+    pricing_type = Column(
+        Enum("fixed", "negotiable", "hourly", "per_day", "per_project", name="service_pricing_types"),
+        default="negotiable", server_default="negotiable", nullable=False,
+    )
+    pricing_notes = Column(String(255), nullable=True)
+
+    country = Column(String(100), nullable=True)
+    city = Column(String(100), nullable=True)
+    address = Column(Text, nullable=True)
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
+
+    whatsapp_number = Column(String(30), nullable=True)
+    contact_email = Column(String(255), nullable=True)
+    website_url = Column(String(500), nullable=True)
+    google_maps_url = Column(Text, nullable=True)
+
+    images = Column(JSON, nullable=True)            # list of image URLs
+    documents = Column(JSON, nullable=True)         # list of doc URLs (certs, portfolios)
+    tags = Column(JSON, nullable=True)              # ["certified", "licensed", ...]
+
+    is_flash_deal = Column(Boolean, default=False, server_default="false")
+    flash_deal_ends_at = Column(DateTime, nullable=True)
+    is_today_deal = Column(Boolean, default=False, server_default="false")
+    is_verified = Column(Boolean, default=False, server_default="false")
+    is_deleted = Column(Boolean, default=False, server_default="false")
+
+    status = Column(
+        Enum("active", "inactive", "pending_review", "rejected", name="service_listing_status"),
+        default="active", server_default="active", nullable=False,
+    )
+
+    listing_code = Column(String(40), unique=True, nullable=True)  # ORT-SVC-2024-XXXX
+    view_count = Column(Integer, default=0, server_default="0")
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    tenant = relationship("Tenant", foreign_keys=[tenant_id])
+    posted_by = relationship("User", foreign_keys=[posted_by_user_id])

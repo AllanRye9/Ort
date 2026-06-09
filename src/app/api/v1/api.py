@@ -50,6 +50,7 @@ from app.api.v1 import (
     promotions as promotions_router,
     tracking as tracking_router,
     ai as ai_router,
+    services as services_router,
 )
 
 router = APIRouter()
@@ -75,6 +76,7 @@ router.include_router(wallet_router.router)
 router.include_router(promotions_router.router)
 router.include_router(tracking_router.router)
 router.include_router(ai_router.router)
+router.include_router(services_router.router)
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
