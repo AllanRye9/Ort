@@ -13,12 +13,16 @@ _APK_URL  = os.getenv("APK_DOWNLOAD_URL", "#apk-coming-soon")
 _IPA_URL  = os.getenv("IPA_DOWNLOAD_URL", "#ios-coming-soon")
 _TF_URL   = os.getenv("TESTFLIGHT_URL",   "#testflight-coming-soon")
 
+_SITE_URL = os.getenv("SITE_URL", "https://piitrade.com")
+
 _HTML = r"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Ort Marketplace – Agric · Manufacturing · Services</title>
+<title>Ort Marketplace – Agric · Manufacturing · Services | piitrade.com</title>
+<meta name="description" content="Africa's commerce platform. Buy and sell Agricultural produce, Manufacturing goods, and Professional services. Based in Uganda, built for all of Africa."/>
+<link rel="canonical" href="https://piitrade.com/"/>
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
@@ -354,23 +358,23 @@ _HTML = r"""<!DOCTYPE html>
     <p class="text-gray-400">Log in or register on any interface — accounts are unified across all portals.</p>
   </div>
   <div class="max-w-5xl mx-auto grid md:grid-cols-3 gap-6">
-    <a href="/web" class="svc-card text-center group hover:border-green-500/40 block">
+    <a href="https://piitrade.com/web" class="svc-card text-center group hover:border-green-500/40 block">
       <div class="text-3xl mb-3">🛒</div>
       <h3 class="font-bold text-lg mb-2 text-green-400">Marketplace</h3>
       <p class="text-gray-500 text-sm">Browse all listings publicly</p>
-      <div class="mt-4 text-green-400 text-sm font-semibold group-hover:underline">/web →</div>
+      <div class="mt-4 text-green-400 text-sm font-semibold group-hover:underline">piitrade.com/web →</div>
     </a>
-    <a href="/medi" class="svc-card text-center group hover:border-blue-500/40 block">
+    <a href="https://piitrade.com/medi" class="svc-card text-center group hover:border-blue-500/40 block">
       <div class="text-3xl mb-3">🏢</div>
       <h3 class="font-bold text-lg mb-2 text-blue-400">Companies & Agents</h3>
       <p class="text-gray-500 text-sm">Register company, org, or agent</p>
-      <div class="mt-4 text-blue-400 text-sm font-semibold group-hover:underline">/medi →</div>
+      <div class="mt-4 text-blue-400 text-sm font-semibold group-hover:underline">piitrade.com/medi →</div>
     </a>
-    <a href="/const" class="svc-card text-center group hover:border-purple-500/40 block">
+    <a href="https://piitrade.com/const" class="svc-card text-center group hover:border-purple-500/40 block">
       <div class="text-3xl mb-3">⚙️</div>
       <h3 class="font-bold text-lg mb-2 text-purple-400">Admin Console</h3>
       <p class="text-gray-500 text-sm">Admin-only management panel</p>
-      <div class="mt-4 text-purple-400 text-sm font-semibold group-hover:underline">/const →</div>
+      <div class="mt-4 text-purple-400 text-sm font-semibold group-hover:underline">piitrade.com/const →</div>
     </a>
   </div>
 </section>

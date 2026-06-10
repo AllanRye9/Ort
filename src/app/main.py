@@ -45,7 +45,16 @@ app = FastAPI(
 )
 
 _cors_origins_env = os.getenv("CORS_ORIGINS", "")
-cors_origins = [o.strip() for o in _cors_origins_env.split(",") if o.strip()] or ["*"]
+# Default origins include the production domain so the app works on Railway
+# without any env-var configuration.  Operators can override via CORS_ORIGINS.
+_DEFAULT_ORIGINS = [
+    "https://piitrade.com",
+    "https://www.piitrade.com",
+]
+cors_origins = (
+    [o.strip() for o in _cors_origins_env.split(",") if o.strip()]
+    or _DEFAULT_ORIGINS
+)
 
 # Explicit header list ensures preflight is accepted by all browsers,
 # including those that do not honour the Access-Control-Allow-Headers: *

@@ -1,546 +1,475 @@
-# Ort — Unified Commerce Marketplace Platform
+# Ort Marketplace — piitrade.com
 
-A comprehensive **SaaS marketplace** for **Properties**, **Agriculture** and **Local Manufacturing** goods, built with **FastAPI** (backend) and **Flutter** (cross-platform frontend).
+Africa's commerce platform for **Agricultural produce**, **Manufacturing goods**, and **Professional services**.  
+Built with FastAPI · PostgreSQL · Deployed on Railway.app
 
-## 🏗️ Architecture
-
-```
-Ort/
-├── src/                        # FastAPI backend
-│   ├── app/
-│   │   ├── main.py             # FastAPI entry point
-│   │   ├── api/v1/
-│   │   │   ├── api.py          # Root router (imports all sub-routers)
-│   │   │   ├── auth.py         # JWT login
-│   │   │   ├── tenants.py      # Tenant + subscription management
-│   │   │   ├── agriculture.py  # Agriculture commodity listings
-│   │   │   ├── manufacturing.py# Wholesale manufacturing products
-│   │   │   ├── orders.py       # Order management
-│   │   │   ├── messages.py     # Conversations & messaging
-│   │   │   ├── rfq.py          # Request for Quote workflow
-│   │   │   ├── reviews.py      # Ratings & reviews
-│   │   │   └── notifications.py# User notifications
-│   │   ├── models/
-│   │   │   ├── models.py           # Core real-estate models (unchanged)
-│   │   │   └── marketplace_models.py # Extended SaaS marketplace models
-│   │   ├── schemas/
-│   │   │   ├── schemas.py          # Core schemas (unchanged)
-│   │   │   └── marketplace_schemas.py # Extended schemas
-│   │   └── database/database.py
-│   ├── docker-compose.yml
-│   ├── dockerfile
-│   └── requirements.txt
-└── flutter_app/                # Flutter cross-platform frontend
-    ├── pubspec.yaml
-    └── lib/
-        ├── main.dart
-        ├── core/
-        │   ├── constants.dart
-        │   ├── theme.dart
-        │   ├── router.dart
-        │   ├── api_service.dart
-        │   └── auth_provider.dart
-        ├── models/models.dart
-        ├── screens/
-        │   ├── auth/          login_screen, register_screen
-        │   ├── home/          home_screen (dashboard)
-        │   ├── properties/    properties_screen, property_detail_screen
-        │   ├── agriculture/   agriculture_screen, agriculture_detail_screen
-        │   ├── manufacturing/ manufacturing_screen, manufacturing_detail_screen
-        │   ├── orders/        orders_screen, order_detail_screen
-        │   ├── messages/      conversations_screen, chat_screen
-        │   └── profile/       profile_screen
-        └── widgets/
-            └── listing_card.dart
-```
-
-## 🚀 Features
-
-### Backend API (FastAPI)
-
-| Module | Endpoints |
-|---|---|
-| **Auth** | `POST /auth/login` — JWT bearer token |
-| **Users** | Full CRUD with bcrypt password hashing |
-| **Tenants** | Organization onboarding (individual, SME, enterprise, government, NGO) |
-| **Subscriptions** | Plan management (Free / Professional / Enterprise / Government) |
-| **Properties** | Land, residential, commercial listings with geolocation support |
-| **Agriculture** | Commodity listings with MOQ, quality grades, certifications, perishability flags |
-| **Manufacturing** | Wholesale product catalog with tiered pricing, batch tracking, certifications |
-| **Orders** | Full order lifecycle (pending → confirmed → shipped → delivered), with order items |
-| **Messaging** | Conversations and messages with file/voice attachment support |
-| **RFQ** | Request-for-Quote creation and response management |
-| **Reviews** | Star ratings (1-5) with verified-purchase flag |
-| **Notifications** | Per-user notification feed with read/unread tracking |
-
-### Flutter App
-
-- **Login / Register** — JWT-authenticated, role-based
-- **Home Dashboard** — Summarised property, agriculture and manufacturing feeds
-- **Properties Screen** — Full list with card-based UI, status badges
-- **Agriculture Screen** — Commodity listings with MOQ, perishability & certification chips
-- **Manufacturing Screen** — Wholesale catalog with tiered pricing indicators
-- **Orders Screen** — Buyer order history with status badges
-- **Messages Screen** — Conversations list + real-time chat interface
-- **Profile Screen** — Account management, subscription, RFQ access, logout
-
-## 🛠️ Technology Stack
-
-### Backend
-| Layer | Technology |
-|---|---|
-| API framework | FastAPI 0.104 |
-| ORM | SQLAlchemy 2.0 |
-| Validation | Pydantic v2 |
-| Auth | JWT (`python-jose`) + bcrypt (`passlib`) |
-| Database (dev) | SQLite (zero-config) |
-| Database (prod) | PostgreSQL with PostGIS |
-| Cache / Queue | Redis + Celery |
-| Containers | Docker / Docker Compose |
-
-### Flutter App
-| Layer | Package |
-|---|---|
-| State management | flutter_riverpod |
-| Navigation | go_router |
-| HTTP client | dio |
-| Secure storage | flutter_secure_storage |
-| Images | cached_network_image |
-
-## 📦 Running the Backend
-
-```bash
-cd src
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
-```
-
-Or with Docker:
-
-```bash
-cd src
-docker-compose up --build
-```
-
-API docs: http://localhost:8000/docs
-
-## 📱 Running the Flutter App
-
-```bash
-cd flutter_app
-flutter pub get
-flutter run
-```
-
-Set the backend URL:
-
-```bash
-flutter run --dart-define=API_BASE_URL=http://localhost:8000/api/v1
-```
-
-## 📚 API Endpoints (v2)
-
-### Authentication
-- `POST /api/v1/auth/login` — returns `access_token`
-
-### Tenants & Subscriptions
-- `GET/POST /api/v1/tenants/`
-- `GET/PUT/DELETE /api/v1/tenants/{id}`
-- `GET/POST /api/v1/subscription-plans/`
-- `GET/POST /api/v1/tenant-subscriptions/`
-
-### Agriculture
-- `GET/POST /api/v1/agriculture/`
-- `GET/PUT/DELETE /api/v1/agriculture/{id}`
-
-### Manufacturing
-- `GET/POST /api/v1/manufacturing/`
-- `GET/PUT/DELETE /api/v1/manufacturing/{id}`
-
-### Orders
-- `GET/POST /api/v1/orders/`
-- `GET/PUT/DELETE /api/v1/orders/{id}`
-
-### Messaging
-- `GET/POST /api/v1/messages/conversations/`
-- `GET /api/v1/messages/?conversation_id={id}`
-- `POST /api/v1/messages/`
-- `PUT /api/v1/messages/{id}/read`
-
-### RFQ
-- `GET/POST /api/v1/rfq/`
-- `GET/PUT /api/v1/rfq/{id}`
-- `GET/POST /api/v1/rfq/{id}/responses`
-
-### Reviews
-- `GET/POST /api/v1/reviews/`
-- `GET/DELETE /api/v1/reviews/{id}`
-
-### Notifications
-- `GET/POST /api/v1/notifications/`
-- `PUT /api/v1/notifications/{id}`
-- `PUT /api/v1/notifications/read-all/`
-
-*(All original real-estate endpoints remain unchanged — see original README sections below.)*
+**Live site:** https://piitrade.com
 
 ---
 
-## Original Real-Estate Endpoints
+## Table of Contents
 
-- `GET/POST /api/v1/users/`, `GET/PUT/DELETE /api/v1/users/{id}`
-- `GET/POST /api/v1/clients/`, `GET/PUT/DELETE /api/v1/clients/{id}`
-- `GET/POST /api/v1/properties/`, `GET/PUT/DELETE /api/v1/properties/{id}`
-- `GET/POST /api/v1/property-images/`, `GET/DELETE /api/v1/property-images/{id}`
-- `GET/POST /api/v1/listings/`, `GET /api/v1/listings/{id}`
-- `GET/POST /api/v1/inquiries/`, `GET /api/v1/inquiries/{id}`
-- `GET/POST /api/v1/appointments/`, `GET /api/v1/appointments/{id}`
-- `GET/POST /api/v1/transactions/`, `GET /api/v1/transactions/{id}`
-- `GET/POST /api/v1/payments/`, `GET /api/v1/payments/{id}`
+1. [Live URLs](#live-urls)
+2. [Architecture Overview](#architecture-overview)
+3. [Three Service Modules](#three-service-modules)
+4. [Getting Started (Local)](#getting-started-local)
+5. [Railway Deployment](#railway-deployment)
+6. [Environment Variables](#environment-variables)
+7. [API Reference](#api-reference)
+8. [Admin Console — /const](#admin-console----const)
+9. [Companies & Agents Portal — /medi](#companies--agents-portal----medi)
+10. [App Downloads](#app-downloads)
+11. [Currency Logic](#currency-logic)
+12. [Project Structure](#project-structure)
 
-## 🔧 Environment Variables
+---
 
-All runtime configuration is driven by environment variables.  Create a
-`.env` file in the `src/` directory (or set the variables in your deployment
-platform — e.g. Railway) before starting the application.
+## Live URLs
 
-| Variable | Required | Default | Description |
-|---|---|---|---|
-| `DATABASE_URL` | No | `sqlite:///./real_estate.db` | Full database connection URL.  Use `postgresql://user:pass@host:5432/dbname` for production.  Railway provides a `postgres://` URL; the app normalises it automatically. |
-| `SECRET_KEY` | **Yes** (prod) | `change-me-in-production` | Secret used to sign JWT tokens.  **Must** be changed before deploying to production. |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | No | `60` | JWT token lifetime in minutes. |
-| `CORS_ORIGINS` | No | `*` | Comma-separated list of allowed CORS origins (e.g. `https://your-app.com,https://admin.your-app.com`).  Defaults to `*` (all origins) if not set. |
-| `PORT` | No | `8008` | Port the server binds to.  Set automatically by Railway; the `dockerfile` CMD reads `${PORT:-8008}`. |
-| `MTN_COLLECTION_USER_ID` | No | — | Pre-provisioned MTN MoMo Collection API user ID. If omitted, the backend can provision a temporary API user per MTN top-up request. |
-| `MTN_COLLECTION_API_KEY` | No | — | Pre-provisioned MTN MoMo Collection API key paired with `MTN_COLLECTION_USER_ID`. |
-| `MTN_COLLECTION_PRIMARY_SUBSCRIPTION_KEY` | Yes (for MTN top-up) | — | Primary MTN Ocp-Apim subscription key for the Collection product. Used first for API user provisioning, token generation, and request-to-pay calls. |
-| `MTN_COLLECTION_SECONDARY_SUBSCRIPTION_KEY` | No | — | Secondary MTN Ocp-Apim subscription key for Collection. Used as the fallback key if the primary key is unavailable or rotated. |
-| `MTN_COLLECTION_SUBSCRIPTION_KEY` | No | — | Legacy single-key fallback. Prefer the primary/secondary variables above for new deployments. |
-| `MTN_COLLECTION_TARGET_ENV` | No | `live` | MTN target environment (`live` or provider-specific value). |
-| `MTN_COLLECTION_BASE_URL` | No | `https://momodeveloper.mtn.com` | MTN Collection base URL. Override for production host as needed. |
-| `MTN_COLLECTION_CALLBACK_HOST` | No | — | Public callback host sent to the MTN `v1_0/apiuser` provisioning endpoint (for example `merchant.example.com`). |
-| `MTN_COLLECTION_CALLBACK_URL` | No | — | Public callback URL for asynchronous payment status updates. |
+| Path | Description |
+|------|-------------|
+| `https://piitrade.com/` | Landing page — app download, service overview |
+| `https://piitrade.com/web` | Public marketplace — browse Agriculture, Manufacturing & Services |
+| `https://piitrade.com/medi` | Companies, Organizations & Agents portal |
+| `https://piitrade.com/const` | Admin console (restricted) |
+| `https://piitrade.com/api/v1/` | REST API base |
+| `https://piitrade.com/docs` | Interactive Swagger UI |
+| `https://piitrade.com/health` | Health check endpoint |
 
-### Flutter / Dart-define variables
+---
 
-| Variable | Default | Description |
-|---|---|---|
-| `API_BASE_URL` | `https://ort.up.railway.app/api/v1` | Backend API base URL used by the Flutter app.  Pass via `--dart-define=API_BASE_URL=<url>` at build/run time. |
+## Architecture Overview
 
-### Minimal `.env` for local development with PostgreSQL
-
-```env
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/ort
-SECRET_KEY=my-local-dev-secret
+```
+piitrade.com  (Railway.app — single Docker container)
+│
+├── /               → Landing page (HTML, no framework)
+├── /web            → Public marketplace portal (HTML + vanilla JS)
+├── /medi           → Companies & Agents portal (HTML + vanilla JS)
+├── /const          → Admin console (HTML + vanilla JS, auth-gated)
+├── /api/v1/        → FastAPI REST API
+│   ├── /auth/      → Login, register, token refresh
+│   ├── /agriculture/
+│   ├── /manufacturing/
+│   ├── /services/  ← NEW
+│   ├── /orders/
+│   ├── /messages/
+│   ├── /rfq/
+│   ├── /reviews/
+│   ├── /wallet/
+│   ├── /notifications/
+│   ├── /admin/     → Admin-only endpoints
+│   └── ...
+├── /docs           → Swagger UI
+└── /static/        → Local file uploads (use S3 in production)
 ```
 
-### MTN Mobile Money live integration
+**Database:** PostgreSQL (Railway add-on)  
+**Auth:** JWT Bearer tokens (python-jose)  
+**Storage:** Local `/static/listings/` or AWS S3 (set `AWS_S3_BUCKET`)  
 
-Wallet top-up now supports live MTN Mobile Money request-to-pay calls via `/api/v1/wallet/topup` when `payment_method` is `mtn`.
+---
 
-Required setup:
+## Three Service Modules
 
-1. Create or enable an MTN MoMo Collection application and capture its primary and secondary subscription keys.
-2. Set `MTN_COLLECTION_PRIMARY_SUBSCRIPTION_KEY` and, if available, `MTN_COLLECTION_SECONDARY_SUBSCRIPTION_KEY` in your environment.
-3. Either:
-   - set `MTN_COLLECTION_USER_ID` and `MTN_COLLECTION_API_KEY` if you already provisioned an MTN API user, or
-   - set `MTN_COLLECTION_CALLBACK_HOST` (or `MTN_COLLECTION_CALLBACK_URL`, from which the host is derived) so the backend can create an API user and API key automatically.
-4. For each MTN top-up, the backend:
-   - if no API user credentials are already configured, creates an API user with `POST /v1_0/apiuser` and generates an API key with `POST /v1_0/apiuser/{api_user_uuid}/apikey`,
-   - obtains a bearer token from `POST /collection/token/` using HTTP Basic auth (`username = api_user_uuid` or configured API user, `password = API key (generated or configured)`),
-   - submits `POST /collection/v1_0/requesttopay` with `amount`, `currency`, `externalId`, and `payer` details.
-   - When static MTN credentials are omitted, a fresh MTN API user and API key are created for each top-up request; they are reused only within that request and are not persisted by the backend.
-   - For production, prefer configuring `MTN_COLLECTION_USER_ID` and `MTN_COLLECTION_API_KEY` to avoid creating a fresh MTN API user on every payment attempt.
-5. Send top-up requests with:
-   - `amount`: number of points to credit
-   - `payment_method`: `mtn`
-   - `reference`: payer MSISDN
+Real Estate has been **completely removed**. The platform now offers three independent modules:
 
-Notes:
-- Base wallet conversion is **1 point = 1,000 UGX**.
-- The backend automatically retries MTN auth-sensitive calls with the secondary subscription key when the primary key is rejected.
-- Wallet responses include:
-  - `ugx_value` (points converted to UGX),
-  - `display_currency`,
-  - `display_amount`,
-  - `exchange_rate`.
-- Non-MTN methods (`airtel`, `card`) continue to credit wallet points directly.
+### 🌾 Agriculture
+- Farm produce, livestock, aquaculture
+- Agricultural inputs (seeds, chemicals, fertilizers)
+- Farm equipment and machinery
+- Export-grade produce listings
+- API: `/api/v1/agriculture/`
 
-> SQLite is used automatically when `DATABASE_URL` is not set, so **no
-> database setup is needed for local development**.
+### 🏭 Manufacturing
+- Finished manufactured goods
+- Raw materials and industrial inputs
+- Production and processing services
+- B2B and wholesale listings
+- API: `/api/v1/manufacturing/`
 
+### 🛠️ Services
+- Professional consulting (legal, financial, management)
+- Technical and IT services
+- Transport and logistics
+- Health, education, and general services
+- API: `/api/v1/services/`
 
+Each module is **fully independent** — separate listings, separate filters, separate admin management, separate portal sections.
 
-## 👤 Author
+---
 
-**AllanRye9**
-
-## 📄 License
-
-MIT
-
-
-## 🏗️ Architecture
-
-This application follows a modern microservices architecture with:
-- **FastAPI** - High-performance Python web framework
-- **PostgreSQL with PostGIS** - Spatial database for location-based queries (SQLite for local development)
-- **Redis** - Caching and message broker
-- **Celery** - Asynchronous task processing
-- **Docker** - Containerized deployment
-
-## 🚀 Features
-
-### Core Functionality
-- **User Management** - Role-based access control (Agents, Admins) with bcrypt password hashing
-- **Client Management** - Track buyers, sellers, and renters
-- **Property Management** - Comprehensive property listings with images
-- **Listing System** - Manage sale and rental listings
-- **Inquiry System** - Handle property inquiries
-- **Appointments** - Schedule property viewings
-- **Transactions** - Track property sales and purchases
-- **Payment Processing** - Handle payments and financial transactions
-
-### Property Types
-- Houses
-- Apartments
-- Land
-- Commercial Properties
-
-### Property Status Tracking
-- Available
-- Sold
-- Rented
-- Pending
-
-## 🛠️ Technology Stack
-
-### Backend
-- **FastAPI 0.104.1** - Modern, fast web framework
-- **SQLAlchemy 2.0** - ORM with `DeclarativeBase` (non-deprecated API)
-- **Pydantic 2.5.0** - Data validation with `field_validator`, `EmailStr`, and `Decimal` for financial fields
-- **Alembic 1.12.1** - Database migrations
-
-### Database & Caching
-- **PostgreSQL with PostGIS** - Spatial database capabilities (production)
-- **SQLite** - Zero-config local development (default when `DATABASE_URL` is not set)
-- **GeoAlchemy2 & Shapely** - Geographic data handling
-- **Redis 5.0.1** - Caching and task queue
-
-### Asynchronous Processing
-- **Celery 5.3.4** - Distributed task queue
-- **AsyncPG** - Async PostgreSQL driver
-
-### Authentication & Security
-- **python-jose** - JWT token handling
-- **passlib with bcrypt** - Password hashing (active — passwords are hashed before storage)
-
-### Development Tools
-- **pytest** - Testing framework
-- **black, isort, flake8** - Code formatting and linting
-- **Docker & Docker Compose** - Containerization
-
-## 📦 Installation & Setup
+## Getting Started (Local)
 
 ### Prerequisites
-- Docker and Docker Compose installed
-- Python 3.11+ (if running locally)
+- Docker and Docker Compose
+- Git
 
-### Using Docker (Recommended)
-
-1. Clone the repository:
-```bash
-git clone https://github.com/AllanRye9/Ort.git
-cd Ort/src
-```
-
-2. Create a `.env` file in the `src` directory with your environment variables:
-```env
-DATABASE_URL=postgresql://postgres:postgres@db:5432/realestate
-REDIS_URL=redis://redis:6379/0
-SECRET_KEY=your-secret-key-here
-CORS_ORIGINS=https://your-frontend.com,https://admin.your-app.com
-```
-
-3. Build and run the containers:
-```bash
-docker-compose up --build
-```
-
-4. Access the API:
-- **API Documentation**: http://localhost:8000/docs
-- **Alternative Docs**: http://localhost:8000/redoc
-- **API Base URL**: http://localhost:8000/api/v1
-- **Health Check**: http://localhost:8000/health
-
-### Local Development Setup
-
-1. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
-
-2. Run database migrations:
-```bash
-alembic upgrade head
-```
-
-3. Start the development server:
-```bash
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-```
-
-> SQLite is used automatically when `DATABASE_URL` is not set, so no database setup is needed for local development.
-
-## 📚 API Documentation
-
-### Pagination
-
-All list endpoints support `skip` and `limit` query parameters for efficient pagination:
-
-```
-GET /api/v1/users/?skip=0&limit=50
-GET /api/v1/properties/?skip=100&limit=25
-```
-
-- `skip` — number of records to skip (default: `0`)
-- `limit` — maximum records to return (default: `100`, max: `1000`)
-
-### Available Endpoints
-
-#### Users
-- `GET /api/v1/users/` - List users (paginated)
-- `GET /api/v1/users/{user_id}` - Get user by ID
-- `POST /api/v1/users/` - Create new user (password is bcrypt-hashed)
-- `PUT /api/v1/users/{user_id}` - Partial update (only provided fields are changed)
-- `DELETE /api/v1/users/{user_id}` - Delete user
-
-#### Clients
-- `GET /api/v1/clients/` - List clients (paginated)
-- `GET /api/v1/clients/{client_id}` - Get client by ID
-- `POST /api/v1/clients/` - Create new client
-- `PUT /api/v1/clients/{client_id}` - Partial update
-- `DELETE /api/v1/clients/{client_id}` - Delete client
-
-#### Properties
-- `GET /api/v1/properties/` - List properties (paginated)
-- `GET /api/v1/properties/{property_id}` - Get property by ID
-- `POST /api/v1/properties/` - Create new property
-- `PUT /api/v1/properties/{property_id}` - Partial update (including status)
-- `DELETE /api/v1/properties/{property_id}` - Delete property
-
-#### Property Images
-- `GET /api/v1/property-images/` - List property images (paginated)
-- `GET /api/v1/property-images/{image_id}` - Get image by ID
-- `POST /api/v1/property-images/` - Add image to property
-- `DELETE /api/v1/property-images/{image_id}` - Delete image
-
-#### Listings
-- `GET /api/v1/listings/` - List listings (paginated)
-- `GET /api/v1/listings/{listing_id}` - Get listing by ID
-- `POST /api/v1/listings/` - Create listing
-
-#### Inquiries
-- `GET /api/v1/inquiries/` - List inquiries (paginated)
-- `GET /api/v1/inquiries/{inquiry_id}` - Get inquiry by ID
-- `POST /api/v1/inquiries/` - Submit inquiry
-
-#### Appointments
-- `GET /api/v1/appointments/` - List appointments (paginated)
-- `GET /api/v1/appointments/{appointment_id}` - Get appointment by ID
-- `POST /api/v1/appointments/` - Schedule appointment
-
-#### Transactions
-- `GET /api/v1/transactions/` - List transactions (paginated)
-- `GET /api/v1/transactions/{transaction_id}` - Get transaction by ID
-- `POST /api/v1/transactions/` - Record transaction
-
-#### Payments
-- `GET /api/v1/payments/` - List payments (paginated)
-- `GET /api/v1/payments/{payment_id}` - Get payment by ID
-- `POST /api/v1/payments/` - Record payment
-
-Full interactive API documentation is available at `/docs` when the server is running.
-
-## 🏗️ Project Structure
-
-```
-Ort/
-├── src/
-│   ├── app/
-│   │   ├── main.py              # FastAPI application entry point
-│   │   ├── api/
-│   │   │   └── v1/
-│   │   │       └── api.py       # API route definitions
-│   │   ├── models/
-│   │   │   └── models.py        # SQLAlchemy database models (with indexes)
-│   │   ├── schemas/
-│   │   │   └── schemas.py       # Pydantic v2 validation schemas
-│   │   └── database/
-│   │       └── database.py      # Database configuration
-│   ├── dockerfile               # Docker image definition
-│   ├── docker-compose.yml       # Multi-container setup
-│   └── requirements.txt         # Python dependencies
-└── README.md
-```
-
-## 🐳 Docker Services
-
-The application runs with the following services:
-
-1. **api** - FastAPI application (Port 8000)
-2. **db** - PostgreSQL with PostGIS (Port 5432)
-3. **redis** - Redis cache (Port 6379)
-4. **celery_worker** - Background task processor
-5. **celery_beat** - Scheduled task scheduler
-
-## 🧪 Testing
-
-Run tests using pytest:
+### Steps
 
 ```bash
-pytest
-pytest --cov  # With coverage report
+# 1. Clone the repository
+git clone https://github.com/your-org/ort-marketplace.git
+cd ort-marketplace
+
+# 2. Create your local .env file
+cp .env.example src/.env
+# Edit src/.env — at minimum set SECRET_KEY
+
+# 3. Start services
+cd src
+docker compose up --build
+
+# 4. The API is now running at:
+#    http://localhost:8000
+#    http://localhost:8000/docs      (Swagger)
+#    http://localhost:8000/web       (Marketplace)
+#    http://localhost:8000/medi      (Companies portal)
+#    http://localhost:8000/const     (Admin console)
 ```
 
-## 🔒 Security
+### Create the first admin user
 
-- **Passwords** are hashed with bcrypt via `passlib` before storage — plain-text passwords are never persisted.
-- **Duplicate email** registration is rejected with HTTP 409.
-- **CORS** origins are configured via the `CORS_ORIGINS` environment variable (comma-separated list). Defaults to `*` when the variable is not set; restrict in production.
-- **JWT authentication** middleware and HTTPS/TLS should be configured for production deployments.
-- Use environment variables for all secrets (`SECRET_KEY`, `DATABASE_URL`, etc.).
-
-## 📝 Database Schema
-
-### Core Tables
-- **users** - System users (agents, admins)
-- **clients** - Property clients (buyers, sellers, renters)
-- **properties** - Property listings
-- **property_images** - Property photos
-- **listings** - Sale/rental listings
-- **inquiries** - Client inquiries
-- **appointments** - Property viewings
-- **transactions** - Sales/purchases
-- **payments** - Financial transactions
-
-### Indexes
-Performance indexes are defined on all foreign key columns and frequently filtered columns (`status`, `city`, `email`).
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## 📄 License
-
-This project is open source and available under the [MIT License](LICENSE).
-
-## 👤 Author
-
-**AllanRye9**
-
-## 🔗 Links
-
-- Repository: [https://github.com/AllanRye9/Ort](https://github.com/AllanRye9/Ort)
-- Issues: [https://github.com/AllanRye9/Ort/issues](https://github.com/AllanRye9/Ort/issues)
+```bash
+# While the API is running, register then promote via the database:
+docker exec -it ort_db psql -U postgres -d ort_marketplace \
+  -c "UPDATE users SET role='admin' WHERE email='admin@piitrade.com';"
+```
 
 ---
+
+## Railway Deployment
+
+### First deploy
+
+1. **Fork / push** this repository to GitHub.
+2. On [Railway.app](https://railway.app):
+   - **New Project → Deploy from GitHub repo** → select this repo
+   - Railway auto-detects `railway.toml` and uses `src/dockerfile`
+3. **Add a PostgreSQL service:**
+   - Click **+ New** → **Database** → **Add PostgreSQL**
+   - Railway sets `DATABASE_URL` automatically — no action needed
+4. **Set environment variables** (Settings → Variables):
+
+   | Variable | Value |
+   |----------|-------|
+   | `SECRET_KEY` | A long random string (use `openssl rand -hex 32`) |
+   | `CORS_ORIGINS` | `https://piitrade.com,https://www.piitrade.com` |
+   | `ADMIN_EMAIL` | Your admin email |
+   | `ADMIN_PASSWORD` | Your admin password |
+
+5. Railway builds and deploys. Visit your Railway domain or **set a custom domain** to `piitrade.com`.
+
+### Custom domain (piitrade.com)
+
+1. Railway dashboard → your service → **Settings → Networking → Custom Domain**
+2. Add `piitrade.com` and `www.piitrade.com`
+3. Update your DNS:
+   - `piitrade.com` → `CNAME` pointing to your Railway domain (e.g. `ort-marketplace-production.up.railway.app`)
+   - `www.piitrade.com` → same CNAME
+4. Railway handles TLS/SSL automatically.
+
+### Redeploys
+
+Every push to your main branch triggers an automatic redeploy on Railway.
+
+---
+
+## Environment Variables
+
+Copy `.env.example` to `src/.env` for local development.  
+Set these in Railway → Settings → Variables for production.
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `DATABASE_URL` | ✅ | — | PostgreSQL connection string (Railway sets this automatically) |
+| `SECRET_KEY` | ✅ | — | JWT signing secret — use a long random string |
+| `ALGORITHM` | | `HS256` | JWT algorithm |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | | `60` | Token lifetime in minutes |
+| `CORS_ORIGINS` | | `https://piitrade.com` | Comma-separated allowed origins |
+| `APK_DOWNLOAD_URL` | | *(blank)* | Direct APK download link — shown on landing page |
+| `IPA_DOWNLOAD_URL` | | *(blank)* | iOS IPA or TestFlight URL — shown on landing page |
+| `TESTFLIGHT_URL` | | *(blank)* | TestFlight invite link |
+| `AWS_S3_BUCKET` | | *(blank)* | S3 bucket name — leave blank for local disk storage |
+| `AWS_ACCESS_KEY_ID` | | *(blank)* | AWS credentials (only if using S3) |
+| `AWS_SECRET_ACCESS_KEY` | | *(blank)* | AWS credentials (only if using S3) |
+| `AWS_REGION` | | `us-east-1` | AWS region |
+| `OPENAI_API_KEY` | | *(blank)* | OpenAI key for AI assistant features |
+| `PORT` | | `8080` | Set automatically by Railway — do not set manually |
+
+---
+
+## API Reference
+
+Full interactive docs at: **https://piitrade.com/docs**
+
+### Authentication
+
+```http
+POST /api/v1/auth/login
+Content-Type: application/x-www-form-urlencoded
+
+username=user@example.com&password=yourpassword
+```
+
+Response: `{ "access_token": "...", "token_type": "bearer" }`
+
+Use the token as: `Authorization: Bearer <token>`
+
+### Key Endpoints
+
+#### Agriculture
+```
+GET    /api/v1/agriculture/              List listings (filterable)
+GET    /api/v1/agriculture/{id}          Get single listing
+POST   /api/v1/agriculture/              Create listing (auth required)
+PUT    /api/v1/agriculture/{id}          Update listing
+DELETE /api/v1/agriculture/{id}          Delete listing
+```
+
+Query params: `keyword`, `category`, `country`, `city`, `min_price`, `max_price`, `is_flash_deal`, `is_today_deal`, `lat`, `lon`, `radius_km`, `skip`, `limit`
+
+#### Manufacturing
+```
+GET    /api/v1/manufacturing/            List products
+GET    /api/v1/manufacturing/{id}        Get product
+POST   /api/v1/manufacturing/            Create product (auth)
+PUT    /api/v1/manufacturing/{id}        Update product
+DELETE /api/v1/manufacturing/{id}        Delete product
+```
+
+#### Services (NEW)
+```
+GET    /api/v1/services/                 List service listings
+GET    /api/v1/services/{id}             Get single service
+POST   /api/v1/services/                 Create service (auth)
+PUT    /api/v1/services/{id}             Update service
+DELETE /api/v1/services/{id}            Delete service
+```
+
+Query params: `keyword`, `category`, `service_mode` (onsite/remote/hybrid), `country`, `city`, `min_price`, `max_price`, `is_flash_deal`, `is_today_deal`, `lat`, `lon`, `radius_km`
+
+#### Auth
+```
+POST   /api/v1/auth/register             Register new user
+POST   /api/v1/auth/login                Login (returns JWT)
+GET    /api/v1/auth/me                   Current user profile
+POST   /api/v1/auth/logout               Logout
+```
+
+#### Orders
+```
+GET    /api/v1/orders/                   List my orders
+POST   /api/v1/orders/                   Create order
+GET    /api/v1/orders/{id}               Order details
+PATCH  /api/v1/orders/{id}/status        Update order status
+```
+
+---
+
+## Admin Console — /const
+
+**URL:** https://piitrade.com/const  
+**Access:** Admin users only (role = `admin`)
+
+### Features
+
+| Section | Path | Description |
+|---------|------|-------------|
+| Dashboard | `/const` | Overview stats — users, orders, listings by module |
+| Users | `/const` (Users tab) | Browse, search, role management |
+| Agriculture | `/const` (Content tab) | Manage all agriculture listings |
+| Manufacturing | `/const` (Content tab) | Manage all manufacturing products |
+| **Services** | `/const` (Content tab) | Manage all service listings |
+| Deleted Items | `/const` (Deleted tab) | View and restore soft-deleted content |
+| Flash Deals | `/const` (Flash Deals tab) | Control flash deals (max 100 listings) |
+| Today's Deals | `/const` (Today's Deals tab) | Control today's deals |
+| Orders | `/const` (Orders tab) | View and manage all orders |
+| Messages | `/const` (Messages tab) | Browse conversation logs |
+| Reports | `/const` (Reports tab) | Activity charts and stats by date range |
+| Settings | `/const` (Settings tab) | WhatsApp number, country switching, currency |
+| CV / Payments | `/const` (CV tab) | CV download and payment logs |
+| Agents | `/const` (Agents tab) | Manage registered agents |
+
+### Admin API Endpoints
+```
+GET    /api/v1/admin/dashboard/stats         Overview stats
+GET    /api/v1/admin/dashboard/reports       Activity by date range
+GET    /api/v1/admin/users/                  List all users
+PATCH  /api/v1/admin/users/{id}/role         Change user role
+GET    /api/v1/admin/content/agriculture/    List all agriculture
+GET    /api/v1/admin/content/manufacturing/  List all manufacturing
+GET    /api/v1/admin/content/services/       List all services
+GET    /api/v1/admin/deleted/                List soft-deleted items
+PATCH  /api/v1/admin/deleted/{type}/{id}/restore   Restore item
+DELETE /api/v1/admin/deleted/{type}/{id}     Permanently delete
+GET    /api/v1/admin/orders/                 All orders
+GET    /api/v1/admin/flash-deals/            Flash deal listings
+GET    /api/v1/admin/settings/               Platform settings
+```
+
+---
+
+## Companies & Agents Portal — /medi
+
+**URL:** https://piitrade.com/medi  
+**Access:** Registered users (companies, organizations, agents)
+
+### What you can do
+
+| Entity Type | Description |
+|-------------|-------------|
+| **Company** | Register a company profile, manage listings, view dashboard |
+| **Organization** | NGOs, cooperatives, farmer groups — non-commercial entities |
+| **Agent** | Individual agents representing services or products |
+
+### Features
+
+- **Profile creation** — name, logo, description, contact info, location, verification status
+- **Listing management:**
+  - 🌾 Agriculture listings — create, edit, delete
+  - 🏭 Manufacturing products — create, edit, delete
+  - 🛠️ Service listings — create, edit, delete *(new)*
+- **Dashboard** — view your own listings, orders, and messages
+- **Verification status** — pending → approved flow
+- **Separate login/registration** for business entities
+
+### Registration flow
+
+1. Go to https://piitrade.com/medi
+2. Click **Register** — choose Company, Organization, or Agent
+3. Fill in your profile details
+4. Submit for verification (admin reviews and approves)
+5. Once approved, start adding listings
+
+---
+
+## App Downloads
+
+The mobile app (Flutter) is available for direct download while Play Store / App Store listings are pending.
+
+| Platform | Status | Link |
+|----------|--------|------|
+| Android (APK) | Available | Set `APK_DOWNLOAD_URL` env var |
+| iOS (IPA / TestFlight) | Available | Set `IPA_DOWNLOAD_URL` or `TESTFLIGHT_URL` env var |
+| Google Play Store | **Coming Soon** | — |
+| Apple App Store | **Coming Soon** | — |
+
+To activate download buttons on the landing page, set these in Railway environment variables:
+```
+APK_DOWNLOAD_URL=https://your-cdn.com/ort-latest.apk
+IPA_DOWNLOAD_URL=https://your-cdn.com/ort-latest.ipa
+```
+
+---
+
+## Currency Logic
+
+- **Base currency:** Ugandan Shillings (**UGX**) — the system anchor
+- All other users see prices converted to their local currency based on device locale / geolocation
+- Currency conversion uses real-time rates where possible
+- Supported currencies include: UGX, KES, TZS, RWF, NGN, GHS, USD, EUR, and all major African currencies
+- Users and admins can manually switch country/currency via settings
+
+---
+
+## Project Structure
+
+```
+ort-marketplace/
+├── railway.toml                  # Railway deployment config
+├── .env.example                  # Environment variable reference
+├── CHANGES.md                    # Detailed change log
+│
+├── src/
+│   ├── dockerfile                # Production Docker image
+│   ├── docker-compose.yml        # Local development stack
+│   ├── requirements.txt          # Python dependencies
+│   │
+│   └── app/
+│       ├── main.py               # FastAPI app, middleware, startup
+│       ├── dependencies.py       # Auth dependency (get_current_user)
+│       ├── exceptions.py         # Custom exception types
+│       │
+│       ├── api/v1/
+│       │   ├── api.py            # Router aggregator
+│       │   ├── auth.py           # /auth/* endpoints
+│       │   ├── agriculture.py    # /agriculture/* endpoints
+│       │   ├── manufacturing.py  # /manufacturing/* endpoints
+│       │   ├── services.py       # /services/* endpoints (NEW)
+│       │   ├── orders.py         # /orders/* endpoints
+│       │   ├── messages.py       # /messages/* endpoints
+│       │   ├── rfq.py            # /rfq/* endpoints
+│       │   ├── reviews.py        # /reviews/* endpoints
+│       │   ├── wallet.py         # /wallet/* endpoints
+│       │   ├── notifications.py  # /notifications/* endpoints
+│       │   ├── admin.py          # /admin/* endpoints
+│       │   ├── agent.py          # /agent/* endpoints
+│       │   ├── upload.py         # /upload/* endpoints
+│       │   ├── tracking.py       # /tracking/* endpoints
+│       │   ├── tenants.py        # /tenants/* endpoints
+│       │   ├── landing.py        # / (root landing page)
+│       │   ├── web_portal.py     # /web (public marketplace)
+│       │   ├── medi_portal.py    # /medi (companies & agents)
+│       │   └── const_admin.py    # /const (admin console)
+│       │
+│       ├── models/
+│       │   ├── models.py         # User, Property, Transaction models
+│       │   └── marketplace_models.py  # Agriculture, Manufacturing,
+│       │                              # Services, Orders, etc.
+│       │
+│       ├── schemas/
+│       │   ├── schemas.py
+│       │   └── marketplace_schemas.py
+│       │
+│       ├── database/
+│       │   └── database.py       # Engine, session, schema migrations
+│       │
+│       └── utils/
+│           ├── geo.py            # Haversine distance
+│           ├── countries.py      # Country name normalisation
+│           └── push.py           # Push notification helpers
+│
+└── ort_marketplace/              # Flutter mobile app source
+    ├── lib/
+    │   ├── main.dart
+    │   ├── core/                 # Auth, router, theme, API service
+    │   ├── models/
+    │   ├── screens/              # All app screens
+    │   └── widgets/
+    ├── android/
+    ├── ios/
+    └── pubspec.yaml
+```
+
+---
+
+## Troubleshooting
+
+### 502 Bad Gateway on Railway
+- Check Railway logs: dashboard → your service → **Deployments** → click the latest → **View Logs**
+- Most common causes:
+  1. `DATABASE_URL` not set — add the PostgreSQL service in Railway
+  2. App crashed on startup — check logs for Python traceback
+  3. Port mismatch — Railway sets `$PORT`; the Dockerfile CMD uses `${PORT:-8080}` ✅
+
+### Cannot connect to database
+- Ensure Railway PostgreSQL add-on is added to your project
+- The `DATABASE_URL` variable should be set automatically by Railway
+- Verify with: Railway dashboard → Variables → confirm `DATABASE_URL` exists
+
+### Login not working
+- Ensure `SECRET_KEY` is set in Railway environment variables
+- Default token lifetime is 60 minutes; adjust `ACCESS_TOKEN_EXPIRE_MINUTES`
+
+### CORS errors in browser
+- Set `CORS_ORIGINS=https://piitrade.com,https://www.piitrade.com` in Railway variables
+- For local dev, `CORS_ORIGINS=*` is acceptable
+
+### Images not loading
+- Without S3 configured, images are stored at `/static/listings/` inside the container
+- Container storage is ephemeral on Railway — configure `AWS_S3_BUCKET` for persistent image storage
+
+---
+
+*Ort Marketplace · Built for Africa · Anchored in Uganda*
