@@ -355,7 +355,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
           ),
           const SizedBox(height: 8),
           Text(
-            'Companies & organisations register at ort.up.railway.app/medi',
+            'Companies & organisations register at piitrade.com/medi',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Colors.grey,

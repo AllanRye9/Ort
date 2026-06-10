@@ -604,7 +604,7 @@ class _ReadView extends StatelessWidget {
               children: [
                 Icon(Icons.language_outlined, size: 18, color: Colors.grey),
                 SizedBox(width: 8),
-                Text('ort.up.railway.app'),
+                Text('piitrade.com'),
               ],
             ),
           ],
@@ -622,7 +622,7 @@ class _ReadView extends StatelessWidget {
   Future<void> _openAdminPanel(BuildContext context) async {
     // Derive the admin panel URL from the API base URL.
     // AppConstants.baseUrl is expected to end with /api/v1 (optionally with
-    // a trailing slash), e.g. https://ort.up.railway.app/api/v1. Strip that
+    // a trailing slash), e.g. https://piitrade.com/api/v1. Strip that
     // suffix and append /const to reach the backend admin dashboard.
     String base = AppConstants.baseUrl;
     if (base.endsWith('/api/v1')) {

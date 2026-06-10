@@ -45,20 +45,23 @@ app = FastAPI(
 )
 
 _cors_origins_env = os.getenv("CORS_ORIGINS", "")
-# Default origins include the production domain so the app works on Railway
-# without any env-var configuration.  Operators can override via CORS_ORIGINS.
-_DEFAULT_ORIGINS = [
-    "https://piitrade.com",
-    "https://www.piitrade.com",
-]
-cors_origins = (
-    [o.strip() for o in _cors_origins_env.split(",") if o.strip()]
-    or _DEFAULT_ORIGINS
-)
 
-# Explicit header list ensures preflight is accepted by all browsers,
-# including those that do not honour the Access-Control-Allow-Headers: *
-# wildcard (e.g. older WebKit/Safari builds used by Flutter Web on iOS).
+# Build the origins list.  Rules:
+#
+#   1. If CORS_ORIGINS env var is set, use exactly those origins.
+#   2. Otherwise, allow all origins ("*").  This is safe because:
+#        - allow_credentials is False (no cookies forwarded)
+#        - Bearer tokens are validated server-side on every request
+#        - Railway preview URLs change on every deploy – we cannot hard-code them
+#
+# In production, set CORS_ORIGINS to:
+#   https://piitrade.com,https://www.piitrade.com
+# to lock down cross-origin access.
+if _cors_origins_env.strip():
+    cors_origins: list[str] = [o.strip() for o in _cors_origins_env.split(",") if o.strip()]
+else:
+    cors_origins = ["*"]
+
 _CORS_ALLOW_HEADERS = [
     "Authorization",
     "Content-Type",
@@ -72,6 +75,9 @@ _CORS_ALLOW_HEADERS = [
 
 app.add_middleware(
     CORSMiddleware,
+    # When allow_origins=["*"] Starlette returns the wildcard; when it is a
+    # specific list it reflects the matched origin.  Either way
+    # allow_credentials must stay False so the wildcard path is legal.
     allow_origins=cors_origins,
     allow_credentials=False,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
@@ -232,4 +238,21 @@ app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    """Railway health-check endpoint. Also useful for CORS smoke-testing."""
+    return {
+        "status": "ok",
+        "cors_origins": cors_origins,
+        "api_base": "/api/v1",
+    }
+
+
+@app.options("/{rest_of_path:path}", include_in_schema=False)
+async def options_handler(rest_of_path: str):
+    """
+    Explicit OPTIONS catch-all so CORS pre-flight requests always get a 200.
+    Starlette's CORSMiddleware handles the actual headers; this route just
+    ensures FastAPI doesn't return 405 Method Not Allowed before the middleware
+    can intercept.
+    """
+    from fastapi import Response as _Response
+    return _Response(status_code=200)

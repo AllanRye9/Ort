@@ -36,23 +36,37 @@ class ApiService {
         receiveTimeout: AppConstants.receiveTimeout,
         sendTimeout: AppConstants.connectTimeout,
         headers: {
-          'Content-Type': 'application/json',
           'Accept': 'application/json',
+          // Content-Type is set per-request where needed.
+          // Setting it globally breaks multipart/form-data uploads because
+          // the boundary parameter would be overwritten.
         },
-        // Explicitly follow redirects so that Railway's HTTPS redirect does
-        // not break CORS preflight requests.
-        followRedirects: true,
-        maxRedirects: 3,
+        // followRedirects is unsupported on Flutter Web (XHR) – omit it to
+        // avoid a runtime assertion on web builds.
+        ...(kIsWeb ? {} : {'followRedirects': true, 'maxRedirects': 3}),
+        // Tell Dio (and the underlying XHR on web) NOT to send cookies /
+        // credentials.  withCredentials=false is required when the server
+        // returns Access-Control-Allow-Origin: <specific-origin> without
+        // Access-Control-Allow-Credentials: true.
+        extra: {'withCredentials': false},
       ),
     );
 
-    // Auth token injection
+    // Auth token + Content-Type injection
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
+          // Inject Bearer token when available
           final token = await _storage.read(key: AppConstants.tokenKey);
           if (token != null) {
             options.headers['Authorization'] = 'Bearer $token';
+          }
+          // Set Content-Type to JSON for all requests that carry a body,
+          // UNLESS the caller already set a content type (e.g. multipart).
+          if (!options.headers.containsKey('Content-Type') &&
+              options.data != null &&
+              options.data is! FormData) {
+            options.headers['Content-Type'] = 'application/json';
           }
           return handler.next(options);
         },
@@ -86,6 +100,10 @@ class ApiService {
       );
       return true;
     }());
+
+    // Retry once on connection error – handles Railway cold-start where the
+    // first request races with the dyno waking up.
+    _dio.interceptors.add(_RetryInterceptor(_dio));
   }
 
   final FlutterSecureStorage _storage;
@@ -94,10 +112,26 @@ class ApiService {
   // ─── Auth ────────────────────────────────────────────────────────────────
 
   Future<Map<String, dynamic>> login(String email, String password) async {
-    final res = await _dio.post('/auth/login', data: {
-      'email': email,
-      'password': password,
-    });
+    // The backend /auth/login accepts JSON: { "email": "...", "password": "..." }
+    // We set Content-Type explicitly here to be safe on all platforms.
+    final res = await _dio.post(
+      '/auth/login',
+      data: {'email': email, 'password': password},
+      options: Options(
+        headers: {'Content-Type': 'application/json'},
+        // Return the raw response so we can handle non-2xx ourselves.
+        validateStatus: (status) => status != null && status < 500,
+      ),
+    );
+    if (res.statusCode == 401 || res.statusCode == 403) {
+      final detail = (res.data is Map ? res.data['detail'] : null) ?? 'Invalid email or password';
+      throw DioException(
+        requestOptions: res.requestOptions,
+        response: res,
+        type: DioExceptionType.badResponse,
+        message: detail.toString(),
+      );
+    }
     return res.data as Map<String, dynamic>;
   }
 
@@ -322,6 +356,68 @@ class ApiService {
     final res = await _dio.patch('/manufacturing/$id/status',
         data: {'status': status});
     return res.data as Map<String, dynamic>;
+  }
+
+  // ─── Services ─────────────────────────────────────────────────────────────
+
+  Future<List<dynamic>> getServiceListings({
+    int skip = 0,
+    int limit = 50,
+    String? keyword,
+    String? category,
+    String? serviceMode,
+    String? status,
+    String? country,
+    String? city,
+    double? minPrice,
+    double? maxPrice,
+    bool? isFlashDeal,
+    bool? isTodayDeal,
+    double? lat,
+    double? lon,
+    double? radiusKm,
+    int? postedByUserId,
+  }) async {
+    final res = await _dio.get('/services/', queryParameters: {
+      'skip': skip,
+      'limit': limit,
+      if (keyword != null && keyword.isNotEmpty) 'keyword': keyword,
+      if (category != null && category.isNotEmpty) 'category': category,
+      if (serviceMode != null) 'service_mode': serviceMode,
+      if (status != null && status.isNotEmpty) 'status': status,
+      if (country != null && country.isNotEmpty) 'country': country,
+      if (city != null && city.isNotEmpty) 'city': city,
+      if (minPrice != null) 'min_price': minPrice,
+      if (maxPrice != null) 'max_price': maxPrice,
+      if (isFlashDeal != null) 'is_flash_deal': isFlashDeal,
+      if (isTodayDeal != null) 'is_today_deal': isTodayDeal,
+      if (lat != null) 'lat': lat,
+      if (lon != null) 'lon': lon,
+      if (radiusKm != null) 'radius_km': radiusKm,
+      if (postedByUserId != null) 'posted_by_user_id': postedByUserId,
+    });
+    return res.data as List<dynamic>;
+  }
+
+  Future<Map<String, dynamic>> getServiceListing(int id) async {
+    final res = await _dio.get('/services/$id');
+    return res.data as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> createServiceListing(
+      Map<String, dynamic> data) async {
+    final res = await _dio.post('/services/', data: data);
+    return res.data as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> updateServiceListing(
+      int id, Map<String, dynamic> data) async {
+    final res = await _dio.put('/services/$id', data: data);
+    return res.data as Map<String, dynamic>;
+  }
+
+  Future<void> deleteServiceListing(int id) async {
+    await _dio.delete('/services/$id');
   }
 
   // ─── Manufacturing Services ──────────────────────────────────────────────
@@ -1029,5 +1125,56 @@ class ApiService {
     await _dio.delete('/notifications/device-token', queryParameters: {
       'token': token,
     });
+  }
+}
+
+// ─── Retry interceptor ────────────────────────────────────────────────────────
+/// Retries a request once after a short delay when a connection-level error
+/// occurs.  This handles Railway cold-starts where the server may not be
+/// immediately ready on the first attempt.
+class _RetryInterceptor extends Interceptor {
+  _RetryInterceptor(this._dio);
+
+  final Dio _dio;
+  static const int _maxRetries = 1;
+  static const Duration _retryDelay = Duration(seconds: 3);
+
+  @override
+  void onError(DioException err, ErrorInterceptorHandler handler) async {
+    final retryCount = err.requestOptions.extra['_retryCount'] as int? ?? 0;
+
+    final shouldRetry =
+        retryCount < _maxRetries &&
+        (err.type == DioExceptionType.connectionError ||
+            err.type == DioExceptionType.connectionTimeout ||
+            err.type == DioExceptionType.receiveTimeout);
+
+    if (!shouldRetry) {
+      return handler.next(err);
+    }
+
+    await Future<void>.delayed(_retryDelay);
+
+    final opts = err.requestOptions;
+    opts.extra['_retryCount'] = retryCount + 1;
+
+    try {
+      final response = await _dio.request<dynamic>(
+        opts.path,
+        data: opts.data,
+        queryParameters: opts.queryParameters,
+        options: Options(
+          method: opts.method,
+          headers: opts.headers,
+          responseType: opts.responseType,
+          contentType: opts.contentType,
+          validateStatus: opts.validateStatus,
+          extra: opts.extra,
+        ),
+      );
+      handler.resolve(response);
+    } on DioException catch (e) {
+      handler.next(e);
+    }
   }
 }
