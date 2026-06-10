@@ -1,63 +1,43 @@
+# Local development docker-compose.
+# For Railway production, use railway.toml + the Railway PostgreSQL add-on.
+
 services:
   api:
-    build: .
-    container_name: fastapi_api
-    command: gunicorn -k uvicorn.workers.UvicornWorker app.main:app --bind 0.0.0.0:8008
+    build:
+      context: .
+      dockerfile: dockerfile
+    container_name: ort_api
+    command: >
+      sh -c "gunicorn -k uvicorn.workers.UvicornWorker app.main:app
+             --bind 0.0.0.0:8000 --workers 2 --timeout 120
+             --access-logfile - --error-logfile -"
     ports:
-      - "8008:8008"
+      - "8000:8000"
     env_file:
       - .env
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
     volumes:
       - .:/app
-    restart: always
+    restart: on-failure
 
   db:
-    image: postgis/postgis:15-3.3
-    container_name: postgres_db
+    image: postgres:16-alpine
+    container_name: ort_db
     environment:
-      POSTGRES_DB: realestate
+      POSTGRES_DB: ort_marketplace
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    restart: always
-
-  redis:
-    image: redis:7-alpine
-    container_name: redis
-    ports:
-      - "6379:6379"
-    restart: always
-
-  celery_worker:
-    build: .
-    container_name: celery_worker
-    command: celery -A app.celery_worker worker --loglevel=info
-    env_file:
-      - .env
-    depends_on:
-      - redis
-      - db
-    volumes:
-      - .:/app
-    restart: always
-
-  celery_beat:
-    build: .
-    container_name: celery_beat
-    command: celery -A app.celery_worker beat --loglevel=info
-    env_file:
-      - .env
-    depends_on:
-      - redis
-      - db
-    volumes:
-      - .:/app
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     restart: always
 
 volumes:
