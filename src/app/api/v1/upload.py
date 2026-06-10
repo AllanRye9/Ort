@@ -308,7 +308,7 @@ async def _process_upload(file: UploadFile, db: Session, uploader_user_id: Optio
                 # download the object and serve it with proper CORS headers.
                 # To opt out and use direct bucket URLs, set S3_PUBLIC_BASE_URL
                 # to the public-facing base URL of the bucket.
-                app_base = os.getenv("APP_BASE_URL", "https://ort.up.railway.app").rstrip("/")
+                app_base = os.getenv("APP_BASE_URL", "https://piitrade.com").rstrip("/")
                 url = f"{app_base}/api/v1/upload/proxy/{object_key}"
             logger.info("Uploaded image to S3 key: %s → %s", object_key, url)
             _record_upload(db, key=object_key, user_id=uploader_user_id)
@@ -341,7 +341,7 @@ async def _process_upload(file: UploadFile, db: Session, uploader_user_id: Optio
             "S3 not configured – saved image to database with id %s", img_id
         )
         _record_upload(db, key=img_id, user_id=uploader_user_id)
-        base_url = os.getenv("APP_BASE_URL", "https://ort.up.railway.app")
+        base_url = os.getenv("APP_BASE_URL", "https://piitrade.com")
         return {"url": f"{base_url}/api/v1/upload/image/{img_id}"}
 
 
@@ -648,7 +648,7 @@ async def _process_file_upload(
             if _explicit_public_base:
                 url = f"{_explicit_public_base}/{object_key}"
             else:
-                app_base = os.getenv("APP_BASE_URL", "https://ort.up.railway.app").rstrip("/")
+                app_base = os.getenv("APP_BASE_URL", "https://piitrade.com").rstrip("/")
                 url = f"{app_base}/api/v1/upload/proxy/{object_key}"
             _record_upload(db, key=object_key, user_id=uploader_user_id)
             return {"url": url, "filename": original_filename}
@@ -675,7 +675,7 @@ async def _process_file_upload(
                 detail="File upload failed.",
             ) from exc
         _record_upload(db, key=blob_id, user_id=uploader_user_id)
-        base_url = os.getenv("APP_BASE_URL", "https://ort.up.railway.app")
+        base_url = os.getenv("APP_BASE_URL", "https://piitrade.com")
         return {"url": f"{base_url}/api/v1/upload/image/{blob_id}", "filename": original_filename}
 
 
