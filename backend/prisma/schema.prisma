@@ -1,0 +1,878 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ─────────────────────────────────────────────────────────────────────
+
+enum Role {
+  BUYER
+  SELLER
+  ADMIN
+  AGENT
+  ORGANIZATION
+  COMPANY
+}
+
+enum Country {
+  UAE
+  UGANDA
+  KENYA
+  CHINA
+}
+
+enum Currency {
+  AED
+  UGX
+  KES
+  CNY
+  USD
+}
+
+enum Condition {
+  NEW
+  USED
+}
+
+enum ListingStatus {
+  ACTIVE
+  PENDING
+  SOLD
+  EXPIRED
+  HIDDEN
+  REJECTED
+}
+
+enum Placement {
+  NONE
+  LATEST_COLLECTIONS
+  FEATURED_DEAL
+  FLASH_SALE
+}
+
+enum ImageStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+enum PaymentMethod {
+  CARD
+  BANK_TRANSFER
+  CASH_ON_DELIVERY
+  MOBILE_MONEY
+  WALLET
+}
+
+enum CouponType {
+  PERCENTAGE
+  FIXED_AMOUNT
+  FREE_SHIPPING
+}
+
+enum NotificationType {
+  ORDER_PLACED
+  ORDER_CONFIRMED
+  ORDER_SHIPPED
+  ORDER_DELIVERED
+  ORDER_CANCELLED
+  PAYMENT_RECEIVED
+  PAYMENT_FAILED
+  RETURN_REQUESTED
+  RETURN_APPROVED
+  RETURN_REJECTED
+  LISTING_APPROVED
+  LISTING_REJECTED
+  IMAGE_APPROVED
+  IMAGE_REJECTED
+  REVIEW_POSTED
+  MESSAGE_RECEIVED
+  WITHDRAWAL_APPROVED
+  WITHDRAWAL_REJECTED
+  SUBSCRIPTION_ACTIVATED
+  SUBSCRIPTION_EXPIRED
+  SUBSCRIPTION_PENDING
+  LISTING_EXPIRED
+  SYSTEM
+}
+
+enum ReturnStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+  RETURNED
+  REFUNDED
+}
+
+enum WithdrawalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  COMPLETED
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+  PENDING_PAYMENT
+}
+
+enum PackageScope {
+  LISTING
+  CV
+}
+
+enum AddressType {
+  SHIPPING
+  BILLING
+  BOTH
+}
+
+// ─── Models ────────────────────────────────────────────────────────────────────
+
+model User {
+  id                    String    @id @default(uuid())
+  email                 String    @unique
+  personalId            String    @unique @default("")
+  password              String
+  role                  Role      @default(BUYER)
+  name                  String
+  phone                 String?   @unique
+  avatar                String?
+  country               Country   @default(UAE)
+  isVerified            Boolean   @default(false)
+  isBanned              Boolean   @default(false)
+  emailVerificationToken  String?   @unique
+  emailVerificationExpiry DateTime?
+  refreshToken          String?
+  passwordResetToken    String?
+  passwordResetExpiry   DateTime?
+  // Seller balance (tracked in minor units of the primary currency)
+  balance               Float     @default(0)
+  cvThemeColor          String?
+  // Extended profile fields for AGENT / ORGANIZATION / COMPANY accounts
+  companyName           String?
+  registrationNumber    String?   @unique
+  agentLicense          String?   @unique
+  agentType             String?
+  website               String?
+  businessDescription   String?
+  socialLinks           Json?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  listings         Listing[]
+  sentMessages     Message[] @relation("SentMessages")
+  receivedMessages Message[] @relation("ReceivedMessages")
+  favorites        Favorite[]
+  reports          Report[]
+  givenReviews     Review[]  @relation("GivenReviews")
+  receivedReviews  Review[]  @relation("ReceivedReviews")
+  savedSearches    SavedSearch[]
+  uploadedImages   ProductImage[] @relation("SellerImages")
+  productReviews   ProductReview[] @relation("UserProductReviews")
+  helpfulVotes     HelpfulVote[]   @relation("UserHelpfulVotes")
+  buyerOrders      Order[]         @relation("BuyerOrders")
+  sellerOrders     Order[]         @relation("SellerOrders")
+  addresses        Address[]
+  notifications    Notification[]
+  returns          Return[]        @relation("BuyerReturns")
+  store            Store?
+  withdrawals      Withdrawal[]
+  cartItems        CartItem[]
+  subscriptions    SellerSubscription[]
+  siteMedia        SiteMedia[]          @relation("AdminMediaUploads")
+  documents        UserDocument[]
+  blogPosts        BlogPost[]           @relation("BlogAuthor")
+  storeRentals     StoreRental[]        @relation("StoreRentalUser")
+  listingEngagements ListingEngagement[]
+  cvDownloadTokens CvDownloadToken[]
+}
+
+model Store {
+  id                String    @id @default(uuid())
+  name              String
+  description       String?
+  logo              String?
+  banner            String?
+  slug              String    @unique
+  rating            Float     @default(0)
+  ratingCount       Int       @default(0)
+  isActive          Boolean   @default(true)
+  // Partner wall: admin approves stores as partners; approved stores can
+  // upload a logo that appears on the public /stores Partners section.
+  partnerApproved   Boolean   @default(false)
+  partnerLogoUrl    String?
+  partnerName       String?
+  partnerWebsite    String?
+  partnerApprovedAt DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Address {
+  id         String      @id @default(uuid())
+  userId     String
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type       AddressType @default(BOTH)
+  fullName   String
+  phone      String
+  line1      String
+  line2      String?
+  city       String
+  state      String?
+  postalCode String?
+  country    Country
+  isDefault  Boolean     @default(false)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  shippingOrders Order[] @relation("ShippingAddress")
+  billingOrders  Order[] @relation("BillingAddress")
+}
+
+model Category {
+  id          String     @id @default(uuid())
+  name        String
+  slug        String     @unique
+  icon        String?
+  parentId    String?
+  fieldSchema Json?
+  parent      Category?  @relation("CategoryToSubcategory", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryToSubcategory")
+  listings    Listing[]
+}
+
+model Listing {
+  id          String        @id @default(uuid())
+  title       String
+  description String
+  price       Float
+  currency    Currency      @default(AED)
+  condition   Condition     @default(USED)
+  status      ListingStatus @default(ACTIVE)
+  images      String[]
+  location    String
+  country     Country       @default(UAE)
+  views       Int           @default(0)
+  // Inventory
+  stock       Int           @default(1)
+  sku         String?
+  // Shipping dimensions (cm / kg)
+  weightKg    Float?
+  lengthCm    Float?
+  widthCm     Float?
+  heightCm    Float?
+  tags        String[]
+  motorDetails    Json?
+  propertyDetails Json?
+  jobDetails      Json?
+  productOptions  Json?   // Array of options e.g. [{name:"Color",values:["Red","Blue"]}]
+  // Answers to the selected category's admin-defined fieldSchema (see
+  // Category.fieldSchema), keyed by field name, e.g. {"engine_capacity":"2.0L"}.
+  customFieldValues Json?
+  latitude        Float?
+  longitude       Float?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  expiresAt   DateTime?
+  placement          Placement     @default(NONE)
+  placementExpiresAt DateTime?
+
+  userId      String
+  user        User          @relation(fields: [userId], references: [id])
+  categoryId  String
+  category    Category      @relation(fields: [categoryId], references: [id])
+
+  messages    Message[]
+  favorites   Favorite[]
+  reports     Report[]
+  reviews     Review[]
+  productImages ProductImage[]
+  productReviews ProductReview[]
+  orderItems   OrderItem[]
+  cartItems    CartItem[]
+  engagement  ListingEngagement[]
+
+  @@index([country, status, createdAt(sort: Desc)])
+  @@index([categoryId, country, status])
+  @@index([userId, status, createdAt(sort: Desc)])
+  @@index([status, placement, country])
+  @@index([country, placement, status])
+  @@index([createdAt(sort: Desc)])
+}
+
+model ListingEngagement {
+  id              String   @id @default(uuid())
+  durationSeconds  Int      @default(0)
+  createdAt        DateTime @default(now())
+
+  userId          String?
+  user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  listingId       String
+  listing         Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([listingId, createdAt])
+}
+
+model CartItem {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listingId String
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, listingId])
+}
+
+model ShippingRate {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  country     Country
+  minDays     Int
+  maxDays     Int
+  priceAed    Float    @default(0)
+  priceUgx    Float    @default(0)
+  priceKes    Float    @default(0)
+  priceCny    Float    @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Coupon {
+  id              String     @id @default(uuid())
+  code            String     @unique
+  type            CouponType
+  value           Float
+  minOrderAmount  Float?
+  maxUses         Int?
+  usedCount       Int        @default(0)
+  isActive        Boolean    @default(true)
+  expiresAt       DateTime?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  orders          Order[]
+}
+
+model Order {
+  id               String      @id @default(uuid())
+  orderNumber      String      @unique
+  status           OrderStatus @default(PENDING)
+  currency         Currency    @default(AED)
+  subtotal         Float
+  shippingCost     Float       @default(0)
+  discount         Float       @default(0)
+  tax              Float       @default(0)
+  total            Float
+  notes            String?
+  trackingNumber   String?
+  shippedAt        DateTime?
+  deliveredAt      DateTime?
+  cancelledAt      DateTime?
+  cancellationNote String?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  buyerId          String
+  buyer            User        @relation("BuyerOrders", fields: [buyerId], references: [id])
+  sellerId         String
+  seller           User        @relation("SellerOrders", fields: [sellerId], references: [id])
+  shippingAddressId String?
+  shippingAddress  Address?    @relation("ShippingAddress", fields: [shippingAddressId], references: [id])
+  billingAddressId  String?
+  billingAddress   Address?    @relation("BillingAddress", fields: [billingAddressId], references: [id])
+  couponId         String?
+  coupon           Coupon?     @relation(fields: [couponId], references: [id])
+
+  items            OrderItem[]
+  payment          Payment?
+  returns          Return[]
+}
+
+model OrderItem {
+  id          String  @id @default(uuid())
+  orderId     String
+  order       Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  listingId   String
+  listing     Listing @relation(fields: [listingId], references: [id])
+  title       String
+  price       Float
+  quantity    Int     @default(1)
+  currency    Currency @default(AED)
+  imageUrl    String?
+  variantSummary String?  // e.g. "Color: Red, Size: M" — captured at purchase time
+}
+
+model Payment {
+  id            String        @id @default(uuid())
+  orderId       String        @unique
+  order         Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  method        PaymentMethod @default(CARD)
+  status        PaymentStatus @default(PENDING)
+  amount        Float
+  currency      Currency      @default(AED)
+  // Gateway reference (Stripe charge id, Flutterwave tx ref, etc.)
+  gatewayRef    String?
+  gatewayData   Json?
+  paidAt        DateTime?
+  refundedAt    DateTime?
+  refundAmount  Float?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model Return {
+  id          String       @id @default(uuid())
+  orderId     String
+  order       Order        @relation(fields: [orderId], references: [id])
+  buyerId     String
+  buyer       User         @relation("BuyerReturns", fields: [buyerId], references: [id])
+  reason      String
+  description String?
+  status      ReturnStatus @default(REQUESTED)
+  images      String[]
+  resolution  String?
+  resolvedAt  DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  title     String
+  message   String
+  data      Json?
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now())
+}
+
+model Withdrawal {
+  id          String           @id @default(uuid())
+  userId      String
+  user        User             @relation(fields: [userId], references: [id])
+  amount      Float
+  currency    Currency         @default(AED)
+  method      PaymentMethod    @default(BANK_TRANSFER)
+  accountInfo Json
+  status      WithdrawalStatus @default(PENDING)
+  note        String?
+  processedAt DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}
+
+model Message {
+  id         String   @id @default(uuid())
+  content    String
+  read       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  senderId   String
+  sender     User     @relation("SentMessages", fields: [senderId], references: [id])
+  receiverId String
+  receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  listingId  String?
+  listing    Listing? @relation(fields: [listingId], references: [id])
+}
+
+model Favorite {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  listingId String
+  listing   Listing  @relation(fields: [listingId], references: [id])
+
+  @@unique([userId, listingId])
+}
+
+model Report {
+  id         String   @id @default(uuid())
+  reason     String
+  createdAt  DateTime @default(now())
+
+  reporterId String
+  reporter   User     @relation(fields: [reporterId], references: [id])
+  listingId  String
+  listing    Listing  @relation(fields: [listingId], references: [id])
+}
+
+model Review {
+  id         String   @id @default(uuid())
+  rating     Int
+  comment    String?
+  createdAt  DateTime @default(now())
+
+  reviewerId  String
+  reviewer    User    @relation("GivenReviews", fields: [reviewerId], references: [id])
+  revieweeId  String
+  reviewee    User    @relation("ReceivedReviews", fields: [revieweeId], references: [id])
+  listingId   String
+  listing     Listing @relation(fields: [listingId], references: [id])
+}
+
+model SavedSearch {
+  id          String   @id @default(uuid())
+  query       String?
+  filters     Json?
+  emailAlert  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+model ProductImage {
+  id              String      @id @default(uuid())
+  listingId       String?
+  listing         Listing?    @relation(fields: [listingId], references: [id], onDelete: SetNull)
+  sellerId        String
+  seller          User        @relation("SellerImages", fields: [sellerId], references: [id])
+  tempPath        String
+  status          ImageStatus @default(PENDING)
+  cdnUrl          String?
+  uploadedAt      DateTime    @default(now())
+  reviewedAt      DateTime?
+  reviewedBy      String?
+  rejectionReason String?
+}
+
+model ProductReview {
+  id               String        @id @default(uuid())
+  listingId        String
+  listing          Listing       @relation(fields: [listingId], references: [id])
+  userId           String
+  user             User          @relation("UserProductReviews", fields: [userId], references: [id])
+  rating           Int
+  title            String?
+  content          String
+  status           ReviewStatus  @default(PENDING)
+  helpfulCount     Int           @default(0)
+  verifiedPurchase Boolean       @default(false)
+  rejectionReason  String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  helpfulVotes     HelpfulVote[]
+
+  @@unique([userId, listingId])
+}
+
+model HelpfulVote {
+  id        String        @id @default(uuid())
+  reviewId  String
+  review    ProductReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User          @relation("UserHelpfulVotes", fields: [userId], references: [id])
+  createdAt DateTime      @default(now())
+
+  @@unique([reviewId, userId])
+}
+
+// ─── Seller Packages & Subscriptions ──────────────────────────────────────────
+
+model SellerPackage {
+  id            String               @id @default(uuid())
+  name          String
+  description   String?
+  scope         PackageScope         @default(LISTING)
+  isFree        Boolean              @default(false)
+  price         Float                @default(0)
+  currency      Currency             @default(AED)
+  durationDays  Int
+  maxListings   Int?
+  isActive      Boolean              @default(true)
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  subscriptions SellerSubscription[]
+  cvDownloadTokens CvDownloadToken[]
+}
+
+model SellerSubscription {
+  id         String             @id @default(uuid())
+  userId     String
+  user       User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  packageId  String
+  package    SellerPackage      @relation(fields: [packageId], references: [id])
+  status     SubscriptionStatus @default(ACTIVE)
+  startDate  DateTime           @default(now())
+  endDate    DateTime
+  paymentRef String?
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+}
+
+// ─── Site Statistics ───────────────────────────────────────────────────────────
+// Single-row table used as a global counters store.  A row with id="global"
+// is upserted whenever the homepage is visited.
+
+
+model SiteStat {
+  id                 String    @id @default("global")
+  pageViews          BigInt    @default(0)
+  dailyVisitors      BigInt    @default(0)
+  lastDailyReset     DateTime  @default(now())
+  lastResetDayKey    String    @default("") // YYYY-MM-DD day key (computed in the relevant country's local timezone) of the last daily reset — timezone-aware replacement for comparing lastDailyReset with server-local dates
+  visitorCountries   String    @default("[]") // JSON array of unique country codes
+  countryVisitCounts String    @default("{}") // JSON map of country code → visit count e.g. {"US": 42, "AE": 15}
+  uniqueVisitorIds   String    @default("[]") // JSON array of unique device IDs (all time)
+  dailyVisitorIds    String    @default("[]") // JSON array of device IDs for today
+  updatedAt          DateTime  @updatedAt
+}
+// ─── Site Media (admin-uploaded images for page sections) ─────────────────────
+
+model SiteMedia {
+  id          String   @id @default(uuid())
+  section     String   // e.g. 'hero', 'banner', 'featured', 'flash', 'collection'
+  cdnUrl      String
+  title       String?
+  shortDescription String?
+  price       Decimal?
+  originalPrice Decimal?
+  currency    Currency?
+  altText     String?
+  linkUrl     String?  // Optional destination URL when the image is clicked
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  uploadedBy  String
+  admin       User     @relation("AdminMediaUploads", fields: [uploadedBy], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ─── User Documents (CV, Certificates, Portfolios) ────────────────────────────
+
+enum DocumentType {
+  CV
+  CERTIFICATE
+  PORTFOLIO
+  OTHER
+}
+
+model UserDocument {
+  id          String       @id @default(uuid())
+  userId      String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        DocumentType @default(OTHER)
+  title       String
+  description String?
+  fileUrl     String
+  fileName    String
+  fileSize    Int?
+  isPublic    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+// ─── Blog Posts ───────────────────────────────────────────────────────────────
+
+enum BlogStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model BlogPost {
+  id            String     @id @default(uuid())
+  title         String
+  slug          String     @unique
+  content       String
+  excerpt       String?
+  featuredImage String?
+  status        BlogStatus @default(DRAFT)
+  authorId      String
+  author        User       @relation("BlogAuthor", fields: [authorId], references: [id])
+  publishedAt   DateTime?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+}
+
+// ─── Social Links (admin-configurable) ────────────────────────────────────────
+
+model SocialLinks {
+  id        String   @id @default("global")
+  facebook  String?
+  instagram String?
+  linkedin  String?
+  x         String?
+  whatsapp  String?
+  youtube   String?
+  tiktok    String?
+  updatedAt DateTime @updatedAt
+}
+
+// ─── Store Rentals ────────────────────────────────────────────────────────────
+
+enum RentalStatus {
+  PENDING
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
+enum RentalEntityType {
+  USER
+  AGENT
+  COMPANY
+  ORGANIZATION
+}
+
+model StoreRental {
+  id              String           @id @default(uuid())
+  userId          String
+  user            User             @relation("StoreRentalUser", fields: [userId], references: [id], onDelete: Cascade)
+  entityType      RentalEntityType @default(USER)
+  fee             Float            @default(0)
+  currency        Currency         @default(AED)
+  startDate       DateTime         @default(now())
+  endDate         DateTime
+  maxListings     Int              @default(100)
+  status          RentalStatus     @default(PENDING)
+  placements      Json?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+}
+
+// ─── CV Service Requests ──────────────────────────────────────────────────────
+
+model CvServiceRequest {
+  id          String   @id @default(uuid())
+  serviceType String
+  name        String
+  email       String
+  phone       String?
+  linkedinUrl String?
+  jobTitle    String?
+  goal        String?
+  message     String?
+  packageName String?
+  status      String   @default("pending")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+enum JobStatus {
+  ACTIVE
+  CLOSED
+  DRAFT
+}
+
+model JobPost {
+  id            String    @id @default(uuid())
+  title         String
+  company       String
+  location      String    @default("")
+  type          String
+  category      String
+  qualification String
+  description   String
+  salary        String?
+  deadline      String?
+  imageUrl      String?
+  country       String    @default("UAE")
+  status        JobStatus @default(ACTIVE)
+  postedById    String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([status])
+  @@index([country])
+  @@index([type])
+  @@index([category])
+}
+
+// ─── Site Config (WhatsApp number, Today's Deals, theme) ─────────────────────
+
+model SiteConfig {
+  id              String   @id @default("global")
+  whatsappNumber  String?
+  todaysDeals     Json?    // Array of deal objects { id, title, description, imageUrl, price, originalPrice, discount, link }
+  headerTheme     String?  // ThemeKey string e.g. "sky", "violet" etc.
+  logoUrl         String?  // CDN URL of the uploaded site logo
+  logoPages       Json?    // Array of page keys where logo should appear e.g. ["homepage","exchange","dashboard"]
+  logoAltText     String?  // Alt text for the logo image
+  logoSize        Int?     // Admin-adjustable display height in px (default 28) for the exchange widget logo
+  logoLinkUrl     String?  // URL the logo/image navigates to when clicked
+  logoDisplayMode String?  // "inline" (logo next to "PIITRADE EXCHANGE · Money Transfer Rates" text) or "replace" (image replaces the text entirely). Defaults to "inline".
+  interviewDemoVideoUrl   String? // CDN URL of the admin-uploaded interview demo video
+  interviewDemoVideoTitle String? // Optional caption shown above the video on the interview page
+  promoVideoUrl           String? // CDN URL of the admin-uploaded "Live Now / Shop Now" promo video shown beside the homepage hero slideshow. Shows a branded placeholder when unset.
+  promoVideoTitle         String? // Optional internal label for the promo video (not shown on the site)
+  generalSettings Json?    // { siteName, maintenanceMode, allowRegistration, defaultCountry, itemsPerPage, maxImagesPerListing, trialDays }
+  updatedAt       DateTime @updatedAt
+}
+
+// ─── CV Download Token (server-side payment verification) ─────────────────────
+// Created after successful payment; the frontend must present the token to
+// trigger the signed download URL. Tokens expire after 24 hours.
+
+model CvDownloadToken {
+  id          String   @id @default(uuid())
+  userId      String?  // null for guest payments
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  deviceId    String?  // client-generated id, used to rate-limit guest downloads
+  packageId   String?  // the CV package that governed this download, if any
+  package     SellerPackage? @relation(fields: [packageId], references: [id], onDelete: SetNull)
+  tokenHash   String   @unique
+  paid        Boolean  @default(false)
+  amount      Decimal
+  currency    String
+  country     String
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime @default(now())
+
+  // CV history snapshot — captured when the download is initiated so the
+  // admin dashboard can show a history of created CVs without needing to
+  // store (or re-derive) the full builder form state.
+  holderName  String?
+  holderTitle String?
+  holderEmail String?
+  holderPhone String?
+
+  @@index([packageId, userId])
+  @@index([packageId, deviceId])
+}

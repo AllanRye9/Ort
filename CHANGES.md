@@ -1,164 +1,86 @@
-# Ort Marketplace – Change Log
+# PIITRADE — Visitor Stats, Logo/Image, Profile Fix & Admin Settings Fix
 
-## Summary of Changes
+## Cluster 1 — Visitor Statistics Logic Enhancement
 
-All changes preserve backward compatibility with existing agriculture and
-manufacturing data. No existing tables are dropped. The `service_listings`
-table is new and created automatically on first startup via `Base.metadata.create_all()`.
+**Files:** `backend/src/routes/stats.ts`, `frontend/components/ui/SiteAnalytics.tsx`,
+`backend/prisma/schema.prisma`, new migration `20260731010000_visitor_stats_and_logo_link_fields`,
+`backend/prisma/hotfixes/ensure_site_stat_table.sql`
 
----
+- Labels renamed: "Visitors" → **"Total Visitors"**, "Today" → **"Today's Visitors"**.
+- Total Visitors logic unchanged (cumulative unique device IDs) — untouched, all
+  previously stored data preserved.
+- Today's Visitors reset logic enhanced: previously compared server-local `Date`
+  objects; now compares a `YYYY-MM-DD` day-key computed in the local timezone of
+  the visitor's selected/detected country (UAE → Asia/Dubai, Uganda →
+  Africa/Kampala, Kenya → Africa/Nairobi, China → Asia/Shanghai), via a new
+  `SiteStat.lastResetDayKey` column. Both the write path (`POST /stats/track`)
+  and the read path (`GET /stats/public`, which now accepts `?country=`) use
+  this logic, so the number displayed resets correctly at local midnight even
+  if no new visitor has hit `/track` yet.
+- No data was cleared or replaced — this is additive to the existing schema/logic.
 
-## 1. Landing Page (`src/app/api/v1/landing.py`) — **NEW FILE**
+## Cluster 2 — Logo & Image Replacements
 
-A fully-designed public landing page served at `/` (root).
+**Files:** `backend/prisma/schema.prisma`, `backend/src/routes/admin.ts`,
+`backend/src/app.ts`, `frontend/context/SiteConfigContext.tsx`,
+`frontend/components/ui/SiteAnalytics.tsx`, `frontend/app/admin/settings/page.tsx`
 
-### Features
-- **Android APK download button** — links to `APK_DOWNLOAD_URL` env var; shows a friendly dialog if not configured
-- **iOS download button** — links to `IPA_DOWNLOAD_URL` or `TESTFLIGHT_URL`; shows a friendly dialog if not configured
-- **"Play Store – Coming Soon"** badge (no fake store image)
-- **"App Store – Coming Soon"** badge (no fake store image)
-- Three-service showcase (Agric, Manufacturing, Services)
-- Stats bar (3 categories, UGX base currency, 54+ countries, 100% African-focused)
-- How It Works section
-- About / Currency section (UGX base, auto-converts by locale)
-- Portal links (/web, /medi, /const)
-- Download CTA section
-- Footer with all navigation
+- Added `SiteConfig.logoLinkUrl` and `SiteConfig.logoDisplayMode` ("inline" | "replace").
+- **Inline mode** (default, item 3): the admin-uploaded logo now renders inside a
+  real `<a>` link pointing to `logoLinkUrl` next to "PIITRADE EXCHANGE · Money
+  Transfer Rates" — previously the image had no click target at all.
+- **Replace mode** (item 4): a new admin toggle lets the image fully replace the
+  "PIITRADE EXCHANGE · Money Transfer Rates" text section; the same link behavior
+  applies.
+- Admin Settings → Logo Management gained a "Logo Link URL" field and an
+  "Inline / Replace" mode picker.
 
-### Environment Variables
-```
-APK_DOWNLOAD_URL=https://your-cdn.example.com/ort-latest.apk
-IPA_DOWNLOAD_URL=https://your-cdn.example.com/ort-latest.ipa
-TESTFLIGHT_URL=https://testflight.apple.com/join/XXXXXXXX
-```
+## Cluster 3 — Profile Image Upload Fix
 
----
+**File:** `frontend/components/ui/UserAvatar.tsx`
 
-## 2. Real Estate Removal
+- Root cause: the component had its own `resolveAvatarUrl()` helper that only
+  rewrote `localhost` URLs. The upload endpoint actually returns **relative**
+  paths (`/uploads/...`, `/api/images/...`), which were never rewritten to the
+  backend origin — so uploaded avatars 404'd against the frontend's own domain.
+- Fix: swapped in the shared `resolveImageUrl()` helper (already used correctly
+  for listing/logo images elsewhere in the app) and added an `onError` fallback
+  to the initials placeholder if an image URL ever fails to load.
+- `UserAvatar` is the single shared component used across profile, dashboard,
+  jobs, listings, and reviews pages, so this fixes display for both users and
+  admins wherever avatars appear.
+- Storage/retrieval on the backend (`PUT /users/me`) was already correct — no
+  backend changes needed for this cluster.
 
-Real Estate is **completely removed from the UI** across all portals:
+## Cluster 4 — Admin Settings Save Fix
 
-| File | Change |
-|------|--------|
-| `web_portal.py` | Removed Properties tab; now shows Agriculture → Manufacturing → Services |
-| `const_admin.py` | Removed Properties content buttons, stat cards, chart labels; added Services |
-| `medi_portal.py` | No Properties section was present; Services module added |
-| `admin.py` | Removed `total_properties` from dashboard stats; removed `new_properties` from reports |
+**Files:** `backend/src/index.ts`, `backend/prisma/hotfixes/ensure_site_config_columns.sql`
 
-> Note: The `Property` model and its DB table are **not dropped** to preserve existing data and avoid destructive migrations. The `/admin/content/properties/` endpoint still exists in the backend but is not surfaced in any UI.
+- Root cause: `ensure_site_config_columns.sql` — written specifically to add
+  any `SiteConfig` columns missing due to migration drift, so a settings save
+  never fails with "column does not exist" — was **never executed**. `index.ts`
+  only ever ran `ensure_listing_inventory_columns.sql` at startup. Any
+  environment where `logoSize` (or another newer column) wasn't actually
+  applied would 500 on every `/admin/settings` and `/admin/site-config/*` call.
+- Fix: generalized the startup hotfix runner (`runAllHotfixes()`) to execute
+  **every** `.sql` file in `prisma/hotfixes/`, not just one, both in the
+  Railway migrate-deploy-failure fallback and the always-run compatibility
+  check.
+- Also updated `ensure_site_config_columns.sql` to include the previously
+  missing `logoSize` column, plus the new `logoLinkUrl`/`logoDisplayMode`
+  columns from Cluster 2.
+- The `/admin/settings` route logic itself (validation, allowed keys, DB
+  writes) was already correct and required no changes.
 
----
+## Verification
 
-## 3. Three Services Module
-
-### New Model (`src/app/models/marketplace_models.py`)
-
-`ServiceListing` table added with fields:
-- `id`, `tenant_id`, `posted_by_user_id`
-- `title`, `description`, `category`, `sub_category`, `service_mode`
-- `price`, `price_currency` (default `UGX`), `pricing_type`, `pricing_notes`
-- `country`, `city`, `address`, `latitude`, `longitude`
-- `whatsapp_number`, `contact_email`, `website_url`, `google_maps_url`
-- `images`, `documents`, `tags` (JSON)
-- `is_flash_deal`, `flash_deal_ends_at`, `is_today_deal`, `is_verified`, `is_deleted`
-- `status` (active / inactive / pending_review / rejected)
-- `listing_code` (auto-generated: `ORT-SVC-YYYY-XXXXXX`)
-- `view_count`, `created_at`, `updated_at`
-
-### New Router (`src/app/api/v1/services.py`)
-Full CRUD at `/api/v1/services/`:
-- `GET /services/` — list with filters (category, status, keyword, country, city, price range, radius search, flash/today deals)
-- `GET /services/{id}` — get single + increment view count
-- `POST /services/` — create (auth required)
-- `PUT /services/{id}` — update (owner or admin)
-- `DELETE /services/{id}` — soft delete (owner or admin)
-
-### Admin Endpoints (`admin.py`)
-- `GET /admin/content/services/` — list all services with filters
-- `PATCH /admin/content/services/{id}/status` — update status
-- `DELETE /admin/content/services/{id}` — soft delete
-- Services included in deleted items / restore / purge endpoints
-- `total_services` added to dashboard stats
-- `new_services` added to reports overview
-
----
-
-## 4. Web Portal (`/web`) — Updated
-
-- Tab order: **Agriculture → Manufacturing → Services** (Properties removed)
-- Mobile bottom nav updated to match
-- `?tab=` URL param respected (e.g. `/web?tab=services` from landing page links)
-- `getMeta()` helper updated for Services cards
-- Card title fallback updated to show "Service" for service listings
-- Hero text updated: "Discover Agriculture, Manufacturing & Services"
-
----
-
-## 5. Admin Console (`/const`) — Updated
-
-- Dashboard stat cards: Agriculture (green) + Manufacturing (blue) + Services (purple)
-- Content management buttons: Agriculture + Manufacturing + Services
-- Deleted items section: Agriculture + Manufacturing + Services
-- Reports chart: Updated labels/values to include Services, remove Properties
-- Default content tab: `agriculture` (was `properties`)
-
----
-
-## 6. Companies & Agents Portal (`/medi`) — Updated
-
-### Services Module Added
-- **Service Listings card** in the Postings section (purple theme)
-- "+ New Service" button opens a modal form
-- Service modal fields: title, category, sub-category, service mode, pricing type, price, currency, country, city, WhatsApp, description, status
-- Full CRUD: create, edit, delete service listings
-- `loadPostings()` now calls `loadAgriculture() + loadManufacturing() + loadServices()` in parallel
-
----
-
-## 7. Railway Deployment (`railway.toml`) — **NEW FILE**
-
-```toml
-[build]
-builder = "dockerfile"
-dockerfilePath = "src/dockerfile"
-
-[deploy]
-startCommand = "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
-healthcheckPath = "/health"
-healthcheckTimeout = 30
-```
-
-- Uses existing `src/dockerfile` (no changes needed)
-- `${PORT:-8080}` already handled in Dockerfile CMD
-- Health check at `/health` endpoint (already exists in `main.py`)
-
----
-
-## 8. Environment Variables (`.env.example`) — **NEW FILE**
-
-Documents all required env vars including the new download URL vars.
-
----
-
-## 9. API Router Registration (`api.py`)
-
-`services_router` imported and registered at `/api/v1/services/`.
-
----
-
-## 10. Main Application (`main.py`)
-
-- Old `@app.get("/")` JSON home replaced by full landing page router
-- `/health` endpoint retained
-- `landing_router` registered before other routers so `/` is correctly handled
-
----
-
-## Migration Notes
-
-No manual migration needed. On first startup:
-1. `Base.metadata.create_all()` runs automatically
-2. New `service_listings` table is created
-3. All existing tables remain unchanged
-
-For production databases already running, the `service_listings` table will be created automatically. If using strict Alembic migrations, add a migration that creates the table using the schema in `marketplace_models.py`.
+- Frontend: `npx tsc --noEmit -p tsconfig.json` passes with zero errors across
+  the whole project, including all files touched above.
+- Backend: could not run `prisma generate` in this sandbox (network egress to
+  `binaries.prisma.sh` is blocked here), so a full backend `tsc` pass wasn't
+  possible. Recommend running `npx prisma generate && npx tsc --noEmit` in your
+  normal dev/CI environment before deploying — the SQL/schema/route changes
+  were reviewed manually and follow the exact patterns already used elsewhere
+  in `admin.ts`.
+- Run `npx prisma migrate deploy` (or let the app's existing auto-migrate-on-start
+  logic run it) to apply migration `20260731010000_visitor_stats_and_logo_link_fields`.

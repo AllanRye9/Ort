@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "Placement" ADD VALUE IF NOT EXISTS 'FLASH_SALE';

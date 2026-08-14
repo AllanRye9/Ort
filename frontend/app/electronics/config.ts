@@ -1,0 +1,102 @@
+import type { SubCategory } from '@/components/ui/CategoryPageTemplate';
+import type { BrandItem } from '@/components/ui/BrandsPageTemplate';
+
+export const ELECTRONICS_SUBCATEGORIES: Record<string, SubCategory> = {
+  'laptops': { slug: 'laptops', label: 'Laptops', icon: '💻', color: 'from-blue-600 to-indigo-700', desc: 'Portable computers' },
+  'desktops': { slug: 'desktops', label: 'Desktops & Monitors', icon: '🖥️', color: 'from-sky-600 to-cyan-700', desc: 'Desktop PCs & screens' },
+  'tablets': { slug: 'tablets', label: 'Tablets', icon: '📱', color: 'from-teal-600 to-emerald-700', desc: 'iPad, Android & more' },
+  'smartphones': { slug: 'smartphones', label: 'Smartphones', icon: '📱', color: 'from-rose-600 to-pink-700', desc: 'All phone brands' },
+  'headphones': { slug: 'headphones', label: 'Headphones', icon: '🎧', color: 'from-purple-600 to-violet-700', desc: 'Earbuds & headphones' },
+  'cameras': { slug: 'cameras', label: 'Cameras', icon: '📷', color: 'from-amber-600 to-orange-700', desc: 'DSLR, mirrorless & more' },
+  'consoles': { slug: 'consoles', label: 'Consoles', icon: '🎮', color: 'from-red-600 to-rose-700', desc: 'PS5, Xbox, Nintendo' },
+  'games-accessories': { slug: 'games-accessories', label: 'Games & Accessories', icon: '🕹️', color: 'from-slate-600 to-gray-800', desc: 'Games & controllers' },
+};
+
+export const ELECTRONICS_BRANDS_BY_SUBCATEGORY: Record<string, BrandItem[]> = {
+  laptops: [
+    { name: 'Apple', slug: 'apple', icon: '🍎', color: 'from-gray-700 to-gray-900' },
+    { name: 'Dell', slug: 'dell', icon: '💻', color: 'from-blue-600 to-blue-800' },
+    { name: 'HP', slug: 'hp', icon: '🖥️', color: 'from-sky-500 to-blue-700' },
+    { name: 'Lenovo', slug: 'lenovo', icon: '💻', color: 'from-red-600 to-red-800' },
+    { name: 'ASUS', slug: 'asus', icon: '💻', color: 'from-indigo-600 to-blue-800' },
+    { name: 'Acer', slug: 'acer', icon: '💻', color: 'from-green-600 to-emerald-800' },
+    { name: 'Samsung', slug: 'samsung', icon: '📱', color: 'from-blue-500 to-cyan-700' },
+    { name: 'Huawei', slug: 'huawei', icon: '💻', color: 'from-red-500 to-rose-700' },
+    { name: 'Microsoft', slug: 'microsoft', icon: '🪟', color: 'from-sky-500 to-blue-600' },
+    { name: 'Other', slug: 'other', icon: '🏷️', color: 'from-gray-500 to-slate-700' },
+  ],
+  smartphones: [
+    { name: 'Apple', slug: 'apple', icon: '🍎', color: 'from-gray-700 to-gray-900' },
+    { name: 'Samsung', slug: 'samsung', icon: '📱', color: 'from-blue-500 to-cyan-700' },
+    { name: 'Huawei', slug: 'huawei', icon: '📱', color: 'from-red-500 to-rose-700' },
+    { name: 'Xiaomi', slug: 'xiaomi', icon: '📱', color: 'from-orange-500 to-red-600' },
+    { name: 'Google', slug: 'google', icon: '📱', color: 'from-sky-500 to-blue-600' },
+    { name: 'OnePlus', slug: 'oneplus', icon: '📱', color: 'from-red-600 to-rose-800' },
+    { name: 'OPPO', slug: 'oppo', icon: '📱', color: 'from-emerald-500 to-teal-700' },
+    { name: 'Vivo', slug: 'vivo', icon: '📱', color: 'from-blue-600 to-indigo-800' },
+    { name: 'Nokia', slug: 'nokia', icon: '📱', color: 'from-blue-700 to-blue-900' },
+    { name: 'Tecno', slug: 'tecno', icon: '📱', color: 'from-purple-600 to-violet-800' },
+    { name: 'Infinix', slug: 'infinix', icon: '📱', color: 'from-rose-600 to-pink-800' },
+    { name: 'Other', slug: 'other', icon: '🏷️', color: 'from-gray-500 to-slate-700' },
+  ],
+  tablets: [
+    { name: 'Apple', slug: 'apple', icon: '🍎', color: 'from-gray-700 to-gray-900' },
+    { name: 'Samsung', slug: 'samsung', icon: '📱', color: 'from-blue-500 to-cyan-700' },
+    { name: 'Huawei', slug: 'huawei', icon: '📱', color: 'from-red-500 to-rose-700' },
+    { name: 'Lenovo', slug: 'lenovo', icon: '📱', color: 'from-red-600 to-red-800' },
+    { name: 'Amazon', slug: 'amazon', icon: '📱', color: 'from-amber-500 to-orange-700' },
+    { name: 'Microsoft', slug: 'microsoft', icon: '📱', color: 'from-sky-500 to-blue-600' },
+    { name: 'Other', slug: 'other', icon: '🏷️', color: 'from-gray-500 to-slate-700' },
+  ],
+  desktops: [
+    { name: 'Apple', slug: 'apple', icon: '🍎', color: 'from-gray-700 to-gray-900' },
+    { name: 'Dell', slug: 'dell', icon: '🖥️', color: 'from-blue-600 to-blue-800' },
+    { name: 'HP', slug: 'hp', icon: '🖥️', color: 'from-sky-500 to-blue-700' },
+    { name: 'Lenovo', slug: 'lenovo', icon: '🖥️', color: 'from-red-600 to-red-800' },
+    { name: 'ASUS', slug: 'asus', icon: '🖥️', color: 'from-indigo-600 to-blue-800' },
+    { name: 'Acer', slug: 'acer', icon: '🖥️', color: 'from-green-600 to-emerald-800' },
+    { name: 'Other', slug: 'other', icon: '🏷️', color: 'from-gray-500 to-slate-700' },
+  ],
+  headphones: [
+    { name: 'Sony', slug: 'sony', icon: '🎧', color: 'from-gray-700 to-gray-900' },
+    { name: 'Apple', slug: 'apple', icon: '🍎', color: 'from-gray-600 to-gray-800' },
+    { name: 'Samsung', slug: 'samsung', icon: '🎧', color: 'from-blue-500 to-cyan-700' },
+    { name: 'Bose', slug: 'bose', icon: '🎧', color: 'from-slate-600 to-slate-800' },
+    { name: 'JBL', slug: 'jbl', icon: '🎧', color: 'from-orange-500 to-red-700' },
+    { name: 'Sennheiser', slug: 'sennheiser', icon: '🎧', color: 'from-indigo-600 to-blue-800' },
+    { name: 'Jabra', slug: 'jabra', icon: '🎧', color: 'from-emerald-600 to-teal-800' },
+    { name: 'Other', slug: 'other', icon: '🏷️', color: 'from-gray-500 to-slate-700' },
+  ],
+  cameras: [
+    { name: 'Canon', slug: 'canon', icon: '📷', color: 'from-red-600 to-red-800' },
+    { name: 'Nikon', slug: 'nikon', icon: '📷', color: 'from-yellow-600 to-amber-800' },
+    { name: 'Sony', slug: 'sony', icon: '📷', color: 'from-gray-600 to-gray-900' },
+    { name: 'Fujifilm', slug: 'fujifilm', icon: '📷', color: 'from-green-600 to-emerald-800' },
+    { name: 'Panasonic', slug: 'panasonic', icon: '📷', color: 'from-blue-600 to-indigo-800' },
+    { name: 'Olympus', slug: 'olympus', icon: '📷', color: 'from-cyan-600 to-sky-800' },
+    { name: 'GoPro', slug: 'gopro', icon: '📷', color: 'from-sky-500 to-blue-700' },
+    { name: 'Other', slug: 'other', icon: '🏷️', color: 'from-gray-500 to-slate-700' },
+  ],
+  consoles: [
+    { name: 'PlayStation', slug: 'playstation', icon: '🎮', color: 'from-blue-600 to-indigo-800' },
+    { name: 'Xbox', slug: 'xbox', icon: '🎮', color: 'from-green-600 to-emerald-800' },
+    { name: 'Nintendo', slug: 'nintendo', icon: '🎮', color: 'from-red-500 to-rose-700' },
+    { name: 'Other', slug: 'other', icon: '🏷️', color: 'from-gray-500 to-slate-700' },
+  ],
+  'games-accessories': [
+    { name: 'PlayStation', slug: 'playstation', icon: '🕹️', color: 'from-blue-600 to-indigo-800' },
+    { name: 'Xbox', slug: 'xbox', icon: '🕹️', color: 'from-green-600 to-emerald-800' },
+    { name: 'Nintendo', slug: 'nintendo', icon: '🕹️', color: 'from-red-500 to-rose-700' },
+    { name: 'PC Gaming', slug: 'pc-gaming', icon: '🖥️', color: 'from-purple-600 to-violet-800' },
+    { name: 'Other', slug: 'other', icon: '🏷️', color: 'from-gray-500 to-slate-700' },
+  ],
+};
+
+export const ELECTRONICS_PRICE_RANGES = [
+  { label: 'Any Price', min: '', max: '' },
+  { label: 'Under $100', min: '', max: '100' },
+  { label: '$100–$500', min: '100', max: '500' },
+  { label: '$500–$1.5k', min: '500', max: '1500' },
+  { label: '$1.5k–$5k', min: '1500', max: '5000' },
+  { label: 'Over $5k', min: '5000', max: '' },
+];
