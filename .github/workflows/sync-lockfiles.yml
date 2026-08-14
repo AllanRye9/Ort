@@ -1,0 +1,169 @@
+name: Sync Lockfiles
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+jobs:
+  sync-root:
+    name: Root – Sync package-lock.json
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Check for package.json / package-lock.json mismatch
+        id: check
+        run: |
+          LOCK_HASH=$(sha256sum package-lock.json | cut -d' ' -f1)
+          npm install --package-lock-only --ignore-scripts --loglevel=error
+          NEW_HASH=$(sha256sum package-lock.json | cut -d' ' -f1)
+          if [ "$LOCK_HASH" != "$NEW_HASH" ]; then
+            echo "mismatch=true" >> "$GITHUB_OUTPUT"
+            echo "Mismatch detected in root package-lock.json – will reinstall."
+          else
+            echo "mismatch=false" >> "$GITHUB_OUTPUT"
+            echo "Root package-lock.json is in sync."
+          fi
+          # Restore the original lockfile before the actual fix step
+          git restore package-lock.json
+
+      - name: Fix – reinstall and build
+        if: steps.check.outputs.mismatch == 'true'
+        run: |
+          rm -rf node_modules package-lock.json
+          npm install
+          echo "Root dependencies reinstalled successfully."
+
+      - name: Commit updated package-lock.json
+        if: steps.check.outputs.mismatch == 'true'
+        run: |
+          git config user.name "Allan Rye"
+          git config user.email "allan.rye.9999@gmail.com"
+          git add package-lock.json
+          git commit -m "chore(root): sync package-lock.json with package.json [skip ci]"
+          git push
+
+  sync-frontend:
+    name: Frontend – Sync package-lock.json
+    runs-on: ubuntu-latest
+    needs: sync-root
+    permissions:
+      contents: write
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Check for package.json / package-lock.json mismatch
+        id: check
+        run: |
+          LOCK_HASH=$(sha256sum package-lock.json | cut -d' ' -f1)
+          npm install --package-lock-only --ignore-scripts --loglevel=error
+          NEW_HASH=$(sha256sum package-lock.json | cut -d' ' -f1)
+          if [ "$LOCK_HASH" != "$NEW_HASH" ]; then
+            echo "mismatch=true" >> "$GITHUB_OUTPUT"
+            echo "Mismatch detected in frontend package-lock.json – will reinstall."
+          else
+            echo "mismatch=false" >> "$GITHUB_OUTPUT"
+            echo "Frontend package-lock.json is in sync."
+          fi
+          git restore package-lock.json
+
+      - name: Fix – reinstall and build
+        if: steps.check.outputs.mismatch == 'true'
+        run: |
+          rm -rf node_modules package-lock.json
+          npm install
+          npm run build
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:5000
+
+      - name: Commit updated package-lock.json
+        if: steps.check.outputs.mismatch == 'true'
+        working-directory: ${{ github.workspace }}
+        run: |
+          git config user.name "Allan Rye"
+          git config user.email "allan.rye.9999@gmail.com"
+          git add frontend/package-lock.json
+          git commit -m "chore(frontend): sync package-lock.json with package.json [skip ci]"
+          git push
+
+  sync-backend:
+    name: Backend – Sync package-lock.json
+    runs-on: ubuntu-latest
+    needs: sync-frontend
+    permissions:
+      contents: write
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Check for package.json / package-lock.json mismatch
+        id: check
+        run: |
+          LOCK_HASH=$(sha256sum package-lock.json | cut -d' ' -f1)
+          npm install --package-lock-only --ignore-scripts --loglevel=error
+          NEW_HASH=$(sha256sum package-lock.json | cut -d' ' -f1)
+          if [ "$LOCK_HASH" != "$NEW_HASH" ]; then
+            echo "mismatch=true" >> "$GITHUB_OUTPUT"
+            echo "Mismatch detected in backend package-lock.json – will reinstall."
+          else
+            echo "mismatch=false" >> "$GITHUB_OUTPUT"
+            echo "Backend package-lock.json is in sync."
+          fi
+          git restore package-lock.json
+
+      - name: Fix – reinstall and build
+        if: steps.check.outputs.mismatch == 'true'
+        run: |
+          rm -rf node_modules package-lock.json
+          npm install
+          npx prisma generate
+          npm run build
+        env:
+          DATABASE_URL: postgresql://placeholder:placeholder@placeholder:5432/placeholder
+
+      - name: Commit updated package-lock.json
+        if: steps.check.outputs.mismatch == 'true'
+        working-directory: ${{ github.workspace }}
+        run: |
+          git config user.name "Allan Rye"
+          git config user.email "allan.rye.9999@gmail.com"
+          git add backend/package-lock.json
+          git commit -m "chore(backend): sync package-lock.json with package.json [skip ci]"
+          git push

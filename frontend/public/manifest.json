@@ -1,0 +1,34 @@
+{
+  "name": "Piitrade Marketplace",
+  "short_name": "Piitrade",
+  "description": "Buy and sell anything in UAE, Uganda, Kenya and China",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0c4a6e",
+  "theme_color": "#0ea5e9",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.ico",
+      "sizes": "48x48",
+      "type": "image/x-icon",
+      "purpose": "any"
+    },
+    {
+      "src": "/apple-touch-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["shopping", "business"],
+  "lang": "en-US",
+  "dir": "ltr",
+  "prefer_related_applications": false
+}

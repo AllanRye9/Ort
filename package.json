@@ -1,0 +1,18 @@
+{
+  "name": "piitrade-",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "start": "npm --prefix frontend run start",
+    "check:backend": "npm --prefix backend run typecheck && npm --prefix backend run build",
+    "check:frontend": "npm --prefix frontend run lint && npm --prefix frontend run build",
+    "check": "npm run check:backend && npm run check:frontend"
+  },
+  "devDependencies": {
+    "prisma": "^7.9.1"
+  },
+  "dependencies": {
+    "@prisma/client": "^7.9.1"
+  }
+}
