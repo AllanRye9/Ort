@@ -14,6 +14,7 @@ import { useCountry } from '@/context/CountryContext';
 import type { Listing } from '@/lib/types';
 import FeaturedProductCard from '@/components/ui/FeaturedProductCard';
 import { API_URL } from '@/lib/api';
+import { convertCurrency, formatCurrency } from '@/lib/utils';
 
 interface Props {
   /** The server-fetched deal for the initial render (SSR / hydration). */
@@ -30,7 +31,7 @@ function resolveListingImage(listing: Listing): string | undefined {
 }
 
 export default function CountryFeaturedDeal({ initialDeal }: Props) {
-  const { country } = useCountry();
+  const { country, currency: viewerCurrency } = useCountry();
 
   // We show up to 6 featured-deal listings.
   const [deals, setDeals] = useState<Listing[]>(
@@ -83,7 +84,7 @@ export default function CountryFeaturedDeal({ initialDeal }: Props) {
             key={i}
             className="bg-white rounded-xl border border-gray-100 overflow-hidden animate-pulse"
           >
-            <div className="aspect-[4/3] bg-gradient-to-br from-sky-100 to-indigo-100" />
+            <div className="aspect-[4/3] bg-gradient-to-br from-red-100 to-rose-100" />
             <div className="p-2 space-y-1.5">
               <div className="h-2.5 bg-gray-200 rounded w-3/4" />
               <div className="h-2 bg-gray-100 rounded w-1/2" />
@@ -106,24 +107,43 @@ export default function CountryFeaturedDeal({ initialDeal }: Props) {
   // ── 6-column responsive grid ──────────────────────────────────────────────
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-      {deals.map((deal) => (
-        <FeaturedProductCard
-          key={deal.id}
-          storeName={deal.user?.name || 'Piitrade Store'}
-          title={deal.title}
-          description={deal.description}
-          originalPrice={
-            deal.originalPrice
-              ? `${deal.currency} ${deal.originalPrice.toLocaleString('en-US')}`
-              : undefined
-          }
-          discountedPrice={`${deal.currency} ${deal.price?.toLocaleString('en-US')}`}
-          imageUrl={resolveListingImage(deal)}
-          href={`/listings/${deal.id}`}
-          isHandpicked
-          listing={deal}
-        />
-      ))}
+      {deals.map((deal) => {
+        // Global reach: convert each deal's price into the viewer's
+        // detected/selected currency rather than always showing the price
+        // in the currency the seller listed it in.
+        const dealCurrency = deal.currency;
+        const convertedPrice = dealCurrency
+          ? convertCurrency(deal.price, dealCurrency, viewerCurrency)
+          : deal.price;
+        const convertedOriginalPrice = deal.originalPrice != null && dealCurrency
+          ? convertCurrency(deal.originalPrice, dealCurrency, viewerCurrency)
+          : deal.originalPrice;
+        const wasConverted = !!dealCurrency && dealCurrency !== viewerCurrency;
+
+        return (
+          <FeaturedProductCard
+            key={deal.id}
+            storeName={deal.user?.name || 'Piitrade Store'}
+            title={deal.title}
+            description={deal.description}
+            originalPrice={
+              convertedOriginalPrice != null
+                ? formatCurrency(convertedOriginalPrice, viewerCurrency)
+                : undefined
+            }
+            discountedPrice={
+              convertedPrice != null ? formatCurrency(convertedPrice, viewerCurrency) : undefined
+            }
+            listedPriceNote={
+              wasConverted ? `Listed at ${formatCurrency(deal.price, dealCurrency)}` : undefined
+            }
+            imageUrl={resolveListingImage(deal)}
+            href={`/listings/${deal.id}`}
+            isHandpicked
+            listing={deal}
+          />
+        );
+      })}
     </div>
   );
 }

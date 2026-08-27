@@ -174,7 +174,7 @@ export default function AdminBlogPage() {
         </div>
         <button
           onClick={openNew}
-          className="px-4 py-2 bg-sky-600 text-white text-sm font-semibold rounded-lg hover:bg-sky-700 transition-colors"
+          className="px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 transition-colors"
         >
           + New Post
         </button>
@@ -212,7 +212,7 @@ export default function AdminBlogPage() {
                   <div className="flex gap-1.5 shrink-0">
                     <button
                       onClick={() => openEdit(post)}
-                      className="text-xs px-2 py-1 rounded bg-sky-50 text-sky-600 hover:bg-sky-100 transition-colors font-medium"
+                      className="text-xs px-2 py-1 rounded bg-red-50 text-red-600 hover:bg-red-100 transition-colors font-medium"
                     >
                       Edit
                     </button>
@@ -242,7 +242,7 @@ export default function AdminBlogPage() {
                   value={title}
                   onChange={(e) => handleTitleChange(e.target.value)}
                   placeholder="Post title"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
                 />
               </div>
 
@@ -253,7 +253,7 @@ export default function AdminBlogPage() {
                   value={slug}
                   onChange={(e) => setSlug(slugify(e.target.value))}
                   placeholder="url-friendly-slug"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-sky-300"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-red-300"
                 />
               </div>
 
@@ -264,7 +264,7 @@ export default function AdminBlogPage() {
                   onChange={(e) => setExcerpt(e.target.value)}
                   placeholder="Short summary (optional)"
                   rows={2}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300 resize-none"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 resize-none"
                 />
               </div>
 
@@ -282,9 +282,9 @@ export default function AdminBlogPage() {
                       value={featuredImage}
                       onChange={(e) => setFeaturedImage(e.target.value)}
                       placeholder="Paste URL or upload below"
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300 mb-1"
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 mb-1"
                     />
-                    <label className="cursor-pointer text-xs text-sky-600 hover:text-sky-700 font-medium">
+                    <label className="cursor-pointer text-xs text-red-600 hover:text-red-700 font-medium">
                       {uploadingImage ? 'Uploading...' : '📎 Upload image'}
                       <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploadingImage} />
                     </label>
@@ -299,7 +299,7 @@ export default function AdminBlogPage() {
                   onChange={(e) => setContent(e.target.value)}
                   placeholder="<p>Write your post content here...</p>"
                   rows={12}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-sky-300 resize-y"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-red-300 resize-y"
                 />
                 <p className="text-[11px] text-gray-400 mt-0.5">Supports HTML. Use &lt;h2&gt;, &lt;p&gt;, &lt;ul&gt;, &lt;strong&gt;, &lt;img&gt;, etc.</p>
               </div>
@@ -309,7 +309,7 @@ export default function AdminBlogPage() {
                 <select
                   value={status}
                   onChange={(e) => setStatus(e.target.value as 'DRAFT' | 'PUBLISHED')}
-                  className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+                  className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
                 >
                   <option value="DRAFT">Draft</option>
                   <option value="PUBLISHED">Published</option>
@@ -320,7 +320,7 @@ export default function AdminBlogPage() {
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="px-5 py-2 bg-sky-600 text-white text-sm font-semibold rounded-lg hover:bg-sky-700 disabled:opacity-50 transition-colors"
+                  className="px-5 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
                 >
                   {saving ? 'Saving...' : isNew ? 'Create Post' : 'Save Changes'}
                 </button>

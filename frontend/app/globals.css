@@ -1,7 +1,7 @@
     select {
-      background: #f0f9ff;
-      color: #1e293b;            /* changed from dark navy to slate-800 for readability */
-      border: 1.5px solid #bae6fd;
+      background: #fdf3f2;
+      color: #1e293b;
+      border: 1.5px solid #f8c9c2;
       border-radius: var(--radius-md);
       padding: 0.5rem 1rem;
       font-size: 1rem;
@@ -9,12 +9,12 @@
     }
     select:focus {
       outline: none;
-      border-color: #0284c7;     /* slightly deeper light blue for focus */
-      box-shadow: 0 0 0 2px #0284c755;
+      border-color: #b7291b;     /* deep red for focus */
+      box-shadow: 0 0 0 2px #b7291b55;
     }
     select option {
       color: #1e293b;
-      background: #e0f2fe;
+      background: #fce4e1;
     }
   /* Enhanced header spacing and smoothness */
   .header-spaced {
@@ -40,34 +40,34 @@
 
 @layer base {
   :root {
-    --brand-50: #f0f9ff;
-    --brand-100: #e0f2fe;
+    --brand-50: #fdf3f2;
+    --brand-100: #fce4e1;
       color-scheme: light;
-    --brand-200: #bae6fd;
-    --brand-400: #38bdf8;
-    --brand-500: #0ea5e9;
-    --brand-600: #0284c7;
-    --brand-700: #0369a1;          /* kept for potential depth, but used sparingly */
-    --brand-900: #0c4a6e;           /* kept as dark accent, but replaced in most places */
+    --brand-200: #f8c9c2;
+    --brand-400: #e4715f;
+    --brand-500: #d14a36;
+    --brand-600: #b7291b;
+    --brand-700: #951f15;          /* kept for potential depth, but used sparingly */
+    --brand-900: #5c1610;           /* kept as dark accent, but replaced in most places */
 
-    --premium-navy: #0284c7;          /* sky-600 light blue */
+    --premium-navy: #7a1c15;          /* deep brick red */
     --premium-gold: #C5A059;
     --premium-gold-light: #D4B87A;
     --premium-gold-dark: #A8863D;
-    --premium-red: #721C24;
+    --premium-red: #7a1c15;
     --premium-cream: #FAF8F5;
-    --premium-charcoal: #0369a1;      /* sky-700 slightly deeper blue */
+    --premium-charcoal: #2b2320;      /* near-black warm charcoal */
 
     /* Theme switcher variables — overridden by ThemeSwitcher component via JS */
-    --theme-primary: #0EA5E9;
-    --theme-primary-dark: #0284c7;
-    --theme-bg-light: #e0f2fe;
-    --theme-text: #0f172a;
+    --theme-primary: #B7291B;
+    --theme-primary-dark: #7A1C15;
+    --theme-bg-light: #FCE4E1;
+    --theme-text: #1a1310;
     --theme-text-on-primary: #ffffff;
 
     --surface-0: #ffffff;
-    --surface-1: #f8fafc;
-    --surface-2: #f1f5f9;
+    --surface-1: #fdfaf6;
+    --surface-2: #f7f1e9;
     --surface-card: #ffffff;
 
     --text-primary: #111827;         /* near-black (gray-900) for readability */
@@ -84,7 +84,7 @@
     --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.06);
     --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.05);
     --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.08), 0 8px 10px -6px rgb(0 0 0 / 0.04);
-    --shadow-glow: 0 0 20px rgba(43, 186, 252, 0.25);
+    --shadow-glow: 0 0 20px rgba(183, 41, 27, 0.25);
     --shadow-gold: 0 0 20px rgb(197 160 89 / 0.25);
 
     --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -107,15 +107,15 @@
   body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Oxygen, Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', Arial, sans-serif;
     color: var(--text-primary);
-    /* Site background: a soft, airy gradient that echoes the violet→sky→cyan header
-       theme.  Colours are very light (≥88% lightness) so body text (#111827) remains
+    /* Site background: a warm, newsprint-cream wash that matches the red/black
+       editorial theme.  Colours are very light so body text (#111827) remains
        easily readable at all times.  The gradient is fixed so it doesn't scroll away. */
     background: linear-gradient(160deg,
-      #eef2ff 0%,     /* indigo-50  */
-      #e0f2fe 30%,    /* sky-100    */
-      #ecfeff 58%,    /* cyan-50    */
-      #f0f9ff 80%,    /* sky-50     */
-      #f5f3ff 100%    /* violet-50  */
+      #fdfbf8 0%,     /* warm white   */
+      #fbf7f1 30%,    /* paper cream  */
+      #faf5ee 58%,    /* cream        */
+      #fbf8f3 80%,    /* warm white   */
+      #fdfbf8 100%    /* warm white   */
     ) fixed;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -173,7 +173,7 @@
 
   /* Focus styles */
   *:focus-visible {
-    outline: 2px solid #0EA5E9;
+    outline: 2px solid #B7291B;
     outline-offset: 2px;
   }
 
@@ -216,7 +216,7 @@
 
   /* Gradient text */
   .text-gradient {
-    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); /* lighter gradient */
+    background: linear-gradient(135deg, #d14a36 0%, #7a1c15 100%); /* red gradient */
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -310,7 +310,7 @@
   }
 
   .badge-new {
-    background: #0EA5E9;
+    background: #b7291b;
     color: #ffffff;
   }
 
@@ -331,7 +331,7 @@
     justify-content: center;
     gap: 8px;
     padding: 10px 20px;
-    background: linear-gradient(135deg, #0EA5E9, #0284c7);
+    background: linear-gradient(135deg, #1a1a1a, #000000);
     color: #ffffff;
     border-radius: var(--radius-sm);
     font-weight: 600;
@@ -341,13 +341,13 @@
     cursor: pointer;
   }
   .btn-primary:hover {
-    background: linear-gradient(135deg, #38bdf8, #0284c7);
-    box-shadow: 0 4px 16px rgb(14 165 233 / 0.45);
+    background: linear-gradient(135deg, #2b2b2b, #000000);
+    box-shadow: 0 4px 16px rgb(0 0 0 / 0.35);
     filter: brightness(1.08) saturate(1.1);
     transform: translateY(-1px);
   }
   .btn-primary:active {
-    background: #0369a1;
+    background: #000000;
     transform: translateY(0);
     box-shadow: 0 1px 2px rgb(0 0 0 / 0.1);
     filter: none;
@@ -361,7 +361,7 @@
     padding: 10px 20px;
     background: white;
     color: #111827;                /* near-black (gray-900) */
-    border: 1.5px solid #0EA5E9;
+    border: 1.5px solid #b7291b;
     border-radius: var(--radius-sm);
     font-weight: 600;
     font-size: 0.875rem;
@@ -369,28 +369,28 @@
     cursor: pointer;
   }
   .btn-secondary:hover {
-    background: #E0F2FE;
-    border-color: #0284c7;
+    background: #FCE4E1;
+    border-color: #7a1c15;
     box-shadow: var(--shadow-sm);
   }
 
-  /* Mesh gradient backgrounds - all dark blues replaced with light blues */
+  /* Mesh gradient backgrounds - warm red/brick tones */
   .bg-mesh-brand {
-    background-color: #0c4a6e;      /* still relatively dark, but a rich blue */
+    background-color: #5c1610;      /* deep brick red */
     background-image:
-      radial-gradient(at 40% 20%, hsla(200, 100%, 75%, 0.5) 0px, transparent 50%),
-      radial-gradient(at 80% 0%, hsla(210, 100%, 80%, 0.4) 0px, transparent 50%),
-      radial-gradient(at 0% 50%, hsla(220, 100%, 70%, 0.5) 0px, transparent 50%),
-      radial-gradient(at 80% 50%, hsla(200, 96%, 72%, 0.35) 0px, transparent 50%),
-      radial-gradient(at 0% 100%, hsla(210, 100%, 75%, 0.45) 0px, transparent 50%);
+      radial-gradient(at 40% 20%, hsla(8, 70%, 45%, 0.5) 0px, transparent 50%),
+      radial-gradient(at 80% 0%, hsla(4, 65%, 40%, 0.4) 0px, transparent 50%),
+      radial-gradient(at 0% 50%, hsla(10, 70%, 35%, 0.5) 0px, transparent 50%),
+      radial-gradient(at 80% 50%, hsla(6, 60%, 40%, 0.35) 0px, transparent 50%),
+      radial-gradient(at 0% 100%, hsla(4, 65%, 38%, 0.45) 0px, transparent 50%);
   }
 
   .bg-hero-gradient {
-    background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 35%, #38bdf8 65%, #bae6fd 100%); /* light blues */
+    background: linear-gradient(135deg, #7a1c15 0%, #951f15 35%, #b7291b 65%, #f8c9c2 100%);
   }
 
   .bg-premium-gradient {
-    background: linear-gradient(135deg, #0ea5e9 0%, #38bdf8 50%, #bae6fd 100%); /* light blues */
+    background: linear-gradient(135deg, #951f15 0%, #b7291b 50%, #f8c9c2 100%);
   }
 
   /* Animated border */
@@ -403,7 +403,7 @@
     inset: 0;
     border-radius: inherit;
     padding: 1px;
-    background: linear-gradient(135deg, #0ea5e9, #38bdf8, #0284c7, #0ea5e9);
+    background: linear-gradient(135deg, #b7291b, #e4715f, #7a1c15, #b7291b);
     background-size: 300% 300%;
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
@@ -428,8 +428,8 @@
     outline: none;
   }
   .input-premium:focus {
-    border-color: #0EA5E9;
-    box-shadow: 0 0 0 3px rgb(14 165 233 / 0.2);
+    border-color: #B7291B;
+    box-shadow: 0 0 0 3px rgb(183 41 27 / 0.2);
   }
   .input-premium::placeholder {
     color: var(--text-muted);
@@ -546,8 +546,8 @@
     position: absolute;
     inset: 0;
     background: linear-gradient(135deg,
-      rgba(14,165,233,0.07) 0%,
-      rgba(99,102,241,0.05) 50%,
+      rgba(183,41,27,0.07) 0%,
+      rgba(122,28,21,0.05) 50%,
       rgba(197,160,89,0.07) 100%);
     opacity: 0;
     transition: opacity var(--transition-base);
@@ -561,7 +561,7 @@
   /* Vivid gradient section backgrounds */
   .bg-vivid-sky {
     background: linear-gradient(135deg,
-      #0284c7 0%, #0ea5e9 25%, #38bdf8 50%, #7dd3fc 75%, #bae6fd 100%);
+      #7a1c15 0%, #951f15 25%, #b7291b 50%, #d14a36 75%, #f8c9c2 100%);
   }
   .bg-vivid-warm {
     background: linear-gradient(135deg,
@@ -569,11 +569,11 @@
   }
   .bg-vivid-mixed {
     background: linear-gradient(135deg,
-      #0284c7 0%, #6366f1 33%, #8b5cf6 66%, #C5A059 100%);
+      #7a1c15 0%, #b7291b 33%, #C5A059 66%, #D4B87A 100%);
   }
   .bg-vivid-aurora {
     background: linear-gradient(135deg,
-      #06b6d4 0%, #3b82f6 25%, #8b5cf6 50%, #ec4899 75%, #f59e0b 100%);
+      #7a1c15 0%, #b7291b 25%, #d14a36 50%, #e4715f 75%, #f59e0b 100%);
   }
 
   /* Glow overlay on hover for cards */
@@ -581,7 +581,7 @@
     transition: box-shadow var(--transition-base), transform var(--transition-base);
   }
   .glow-hover:hover {
-    box-shadow: 0 0 0 2px rgba(14,165,233,0.3), 0 8px 32px rgba(14,165,233,0.15);
+    box-shadow: 0 0 0 2px rgba(183,41,27,0.3), 0 8px 32px rgba(183,41,27,0.15);
     transform: translateY(-2px);
   }
 
@@ -597,7 +597,7 @@
     left: 0;
     width: 100%;
     height: 2px;
-    background: linear-gradient(90deg, #0ea5e9, #6366f1, #C5A059, #0ea5e9);
+    background: linear-gradient(90deg, #b7291b, #7a1c15, #C5A059, #b7291b);
     background-size: 200% 100%;
     animation: rainbow-slide 3s linear infinite;
     border-radius: 999px;
@@ -615,7 +615,7 @@
     right: -60px;
     width: 320px;
     height: 320px;
-    background: radial-gradient(circle, rgba(14,165,233,0.18) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(183,41,27,0.18) 0%, transparent 70%);
     mix-blend-mode: multiply;
     pointer-events: none;
     border-radius: 50%;
@@ -673,8 +673,8 @@
 }
 
 @keyframes pulseGlow {
-  0%, 100% { box-shadow: 0 0 0 0 rgb(14 165 233 / 0.4); }
-  50% { box-shadow: 0 0 0 8px rgb(14 165 233 / 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgb(183 41 27 / 0.4); }
+  50% { box-shadow: 0 0 0 8px rgb(183 41 27 / 0); }
 }
 
 @keyframes ticker {
@@ -729,8 +729,8 @@
 }
 
 @keyframes glowPulse {
-  0%, 100% { box-shadow: 0 0 8px 2px rgba(14,165,233,0.25), 0 2px 16px rgba(14,165,233,0.1); }
-  50% { box-shadow: 0 0 20px 6px rgba(14,165,233,0.45), 0 4px 32px rgba(99,102,241,0.2); }
+  0%, 100% { box-shadow: 0 0 8px 2px rgba(183,41,27,0.25), 0 2px 16px rgba(183,41,27,0.1); }
+  50% { box-shadow: 0 0 20px 6px rgba(183,41,27,0.45), 0 4px 32px rgba(122,28,21,0.2); }
 }
 
 @keyframes flash-bolt {
@@ -770,7 +770,7 @@
   transition: box-shadow var(--transition-base), transform var(--transition-base);
 }
 .glow-card:hover {
-  box-shadow: 0 0 0 2px rgba(14,165,233,0.35), 0 8px 36px rgba(14,165,233,0.18);
+  box-shadow: 0 0 0 2px rgba(183,41,27,0.35), 0 8px 36px rgba(183,41,27,0.18);
   transform: translateY(-3px);
 }
 

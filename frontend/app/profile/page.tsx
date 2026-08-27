@@ -72,7 +72,7 @@ function DocPreviewModal({ doc, onClose }: { doc: UserDoc; onClose: () => void }
           </div>
           <button
             onClick={() => downloadUserDocument(doc.id, doc.fileName)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-xs font-semibold transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold transition-colors"
           >
             ⬇ Download
           </button>
@@ -89,7 +89,7 @@ function DocPreviewModal({ doc, onClose }: { doc: UserDoc; onClose: () => void }
         <div className="flex-1 overflow-auto bg-gray-50">
           {fileLoading ? (
             <div className="flex items-center justify-center py-16">
-              <div className="w-8 h-8 border-4 border-sky-200 border-t-sky-500 rounded-full animate-spin" />
+              <div className="w-8 h-8 border-4 border-red-200 border-t-red-500 rounded-full animate-spin" />
             </div>
           ) : !fileUrl ? (
             <div className="flex flex-col items-center justify-center py-10 gap-2">
@@ -112,7 +112,7 @@ function DocPreviewModal({ doc, onClose }: { doc: UserDoc; onClose: () => void }
               <p className="text-gray-400 text-xs">Preview isn&apos;t available for this file type — download to view.</p>
               <button
                 onClick={() => downloadUserDocument(doc.id, doc.fileName)}
-                className="px-5 py-2.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-sm font-semibold transition-colors"
+                className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-semibold transition-colors"
               >
                 Download File
               </button>
@@ -142,6 +142,7 @@ export default function ProfilePage() {
     socialInstagram: '',
     socialLinkedin: '',
     socialFacebook: '',
+    socialWhatsapp: '',
   });
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -181,6 +182,7 @@ export default function ProfilePage() {
         socialInstagram: user.socialLinks?.instagram || '',
         socialLinkedin: user.socialLinks?.linkedin || '',
         socialFacebook: user.socialLinks?.facebook || '',
+        socialWhatsapp: user.socialLinks?.whatsapp || '',
       });
       setListingsLoading(true);
       api.get(`/listings?limit=6&page=${listingsPage}&sort=createdAt&mine=true`)
@@ -240,6 +242,7 @@ export default function ProfilePage() {
           instagram: form.socialInstagram,
           linkedin: form.socialLinkedin,
           facebook: form.socialFacebook,
+          whatsapp: form.socialWhatsapp,
         },
       });
       updateUser(data);
@@ -431,10 +434,49 @@ export default function ProfilePage() {
         </Link>
       </div>
 
+      {/* KYC verification banner */}
+      {user && (
+        <Link
+          href="/profile/verification"
+          className={`mb-4 flex items-center gap-3 rounded-2xl border p-4 transition-colors ${
+            user.kycStatus === 'APPROVED'
+              ? 'bg-emerald-50 border-emerald-200 hover:bg-emerald-100'
+              : user.kycStatus === 'PENDING'
+              ? 'bg-amber-50 border-amber-200 hover:bg-amber-100'
+              : user.kycStatus === 'REJECTED'
+              ? 'bg-red-50 border-red-200 hover:bg-red-100'
+              : 'bg-red-50 border-red-200 hover:bg-red-100'
+          }`}
+        >
+          <div className="shrink-0 w-9 h-9 rounded-xl bg-white/70 flex items-center justify-center text-lg">
+            {user.kycStatus === 'APPROVED' ? '✅' : user.kycStatus === 'PENDING' ? '⏳' : user.kycStatus === 'REJECTED' ? '⚠️' : '🪪'}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-gray-900">
+              {user.kycStatus === 'APPROVED'
+                ? "You're KYC Verified"
+                : user.kycStatus === 'PENDING'
+                ? 'Identity verification pending review'
+                : user.kycStatus === 'REJECTED'
+                ? 'Identity verification needs attention'
+                : 'Get KYC Verified'}
+            </p>
+            <p className="text-xs text-gray-500">
+              {user.kycStatus === 'APPROVED'
+                ? 'Your listings get priority review and show a trust badge.'
+                : 'Verified sellers get priority listing approval and a trust badge buyers can find easily.'}
+            </p>
+          </div>
+          <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </Link>
+      )}
+
       {/* Theme colour picker */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-4 flex flex-col sm:flex-row sm:items-center gap-3">
         <div className="flex items-center gap-2">
-          <svg className="w-4 h-4 text-sky-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 text-red-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
           </svg>
           <span className="text-sm font-semibold text-gray-700">Site Theme</span>
@@ -454,7 +496,7 @@ export default function ProfilePage() {
       {/* Profile header */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-4">
         {/* Banner with gold gradient */}
-        <div className="h-24 bg-gradient-to-r from-premium-navy via-[#0369a1] to-premium-gold" />
+        <div className="h-24 bg-gradient-to-r from-premium-navy via-[#5c1610] to-premium-gold" />
         <div className="px-4 sm:px-6 pb-4 sm:pb-6 -mt-12">
           <div className="flex flex-col sm:flex-row items-start sm:items-end gap-3 sm:gap-4">
             <div className="relative group">
@@ -471,8 +513,8 @@ export default function ProfilePage() {
             </div>
             <div className="pb-1 flex-1">
               <p className="text-xl font-extrabold text-gray-900 break-words">{user.name}</p>
-              <div className="mt-1 inline-flex items-center gap-1.5 bg-sky-50 border border-sky-200 rounded-lg px-2.5 py-1">
-                <span className="text-sm text-sky-700 font-mono font-semibold tracking-widest whitespace-nowrap select-all">
+              <div className="mt-1 inline-flex items-center gap-1.5 bg-red-50 border border-red-200 rounded-lg px-2.5 py-1">
+                <span className="text-sm text-red-700 font-mono font-semibold tracking-widest whitespace-nowrap select-all">
                   {user.personalId || '—'}
                 </span>
                 {user.personalId && (
@@ -480,7 +522,7 @@ export default function ProfilePage() {
                     type="button"
                     onClick={handleCopyId}
                     title="Copy your unique ID"
-                    className="text-sky-400 hover:text-sky-600 transition-colors flex-shrink-0"
+                    className="text-red-400 hover:text-red-600 transition-colors flex-shrink-0"
                     aria-label="Copy unique ID"
                   >
                     {copiedId ? (
@@ -496,7 +538,7 @@ export default function ProfilePage() {
                   type="button"
                   onClick={() => avatarInputRef.current?.click()}
                   disabled={uploadingAvatar}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#0EA5E9] text-white text-xs font-semibold hover:bg-[#0284c7] transition-colors disabled:opacity-50"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#B7291B] text-white text-xs font-semibold hover:bg-[#7a1c15] transition-colors disabled:opacity-50"
                   aria-label="Upload profile photo"
                 >
                   {uploadingAvatar ? (
@@ -535,7 +577,7 @@ export default function ProfilePage() {
       {/* Edit form */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-6 mb-4">
         <h2 className="font-bold text-gray-900 mb-4 text-base flex items-center gap-2">
-          <svg className="w-4 h-4 text-sky-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+          <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
           Edit Profile
         </h2>
 
@@ -587,12 +629,12 @@ export default function ProfilePage() {
             <div className="flex items-center gap-3">
               <input
                 type="color"
-                value={form.cvThemeColor || '#0EA5E9'}
+                value={form.cvThemeColor || '#B7291B'}
                 onChange={(e) => setForm({ ...form, cvThemeColor: e.target.value })}
                 className="w-12 h-10 rounded-lg border border-gray-200 cursor-pointer p-0.5"
               />
               <div className="flex gap-2 flex-wrap">
-                {['#0EA5E9','#10B981','#8B5CF6','#F59E0B','#EF4444','#EC4899','#0369A1','#064E3B'].map((c) => (
+                {['#B7291B','#10B981','#8B5CF6','#F59E0B','#EF4444','#EC4899','#0369A1','#064E3B'].map((c) => (
                   <button
                     key={c}
                     type="button"
@@ -692,7 +734,7 @@ export default function ProfilePage() {
           {/* Social Media Links */}
           <div className="border-t border-gray-100 pt-4 mt-2 space-y-3">
             <h3 className="text-sm font-bold text-gray-700 flex items-center gap-2">
-              <svg className="w-4 h-4 text-sky-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
+              <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
               Social Media Links <span className="text-gray-400 font-normal text-xs ml-1">(optional)</span>
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -736,6 +778,19 @@ export default function ProfilePage() {
                   className="input-premium text-sm"
                 />
               </div>
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-semibold text-gray-600 mb-1">WhatsApp</label>
+                <input
+                  type="text"
+                  value={form.socialWhatsapp}
+                  onChange={(e) => setForm({ ...form, socialWhatsapp: e.target.value })}
+                  placeholder="wa.me/256700000000, or a group/community invite link"
+                  className="input-premium text-sm"
+                />
+                <p className="text-[10px] text-gray-400 mt-1">
+                  Paste a direct chat link (wa.me/yournumber), or a WhatsApp group/community invite link — buyers on your store page will be able to tap through to it.
+                </p>
+              </div>
             </div>
           </div>
           <button
@@ -756,7 +811,7 @@ export default function ProfilePage() {
       {/* Quick links */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
         {[
-          { href: '/profile/listings', icon: '📋', label: 'My Listings', desc: 'Manage your ads', accent: 'border-sky-200 hover:border-[#0EA5E9]' },
+          { href: '/profile/listings', icon: '📋', label: 'My Listings', desc: 'Manage your ads', accent: 'border-red-200 hover:border-[#B7291B]' },
           { href: '/profile/favorites', icon: '❤️', label: 'Favorites', desc: 'Saved items', accent: 'border-pink-200 hover:border-pink-400' },
           { href: '/notifications', icon: '🔔', label: 'Notifications', desc: 'Platform updates', accent: 'border-green-200 hover:border-green-400' },
           { href: '/profile/subscription', icon: '🔔', label: 'Subscription', desc: 'Your listing plan', accent: 'border-purple-200 hover:border-purple-400' },
@@ -876,12 +931,12 @@ export default function ProfilePage() {
       <div id="cv-documents" className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mt-6 scroll-mt-24">
         <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-gray-100">
           <h2 className="font-bold text-gray-900 flex items-center gap-2">
-            <span className="w-2 h-5 bg-sky-500 rounded-full inline-block" />
+            <span className="w-2 h-5 bg-red-500 rounded-full inline-block" />
             CV, Certificates &amp; Documents
           </h2>
           <Link
             href="/jobs"
-            className="text-xs font-semibold text-sky-600 hover:text-sky-700 flex items-center gap-1 transition-colors"
+            className="text-xs font-semibold text-red-600 hover:text-red-700 flex items-center gap-1 transition-colors"
           >
             Browse Job Market →
           </Link>
@@ -897,7 +952,7 @@ export default function ProfilePage() {
                 <select
                   value={docForm.type}
                   onChange={(e) => setDocForm((f) => ({ ...f, type: e.target.value }))}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
                 >
                   <option value="CV">📄 CV / Résumé</option>
                   <option value="CERTIFICATE">🏆 Certificate</option>
@@ -913,7 +968,7 @@ export default function ProfilePage() {
                   onChange={(e) => setDocForm((f) => ({ ...f, title: e.target.value }))}
                   placeholder="e.g. My CV 2025"
                   maxLength={120}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
                 />
               </div>
             </div>
@@ -925,7 +980,7 @@ export default function ProfilePage() {
                 onChange={(e) => setDocForm((f) => ({ ...f, description: e.target.value }))}
                 placeholder="Brief description of the document"
                 maxLength={200}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
               />
             </div>
             <div>
@@ -935,7 +990,7 @@ export default function ProfilePage() {
                 type="file"
                 accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp"
                 onChange={(e) => handleDocFileChange(e.target.files)}
-                className="w-full text-sm text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100 transition-colors"
+                className="w-full text-sm text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100 transition-colors"
               />
               <p className="text-xs text-gray-400 mt-1">PDF, DOC, DOCX, JPG, PNG — max 10 MB</p>
             </div>
@@ -976,7 +1031,7 @@ export default function ProfilePage() {
                     href={selectedDocPreview}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-xs font-semibold text-sky-600 hover:text-sky-800"
+                    className="text-xs font-semibold text-red-600 hover:text-red-800"
                   >
                     Open in new tab
                   </a>
@@ -986,7 +1041,7 @@ export default function ProfilePage() {
             <button
               type="submit"
               disabled={docUploading}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors disabled:opacity-50"
             >
               {docUploading ? 'Uploading…' : '⬆ Upload Document'}
             </button>
@@ -1022,7 +1077,7 @@ export default function ProfilePage() {
                     <button
                       type="button"
                       onClick={() => setPreviewDoc(doc)}
-                      className="text-xs text-sky-600 hover:text-sky-700 font-medium transition-colors"
+                      className="text-xs text-red-600 hover:text-red-700 font-medium transition-colors"
                     >
                       👁 Preview
                     </button>

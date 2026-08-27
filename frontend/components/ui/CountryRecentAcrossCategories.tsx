@@ -75,7 +75,7 @@ export default function CountryRecentAcrossCategories({
             <h3 className="text-sm font-bold flex items-center gap-1.5">
               <span>{cat.icon}</span> Latest {cat.label}
             </h3>
-            <Link href={`${cat.href}?country=${country}`} className="text-xs text-sky-600 hover:text-sky-700 font-semibold">
+            <Link href={`${cat.href}?country=${country}`} className="text-xs text-red-600 hover:text-red-700 font-semibold">
               See more →
             </Link>
           </div>

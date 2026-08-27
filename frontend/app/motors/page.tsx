@@ -91,41 +91,46 @@ export default function MotorsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50/90">
-      {/* Hero */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-gray-800 to-slate-900 text-white py-10 sm:py-16">
-        <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.08'%3E%3Ccircle cx='30' cy='30' r='20'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")" }} />
-        <div className="relative max-w-7xl mx-auto px-4 text-center">
-          <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 px-4 py-1.5 rounded-full text-sm font-medium mb-4">
-            <span>🚗</span> Motors Marketplace
+      {/* ── Compact identity strip — matches the other category tabs (Property, Electronics, etc.) ── */}
+      <div className="relative overflow-hidden bg-gradient-to-r from-slate-900 via-gray-800 to-slate-900 text-white">
+        <div className="relative max-w-7xl mx-auto px-3 sm:px-4 py-3 sm:py-3.5 flex items-center gap-3">
+          <span className="text-xl sm:text-2xl shrink-0" aria-hidden="true">🚗</span>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-sm sm:text-lg font-extrabold leading-tight truncate">
+              Buy &amp; Sell <span className="text-amber-400">Vehicles</span>
+            </h1>
+            <p className="hidden sm:block text-white/70 text-xs leading-snug line-clamp-2">
+              Find your perfect car, bike, or spare part. Browse thousands of verified listings across the region.
+            </p>
           </div>
-          <h1 className="text-3xl sm:text-5xl font-black mb-3">
-            Buy &amp; Sell <span className="text-amber-400">Vehicles</span>
-          </h1>
-          <p className="text-gray-300 text-base sm:text-lg max-w-xl mx-auto mb-6">
-            Find your perfect car, bike, or spare part. Browse thousands of verified listings across the region.
-          </p>
-          <div className="flex flex-wrap justify-center gap-3">
-            <Link
-              href="/listings/create"
-              className="bg-amber-400 hover:bg-amber-300 text-black font-bold px-6 py-3 rounded-xl transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 text-sm"
-            >
-              + Post Motor Ad
-            </Link>
-            <Link
-              href={`/motors/${(visibleMotorSubcategories[0] ?? MOTOR_SUBCATEGORIES[0])?.slug ?? 'used-cars'}`}
-              className="bg-white/10 hover:bg-white/20 border border-white/30 text-white font-semibold px-6 py-3 rounded-xl transition-all text-sm"
-            >
-              Browse {(visibleMotorSubcategories[0] ?? MOTOR_SUBCATEGORIES[0])?.label ?? 'Vehicles'}
-            </Link>
-          </div>
+          <Link
+            href="/listings/create"
+            className="shrink-0 bg-amber-400 hover:bg-amber-300 text-black font-bold px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg transition-colors text-xs sm:text-sm interactive"
+          >
+            + Post Motor Ad
+          </Link>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-8 space-y-10">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-3 sm:py-4 space-y-5">
 
-        {/* Quick search bar */}
-        <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-          <h2 className="text-base font-bold text-gray-800 mb-4">🔍 Quick Vehicle Search</h2>
+        {/* ── Subcategory quick-filter row (horizontal scroll, not a card grid) — same pattern as sibling tabs ── */}
+        {visibleMotorSubcategories.length > 0 && (
+          <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none -mx-3 px-3 sm:mx-0 sm:px-0">
+            {visibleMotorSubcategories.map((sub) => (
+              <Link
+                key={sub.slug}
+                href={`/motors/${sub.slug}`}
+                className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all interactive border bg-white text-gray-600 border-gray-200 hover:border-red-300"
+              >
+                <span aria-hidden="true">{sub.icon}</span> {sub.label}
+              </Link>
+            ))}
+          </div>
+        )}
+
+        {/* Quick search bar — compact single row, no longer competing with listings for vertical space */}
+        <section className="bg-white rounded-xl shadow-sm border border-gray-100 p-2.5 sm:p-3">
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -141,13 +146,13 @@ export default function MotorsPage() {
               if (country) params.set('country', country);
               window.location.href = `/listings?${params.toString()}`;
             }}
-            className="grid grid-cols-1 sm:grid-cols-4 gap-3"
+            className="grid grid-cols-2 sm:grid-cols-4 gap-2"
           >
-            <select name="make" className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:ring-2 focus:ring-sky-300 focus:border-sky-300 outline-none">
+            <select name="make" className="border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs text-gray-700 focus:ring-2 focus:ring-red-300 focus:border-red-300 outline-none">
               <option>Any Make</option>
               {MAKES.map((m) => <option key={m}>{m}</option>)}
             </select>
-            <select name="year" className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:ring-2 focus:ring-sky-300 focus:border-sky-300 outline-none">
+            <select name="year" className="border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs text-gray-700 focus:ring-2 focus:ring-red-300 focus:border-red-300 outline-none">
               <option>Any Year</option>
               {YEARS.map((y) => <option key={y}>{y}</option>)}
             </select>
@@ -155,41 +160,18 @@ export default function MotorsPage() {
               name="q"
               type="text"
               placeholder="Search model, keyword…"
-              className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:ring-2 focus:ring-sky-300 focus:border-sky-300 outline-none sm:col-span-1"
+              className="border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs text-gray-700 focus:ring-2 focus:ring-red-300 focus:border-red-300 outline-none col-span-2 sm:col-span-1"
             />
             <button
               type="submit"
-              className="bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-xl py-2.5 px-6 text-sm transition-colors"
+              className="bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg py-1.5 px-4 text-xs transition-colors"
             >
               Search
             </button>
           </form>
         </section>
 
-        {/* Subcategory grid */}
-        {visibleMotorSubcategories.length > 0 && (
-          <section>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-extrabold text-gray-900">Browse by Type</h2>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-              {visibleMotorSubcategories.map((sub) => (
-                <Link
-                  key={sub.slug}
-                  href={`/motors/${sub.slug}`}
-                  className={`group relative overflow-hidden rounded-xl p-4 bg-gradient-to-br ${sub.color} text-white hover:shadow-xl hover:-translate-y-1 transition-all duration-300`}
-                >
-                  <div className="absolute -top-3 -right-3 w-12 h-12 bg-white/10 rounded-full" />
-                  <div className="text-3xl mb-2 group-hover:scale-110 transition-transform duration-300 inline-block">{sub.icon}</div>
-                  <h3 className="font-bold text-sm leading-tight">{sub.label}</h3>
-                  <p className="text-[10px] opacity-75 mt-0.5 leading-tight hidden sm:block">{sub.desc}</p>
-                </Link>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Recent motor listings */}
+        {/* Recent motor listings — now the primary focus directly beneath the compact header/filters */}
         <section>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
             <div>
@@ -199,7 +181,7 @@ export default function MotorsPage() {
               </p>
             </div>
             <Link href={`/listings?category=motors${country ? `&country=${country}` : ''}`}
-              className="text-sm font-semibold text-sky-600 hover:text-sky-700 flex items-center gap-1 self-start sm:self-auto">
+              className="text-sm font-semibold text-red-600 hover:text-red-700 flex items-center gap-1 self-start sm:self-auto">
               View all
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
             </Link>
@@ -209,7 +191,7 @@ export default function MotorsPage() {
             {SORT_OPTS.map(opt => (
               <button key={opt.value} onClick={() => { setSort(opt.value); fetchListings(opt.value); }}
                 className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap shrink-0 transition-all ${
-                  sort === opt.value ? 'bg-sky-600 text-white shadow-sm' : 'bg-white text-gray-600 border border-gray-200 hover:border-sky-300'
+                  sort === opt.value ? 'bg-red-600 text-white shadow-sm' : 'bg-white text-gray-600 border border-gray-200 hover:border-red-300'
                 }`}>
                 {opt.label}
               </button>
@@ -239,7 +221,7 @@ export default function MotorsPage() {
               <div className="text-5xl mb-3">🚗</div>
               <p className="font-semibold text-gray-700">No motor listings yet</p>
               <p className="text-sm text-gray-400 mt-1">Be the first to post a motor ad!</p>
-              <Link href="/listings/create" className="mt-4 inline-block bg-sky-600 text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-sky-700 transition-colors">
+              <Link href="/listings/create" className="mt-4 inline-block bg-red-600 text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-red-700 transition-colors">
                 Post Ad
               </Link>
             </div>
@@ -254,10 +236,10 @@ export default function MotorsPage() {
               { icon: '🔒', title: 'Verified Sellers', desc: 'All sellers are verified for your safety and peace of mind.' },
               { icon: '📸', title: 'High-Quality Photos', desc: 'Listings feature detailed images reviewed by our team.' },
               { icon: '💬', title: 'Direct Messaging', desc: 'Chat directly with sellers to negotiate and inspect.' },
-              { icon: '🌍', title: 'Regional Coverage', desc: 'Listings across UAE, Uganda, Kenya and China.' },
+              { icon: '🇺🇬', title: 'Nationwide Coverage', desc: 'Listings across every region of Uganda.' },
             ].map((item) => (
               <div key={item.title} className="text-center">
-                <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-sky-50 flex items-center justify-center text-2xl">{item.icon}</div>
+                <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-red-50 flex items-center justify-center text-2xl">{item.icon}</div>
                 <h3 className="font-bold text-gray-800 text-sm mb-1">{item.title}</h3>
                 <p className="text-xs text-gray-500 leading-relaxed">{item.desc}</p>
               </div>

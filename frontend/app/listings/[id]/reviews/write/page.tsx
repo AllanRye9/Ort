@@ -56,8 +56,15 @@ export default function WriteReviewPage() {
       });
       setSubmitted(true);
     } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      setError(msg || 'Failed to submit your review. Please try again.');
+      if (status === 403) {
+        setError(msg || "You can only review products you've purchased and received.");
+      } else if (status === 409) {
+        setError(msg || 'You have already reviewed this item.');
+      } else {
+        setError(msg || 'Failed to submit your review. Please try again.');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -76,7 +83,7 @@ export default function WriteReviewPage() {
     return (
       <div className="max-w-2xl mx-auto px-4 py-8 text-center">
         <p className="text-xl font-bold text-gray-800 mb-4">Listing not found</p>
-        <Link href="/listings" className="text-sky-600 hover:underline text-sm">Browse listings</Link>
+        <Link href="/listings" className="text-red-600 hover:underline text-sm">Browse listings</Link>
       </div>
     );
   }
@@ -95,7 +102,7 @@ export default function WriteReviewPage() {
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Link
             href={`/listings/${id}/reviews`}
-            className="px-6 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-sm font-semibold transition-colors"
+            className="px-6 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-colors"
           >
             View all reviews
           </Link>
@@ -127,10 +134,18 @@ export default function WriteReviewPage() {
         <h1 className="text-2xl font-black text-gray-900 mb-1">Write a Review</h1>
         <p className="text-sm text-gray-500 mb-6">
           Share your experience with{' '}
-          <Link href={`/listings/${id}`} className="text-sky-600 hover:underline font-medium">
+          <Link href={`/listings/${id}`} className="text-red-600 hover:underline font-medium">
             {listing.title}
           </Link>
         </p>
+        <div className="mb-6 p-3 bg-emerald-50 border border-emerald-100 rounded-xl flex items-start gap-2">
+          <svg className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
+          </svg>
+          <p className="text-xs text-emerald-800">
+            To keep reviews trustworthy, only buyers who have completed and received an order for this item can leave a review. Your review will show a <span className="font-semibold">Verified Purchase</span> badge.
+          </p>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Star rating */}
@@ -177,7 +192,7 @@ export default function WriteReviewPage() {
               onChange={(e) => setTitle(e.target.value)}
               maxLength={150}
               placeholder="Summarize your experience in a few words"
-              className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-400 transition-shadow"
+              className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 focus:border-red-400 transition-shadow"
             />
           </div>
 
@@ -193,7 +208,7 @@ export default function WriteReviewPage() {
               maxLength={2000}
               rows={5}
               placeholder="Tell other buyers about your experience with this product — quality, accuracy of description, communication with the seller, etc."
-              className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-400 resize-none transition-shadow"
+              className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 focus:border-red-400 resize-none transition-shadow"
             />
             <p className="text-xs text-gray-400 mt-1 text-right">{content.length}/2000</p>
           </div>
@@ -208,7 +223,7 @@ export default function WriteReviewPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="flex-1 py-3 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-sm transition-colors disabled:opacity-50 shadow-sm interactive"
+              className="flex-1 py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm transition-colors disabled:opacity-50 shadow-sm interactive"
             >
               {submitting ? 'Submitting…' : 'Submit Review'}
             </button>
@@ -222,9 +237,9 @@ export default function WriteReviewPage() {
         </form>
 
         {/* Guidelines */}
-        <div className="mt-6 p-4 bg-sky-50 border border-sky-100 rounded-xl">
-          <h3 className="text-xs font-bold text-sky-800 mb-2">Review Guidelines</h3>
-          <ul className="text-xs text-sky-700 space-y-1">
+        <div className="mt-6 p-4 bg-red-50 border border-red-100 rounded-xl">
+          <h3 className="text-xs font-bold text-red-800 mb-2">Review Guidelines</h3>
+          <ul className="text-xs text-red-700 space-y-1">
             <li>• Be honest and helpful to other buyers</li>
             <li>• Focus on the product and your experience with the seller</li>
             <li>• Avoid personal information or offensive language</li>

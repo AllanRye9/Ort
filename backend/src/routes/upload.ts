@@ -174,6 +174,73 @@ router.post(
   },
 );
 
+// ─── KYC Document Upload (ID document / selfie) ────────────────────────────────
+// Mirrors the avatar upload pattern: straight to CDN, no ProductImage record
+// (so it never lands in the public product-image moderation queue) and no
+// UserDocument record (so it never appears in the seller's public
+// CV/certificates list) — these are private identity documents reviewed only
+// by admins via /api/kyc and /admin/kyc.
+
+const kycStorage = multer.diskStorage({
+  destination: (_req: Request, _file: Express.Multer.File, cb: (err: Error | null, dest: string) => void) => {
+    cb(null, tempUploadsDir);
+  },
+  filename: (_req: Request, file: Express.Multer.File, cb: (err: Error | null, name: string) => void) => {
+    const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
+    cb(null, `kyc-${uuidv4()}${ext}`);
+  },
+});
+
+const kycUpload = multer({
+  storage: kycStorage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
+  fileFilter: (_req: Request, file: Express.Multer.File, cb: FileFilterCallback) => {
+    const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowed.includes(file.mimetype)) {
+      cb(new Error('Only JPEG, PNG, or WEBP images are allowed'));
+      return;
+    }
+    cb(null, true);
+  },
+});
+
+router.post(
+  '/kyc-document',
+  authenticate,
+  (req: Request, res: Response, next: NextFunction) => {
+    kycUpload.single('image')(req, res, (err: unknown) => {
+      if (err instanceof multer.MulterError) {
+        return next(createError(err.message, 400));
+      } else if (err) {
+        return next(createError((err as Error).message || 'Upload failed', 400));
+      }
+      next();
+    });
+  },
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const file = req.file as Express.Multer.File | undefined;
+      if (!file) {
+        return next(createError('No file uploaded', 400));
+      }
+      const tempFilePath = path.join(tempUploadsDir, file.filename);
+      let cdnUrl: string;
+      try {
+        cdnUrl = await uploadToCDN(tempFilePath, file.filename, 'kyc');
+      } finally {
+        try {
+          fs.unlinkSync(tempFilePath);
+        } catch {
+          // best-effort cleanup
+        }
+      }
+      res.json({ url: cdnUrl });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
 // ─── User Document Upload (CV, Certificates, etc.) ────────────────────────────
 
 const documentStorage = multer.diskStorage({

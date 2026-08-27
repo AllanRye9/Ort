@@ -30,10 +30,10 @@ export default function ForgotPasswordPage() {
     <AuthColorBlend>
       <div className="mx-auto max-w-xl rounded-3xl border border-white/30 dark:border-white/20 bg-white/95 dark:bg-slate-900/85 p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
         <div className="flex items-center justify-between">
-          <span className="inline-flex rounded-full bg-sky-50 dark:bg-sky-500/20 border border-sky-100 dark:border-sky-300/20 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-sky-700 dark:text-sky-200">
+          <span className="inline-flex rounded-full bg-red-50 dark:bg-red-500/20 border border-red-100 dark:border-red-300/20 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-red-700 dark:text-red-200">
             Account support
           </span>
-          <Link href="/auth/login" className="text-xs font-semibold text-slate-500 dark:text-slate-300 hover:text-sky-700 dark:hover:text-sky-200 transition-colors">
+          <Link href="/auth/login" className="text-xs font-semibold text-slate-500 dark:text-slate-300 hover:text-red-700 dark:hover:text-red-200 transition-colors">
             ← Back to sign in
           </Link>
         </div>
@@ -55,7 +55,7 @@ export default function ForgotPasswordPage() {
               Didn&apos;t receive it? Check your spam folder or{' '}
               <button
                 onClick={() => setSubmitted(false)}
-                className="text-sky-600 hover:text-sky-700 font-semibold"
+                className="text-red-600 hover:text-red-700 font-semibold"
               >
                 try again
               </button>
@@ -63,7 +63,7 @@ export default function ForgotPasswordPage() {
             </p>
               <div className="mt-6 rounded-2xl border border-slate-100 bg-slate-50 p-4 text-sm text-slate-600">
               <p>Still having trouble? Email us at{' '}
-                <a href="mailto:support@piitrade.com" className="text-sky-600 font-semibold hover:underline">
+                <a href="mailto:support@piitrade.com" className="text-red-600 font-semibold hover:underline">
                   support@piitrade.com
                 </a>
               </p>
@@ -93,13 +93,13 @@ export default function ForgotPasswordPage() {
                   required
                   autoComplete="email"
                   placeholder="you@example.com"
-                  className="w-full rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-200 transition"
+                  className="w-full rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-200 transition"
                 />
               </div>
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-fuchsia-600 via-sky-600 to-indigo-600 px-5 py-3 text-sm font-semibold text-white transition-all hover:brightness-110 shadow-glow disabled:opacity-60"
+                className="w-full inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-fuchsia-600 via-red-600 to-rose-600 px-5 py-3 text-sm font-semibold text-white transition-all hover:brightness-110 shadow-glow disabled:opacity-60"
               >
                 {loading ? 'Sending…' : 'Send reset link'}
               </button>
@@ -108,7 +108,7 @@ export default function ForgotPasswordPage() {
             <div className="mt-6 rounded-2xl border border-slate-100 bg-slate-50 p-4 text-sm text-slate-600">
               <p>
                 Prefer manual support? Email us at{' '}
-                <a href="mailto:support@piitrade.com?subject=Password%20reset%20help" className="text-sky-600 font-semibold hover:underline">
+                <a href="mailto:support@piitrade.com?subject=Password%20reset%20help" className="text-red-600 font-semibold hover:underline">
                   support@piitrade.com
                 </a>
               </p>

@@ -111,7 +111,7 @@ export default function OrderDetailPage() {
 
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <h1 className="text-2xl font-bold text-gray-900">
-          Order <span className="font-mono text-sky-600">{order.orderNumber}</span>
+          Order <span className="font-mono text-red-600">{order.orderNumber}</span>
         </h1>
         <span className={`px-4 py-1.5 rounded-full text-sm font-semibold ${STATUS_COLORS[order.status]}`}>
           {order.status}
@@ -129,19 +129,19 @@ export default function OrderDetailPage() {
             {/* Progress line */}
             <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-1 bg-gray-200 z-0" />
             <div
-              className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-sky-500 z-0 transition-all"
+              className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-red-500 z-0 transition-all"
               style={{ width: `${Math.max(0, currentStepIdx) / (TIMELINE_STEPS.length - 1) * 100}%` }}
             />
             {TIMELINE_STEPS.map((step, i) => (
               <div key={step.status} className="relative z-10 flex flex-col items-center gap-1">
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg border-2 transition-all ${
                   i <= currentStepIdx
-                    ? 'bg-sky-500 border-sky-500 text-white'
+                    ? 'bg-red-500 border-red-500 text-white'
                     : 'bg-white border-gray-200 text-gray-400'
                 }`}>
                   {step.icon}
                 </div>
-                <span className={`text-xs font-medium hidden sm:block ${i <= currentStepIdx ? 'text-sky-700' : 'text-gray-400'}`}>
+                <span className={`text-xs font-medium hidden sm:block ${i <= currentStepIdx ? 'text-red-700' : 'text-gray-400'}`}>
                   {step.label}
                 </span>
               </div>
@@ -168,12 +168,12 @@ export default function OrderDetailPage() {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <Link href={`/listings/${item.listingId}`} className="font-medium text-gray-900 hover:text-sky-600 transition-colors line-clamp-2">
+                      <Link href={`/listings/${item.listingId}`} className="font-medium text-gray-900 hover:text-red-600 transition-colors line-clamp-2">
                         {item.title}
                       </Link>
                       <p className="text-sm text-gray-500">Qty: {item.quantity} × {formatCurrency(item.price, item.currency)}</p>
                     </div>
-                    <p className="font-bold text-sky-700 whitespace-nowrap">
+                    <p className="font-bold text-red-700 whitespace-nowrap">
                       {formatCurrency(item.price * item.quantity, item.currency)}
                     </p>
                   </div>
@@ -196,10 +196,10 @@ export default function OrderDetailPage() {
 
           {/* Tracking */}
           {order.trackingNumber && (
-            <div className="bg-sky-50 rounded-2xl border border-sky-100 p-5">
-              <h2 className="font-semibold text-sky-900 mb-1">Tracking</h2>
-              <p className="text-sm text-sky-700 font-mono">{order.trackingNumber}</p>
-              {order.shippedAt && <p className="text-xs text-sky-500 mt-1">Shipped on {new Date(order.shippedAt).toLocaleDateString('en-US')}</p>}
+            <div className="bg-red-50 rounded-2xl border border-red-100 p-5">
+              <h2 className="font-semibold text-red-900 mb-1">Tracking</h2>
+              <p className="text-sm text-red-700 font-mono">{order.trackingNumber}</p>
+              {order.shippedAt && <p className="text-xs text-red-500 mt-1">Shipped on {new Date(order.shippedAt).toLocaleDateString('en-US')}</p>}
             </div>
           )}
 
@@ -252,7 +252,7 @@ export default function OrderDetailPage() {
               )}
               <div className="flex justify-between font-bold text-gray-900 text-base border-t border-gray-100 pt-2">
                 <span>Total</span>
-                <span className="text-sky-700">{formatCurrency(order.total, order.currency)}</span>
+                <span className="text-red-700">{formatCurrency(order.total, order.currency)}</span>
               </div>
             </div>
           </div>
@@ -322,7 +322,7 @@ export default function OrderDetailPage() {
                     setError(msg || 'Failed to update status');
                   }
                 }}
-                className="w-full py-3 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-semibold text-sm transition-colors"
+                className="w-full py-3 rounded-xl bg-red-500 hover:bg-red-600 text-white font-semibold text-sm transition-colors"
               >
                 🚚 Mark as Shipped
               </button>
@@ -343,7 +343,7 @@ export default function OrderDetailPage() {
                   value={returnForm.reason}
                   onChange={(e) => setReturnForm((p) => ({ ...p, reason: e.target.value }))}
                   required
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
                 >
                   <option value="">Select a reason</option>
                   <option>Item not as described</option>
@@ -359,7 +359,7 @@ export default function OrderDetailPage() {
                   value={returnForm.description}
                   onChange={(e) => setReturnForm((p) => ({ ...p, description: e.target.value }))}
                   rows={3}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300 resize-none"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 resize-none"
                   placeholder="Describe the issue..."
                 />
               </div>

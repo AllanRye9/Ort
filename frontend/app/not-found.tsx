@@ -19,7 +19,7 @@ export default function NotFound() {
     <div className="min-h-[60vh] flex flex-col items-center justify-center px-4 py-8 text-center">
       {/* Visual */}
       <div className="relative mb-4">
-        <div className="text-[120px] font-extrabold leading-none select-none bg-gradient-to-br from-sky-400 to-blue-600 bg-clip-text text-transparent">
+        <div className="text-[120px] font-extrabold leading-none select-none bg-gradient-to-br from-red-400 to-red-600 bg-clip-text text-transparent">
           404
         </div>
         <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 text-5xl">🔍</div>
@@ -41,12 +41,12 @@ export default function NotFound() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search listings..."
-            className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-400"
+            className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 focus:border-red-400"
             aria-label="Search listings"
           />
           <button
             type="submit"
-            className="px-5 py-2.5 bg-sky-500 hover:bg-sky-600 text-white font-semibold text-sm rounded-xl transition-colors"
+            className="px-5 py-2.5 bg-red-500 hover:bg-red-600 text-white font-semibold text-sm rounded-xl transition-colors"
           >
             Search
           </button>
@@ -57,25 +57,25 @@ export default function NotFound() {
       <div className="flex flex-wrap justify-center gap-3">
         <Link
           href="/"
-          className="px-5 py-2 rounded-xl border border-gray-200 text-gray-700 hover:border-sky-300 hover:text-sky-600 font-medium text-sm transition-colors"
+          className="px-5 py-2 rounded-xl border border-gray-200 text-gray-700 hover:border-red-300 hover:text-red-600 font-medium text-sm transition-colors"
         >
           🏠 Home
         </Link>
         <Link
           href="/listings"
-          className="px-5 py-2 rounded-xl border border-gray-200 text-gray-700 hover:border-sky-300 hover:text-sky-600 font-medium text-sm transition-colors"
+          className="px-5 py-2 rounded-xl border border-gray-200 text-gray-700 hover:border-red-300 hover:text-red-600 font-medium text-sm transition-colors"
         >
           🔍 Browse Listings
         </Link>
         <Link
           href="/dashboard"
-          className="px-5 py-2 rounded-xl border border-gray-200 text-gray-700 hover:border-sky-300 hover:text-sky-600 font-medium text-sm transition-colors"
+          className="px-5 py-2 rounded-xl border border-gray-200 text-gray-700 hover:border-red-300 hover:text-red-600 font-medium text-sm transition-colors"
         >
           📊 Dashboard
         </Link>
         <Link
           href="/help"
-          className="px-5 py-2 rounded-xl border border-gray-200 text-gray-700 hover:border-sky-300 hover:text-sky-600 font-medium text-sm transition-colors"
+          className="px-5 py-2 rounded-xl border border-gray-200 text-gray-700 hover:border-red-300 hover:text-red-600 font-medium text-sm transition-colors"
         >
           ❓ Help
         </Link>

@@ -181,8 +181,8 @@ const STEPS = ['Personal', 'Summary', 'Experience', 'Education', 'Certs', 'Skill
 // ── Skill level colours ────────────────────────────────────────────────────────
 const SKILL_LEVEL_COLORS: Record<string, string> = {
   Beginner:     'bg-gray-100 text-gray-600',
-  Intermediate: 'bg-sky-100 text-sky-700',
-  Advanced:     'bg-indigo-100 text-indigo-700',
+  Intermediate: 'bg-red-100 text-red-700',
+  Advanced:     'bg-rose-100 text-rose-700',
   Expert:       'bg-violet-100 text-violet-700',
 };
 const LANG_PROF_COLORS: Record<string, string> = {
@@ -422,14 +422,14 @@ function PaymentModal({
       <div className="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full max-w-sm p-6 sm:p-7"
         onClick={e => e.stopPropagation()}>
         <div className="text-center mb-5">
-          <div className="w-14 h-14 bg-sky-50 rounded-full flex items-center justify-center mx-auto mb-3">
-            <svg className="w-7 h-7 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-3">
+            <svg className="w-7 h-7 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
             </svg>
           </div>
           <h2 className="text-lg font-bold text-gray-900">Download Price</h2>
           <p className="text-sm text-gray-500 mt-1">
-            <strong className="text-sky-700">{price.amount} {price.currency}</strong>
+            <strong className="text-red-700">{price.amount} {price.currency}</strong>
           </p>
         </div>
 
@@ -439,7 +439,7 @@ function PaymentModal({
           {([['CARD', '💳', 'Card'], ['MOBILE', '📱', 'Mobile Pay'], ['BANK', '🏦', 'Bank']] as const).map(([v, icon, label]) => (
             <button key={v} type="button" onClick={() => { setMethod(v); setError(''); }}
               className={`py-2.5 rounded-xl text-xs font-semibold border-2 flex flex-col items-center gap-1 transition-all ${
-                method === v ? 'border-sky-500 bg-sky-50 text-sky-700' : 'border-gray-200 text-gray-600'}`}>
+                method === v ? 'border-red-500 bg-red-50 text-red-700' : 'border-gray-200 text-gray-600'}`}>
               <span className="text-base">{icon}</span>{label}
             </button>
           ))}
@@ -451,14 +451,14 @@ function PaymentModal({
               <label className="block text-xs font-semibold text-gray-600 mb-1">Cardholder Name</label>
               <input type="text" value={cardName} onChange={e => setCardName(e.target.value)}
                 placeholder="John Smith" autoComplete="cc-name"
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"/>
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"/>
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">Card Number</label>
               <input type="text" value={cardNumber} autoComplete="cc-number"
                 onChange={e => setCardNumber(e.target.value.replace(/\D/g, '').slice(0, 16).replace(/(.{4})/g, '$1 ').trim())}
                 placeholder="1234 5678 9012 3456" maxLength={19}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-sky-300"/>
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-red-300"/>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -466,14 +466,14 @@ function PaymentModal({
                 <input type="text" value={cardExpiry} autoComplete="cc-exp"
                   onChange={e => { const v = e.target.value.replace(/\D/g, '').slice(0, 4); setCardExpiry(v.length > 2 ? v.slice(0, 2) + '/' + v.slice(2) : v); }}
                   placeholder="MM/YY" maxLength={5}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-sky-300"/>
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-red-300"/>
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">CVC</label>
                 <input type="text" value={cardCvc} autoComplete="cc-csc"
                   onChange={e => setCardCvc(e.target.value.replace(/\D/g, '').slice(0, 4))}
                   placeholder="123" maxLength={4}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-sky-300"/>
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-red-300"/>
               </div>
             </div>
           </div>
@@ -484,7 +484,7 @@ function PaymentModal({
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">Mobile Network</label>
               <select value={mobileNetwork} onChange={e => setMobileNetwork(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300">
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300">
                 <option value="">Select network…</option>
                 {mobileNetworks.map(n => <option key={n} value={n}>{n}</option>)}
               </select>
@@ -493,7 +493,7 @@ function PaymentModal({
               <label className="block text-xs font-semibold text-gray-600 mb-1">Phone Number</label>
               <input type="tel" value={mobilePhone} onChange={e => setMobilePhone(e.target.value)}
                 placeholder={country === 'UGANDA' ? '+256 700 000000' : country === 'KENYA' ? '+254 700 000000' : '+86 138 0000 0000'}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"/>
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"/>
             </div>
             <p className="text-xs text-gray-400">You will receive a payment prompt on your phone.</p>
           </div>
@@ -504,13 +504,13 @@ function PaymentModal({
             <p className="font-semibold text-gray-800 mb-2">Bank Transfer Details</p>
             <p>Bank: <span className="font-medium text-gray-800">Piitrade Payments Ltd</span></p>
             <p>Account No: <span className="font-mono font-medium text-gray-800">1234-5678-90</span></p>
-            <p>Reference: <span className="font-mono font-bold text-sky-700">CV-{country.slice(0, 2)}-{Date.now().toString().slice(-6)}</span></p>
+            <p>Reference: <span className="font-mono font-bold text-red-700">CV-{country.slice(0, 2)}-{Date.now().toString().slice(-6)}</span></p>
             <p className="text-gray-400 mt-2 leading-relaxed">Use the exact reference above. Your download unlocks after payment confirmation (typically 1–2 hours).</p>
           </div>
         )}
 
         <button onClick={handlePay} disabled={processing}
-          className="w-full py-3 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-sm transition-all disabled:opacity-60 flex items-center justify-center gap-2">
+          className="w-full py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm transition-all disabled:opacity-60 flex items-center justify-center gap-2">
           {processing
             ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>Processing…</>
             : <>Confirm Payment</>}
@@ -532,7 +532,7 @@ function SectionHeader({ icon, title, onAdd, addLabel }: { icon: string; title: 
       </h2>
       {onAdd && (
         <button type="button" onClick={onAdd}
-          className="text-xs text-sky-600 hover:text-sky-800 font-semibold px-2.5 py-1 rounded-lg bg-sky-50 hover:bg-sky-100 transition-colors">
+          className="text-xs text-red-600 hover:text-red-800 font-semibold px-2.5 py-1 rounded-lg bg-red-50 hover:bg-red-100 transition-colors">
           + {addLabel || 'Add'}
         </button>
       )}
@@ -825,9 +825,9 @@ export default function CVBuilderPage() {
   };
 
   // ── Shared input styles ───────────────────────────────────────────────────────
-  const fc = 'w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400';
+  const fc = 'w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400';
   const lc = 'block text-xs font-semibold text-gray-600 mb-1';
-  const sc = 'w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-sky-400';
+  const sc = 'w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-400';
 
   // ── Sections ─────────────────────────────────────────────────────────────────
 
@@ -853,7 +853,7 @@ export default function CVBuilderPage() {
               </div>
             )}
             <div className="flex flex-col gap-2">
-              <label className="cursor-pointer inline-flex items-center gap-2 bg-sky-50 hover:bg-sky-100 text-sky-700 text-xs font-semibold px-3 py-2 rounded-lg border border-sky-200 transition-colors">
+              <label className="cursor-pointer inline-flex items-center gap-2 bg-red-50 hover:bg-red-100 text-red-700 text-xs font-semibold px-3 py-2 rounded-lg border border-red-200 transition-colors">
                 <span>📷</span> {cv.profilePicture ? 'Change Photo' : 'Upload Photo'}
                 <input
                   type="file"
@@ -1130,7 +1130,7 @@ export default function CVBuilderPage() {
 
   // ── Download CTA ──────────────────────────────────────────────────────────────
   const downloadCTA = (
-    <div className="bg-gradient-to-br from-sky-50 to-indigo-50 border border-sky-200 rounded-xl p-5">
+    <div className="bg-gradient-to-br from-red-50 to-rose-50 border border-red-200 rounded-xl p-5">
       <h3 className="font-bold text-gray-900 mb-1 text-sm flex items-center gap-2">
         <span className="text-lg">📥</span> Ready to download?
       </h3>
@@ -1170,7 +1170,7 @@ export default function CVBuilderPage() {
       ) : (
         <button onClick={handleDownloadClick} disabled={downloadDisabled}
           className={`w-full py-2.5 rounded-xl text-white font-bold text-sm flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-            isFreePackage && !downloadDisabled ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-sky-600 hover:bg-sky-700'}`}>
+            isFreePackage && !downloadDisabled ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-red-600 hover:bg-red-700'}`}>
           {!downloadDisabled && (
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
           )}
@@ -1179,7 +1179,7 @@ export default function CVBuilderPage() {
       )}
       {!user && (
         <p className="mt-2 text-xs text-gray-400 text-center">
-          <Link href="/auth/register" className="text-sky-600 hover:underline font-medium">Sign up</Link> to save your CV across sessions.
+          <Link href="/auth/register" className="text-red-600 hover:underline font-medium">Sign up</Link> to save your CV across sessions.
         </p>
       )}
     </div>
@@ -1237,7 +1237,7 @@ export default function CVBuilderPage() {
             ) : (
               <button onClick={handleDownloadClick} disabled={downloadDisabled}
                 className={`w-full py-3 rounded-xl text-white font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed ${
-                  isFreePackage && !downloadDisabled ? 'bg-emerald-600' : 'bg-sky-600'}`}>
+                  isFreePackage && !downloadDisabled ? 'bg-emerald-600' : 'bg-red-600'}`}>
                 {mainCtaLabel}
               </button>
             )}
@@ -1253,7 +1253,7 @@ export default function CVBuilderPage() {
           <h1 className="font-bold text-gray-900 text-sm hidden sm:block">CV Builder</h1>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => setShowPreview(true)} className="sm:hidden text-xs font-semibold text-sky-600 border border-sky-200 px-3 py-1.5 rounded-lg">
+          <button onClick={() => setShowPreview(true)} className="sm:hidden text-xs font-semibold text-red-600 border border-red-200 px-3 py-1.5 rounded-lg">
             Preview
           </button>
           {payToken ? (
@@ -1266,7 +1266,7 @@ export default function CVBuilderPage() {
             <button onClick={handleDownloadClick} disabled={downloadDisabled}
               title={!isCvComplete ? `Missing: ${missingFields.join(', ')}` : undefined}
               className={`flex items-center gap-1.5 text-white px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                isFreePackage && !downloadDisabled ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-sky-600 hover:bg-sky-700'}`}>
+                isFreePackage && !downloadDisabled ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-red-600 hover:bg-red-700'}`}>
               {!downloadDisabled && (
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
               )}
@@ -1282,7 +1282,7 @@ export default function CVBuilderPage() {
       </div>
 
       {/* Free-use banner */}
-      <div className="bg-gradient-to-r from-sky-500 to-blue-600 text-white text-center text-xs sm:text-sm font-medium px-4 py-2">
+      <div className="bg-gradient-to-r from-red-500 to-red-600 text-white text-center text-xs sm:text-sm font-medium px-4 py-2">
         {checkoutLoading
           ? <>&#x2705; Build your CV free — checking current download pricing&hellip;</>
           : checkoutError
@@ -1310,14 +1310,14 @@ export default function CVBuilderPage() {
           <div className="flex gap-0.5 mb-3 bg-gray-100 rounded-xl p-1">
             {STEPS.map((s, i) => (
               <button key={i} onClick={() => setStep(i)}
-                className={`flex-1 py-1 rounded-lg text-[10px] font-bold transition-all ${i === step ? 'bg-white text-sky-600 shadow-sm' : 'text-gray-400'}`}>
+                className={`flex-1 py-1 rounded-lg text-[10px] font-bold transition-all ${i === step ? 'bg-white text-red-600 shadow-sm' : 'text-gray-400'}`}>
                 {s}
               </button>
             ))}
           </div>
           {/* Progress bar */}
           <div className="w-full h-1 bg-gray-200 rounded-full mb-4">
-            <div className="h-full bg-sky-500 rounded-full transition-all" style={{ width: `${((step + 1) / STEPS.length) * 100}%` }}/>
+            <div className="h-full bg-red-500 rounded-full transition-all" style={{ width: `${((step + 1) / STEPS.length) * 100}%` }}/>
           </div>
           <div>{stepContent[step]}</div>
           <div className="flex gap-2 mt-3">
@@ -1327,7 +1327,7 @@ export default function CVBuilderPage() {
             )}
             {step < STEPS.length - 1 ? (
               <button onClick={() => setStep(s => s + 1)}
-                className="flex-1 py-2.5 rounded-xl bg-sky-600 text-white text-sm font-semibold">Next →</button>
+                className="flex-1 py-2.5 rounded-xl bg-red-600 text-white text-sm font-semibold">Next →</button>
             ) : (
               <button onClick={() => setShowPreview(true)}
                 className="flex-1 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-semibold">Preview &amp; Download</button>

@@ -106,7 +106,7 @@ export default function AdminConstPage() {
           placeholder="Search by name or email..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full max-w-md px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+          className="w-full max-w-md px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
         />
       </div>
 
@@ -145,7 +145,7 @@ export default function AdminConstPage() {
                           value={u.role}
                           onChange={(e) => changeRole(u.id, e.target.value as Role)}
                           disabled={savingId === u.id}
-                          className="rounded-lg border border-gray-300 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-sky-400 disabled:opacity-60"
+                          className="rounded-lg border border-gray-300 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-red-400 disabled:opacity-60"
                         >
                           {ALL_ROLES.filter((r) => r !== 'ADMIN').map((r) => (
                             <option key={r} value={r}>{ROLE_LABELS[r]}</option>

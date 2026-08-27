@@ -70,6 +70,8 @@ export const buildCurrentUserSelect = (includePersonalId: boolean): Prisma.UserS
   role: true,
   country: true,
   isVerified: true,
+  isKycVerified: true,
+  kycStatus: true,
   cvThemeColor: true,
   companyName: true,
   registrationNumber: true,

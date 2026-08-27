@@ -27,8 +27,8 @@ export function ContentPage({
   return (
     <div className="bg-[radial-gradient(circle_at_top,_rgba(14,165,233,0.08),_transparent_38%),linear-gradient(180deg,_#ffffff_0%,_#f8fafc_100%)]">
       <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-8">
-        <div className="rounded-[2rem] border border-sky-100 bg-white/90 p-5 shadow-[0_25px_80px_rgba(15,23,42,0.08)] backdrop-blur sm:p-7">
-          <span className="inline-flex rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-sky-700">
+        <div className="rounded-[2rem] border border-red-100 bg-white/90 p-5 shadow-[0_25px_80px_rgba(15,23,42,0.08)] backdrop-blur sm:p-7">
+          <span className="inline-flex rounded-full bg-red-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-red-700">
             {eyebrow}
           </span>
           <h1 className="mt-4 text-3xl font-black tracking-tight text-premium-navy sm:text-5xl">{title}</h1>
@@ -52,14 +52,14 @@ export function ContentPage({
               {isExternalCta ? (
                 <a
                   href={ctaHref}
-                  className="inline-flex items-center justify-center rounded-xl bg-premium-navy px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-sky-700"
+                  className="inline-flex items-center justify-center rounded-xl bg-premium-navy px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-red-700"
                 >
                   {ctaLabel}
                 </a>
               ) : (
                 <Link
                   href={ctaHref}
-                  className="inline-flex items-center justify-center rounded-xl bg-premium-navy px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-sky-700"
+                  className="inline-flex items-center justify-center rounded-xl bg-premium-navy px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-red-700"
                 >
                   {ctaLabel}
                 </Link>

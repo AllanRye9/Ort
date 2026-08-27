@@ -59,7 +59,7 @@ function CreateReportPageContent() {
   return (
     <div className="max-w-2xl mx-auto px-4 py-4 sm:py-6">
       <div className="bg-white border border-gray-100 rounded-3xl shadow-sm p-4 sm:p-6">
-        <Link href={listingId ? `/listings/${listingId}` : '/listings'} className="text-sm font-medium text-sky-700 hover:text-sky-800 transition-colors">
+        <Link href={listingId ? `/listings/${listingId}` : '/listings'} className="text-sm font-medium text-red-700 hover:text-red-800 transition-colors">
           Back to listing
         </Link>
 
@@ -85,7 +85,7 @@ function CreateReportPageContent() {
             <select
               value={reason}
               onChange={(event) => setReason(event.target.value)}
-              className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+              className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-300 focus:border-red-300"
             >
               {REASONS.map((option) => (
                 <option key={option} value={option}>{option}</option>
@@ -100,7 +100,7 @@ function CreateReportPageContent() {
               onChange={(event) => setDetails(event.target.value)}
               rows={5}
               placeholder="Explain what is wrong with the listing"
-              className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300 resize-y"
+              className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-300 focus:border-red-300 resize-y"
             />
           </div>
 

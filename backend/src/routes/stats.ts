@@ -52,6 +52,36 @@ function getVisitorCountryCount(visitorCountries: string): number {
   }
 }
 
+/** Extracts the real client IP, honoring the X-Forwarded-For chain set up
+ *  via `app.set('trust proxy', 1)` in app.ts. Falls back to the raw socket
+ *  address, then 'unknown' if neither is available (e.g. in tests). */
+function getClientIp(req: Request): string {
+  return req.ip || req.socket?.remoteAddress || 'unknown';
+}
+
+/** Turns a raw User-Agent string into a short, human-readable label for the
+ *  admin visitor log — e.g. "Mobile · Safari", "Desktop · Chrome". This is
+ *  a lightweight best-effort classifier, not a full UA-parsing library. */
+function describeDevice(userAgent: string | undefined): string {
+  if (!userAgent) return 'Unknown device';
+  const ua = userAgent.toLowerCase();
+
+  let form: string;
+  if (/ipad|tablet/.test(ua)) form = 'Tablet';
+  else if (/mobi|iphone|android/.test(ua)) form = 'Mobile';
+  else form = 'Desktop';
+
+  let browser: string;
+  if (ua.includes('edg/')) browser = 'Edge';
+  else if (ua.includes('opr/') || ua.includes('opera')) browser = 'Opera';
+  else if (ua.includes('chrome/') || ua.includes('crios/')) browser = 'Chrome';
+  else if (ua.includes('fxios') || ua.includes('firefox')) browser = 'Firefox';
+  else if (ua.includes('safari/') && !ua.includes('chrome')) browser = 'Safari';
+  else browser = 'Other';
+
+  return `${form} · ${browser}`;
+}
+
 // GET /api/stats — returns real-time site statistics.
 router.get('/', async (_req: Request, res: Response, next: NextFunction) => {
   try {
@@ -251,6 +281,50 @@ router.post('/track', async (req: Request, res: Response, next: NextFunction) =>
           ...(updatedCountries !== undefined ? { visitorCountries: updatedCountries } : {}),
           ...(updatedVisitCounts !== undefined ? { countryVisitCounts: updatedVisitCounts } : {}), // Persist per-country counts
         },
+      });
+    }
+
+    // Per-device, per-day visit log — the admin-facing "proof" record (IP,
+    // date/time, device, time on site) behind the aggregate SiteStat
+    // counters above. Upserted so repeat pings from the same device on the
+    // same local day extend the existing row's lastSeenAt/durationSeconds
+    // rather than creating a new row per page view.
+    const ip = getClientIp(req);
+    const userAgent = req.headers['user-agent'] as string | undefined;
+    const device = describeDevice(userAgent);
+    const upperCountry = countryCode ? countryCode.toUpperCase() : undefined;
+
+    const logRow = await prisma.visitorLog.upsert({
+      where: { deviceId_dayKey: { deviceId, dayKey: todayKey } },
+      create: {
+        deviceId,
+        dayKey: todayKey,
+        ip,
+        country: upperCountry,
+        userAgent,
+        device,
+        firstSeenAt: now,
+        lastSeenAt: now,
+        durationSeconds: 0,
+        visitCount: 1,
+      },
+      update: {
+        lastSeenAt: now,
+        ip,
+        ...(upperCountry ? { country: upperCountry } : {}),
+        userAgent,
+        device,
+        visitCount: { increment: 1 },
+      },
+    });
+
+    // durationSeconds is derived as a follow-up update (needs firstSeenAt
+    // from whichever branch of the upsert above just ran).
+    const durationSeconds = Math.max(0, Math.round((now.getTime() - logRow.firstSeenAt.getTime()) / 1000));
+    if (durationSeconds !== logRow.durationSeconds) {
+      await prisma.visitorLog.update({
+        where: { deviceId_dayKey: { deviceId, dayKey: todayKey } },
+        data: { durationSeconds },
       });
     }
 

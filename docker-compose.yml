@@ -1,96 +1,186 @@
-# ============================================================================
-# PRODUCTION Docker Compose Configuration
-# Use this compose file to run the entire Piitrade stack in production:
-#   docker-compose up -d
+# docker-compose.yml
 #
-# This orchestrates:
-#   - PostgreSQL database (postgres)
-#   - Backend API (backend)
-#   - Frontend (frontend)
+# Full local stack — Postgres + backend + frontend — built from the exact
+# same Dockerfiles Railway uses in production. This is not a dev-mode
+# compose (no bind-mounts, no hot reload, no dev servers): it boots the real
+# production images end-to-end, so a clean `docker compose up --build` here
+# is the closest thing to a pre-flight check before deploying.
 #
-# Note: The backend/docker-compose.yml is for local development only.
-# ============================================================================
+# Usage:
+#   cp .env.example .env        # then fill in real secrets
+#   docker compose up --build
+#
+#   (Every variable has a dev-safe default via ${VAR:-...}, so
+#   `docker compose up --build` with no .env at all also works for a quick
+#   smoke test — just don't reuse those defaults anywhere real.)
+#
+#   Frontend:   http://localhost:3000
+#   Backend:    http://localhost:5000/health
+#   PostgreSQL: localhost:55432 (mapped off 5432 to avoid clashing with a
+#               Postgres you may already have running locally)
+#
+# Tear down (including volumes, for a truly clean slate):
+#   docker compose down -v
+#
+# NOTE on NEXT_PUBLIC_API_URL: this value is baked into the frontend's
+# client-side JS bundle at BUILD time and is what the *browser* uses to
+# reach the API, so it must be the host-published URL (http://localhost:5000)
+# — not the internal Docker service name (http://backend:5000), which the
+# browser can't resolve. The frontend container's own server-side code
+# (app/layout.tsx's background-image fetch) reuses this same variable and
+# will therefore also try localhost:5000 *from inside its own container*,
+# where nothing is listening on that port — that fetch is wrapped in a
+# try/catch and degrades gracefully (no background image, nothing else
+# breaks), exactly as it does on a real deploy target that also can't reach
+# the API at that exact URL. This mirrors production behavior faithfully;
+# it is not a bug in this compose file.
 
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: marketplace_postgres
+    container_name: lapit_postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-marketplace}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-marketplace_secret}
       POSTGRES_DB: ${POSTGRES_DB:-marketplace_db}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
     ports:
-      - '5432:5432'
+      - "55432:5432"
+    volumes:
+      - lapit_pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-marketplace} -d ${POSTGRES_DB:-marketplace_db}']
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-marketplace} -d ${POSTGRES_DB:-marketplace_db}"]
+      interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 5s
+    networks:
+      - lapit_net
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    env_file:
-      - ./backend/.env
-    container_name: marketplace_backend
+    container_name: lapit_backend
     restart: unless-stopped
-    ports:
-      - '5000:5000'
+    depends_on:
+      postgres:
+        condition: service_healthy
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgresql://${POSTGRES_USER:-marketplace}:${POSTGRES_PASSWORD:-marketplace_secret}@postgres:5432/${POSTGRES_DB:-marketplace_db}
-      DATABASE_PRIVATE_URL: postgresql://${POSTGRES_USER:-marketplace}:${POSTGRES_PASSWORD:-marketplace_secret}@postgres:5432/${POSTGRES_DB:-marketplace_db}
-      JWT_SECRET: ${JWT_SECRET:-change-this-jwt-secret-in-production}
-      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-change-this-refresh-secret-in-production}
+      PORT: 5000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-marketplace}:${POSTGRES_PASSWORD:-marketplace_secret}@postgres:5432/${POSTGRES_DB:-marketplace_db}?schema=public
+      JWT_SECRET: ${JWT_SECRET:-test-jwt-secret-change-me}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-test-jwt-refresh-secret-change-me}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1h}
       JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
-      PORT: 5000
+      # Frontend is reached by the browser at localhost:3000, so that's the
+      # origin the API needs to allow — not the internal service name.
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+      API_BASE_URL: ${API_BASE_URL:-http://localhost:5000}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-change-this-to-a-strong-password}
+      ADMIN_SECRET: ${ADMIN_SECRET:-change-this-to-a-strong-admin-registration-secret}
+      RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS:-900000}
+      RATE_LIMIT_MAX: ${RATE_LIMIT_MAX:-100}
+      # Optional S3-compatible storage; leave unset to fall back to local
+      # disk uploads served from the `lapit_uploads` volume below.
       ACCESS_KEY_ID: ${ACCESS_KEY_ID:-}
       SECRET_ACCESS_KEY: ${SECRET_ACCESS_KEY:-}
       BUCKET: ${BUCKET:-}
       ENDPOINT: ${ENDPOINT:-}
-      RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS:-900000}
-      RATE_LIMIT_MAX: ${RATE_LIMIT_MAX:-100}
-      ADMIN_SECRET: ${ADMIN_SECRET:-change-this-admin-secret-in-production}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+    ports:
+      - "5000:5000"
     volumes:
-      - backend_uploads:/app/uploads
-    depends_on:
-      postgres:
-        condition: service_healthy
+      - lapit_uploads:/app/uploads
     healthcheck:
-      # node:20-alpine uses BusyBox which includes wget but not curl.
-      test: ['CMD-SHELL', 'wget -qO- http://localhost:5000/health || exit 1']
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:5000/health"]
       interval: 15s
       timeout: 5s
       retries: 5
-      start_period: 30s
+      start_period: 20s
+    networks:
+      - lapit_net
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        # NEXT_PUBLIC_* vars must be set at build time so Next.js can embed
-        # them in the client bundle.  For local Docker usage, port 5000 on
-        # the host maps to the backend container so localhost:5000 works in
-        # the browser.
+        # Must be reachable from the browser, not just from inside this
+        # container — see the note at the top of this file.
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:5000}
-    container_name: marketplace_frontend
+    container_name: lapit_frontend
     restart: unless-stopped
-    ports:
-      - '3000:3000'
-    environment:
-      NODE_ENV: production
     depends_on:
       backend:
         condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:3000/"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - lapit_net
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+
+networks:
+  lapit_net:
+    driver: bridge
 
 volumes:
-  postgres_data:
-  backend_uploads:
-
+  lapit_pgdata:
+  lapit_uploads:

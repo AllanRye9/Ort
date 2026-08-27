@@ -44,7 +44,7 @@ export default function CartPage() {
         </p>
         <Link
           href="/listings"
-          className="px-8 py-3 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-semibold transition-colors shadow-md"
+          className="px-8 py-3 rounded-xl bg-red-500 hover:bg-red-600 text-white font-semibold transition-colors shadow-md"
         >
           Browse Listings
         </Link>
@@ -64,7 +64,7 @@ export default function CartPage() {
       )}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">
-          Shopping Cart <span className="text-sky-500 text-lg font-semibold">({totalItems} {totalItems === 1 ? 'item' : 'items'})</span>
+          Shopping Cart <span className="text-red-500 text-lg font-semibold">({totalItems} {totalItems === 1 ? 'item' : 'items'})</span>
         </h1>
         <button
           onClick={clearCart}
@@ -92,7 +92,7 @@ export default function CartPage() {
                 </Link>
 
                 <div className="flex-1 min-w-0">
-                  <Link href={`/listings/${listing.id}`} className="font-semibold text-gray-900 hover:text-sky-600 transition-colors line-clamp-2 text-sm">
+                  <Link href={`/listings/${listing.id}`} className="font-semibold text-gray-900 hover:text-red-600 transition-colors line-clamp-2 text-sm">
                     {listing.title}
                   </Link>
                   <p className="text-xs text-gray-500 mt-0.5">{listing.condition} · {listing.location}</p>
@@ -101,7 +101,7 @@ export default function CartPage() {
                   {(variants?.color || variants?.size || variants?.attributes) && (
                     <div className="flex flex-wrap gap-1.5 mt-1.5">
                       {variants.color && (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold bg-sky-50 text-sky-700 border border-sky-200 rounded-full px-2 py-0.5">
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold bg-red-50 text-red-700 border border-red-200 rounded-full px-2 py-0.5">
                           🎨 {variants.color}
                         </span>
                       )}
@@ -134,7 +134,7 @@ export default function CartPage() {
                     </div>
 
                     <div className="flex items-center gap-3">
-                      <span className="font-bold text-sky-700 text-sm">{itemPrice}</span>
+                      <span className="font-bold text-red-700 text-sm">{itemPrice}</span>
                       <button
                         onClick={() => removeFromCart(listing.id)}
                         className="text-red-400 hover:text-red-600 transition-colors"
@@ -177,12 +177,12 @@ export default function CartPage() {
                   value={promoCode}
                   onChange={(e) => { setPromoCode(e.target.value); setPromoError(''); setAppliedPromo(null); }}
                   placeholder="Enter code"
-                  className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-400"
+                  className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 focus:border-red-400"
                   aria-label="Promo code"
                 />
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-sky-500 hover:bg-sky-600 text-white font-semibold text-sm rounded-xl transition-colors"
+                  className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-semibold text-sm rounded-xl transition-colors"
                 >
                   Apply
                 </button>
@@ -216,7 +216,7 @@ export default function CartPage() {
 
             <div className="flex justify-between items-center border-t border-gray-100 pt-3">
               <span className="font-bold text-gray-900">Total</span>
-              <span className="text-xl font-bold text-sky-600">
+              <span className="text-xl font-bold text-red-600">
                 {formatCurrency(
                   appliedPromo ? totalPrice * (1 - appliedPromo.discount) : totalPrice,
                   'USD'
@@ -227,14 +227,14 @@ export default function CartPage() {
 
           <button
             onClick={() => router.push('/checkout')}
-            className="w-full py-3 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white font-bold text-base transition-all shadow-md hover:shadow-lg mb-3"
+            className="w-full py-3 rounded-xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold text-base transition-all shadow-md hover:shadow-lg mb-3"
           >
             Proceed to Checkout →
           </button>
 
           <Link
             href="/listings"
-            className="block text-center mt-3 text-sm text-sky-600 hover:text-sky-800 font-medium transition-colors"
+            className="block text-center mt-3 text-sm text-red-600 hover:text-red-800 font-medium transition-colors"
           >
             ← Continue Shopping
           </Link>

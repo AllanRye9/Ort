@@ -12,6 +12,16 @@ export function cn(...inputs: ClassValue[]) {
  * which is unreachable from the browser. We rewrite those URLs to use
  * the public NEXT_PUBLIC_API_URL instead.
  */
+/**
+ * Normalizes a user-pasted social/website link that may be missing its
+ * scheme (e.g. "wa.me/256700000000", "facebook.com/mystore") into a
+ * clickable absolute URL. Leaves already-absolute URLs untouched.
+ */
+export function normalizeExternalUrl(url: string): string {
+  const trimmed = url.trim();
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+}
+
 export function resolveImageUrl(url: string): string {
   if (!url) return '';
   const apiBase = process.env.NEXT_PUBLIC_API_URL || '';

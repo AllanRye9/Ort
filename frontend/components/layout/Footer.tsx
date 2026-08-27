@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import BrandLogo from '@/components/ui/BrandLogo';
-import FooterLocations from '@/components/layout/FooterLocations';
+import VisitorStats from '@/components/ui/VisitorStats';
 
 interface SocialLinks {
   facebook?: string | null;
@@ -72,11 +72,11 @@ export default async function Footer() {
   ];
 
   return (
-    <footer className="bg-gradient-to-r from-indigo-900 via-sky-800 to-fuchsia-900 text-gray-300 px-[1%] md:px-[7%]">
+    <footer className="bg-gradient-to-r from-rose-900 via-red-800 to-fuchsia-900 text-gray-300 px-[1%] md:px-[7%]">
       {/* Main footer content - hidden on mobile, shown on md+ */}
       <div className="hidden md:block">
         <div className="py-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {/* Brand column */}
             <div className="lg:col-span-2">
               <Link href="/" className="flex items-center gap-2 mb-3 w-fit hover:opacity-80 transition-opacity">
@@ -85,7 +85,7 @@ export default async function Footer() {
                   alt="Piitrade — Shop Smart. Shop Trusted."
                   fallback={
                     <>
-                      <div className="w-8 h-8 bg-gradient-to-br from-fuchsia-500 via-sky-500 to-indigo-600 rounded-lg flex items-center justify-center font-black text-white text-sm border border-white/30 shadow-glow">Pi</div>
+                      <div className="w-8 h-8 bg-gradient-to-br from-fuchsia-500 via-red-500 to-rose-600 rounded-lg flex items-center justify-center font-black text-white text-sm border border-white/30 shadow-glow">Pi</div>
                       <div className="flex flex-col leading-none gap-0.5">
                         <span className="font-extrabold text-white text-lg tracking-tight">
                           Piitrade
@@ -111,7 +111,7 @@ export default async function Footer() {
                     target={s.href !== '#' ? '_blank' : undefined}
                     rel={s.href !== '#' ? 'noopener noreferrer' : undefined}
                     aria-label={s.label}
-                    className="w-9 h-9 rounded-lg bg-white/10 hover:bg-gradient-to-r hover:from-fuchsia-500 hover:to-sky-500 hover:text-white flex items-center justify-center text-xs text-gray-300 transition-colors interactive"
+                    className="w-9 h-9 rounded-lg bg-white/10 hover:bg-gradient-to-r hover:from-fuchsia-500 hover:to-red-500 hover:text-white flex items-center justify-center text-xs text-gray-300 transition-colors interactive"
                   >
                     {s.icon}
                   </a>
@@ -123,29 +123,23 @@ export default async function Footer() {
             <div>
               <h4 className="text-white font-bold mb-2 text-sm uppercase tracking-wide border-b border-white/10 pb-1">Company</h4>
               <ul className="space-y-1.5 text-sm">
-                <li><Link href="/about" className="text-gray-300 hover:text-sky-200 transition-colors">About Us</Link></li>
-                <li><Link href="/advertising" className="text-gray-300 hover:text-sky-200 transition-colors">Advertising</Link></li>
-                <li><Link href="/blog" className="text-gray-300 hover:text-sky-200 transition-colors">Blog</Link></li>
-                <li><Link href="/careers" className="text-gray-300 hover:text-sky-200 transition-colors">Careers</Link></li>
-                <li><Link href="/press" className="text-gray-300 hover:text-sky-200 transition-colors">Press</Link></li>
+                <li><Link href="/about" className="text-gray-300 hover:text-red-200 transition-colors">About Us</Link></li>
+                <li><Link href="/advertising" className="text-gray-300 hover:text-red-200 transition-colors">Advertising</Link></li>
+                <li><Link href="/blog" className="text-gray-300 hover:text-red-200 transition-colors">Blog</Link></li>
+                <li><Link href="/careers" className="text-gray-300 hover:text-red-200 transition-colors">Careers</Link></li>
+                <li><Link href="/press" className="text-gray-300 hover:text-red-200 transition-colors">Press</Link></li>
               </ul>
-            </div>
-
-            {/* Our Locations */}
-            <div>
-              <h4 className="text-white font-bold mb-2 text-sm uppercase tracking-wide border-b border-white/10 pb-1">Our Locations</h4>
-              <FooterLocations />
             </div>
 
             {/* Support */}
             <div>
               <h4 className="text-white font-bold mb-2 text-sm uppercase tracking-wide border-b border-white/10 pb-1">Support</h4>
               <ul className="space-y-1.5 text-sm">
-                <li><Link href="/help" className="text-gray-300 hover:text-sky-200 transition-colors">Help Center</Link></li>
-                <li><a href="mailto:support@piitrade.com" className="text-gray-300 hover:text-sky-200 transition-colors">Contact Us</a></li>
-                <li><Link href="/safety" className="text-gray-300 hover:text-sky-200 transition-colors">Safety Tips</Link></li>
-                <li><Link href="/privacy" className="text-gray-300 hover:text-sky-200 transition-colors">Privacy Policy</Link></li>
-                <li><Link href="/terms" className="text-gray-300 hover:text-sky-200 transition-colors">Terms of Service</Link></li>
+                <li><Link href="/help" className="text-gray-300 hover:text-red-200 transition-colors">Help Center</Link></li>
+                <li><a href="mailto:support@piitrade.com" className="text-gray-300 hover:text-red-200 transition-colors">Contact Us</a></li>
+                <li><Link href="/safety" className="text-gray-300 hover:text-red-200 transition-colors">Safety Tips</Link></li>
+                <li><Link href="/privacy" className="text-gray-300 hover:text-red-200 transition-colors">Privacy Policy</Link></li>
+                <li><Link href="/terms" className="text-gray-300 hover:text-red-200 transition-colors">Terms of Service</Link></li>
               </ul>
             </div>
           </div>
@@ -155,7 +149,7 @@ export default async function Footer() {
       {/* Compact mobile footer - shown only below md */}
       <div className="md:hidden py-6">
         <Link href="/" className="flex items-center justify-center gap-2 mb-4 hover:opacity-80 transition-opacity">
-          <div className="w-7 h-7 bg-gradient-to-br from-fuchsia-500 via-sky-500 to-indigo-600 rounded-lg flex items-center justify-center font-black text-white text-xs border border-white/30 shadow-glow">Pi</div>
+          <div className="w-7 h-7 bg-gradient-to-br from-fuchsia-500 via-red-500 to-rose-600 rounded-lg flex items-center justify-center font-black text-white text-xs border border-white/30 shadow-glow">Pi</div>
           <span className="font-extrabold text-white text-base tracking-tight">
             Piitrade
           </span>
@@ -177,19 +171,21 @@ export default async function Footer() {
               target={s.href !== '#' ? '_blank' : undefined}
               rel={s.href !== '#' ? 'noopener noreferrer' : undefined}
               aria-label={s.label}
-              className="w-9 h-9 rounded-lg bg-white/10 hover:bg-gradient-to-r hover:from-fuchsia-500 hover:to-sky-500 flex items-center justify-center text-xs text-gray-300 transition-colors interactive"
+              className="w-9 h-9 rounded-lg bg-white/10 hover:bg-gradient-to-r hover:from-fuchsia-500 hover:to-red-500 flex items-center justify-center text-xs text-gray-300 transition-colors interactive"
             >
               {s.icon}
             </a>
           ))}
         </div>
-        <p className="text-center text-xs text-gray-400">&copy; {new Date().getFullYear()} Piitrade Marketplace</p>
+        <VisitorStats className="justify-center mb-2" />
+        <p className="text-center text-xs text-gray-400" suppressHydrationWarning>&copy; {new Date().getFullYear()} Piitrade Marketplace</p>
       </div>
 
       {/* Bottom bar - desktop only */}
       <div className="hidden md:block border-t border-white/10">
         <div className="py-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
-          <p className="text-gray-300">&copy; {new Date().getFullYear()} Piitrade Marketplace. All rights reserved.</p>
+          <p className="text-gray-300" suppressHydrationWarning>&copy; {new Date().getFullYear()} Piitrade Marketplace. All rights reserved.</p>
+          <VisitorStats />
           <div className="flex gap-4">
             <Link href="/privacy" className="text-gray-300 hover:text-premium-gold transition-colors">Privacy Policy</Link>
             <Link href="/terms" className="text-gray-300 hover:text-premium-gold transition-colors">Terms of Service</Link>

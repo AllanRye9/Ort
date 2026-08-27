@@ -69,11 +69,25 @@ function persistCountry(c: Country) {
 }
 
 export function CountryProvider({ children }: { children: React.ReactNode }) {
-  const { enabledCountries: configEnabledCountries } = useSiteConfig();
-  // Filter+validate whatever the admin saved so a stale/bad value in the DB
-  // can never leave the storefront with zero selectable countries.
-  const enabledCountries = configEnabledCountries.filter((c): c is Country => VALID_COUNTRIES.includes(c as Country));
-  const effectiveEnabled = enabledCountries.length > 0 ? enabledCountries : DEFAULT_ENABLED_COUNTRIES;
+  // Uganda-only launch: configEnabledCountries (from SiteConfig via
+  // /admin/settings) is intentionally not read into effectiveEnabled below
+  // anymore — see that comment for why. Left destructured as a no-op import
+  // rather than removed so useSiteConfig() usage elsewhere in this file
+  // doesn't need restructuring when this is reverted.
+  useSiteConfig();
+  // const { enabledCountries: configEnabledCountries } = useSiteConfig();
+  // // Filter+validate whatever the admin saved so a stale/bad value in the DB
+  // // can never leave the storefront with zero selectable countries.
+  // const enabledCountries = configEnabledCountries.filter((c): c is Country => VALID_COUNTRIES.includes(c as Country));
+  // Uganda-only launch: hard-code the effective list to Uganda regardless of
+  // what SiteConfig.enabledCountries says in the DB (an admin could otherwise
+  // re-enable UAE/Kenya/China from /admin/settings, but those storefront
+  // routes are currently disabled — see app/country/uae|kenya|china — so
+  // letting the switcher point at them again would be a dead end). Commented
+  // out below is the original DB-driven line; swap back to it once the other
+  // country routes/components are restored.
+  // const effectiveEnabled = enabledCountries.length > 0 ? enabledCountries : DEFAULT_ENABLED_COUNTRIES;
+  const effectiveEnabled = DEFAULT_ENABLED_COUNTRIES;
 
   const [country, setCountryState] = useState<Country>(DEFAULT_ENABLED_COUNTRIES[0]);
   const [lastSelection, setLastSelection] = useState<'auto' | 'manual' | null>(null);

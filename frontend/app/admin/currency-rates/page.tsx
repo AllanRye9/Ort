@@ -219,7 +219,7 @@ function CurrencyPicker({
       <button
         type="button"
         onClick={() => setOpen((p) => !p)}
-        className="w-full flex items-center gap-2 border border-gray-200 rounded-lg px-2 py-1.5 text-sm bg-white hover:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-400 transition-colors text-left"
+        className="w-full flex items-center gap-2 border border-gray-200 rounded-lg px-2 py-1.5 text-sm bg-white hover:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-400 transition-colors text-left"
       >
         {selected ? (
           <>
@@ -245,12 +245,12 @@ function CurrencyPicker({
               placeholder="Search currency, country…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full text-sm border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-sky-400"
+              className="w-full text-sm border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-red-400"
             />
             <select
               value={region}
               onChange={(e) => setRegion(e.target.value)}
-              className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-sky-400 bg-white"
+              className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-red-400 bg-white"
             >
               <option value="">All regions</option>
               {REGIONS.map((r) => (
@@ -273,7 +273,7 @@ function CurrencyPicker({
                     disabled={alreadyUsed}
                     onClick={() => { onChange(c.code); setOpen(false); setSearch(''); }}
                     className={`w-full flex items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors
-                      ${c.code === value ? 'bg-sky-50 text-sky-700 font-semibold' : ''}
+                      ${c.code === value ? 'bg-red-50 text-red-700 font-semibold' : ''}
                       ${alreadyUsed ? 'opacity-40 cursor-not-allowed' : 'hover:bg-gray-50'}
                     `}
                   >
@@ -287,7 +287,7 @@ function CurrencyPicker({
                       <span className="ml-auto text-[9px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded shrink-0">added</span>
                     )}
                     {c.code === value && (
-                      <svg className="w-4 h-4 ml-auto text-sky-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 ml-auto text-red-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                       </svg>
                     )}
@@ -439,7 +439,7 @@ export default function CurrencyRatesPage() {
   if (authLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="w-8 h-8 border-4 border-sky-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-red-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -456,7 +456,7 @@ export default function CurrencyRatesPage() {
 
       {/* Page header */}
       <div className="mb-6 flex items-start gap-4">
-        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center text-2xl shadow-md shrink-0">
+        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center text-2xl shadow-md shrink-0">
           💱
         </div>
         <div>
@@ -472,11 +472,11 @@ export default function CurrencyRatesPage() {
       </div>
 
       {/* Info callout */}
-      <div className="mb-5 bg-sky-50 border border-sky-200 rounded-xl p-4 flex gap-3">
+      <div className="mb-5 bg-red-50 border border-red-200 rounded-xl p-4 flex gap-3">
         <span className="text-lg shrink-0 mt-0.5">ℹ️</span>
-        <div className="text-sm text-sky-800 space-y-1">
+        <div className="text-sm text-red-800 space-y-1">
           <p><strong>How it works:</strong> Save here and the homepage exchange widget updates immediately — no redeploy needed.</p>
-          <p><strong>Example:</strong> 1 AED = 1 020 UGX → enter <code className="bg-sky-100 px-1 rounded">1020</code> for UGX.</p>
+          <p><strong>Example:</strong> 1 AED = 1 020 UGX → enter <code className="bg-red-100 px-1 rounded">1020</code> for UGX.</p>
         </div>
       </div>
 
@@ -493,7 +493,7 @@ export default function CurrencyRatesPage() {
               </h2>
               <button
                 onClick={addRow}
-                className="flex items-center gap-1.5 text-xs font-semibold text-sky-600 hover:text-sky-700 px-3 py-1.5 rounded-lg border border-sky-200 hover:bg-sky-50 transition-colors"
+                className="flex items-center gap-1.5 text-xs font-semibold text-red-600 hover:text-red-700 px-3 py-1.5 rounded-lg border border-red-200 hover:bg-red-50 transition-colors"
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
@@ -504,7 +504,7 @@ export default function CurrencyRatesPage() {
 
             {fetching ? (
               <div className="p-10 text-center">
-                <div className="w-8 h-8 border-4 border-sky-400 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                <div className="w-8 h-8 border-4 border-red-400 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
                 <p className="text-sm text-gray-400">Loading rates…</p>
               </div>
             ) : (
@@ -548,7 +548,7 @@ export default function CurrencyRatesPage() {
                             className={`w-full text-sm font-mono font-bold border rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 ${
                               row.rate && (isNaN(parseFloat(row.rate)) || parseFloat(row.rate) <= 0)
                                 ? 'border-red-300 bg-red-50 focus:ring-red-400'
-                                : 'border-gray-200 focus:ring-sky-400'
+                                : 'border-gray-200 focus:ring-red-400'
                             }`}
                           />
                         </div>
@@ -574,7 +574,7 @@ export default function CurrencyRatesPage() {
                               type="text"
                               value={row.country}
                               onChange={(e) => updateField(idx, 'country', e.target.value)}
-                              className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-sky-400"
+                              className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-red-400"
                             />
                           </div>
                           <div className="flex-1">
@@ -583,7 +583,7 @@ export default function CurrencyRatesPage() {
                               type="text"
                               value={row.label}
                               onChange={(e) => updateField(idx, 'label', e.target.value)}
-                              className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-sky-400"
+                              className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-red-400"
                             />
                           </div>
                         </div>
@@ -599,7 +599,7 @@ export default function CurrencyRatesPage() {
           <div className="flex items-center justify-between gap-4">
             <button
               onClick={addRow}
-              className="flex items-center gap-1.5 text-sm text-sky-600 font-semibold hover:text-sky-700 transition-colors"
+              className="flex items-center gap-1.5 text-sm text-red-600 font-semibold hover:text-red-700 transition-colors"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
@@ -609,7 +609,7 @@ export default function CurrencyRatesPage() {
             <button
               onClick={handleSave}
               disabled={saving || fetching}
-              className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-700 hover:to-indigo-700 disabled:opacity-50 text-white font-bold text-sm rounded-xl shadow-lg hover:shadow-xl transition-all active:scale-95"
+              className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 disabled:opacity-50 text-white font-bold text-sm rounded-xl shadow-lg hover:shadow-xl transition-all active:scale-95"
             >
               {saving ? (
                 <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Saving…</>
@@ -630,7 +630,7 @@ export default function CurrencyRatesPage() {
         {/* ── RIGHT: World currency browser ─────────────────────────────── */}
         <div className="lg:col-span-2">
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden sticky top-4">
-            <div className="px-4 py-3 bg-gradient-to-r from-indigo-600 to-sky-600 text-white">
+            <div className="px-4 py-3 bg-gradient-to-r from-rose-600 to-red-600 text-white">
               <h2 className="font-bold text-sm">All World Currencies</h2>
               <p className="text-[11px] text-white/75 mt-0.5">{ALL_CURRENCIES.length} currencies · click to add</p>
             </div>
@@ -641,7 +641,7 @@ export default function CurrencyRatesPage() {
                 placeholder="Search code, country, currency name…"
                 value={quickSearch}
                 onChange={(e) => setQuickSearch(e.target.value)}
-                className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-sky-400"
+                className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-red-400"
               />
             </div>
 
@@ -667,7 +667,7 @@ export default function CurrencyRatesPage() {
                           onClick={() => !added && quickAdd(c.code)}
                           disabled={added}
                           className={`w-full flex items-center gap-2.5 px-3 py-2 text-left text-xs transition-colors
-                            ${added ? 'opacity-50 cursor-not-allowed bg-gray-50' : 'hover:bg-sky-50 hover:text-sky-700'}
+                            ${added ? 'opacity-50 cursor-not-allowed bg-gray-50' : 'hover:bg-red-50 hover:text-red-700'}
                           `}
                         >
                           <span style={{ fontSize: '1.1rem', lineHeight: 1, flexShrink: 0, minWidth: '1.3rem' }}>{c.flag}</span>
@@ -678,7 +678,7 @@ export default function CurrencyRatesPage() {
                           {added ? (
                             <span className="shrink-0 text-[9px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-semibold">✓ Added</span>
                           ) : (
-                            <span className="shrink-0 text-[9px] text-sky-500 font-semibold opacity-0 group-hover:opacity-100">+ Add</span>
+                            <span className="shrink-0 text-[9px] text-red-500 font-semibold opacity-0 group-hover:opacity-100">+ Add</span>
                           )}
                         </button>
                       );

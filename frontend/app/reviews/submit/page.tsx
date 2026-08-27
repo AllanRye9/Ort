@@ -127,8 +127,15 @@ function SubmitReviewForm() {
       });
       setSuccess(true);
     } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      setError(msg || 'Failed to submit review. Please try again.');
+      if (status === 403) {
+        setError(msg || "You can only review products you've purchased and received.");
+      } else if (status === 409) {
+        setError(msg || 'You have already reviewed this item.');
+      } else {
+        setError(msg || 'Failed to submit review. Please try again.');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -205,6 +212,16 @@ function SubmitReviewForm() {
             {content.length}/2000
           </p>
         </div>
+      </div>
+
+      {/* Verified purchase note */}
+      <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3 flex items-start gap-2">
+        <svg className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+          <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
+        </svg>
+        <p className="text-xs text-emerald-800">
+          Only buyers who have completed and received an order for this listing can leave a review. Your review will show a <span className="font-semibold">Verified Purchase</span> badge.
+        </p>
       </div>
 
       {/* Privacy note */}

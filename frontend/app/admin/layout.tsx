@@ -11,6 +11,7 @@ const navGroups = [
     items: [
       { href: '/admin', label: 'Dashboard', icon: '📊' },
       { href: '/admin/analytics', label: 'Analytics', icon: '📈' },
+      { href: '/admin/visitor-logs', label: 'Visitor Logs', icon: '🧾' },
     ],
   },
   {
@@ -33,6 +34,7 @@ const navGroups = [
       { href: '/admin/cv-history', label: 'CV History', icon: '📄' },
       { href: '/admin/orders', label: 'Orders', icon: '📦' },
       { href: '/admin/returns', label: 'Returns', icon: '↩️' },
+      { href: '/admin/kyc', label: 'KYC Verification', icon: '🪪' },
       { href: '/admin/reviews', label: 'Reviews', icon: '⭐' },
       { href: '/admin/reports', label: 'Reports', icon: '🚩' },
     ],
@@ -46,6 +48,7 @@ const navGroups = [
       { href: '/admin/subscriptions', label: 'Subscriptions', icon: '🔔' },
       { href: '/admin/shipping', label: 'Shipping Rates', icon: '🚚' },
       { href: '/admin/currency-rates', label: 'Exchange Rates', icon: '💱' },
+      { href: '/admin/commodity-prices', label: 'Market Prices', icon: '🌾' },
     ],
   },
   {
@@ -114,13 +117,13 @@ export default function AdminLayout({
           style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}
         >
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-8 h-8 rounded-lg bg-sky-500 flex items-center justify-center text-sm font-black shrink-0 shadow-lg">
+            <div className="w-8 h-8 rounded-lg bg-red-500 flex items-center justify-center text-sm font-black shrink-0 shadow-lg">
               Pi
             </div>
             {!collapsed && (
               <div className="min-w-0">
                 <p className="text-sm font-bold tracking-tight text-white truncate leading-tight">Piitrade</p>
-                <p className="text-[10px] font-semibold text-sky-400 tracking-widest uppercase">Admin Portal</p>
+                <p className="text-[10px] font-semibold text-red-400 tracking-widest uppercase">Admin Portal</p>
               </div>
             )}
           </div>
@@ -167,7 +170,7 @@ export default function AdminLayout({
                       title={label}
                       className={`flex items-center justify-center w-10 h-10 mx-auto rounded-lg transition-colors duration-150 ${
                         active
-                          ? 'bg-sky-500 text-white shadow-sm'
+                          ? 'bg-red-500 text-white shadow-sm'
                           : 'text-slate-400 hover:bg-white/10 hover:text-white'
                       }`}
                     >
@@ -194,7 +197,7 @@ export default function AdminLayout({
                             href={href}
                             className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors duration-150 ${
                               active
-                                ? 'bg-sky-500 text-white shadow-sm'
+                                ? 'bg-red-500 text-white shadow-sm'
                                 : 'text-slate-300 hover:bg-white/10 hover:text-white'
                             }`}
                           >
@@ -218,21 +221,21 @@ export default function AdminLayout({
         <div className="px-2 py-3 space-y-1 shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
           {user && !collapsed && (
             <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl mb-1" style={{ background: 'rgba(255,255,255,0.06)' }}>
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-sky-400 to-sky-600 flex items-center justify-center text-xs font-bold shrink-0 shadow">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-red-400 to-red-600 flex items-center justify-center text-xs font-bold shrink-0 shadow">
                 {user.name.charAt(0).toUpperCase()}
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-semibold text-white truncate leading-tight">{user.name}</p>
                 <p className="text-[10px] text-slate-400 truncate">{user.email}</p>
               </div>
-              <span className="shrink-0 text-[9px] font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30 px-1.5 py-0.5 rounded-full">
+              <span className="shrink-0 text-[9px] font-bold bg-red-500/20 text-red-300 border border-red-500/30 px-1.5 py-0.5 rounded-full">
                 ADMIN
               </span>
             </div>
           )}
           {user && collapsed && (
             <div className="flex justify-center py-1 mb-1">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-sky-400 to-sky-600 flex items-center justify-center text-xs font-bold shadow">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-red-400 to-red-600 flex items-center justify-center text-xs font-bold shadow">
                 {user.name.charAt(0).toUpperCase()}
               </div>
             </div>
@@ -265,7 +268,7 @@ export default function AdminLayout({
             </svg>
           </button>
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-md bg-sky-500 flex items-center justify-center text-[10px] font-black text-white">Pi</div>
+            <div className="w-6 h-6 rounded-md bg-red-500 flex items-center justify-center text-[10px] font-black text-white">Pi</div>
             <span className="text-sm font-bold text-gray-800">Admin Portal</span>
           </div>
         </div>

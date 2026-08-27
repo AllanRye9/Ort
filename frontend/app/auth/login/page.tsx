@@ -48,7 +48,7 @@ function LoginForm() {
   if (authLoading || user) {
     return (
       <div className="min-h-[70vh] flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-sky-200 border-t-sky-500 rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-red-200 border-t-red-500 rounded-full animate-spin" />
       </div>
     );
   }
@@ -87,10 +87,10 @@ function LoginForm() {
       <div className="w-full max-w-md animate-fade-up">
         <div className="rounded-3xl border border-white/30 dark:border-white/20 bg-white/95 dark:bg-slate-900/85 shadow-2xl backdrop-blur-xl p-6 sm:p-7">
           <div className="flex items-center justify-between mb-5">
-            <Link href="/" className="w-11 h-11 bg-gradient-to-br from-fuchsia-500 via-sky-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-glow hover:scale-105 transition-transform" aria-label="Go to homepage">
+            <Link href="/" className="w-11 h-11 bg-gradient-to-br from-fuchsia-500 via-red-500 to-rose-600 rounded-2xl flex items-center justify-center shadow-glow hover:scale-105 transition-transform" aria-label="Go to homepage">
               <span className="text-white font-black text-lg">Pi</span>
             </Link>
-            <span className="text-[11px] font-semibold text-sky-700 dark:text-sky-200 bg-sky-50 dark:bg-sky-500/20 border border-sky-100 dark:border-sky-300/20 rounded-full px-2.5 py-1">Secure sign in</span>
+            <span className="text-[11px] font-semibold text-red-700 dark:text-red-200 bg-red-50 dark:bg-red-500/20 border border-red-100 dark:border-red-300/20 rounded-full px-2.5 py-1">Secure sign in</span>
           </div>
 
           <h1 className="text-[1.65rem] leading-tight font-extrabold text-slate-950 dark:text-white mb-1">Welcome back</h1>
@@ -119,7 +119,7 @@ function LoginForm() {
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="text-sm font-semibold text-gray-700">Password</label>
-                <Link href="/auth/forgot-password" className="text-xs text-sky-600 hover:text-sky-700 font-medium transition-colors">
+                <Link href="/auth/forgot-password" className="text-xs text-red-600 hover:text-red-700 font-medium transition-colors">
                   Forgot password?
                 </Link>
               </div>
@@ -151,7 +151,7 @@ function LoginForm() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-fuchsia-600 via-sky-600 to-indigo-600 text-white text-sm font-bold shadow-glow hover:brightness-110 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-fuchsia-600 via-red-600 to-rose-600 text-white text-sm font-bold shadow-glow hover:brightness-110 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
@@ -164,7 +164,7 @@ function LoginForm() {
 
           <p className="text-center text-sm text-slate-600 dark:text-slate-300 mt-4">
             Don&apos;t have an account?{' '}
-            <Link href={`/auth/register${searchParams?.get('redirect') ? `?redirect=${encodeURIComponent(searchParams.get('redirect') as string)}` : ''}`} className="text-sky-600 hover:text-sky-700 font-bold transition-colors">
+            <Link href={`/auth/register${searchParams?.get('redirect') ? `?redirect=${encodeURIComponent(searchParams.get('redirect') as string)}` : ''}`} className="text-red-600 hover:text-red-700 font-bold transition-colors">
               Create one free →
             </Link>
           </p>

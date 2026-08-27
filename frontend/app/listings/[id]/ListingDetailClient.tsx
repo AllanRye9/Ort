@@ -40,7 +40,7 @@ function StructuredDescription({ text }: { text: string }) {
       <ul key={key} className="space-y-1.5 mb-3 pl-0">
         {bulletBuffer.map((b, i) => (
           <li key={i} className="flex items-start gap-2.5 text-sm text-[#4B5563]">
-            <span className="mt-[6px] h-1.5 w-1.5 rounded-full bg-[#0EA5E9] shrink-0" />
+            <span className="mt-[6px] h-1.5 w-1.5 rounded-full bg-[#B7291B] shrink-0" />
             <span>{b}</span>
           </li>
         ))}
@@ -150,7 +150,7 @@ function SectionCard({ children, className = '' }: { children: React.ReactNode; 
 function SectionHeader({ icon, title }: { icon: React.ReactNode; title: string }) {
   return (
     <div className="flex items-center gap-2.5 px-5 py-4 border-b border-[#F3F4F6]">
-      <span className="text-[#0EA5E9]">{icon}</span>
+      <span className="text-[#B7291B]">{icon}</span>
       <h2 className="text-sm font-semibold text-[#111827]">{title}</h2>
     </div>
   );
@@ -407,7 +407,7 @@ export default function ListingDetailClient() {
       <div className="text-6xl mb-4">🔍</div>
       <h2 className="text-xl font-semibold text-[#111827] mb-2">Listing not found</h2>
       <p className="text-[#6B7280] mb-6">This listing may have been removed or is no longer available.</p>
-      <Link href="/listings" className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#0EA5E9] text-white rounded-xl font-medium text-sm">
+      <Link href="/listings" className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#B7291B] text-white rounded-xl font-medium text-sm">
         Browse all listings
       </Link>
     </div>
@@ -478,7 +478,7 @@ export default function ListingDetailClient() {
                         key={i}
                         onClick={() => goToImage(i)}
                         aria-label={`View image ${i + 1}`}
-                        className={`relative shrink-0 rounded-lg overflow-hidden transition-all ${i === activeImage ? 'ring-2 ring-[#0EA5E9] ring-offset-1 opacity-100' : 'opacity-50 hover:opacity-80'}`}
+                        className={`relative shrink-0 rounded-lg overflow-hidden transition-all ${i === activeImage ? 'ring-2 ring-[#B7291B] ring-offset-1 opacity-100' : 'opacity-50 hover:opacity-80'}`}
                         style={{ width: '52px', height: '52px' }}
                       >
                         <Image src={img} alt={`Thumbnail ${i + 1}`} fill className="object-cover" sizes="52px" />
@@ -560,7 +560,7 @@ export default function ListingDetailClient() {
                         </p>
                         <div className="flex flex-wrap gap-2">
                           {opt.values.map((v) => (
-                            <button key={v} type="button" onClick={() => setValue(v)} className={`px-4 py-2 rounded-xl text-sm font-medium border transition-all ${currentVal === v ? 'border-[#0EA5E9] bg-[#EFF6FF] text-[#0369A1]' : 'border-[#E5E7EB] text-[#374151] hover:border-[#9CA3AF]'}`}>{v}</button>
+                            <button key={v} type="button" onClick={() => setValue(v)} className={`px-4 py-2 rounded-xl text-sm font-medium border transition-all ${currentVal === v ? 'border-[#B7291B] bg-[#FDF3F2] text-[#5C1610]' : 'border-[#E5E7EB] text-[#374151] hover:border-[#9CA3AF]'}`}>{v}</button>
                           ))}
                         </div>
                       </div>
@@ -572,7 +572,7 @@ export default function ListingDetailClient() {
                       <p className="text-xs font-semibold text-[#6B7280] uppercase tracking-wider mb-2.5">Colour — <span className="text-[#111827] normal-case font-medium">{selectedColor}</span></p>
                       <div className="flex flex-wrap gap-2">
                         {colorOptions.map(c => (
-                          <button key={c} type="button" onClick={() => setSelectedColor(c)} className={`px-4 py-2 rounded-xl text-sm font-medium border transition-all ${selectedColor === c ? 'border-[#0EA5E9] bg-[#EFF6FF] text-[#0369A1]' : 'border-[#E5E7EB] text-[#374151] hover:border-[#9CA3AF]'}`}>{c}</button>
+                          <button key={c} type="button" onClick={() => setSelectedColor(c)} className={`px-4 py-2 rounded-xl text-sm font-medium border transition-all ${selectedColor === c ? 'border-[#B7291B] bg-[#FDF3F2] text-[#5C1610]' : 'border-[#E5E7EB] text-[#374151] hover:border-[#9CA3AF]'}`}>{c}</button>
                         ))}
                       </div>
                     </div>
@@ -581,7 +581,7 @@ export default function ListingDetailClient() {
                       <select
                         value={selectedSize}
                         onChange={e => setSelectedSize(e.target.value)}
-                        className="w-full rounded-xl border border-[#E5E7EB] bg-white px-3.5 py-2.5 text-sm font-medium text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#0EA5E9] focus:border-transparent cursor-pointer"
+                        className="w-full rounded-xl border border-[#E5E7EB] bg-white px-3.5 py-2.5 text-sm font-medium text-[#111827] focus:outline-none focus:ring-2 focus:ring-[#B7291B] focus:border-transparent cursor-pointer"
                       >
                         {sizeOptions.map(s => (
                           <option key={s} value={s}>{s}</option>
@@ -601,7 +601,7 @@ export default function ListingDetailClient() {
                   <StructuredDescription text={listing.description} />
                 </div>
                 {listing.description.length > DESCRIPTION_COLLAPSE_THRESHOLD && (
-                  <button onClick={() => setDescExpanded(p => !p)} className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-[#0EA5E9] hover:text-[#0284C7] transition-colors">
+                  <button onClick={() => setDescExpanded(p => !p)} className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-[#B7291B] hover:text-[#7A1C15] transition-colors">
                     {descExpanded ? (
                       <><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" /></svg>Show less</>
                     ) : (
@@ -683,7 +683,7 @@ export default function ListingDetailClient() {
             <SectionCard className="shadow-sm">
               <div className="p-5">
                 <div className="flex items-start justify-between gap-3 mb-3">
-                  <CurrencyDisplay amount={listing.price} currency={listing.currency} displayCurrency={displayCurrency} showOriginal={displayCurrency !== listing.currency} className="text-3xl font-extrabold text-[#0369A1] leading-none" />
+                  <CurrencyDisplay amount={listing.price} currency={listing.currency} displayCurrency={displayCurrency} showOriginal={displayCurrency !== listing.currency} className="text-3xl font-extrabold text-[#5C1610] leading-none" />
                   <FavoriteButton listingId={listing.id} />
                 </div>
                 <h1 className="text-lg font-bold text-[#111827] leading-snug mb-3">{listing.title}</h1>
@@ -756,7 +756,7 @@ export default function ListingDetailClient() {
                       className={`w-full py-3.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all ${
                         cartAdded
                           ? 'bg-[#10B981] text-white'
-                          : 'bg-white border-2 border-[#0EA5E9] text-[#0EA5E9] hover:bg-[#EFF6FF]'
+                          : 'bg-white border-2 border-[#B7291B] text-[#B7291B] hover:bg-[#FDF3F2]'
                       }`}
                     >
                       {cartAdded ? (
@@ -783,7 +783,7 @@ export default function ListingDetailClient() {
                         });
                         router.push('/checkout');
                       }}
-                      className="w-full py-3.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 bg-[#0EA5E9] hover:bg-[#0284C7] text-white transition-all active:scale-[0.98]"
+                      className="w-full py-3.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 bg-[#B7291B] hover:bg-[#7A1C15] text-white transition-all active:scale-[0.98]"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                       Buy Now
@@ -802,8 +802,17 @@ export default function ListingDetailClient() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="font-semibold text-[#111827] text-sm truncate">{listing.user.name}</p>
+                      {listing.user.isKycVerified && (
+                        <span
+                          title="This seller has completed identity (KYC) verification"
+                          className="inline-flex items-center gap-1 bg-[#ECFDF5] text-[#047857] text-[10px] font-bold px-2 py-0.5 rounded-full"
+                        >
+                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" /></svg>
+                          KYC Verified
+                        </span>
+                      )}
                       {listing.user.isVerified && (
-                        <span className="inline-flex items-center gap-1 bg-[#EFF6FF] text-[#1D4ED8] text-[10px] font-bold px-2 py-0.5 rounded-full">
+                        <span className="inline-flex items-center gap-1 bg-[#FDF3F2] text-[#1D4ED8] text-[10px] font-bold px-2 py-0.5 rounded-full">
                           <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
                           Verified
                         </span>
@@ -817,7 +826,7 @@ export default function ListingDetailClient() {
                   <div className="space-y-2 border-t border-[#F3F4F6] pt-4">
                     <p className="text-[10px] font-bold text-[#9CA3AF] uppercase tracking-wider">Contact Seller</p>
                     <a href={`tel:${listing.user.phone}`} className="flex items-center gap-2.5 p-3 rounded-xl bg-[#F9FAFB] border border-[#F3F4F6] hover:border-[#E5E7EB] transition-all text-sm font-medium text-[#374151]">
-                      <svg className="w-4 h-4 text-[#0EA5E9]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+                      <svg className="w-4 h-4 text-[#B7291B]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
                       {listing.user.phone}
                     </a>
                     <a href={`https://wa.me/${listing.user.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hi, I'm interested in your listing: ${listing.title}`)}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 p-3 rounded-xl bg-[#F0FDF4] border border-[#DCFCE7] hover:border-[#BBF7D0] transition-all text-sm font-medium text-[#15803D]">
@@ -831,7 +840,7 @@ export default function ListingDetailClient() {
                   href={listing.user?.store?.slug
                     ? `/stores/${listing.user.store.slug}`
                     : `/listings?userId=${listing.userId}`}
-                  className="mt-4 flex items-center gap-1.5 text-xs font-semibold text-[#0EA5E9] hover:text-[#0284C7] transition-colors"
+                  className="mt-4 flex items-center gap-1.5 text-xs font-semibold text-[#B7291B] hover:text-[#7A1C15] transition-colors"
                 >
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0l-4-4m4 4l-4 4" /></svg>
                   {listing.user?.store?.slug ? 'Visit Seller Store' : 'View all listings by this seller'}
@@ -869,7 +878,7 @@ export default function ListingDetailClient() {
               <svg className="w-5 h-5 text-[#F59E0B]" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
               Customer Reviews
             </h2>
-            <Link href={`/listings/${id}/reviews`} className="text-xs font-semibold text-[#0EA5E9] hover:text-[#0284C7] flex items-center gap-1">
+            <Link href={`/listings/${id}/reviews`} className="text-xs font-semibold text-[#B7291B] hover:text-[#7A1C15] flex items-center gap-1">
               View all
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
             </Link>
@@ -915,7 +924,7 @@ export default function ListingDetailClient() {
           {user && !formSuccess && (
             <div className="mb-6">
               {!showForm ? (
-                <button onClick={() => setShowForm(true)} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#0EA5E9] text-white text-sm font-semibold hover:bg-[#0284C7] transition-all">
+                <button onClick={() => setShowForm(true)} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#B7291B] text-white text-sm font-semibold hover:bg-[#7A1C15] transition-all">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                   Write a Review
                 </button>
@@ -933,8 +942,8 @@ export default function ListingDetailClient() {
                         ))}
                       </div>
                     </div>
-                    <input type="text" value={formTitle} onChange={e => setFormTitle(e.target.value)} placeholder="Review title (optional)" className="w-full rounded-xl border border-[#E5E7EB] px-3.5 py-2.5 text-sm text-[#111827] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#0EA5E9] focus:border-transparent" />
-                    <textarea value={formContent} onChange={e => setFormContent(e.target.value)} rows={4} placeholder="Share your experience with this product…" className="w-full rounded-xl border border-[#E5E7EB] px-3.5 py-2.5 text-sm text-[#111827] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#0EA5E9] focus:border-transparent resize-none" required />
+                    <input type="text" value={formTitle} onChange={e => setFormTitle(e.target.value)} placeholder="Review title (optional)" className="w-full rounded-xl border border-[#E5E7EB] px-3.5 py-2.5 text-sm text-[#111827] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#B7291B] focus:border-transparent" />
+                    <textarea value={formContent} onChange={e => setFormContent(e.target.value)} rows={4} placeholder="Share your experience with this product…" className="w-full rounded-xl border border-[#E5E7EB] px-3.5 py-2.5 text-sm text-[#111827] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#B7291B] focus:border-transparent resize-none" required />
                     {formError && (
                       <p className="flex items-center gap-1.5 text-xs text-[#DC2626]">
                         <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
@@ -943,7 +952,7 @@ export default function ListingDetailClient() {
                     )}
                     <div className="flex gap-2 justify-end">
                       <button type="button" onClick={() => { setShowForm(false); setFormError(''); }} className="px-4 py-2.5 rounded-xl text-sm font-medium text-[#374151] border border-[#E5E7EB] hover:bg-[#F9FAFB]">Cancel</button>
-                      <button type="submit" disabled={formSubmitting} className="px-5 py-2.5 rounded-xl text-sm font-semibold bg-[#0EA5E9] text-white hover:bg-[#0284C7] disabled:opacity-50 transition-all">
+                      <button type="submit" disabled={formSubmitting} className="px-5 py-2.5 rounded-xl text-sm font-semibold bg-[#B7291B] text-white hover:bg-[#7A1C15] disabled:opacity-50 transition-all">
                         {formSubmitting ? 'Submitting…' : 'Submit Review'}
                       </button>
                     </div>
@@ -954,7 +963,7 @@ export default function ListingDetailClient() {
           )}
           {!user && (
             <p className="text-sm text-[#6B7280] mb-6">
-              <Link href="/auth/login" className="font-semibold text-[#0EA5E9] hover:text-[#0284C7]">Sign in</Link> to write a review.
+              <Link href="/auth/login" className="font-semibold text-[#B7291B] hover:text-[#7A1C15]">Sign in</Link> to write a review.
             </p>
           )}
 
@@ -962,7 +971,7 @@ export default function ListingDetailClient() {
           <div className="flex items-center gap-2 flex-wrap mb-5">
             <span className="text-xs font-semibold text-[#9CA3AF] uppercase tracking-wider">Sort:</span>
             {(['recent', 'helpful', 'highest', 'lowest'] as const).map(s => (
-              <button key={s} onClick={() => { setReviewSort(s); setReviewPage(1); }} className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${reviewSort === s ? 'bg-[#0EA5E9] text-white' : 'bg-white border border-[#E5E7EB] text-[#374151] hover:border-[#9CA3AF]'}`}>
+              <button key={s} onClick={() => { setReviewSort(s); setReviewPage(1); }} className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${reviewSort === s ? 'bg-[#B7291B] text-white' : 'bg-white border border-[#E5E7EB] text-[#374151] hover:border-[#9CA3AF]'}`}>
                 {s === 'recent' ? 'Most Recent' : s === 'helpful' ? 'Most Helpful' : s === 'highest' ? 'Highest Rated' : 'Lowest Rated'}
               </button>
             ))}
@@ -1013,7 +1022,7 @@ export default function ListingDetailClient() {
                     {review.title && <h4 className="font-semibold text-sm text-[#111827] mb-1.5">{review.title}</h4>}
                     <p className="text-sm text-[#4B5563] leading-relaxed">{review.content}</p>
                     <div className="mt-3 pt-3 border-t border-[#F9FAFB]">
-                      <button onClick={() => handleHelpful(review.id)} disabled={!user || helpfulLoading === review.id} className="inline-flex items-center gap-1.5 text-xs text-[#9CA3AF] hover:text-[#0EA5E9] disabled:opacity-50 transition-colors">
+                      <button onClick={() => handleHelpful(review.id)} disabled={!user || helpfulLoading === review.id} className="inline-flex items-center gap-1.5 text-xs text-[#9CA3AF] hover:text-[#B7291B] disabled:opacity-50 transition-colors">
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" /></svg>
                         Helpful ({review.helpfulCount})
                       </button>
@@ -1047,14 +1056,14 @@ export default function ListingDetailClient() {
                 <h2 className="text-xl font-bold text-[#111827]">You May Also Like</h2>
                 <p className="text-sm text-[#6B7280] mt-0.5">More from <span className="font-medium text-[#374151]">{listing.category.name}</span></p>
               </div>
-              <Link href={`/listings?category=${listing.category.slug}`} className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0EA5E9] hover:text-[#0284C7] border border-[#E5E7EB] hover:border-[#0EA5E9] px-3.5 py-2 rounded-xl transition-all">
+              <Link href={`/listings?category=${listing.category.slug}`} className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#B7291B] hover:text-[#7A1C15] border border-[#E5E7EB] hover:border-[#B7291B] px-3.5 py-2 rounded-xl transition-all">
                 Browse all
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
               </Link>
             </div>
 
             <div className="flex items-center gap-2 mb-5">
-              <span className="inline-flex items-center gap-1.5 bg-[#EFF6FF] text-[#0369A1] text-xs font-semibold px-3 py-1.5 rounded-full border border-[#BFDBFE]">
+              <span className="inline-flex items-center gap-1.5 bg-[#FDF3F2] text-[#5C1610] text-xs font-semibold px-3 py-1.5 rounded-full border border-[#F8C9C2]">
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
                 {listing.category.name}
               </span>

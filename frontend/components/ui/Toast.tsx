@@ -40,9 +40,9 @@ const styles: Record<ToastType, { bar: string; icon: string; container: string }
     container: 'border-red-100',
   },
   info: {
-    bar: 'bg-sky-500',
-    icon: 'bg-sky-100 text-sky-600',
-    container: 'border-sky-100',
+    bar: 'bg-red-500',
+    icon: 'bg-red-100 text-red-600',
+    container: 'border-red-100',
   },
   warning: {
     bar: 'bg-amber-500',

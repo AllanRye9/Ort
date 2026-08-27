@@ -12,7 +12,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 
 export type ThemeKey =
-  | 'sky'
+  | 'red'
   | 'white'
   | 'dark'
   | 'emerald'
@@ -43,14 +43,14 @@ interface ThemeOption {
 
 const THEMES: ThemeOption[] = [
   {
-    key: 'sky',
-    label: 'Light Blue',
-    bg: '#e0f2fe',
-    primary: '#0EA5E9',
-    primaryDark: '#0284c7',
-    bg100: '#e0f2fe',
-    textClass: 'text-sky-700',
-    textBody: '#0f172a',
+    key: 'red',
+    label: 'Piitrade Red',
+    bg: '#fce4e1',
+    primary: '#B7291B',
+    primaryDark: '#7A1C15',
+    bg100: '#fce4e1',
+    textClass: 'text-red-700',
+    textBody: '#1a1310',
     textOnPrimary: '#ffffff',
   },
   {
@@ -71,7 +71,7 @@ const THEMES: ThemeOption[] = [
     primary: '#38bdf8',
     primaryDark: '#0ea5e9',
     bg100: '#0f172a',
-    textClass: 'text-sky-300',
+    textClass: 'text-red-300',
     textBody: '#e2e8f0',
     textOnPrimary: '#0f172a',
   },
@@ -137,7 +137,7 @@ const THEMES: ThemeOption[] = [
     primary: '#1d4ed8',
     primaryDark: '#1e40af',
     bg100: '#eff6ff',
-    textClass: 'text-blue-800',
+    textClass: 'text-red-800',
     textBody: '#1e3a5f',
     textOnPrimary: '#ffffff',
   },
@@ -148,7 +148,7 @@ const THEMES: ThemeOption[] = [
     primary: '#0891b2',
     primaryDark: '#0e7490',
     bg100: '#ecfeff',
-    textClass: 'text-cyan-700',
+    textClass: 'text-rose-700',
     textBody: '#083344',
     textOnPrimary: '#ffffff',
   },
@@ -181,7 +181,7 @@ const THEMES: ThemeOption[] = [
     primary: '#818cf8',
     primaryDark: '#6366f1',
     bg100: '#0f0c29',
-    textClass: 'text-indigo-300',
+    textClass: 'text-rose-300',
     textBody: '#c7d2fe',
     textOnPrimary: '#0f0c29',
   },
@@ -272,7 +272,7 @@ export default function ThemeSwitcher({
   light?: boolean;
 }) {
   const { user } = useAuth();
-  const [current, setCurrent] = useState<ThemeKey>('sky');
+  const [current, setCurrent] = useState<ThemeKey>('red');
   const storageKey = user?.id ? `3re-theme:user:${user.id}` : GUEST_STORAGE_KEY;
 
   // Load saved theme on mount
@@ -285,9 +285,9 @@ export default function ThemeSwitcher({
       applyTheme(t);
       return;
     }
-    // Default blue theme for guests/new users and users without a saved preference.
-    const defaultTheme = THEMES.find((th) => th.key === 'sky')!;
-    setCurrent('sky');
+    // Default red theme for guests/new users and users without a saved preference.
+    const defaultTheme = THEMES.find((th) => th.key === 'red')!;
+    setCurrent('red');
     applyTheme(defaultTheme);
   }, [storageKey]);
 
@@ -329,8 +329,8 @@ export default function ThemeSwitcher({
               light ? 'border-gray-300' : 'border-white/50'
             }`}
             style={{
-              backgroundColor: currentTheme?.primary ?? '#0EA5E9',
-              boxShadow: `0 0 8px 2px ${currentTheme?.primary ?? '#0EA5E9'}55`,
+              backgroundColor: currentTheme?.primary ?? '#B7291B',
+              boxShadow: `0 0 8px 2px ${currentTheme?.primary ?? '#B7291B'}55`,
             }}
           />
         </div>
@@ -344,9 +344,9 @@ export default function ThemeSwitcher({
               onClick={(e) => handleSelect(t.key, e)}
               title={t.label}
               aria-label={`Switch to ${t.label} theme`}
-              className={`relative w-7 h-7 rounded-full border-2 transition-all focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-sky-400 ${
+              className={`relative w-7 h-7 rounded-full border-2 transition-all focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-red-400 ${
                 current === t.key
-                  ? 'border-sky-500 scale-110 shadow-md'
+                  ? 'border-red-500 scale-110 shadow-md'
                   : 'border-transparent hover:scale-110 hover:border-gray-300'
               }`}
               style={{ backgroundColor: t.primary }}

@@ -16,9 +16,9 @@ import { resolveImageUrl } from '@/lib/utils';
 const SITE_MEDIA_API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 export const metadata: Metadata = {
-  title: 'Piitrade Marketplace - UAE, Uganda, Kenya & China',
-  description: 'Buy and sell anything in UAE, Uganda, Kenya and China. Find the best deals on electronics, vehicles, real estate, and more. Millions of listings.',
-  keywords: 'marketplace, buy, sell, UAE, Uganda, Kenya, China, Dubai, Kampala, Nairobi, Beijing, classifieds, deals, electronics, vehicles',
+  title: 'Piitrade Marketplace - Uganda',
+  description: 'Buy and sell anything in Uganda. Find the best deals on electronics, vehicles, real estate, and more. Millions of listings.',
+  keywords: 'marketplace, buy, sell, Uganda, Kampala, classifieds, deals, electronics, vehicles',
   manifest: '/manifest.json',
   robots: { index: true, follow: true },
   icons: {
@@ -37,13 +37,13 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     siteName: 'Piitrade Marketplace',
-    title: 'Piitrade Marketplace - UAE, Uganda, Kenya & China',
-    description: 'Buy and sell anything in UAE, Uganda, Kenya and China. Find the best deals near you.',
+    title: 'Piitrade Marketplace - Uganda',
+    description: 'Buy and sell anything in Uganda. Find the best deals near you.',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Piitrade Marketplace - UAE, Uganda, Kenya & China',
-    description: 'Buy and sell anything in UAE, Uganda, Kenya and China. Find the best deals near you.',
+    title: 'Piitrade Marketplace - Uganda',
+    description: 'Buy and sell anything in Uganda. Find the best deals near you.',
   },
 };
 
@@ -52,8 +52,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#0EA5E9' },
-    { media: '(prefers-color-scheme: dark)', color: '#0EA5E9' },
+    { media: '(prefers-color-scheme: light)', color: '#B7291B' },
+    { media: '(prefers-color-scheme: dark)', color: '#B7291B' },
   ],
 };
 

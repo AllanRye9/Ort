@@ -73,10 +73,10 @@ function RegisterForm() {
         <div className="rounded-3xl border border-white/30 dark:border-white/20 bg-white/95 dark:bg-slate-900/85 shadow-2xl backdrop-blur-xl p-6 sm:p-7">
           {/* Header */}
           <div className="flex items-center justify-between mb-5">
-            <Link href="/" className="w-11 h-11 bg-gradient-to-br from-fuchsia-500 via-sky-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-glow hover:scale-105 transition-transform" aria-label="Go to homepage">
+            <Link href="/" className="w-11 h-11 bg-gradient-to-br from-fuchsia-500 via-red-500 to-rose-600 rounded-2xl flex items-center justify-center shadow-glow hover:scale-105 transition-transform" aria-label="Go to homepage">
               <span className="text-white font-black text-lg">Pi</span>
             </Link>
-            <span className="text-[11px] font-semibold text-sky-700 dark:text-sky-200 bg-sky-50 dark:bg-sky-500/20 border border-sky-100 dark:border-sky-300/20 rounded-full px-2.5 py-1">Free account</span>
+            <span className="text-[11px] font-semibold text-red-700 dark:text-red-200 bg-red-50 dark:bg-red-500/20 border border-red-100 dark:border-red-300/20 rounded-full px-2.5 py-1">Free account</span>
           </div>
 
           {step === 1 ? (
@@ -90,10 +90,10 @@ function RegisterForm() {
                     key={ut.role}
                     type="button"
                     onClick={() => setSelectedRole(ut.role)}
-                    className={`rounded-2xl border-2 p-4 text-left transition-all focus:outline-none focus:ring-2 focus:ring-sky-400 ${
+                    className={`rounded-2xl border-2 p-4 text-left transition-all focus:outline-none focus:ring-2 focus:ring-red-400 ${
                       selectedRole === ut.role
-                        ? 'border-sky-500 bg-sky-50 dark:bg-sky-900/30 shadow-md scale-[1.03]'
-                        : 'border-slate-200 dark:border-slate-700 hover:border-sky-300 dark:hover:border-sky-600'
+                        ? 'border-red-500 bg-red-50 dark:bg-red-900/30 shadow-md scale-[1.03]'
+                        : 'border-slate-200 dark:border-slate-700 hover:border-red-300 dark:hover:border-red-600'
                     }`}
                   >
                     <div className="text-2xl mb-1">{ut.icon}</div>
@@ -106,7 +106,7 @@ function RegisterForm() {
               <button
                 type="button"
                 onClick={() => setStep(2)}
-                className="w-full py-3 rounded-xl bg-gradient-to-r from-fuchsia-600 via-sky-600 to-indigo-600 text-white text-sm font-bold shadow-glow hover:brightness-110 transition-all"
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-fuchsia-600 via-red-600 to-rose-600 text-white text-sm font-bold shadow-glow hover:brightness-110 transition-all"
               >
                 Continue as {USER_TYPES.find(u => u.role === selectedRole)?.label} →
               </button>
@@ -121,9 +121,9 @@ function RegisterForm() {
               </div>
 
               {/* Selected type badge */}
-              <div className="flex items-center gap-2 mb-4 bg-sky-50 dark:bg-sky-900/20 border border-sky-200 dark:border-sky-700 rounded-xl px-3 py-2">
+              <div className="flex items-center gap-2 mb-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-xl px-3 py-2">
                 <span className="text-lg">{USER_TYPES.find(u => u.role === selectedRole)?.icon}</span>
-                <span className="text-sm font-semibold text-sky-700 dark:text-sky-300">{USER_TYPES.find(u => u.role === selectedRole)?.label} Account</span>
+                <span className="text-sm font-semibold text-red-700 dark:text-red-300">{USER_TYPES.find(u => u.role === selectedRole)?.label} Account</span>
               </div>
 
               {error && (
@@ -217,8 +217,8 @@ function RegisterForm() {
 
                 {/* ── Conditional: Organisation / Company fields ── */}
                 {isOrgOrCompany && (
-                  <div className="rounded-2xl border border-indigo-200 dark:border-indigo-700 bg-indigo-50 dark:bg-indigo-900/20 p-4 space-y-3">
-                    <p className="text-xs font-bold text-indigo-700 dark:text-indigo-400 uppercase tracking-wide">{selectedRole === 'COMPANY' ? 'Company' : 'Organisation'} Details</p>
+                  <div className="rounded-2xl border border-rose-200 dark:border-rose-700 bg-rose-50 dark:bg-rose-900/20 p-4 space-y-3">
+                    <p className="text-xs font-bold text-rose-700 dark:text-rose-400 uppercase tracking-wide">{selectedRole === 'COMPANY' ? 'Company' : 'Organisation'} Details</p>
                     <div>
                       <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-1">{selectedRole === 'COMPANY' ? 'Company' : 'Organisation'} Name <span className="text-red-500">*</span></label>
                       <input type="text" value={form.companyName} onChange={(e) => setForm({ ...form, companyName: e.target.value })} required={isOrgOrCompany} placeholder="Acme Corp Ltd." className="input-premium" />
@@ -238,7 +238,7 @@ function RegisterForm() {
                   </div>
                 )}
 
-                <button type="submit" disabled={loading} className="w-full py-3 rounded-xl bg-gradient-to-r from-fuchsia-600 via-sky-600 to-indigo-600 text-white text-sm font-bold mt-1 shadow-glow hover:brightness-110 transition-all disabled:opacity-60 disabled:cursor-not-allowed">
+                <button type="submit" disabled={loading} className="w-full py-3 rounded-xl bg-gradient-to-r from-fuchsia-600 via-red-600 to-rose-600 text-white text-sm font-bold mt-1 shadow-glow hover:brightness-110 transition-all disabled:opacity-60 disabled:cursor-not-allowed">
                   {loading ? (
                     <span className="flex items-center justify-center gap-2">
                       <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
@@ -249,15 +249,15 @@ function RegisterForm() {
 
                 <p className="text-center text-xs text-slate-500 dark:text-slate-300 mt-1">
                   By registering, you agree to our{' '}
-                  <Link href="/terms" className="text-sky-600 hover:underline">Terms</Link>{' '}
+                  <Link href="/terms" className="text-red-600 hover:underline">Terms</Link>{' '}
                   and{' '}
-                  <Link href="/privacy" className="text-sky-600 hover:underline">Privacy Policy</Link>
+                  <Link href="/privacy" className="text-red-600 hover:underline">Privacy Policy</Link>
                 </p>
               </form>
 
               <p className="text-center text-sm text-slate-600 dark:text-slate-300 mt-4">
                 Already have an account?{' '}
-                <Link href={`/auth/login${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ''}`} className="text-sky-600 hover:text-sky-700 font-bold transition-colors">Sign in →</Link>
+                <Link href={`/auth/login${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ''}`} className="text-red-600 hover:text-red-700 font-bold transition-colors">Sign in →</Link>
               </p>
             </>
           )}

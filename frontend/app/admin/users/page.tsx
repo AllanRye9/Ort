@@ -155,7 +155,7 @@ export default function AdminUsersPage() {
           placeholder="Search by name or email..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full max-w-md px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full max-w-md px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
         />
       </div>
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
@@ -191,7 +191,7 @@ export default function AdminUsersPage() {
                     u.isBanned ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
                   }`}>{u.isBanned ? 'Banned' : 'Active'}</span>
                   <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                    u.isVerified ? 'bg-sky-100 text-sky-700' : 'bg-amber-100 text-amber-700'
+                    u.isVerified ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
                   }`}>{u.isVerified ? 'Verified' : 'Unverified'}</span>
                 </td>
                 <td className="px-3 sm:px-6 py-3 sm:py-4">
@@ -218,7 +218,7 @@ export default function AdminUsersPage() {
                       <button
                         onClick={() => saveUserControls(u)}
                         disabled={savingUserId === u.id}
-                        className="text-xs px-3 py-1.5 rounded font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed transition-colors"
+                        className="text-xs px-3 py-1.5 rounded font-medium bg-red-600 text-white hover:bg-red-700 disabled:bg-red-300 disabled:cursor-not-allowed transition-colors"
                       >
                         {savingUserId === u.id ? 'Saving...' : 'Save'}
                       </button>
@@ -226,7 +226,7 @@ export default function AdminUsersPage() {
                        <button
                          onClick={() => approveAdmin(u.id, u.name)}
                          disabled={promotingUserId === u.id}
-                         className="text-xs px-3 py-1.5 rounded font-medium bg-indigo-600 text-white hover:bg-indigo-700 disabled:bg-indigo-300 disabled:cursor-not-allowed transition-colors"
+                         className="text-xs px-3 py-1.5 rounded font-medium bg-rose-600 text-white hover:bg-rose-700 disabled:bg-rose-300 disabled:cursor-not-allowed transition-colors"
                        >
                          {promotingUserId === u.id ? 'Approving...' : 'Approve Admin'}
                        </button>

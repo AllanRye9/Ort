@@ -225,7 +225,7 @@ function StoreProfileEditor({
   const [saving, setSaving]           = useState(false);
   const [error, setError]             = useState('');
 
-  const fc = 'w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 bg-white';
+  const fc = 'w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 bg-white';
   const lc = 'block text-xs font-semibold text-gray-700 mb-1.5';
 
   const handleLogoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -316,7 +316,7 @@ function StoreProfileEditor({
             <div className="flex-1 space-y-2">
               {/* File upload button */}
               <label className="block">
-                <span className="inline-flex items-center gap-1.5 px-4 py-2 bg-sky-50 border border-sky-200 text-sky-700 text-xs font-semibold rounded-lg hover:bg-sky-100 cursor-pointer transition-colors">
+                <span className="inline-flex items-center gap-1.5 px-4 py-2 bg-red-50 border border-red-200 text-red-700 text-xs font-semibold rounded-lg hover:bg-red-100 cursor-pointer transition-colors">
                   📁 Upload Logo File
                 </span>
                 <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" className="hidden" onChange={handleLogoFileChange} />
@@ -355,10 +355,10 @@ function StoreProfileEditor({
         </div>
 
         {/* Contact details note */}
-        <div className="bg-blue-50 border border-blue-100 rounded-xl p-3.5 text-xs text-blue-700">
+        <div className="bg-red-50 border border-red-100 rounded-xl p-3.5 text-xs text-red-700">
           <p className="font-bold mb-0.5 flex items-center gap-1">💡 Contact Details & Additional Info</p>
           <p>Your <strong>phone number</strong>, <strong>email</strong>, <strong>website</strong>, <strong>social links</strong>, and <strong>business description</strong> are managed under{' '}
-            <Link href="/profile" className="underline font-semibold hover:text-blue-900">Profile Settings</Link>.
+            <Link href="/profile" className="underline font-semibold hover:text-red-900">Profile Settings</Link>.
             They display automatically on your public store page alongside your listings.
           </p>
         </div>
@@ -366,7 +366,7 @@ function StoreProfileEditor({
 
       <div className="flex gap-3 mt-5">
         <button onClick={handleSave} disabled={saving || uploadingLogo}
-          className="px-6 py-2.5 bg-sky-600 text-white text-sm font-semibold rounded-xl hover:bg-sky-700 disabled:opacity-50 transition-colors shadow-sm">
+          className="px-6 py-2.5 bg-red-600 text-white text-sm font-semibold rounded-xl hover:bg-red-700 disabled:opacity-50 transition-colors shadow-sm">
           {saving ? 'Saving…' : 'Save Changes'}
         </button>
         <button onClick={onCancel} className="px-4 py-2.5 bg-gray-100 text-gray-700 text-sm rounded-xl hover:bg-gray-200 transition-colors">
@@ -554,7 +554,7 @@ export default function StoreRentalDashboard() {
   if (authLoading || fetching) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-sky-500 border-t-transparent rounded-full animate-spin"/>
+        <div className="w-8 h-8 border-4 border-red-500 border-t-transparent rounded-full animate-spin"/>
       </div>
     );
   }
@@ -588,7 +588,7 @@ export default function StoreRentalDashboard() {
           <div className="text-5xl mb-4">🏪</div>
           <h2 className="text-lg font-bold text-gray-800 mb-2">Open Your Store on Piitrade</h2>
           <p className="text-sm text-gray-500 mb-2 max-w-md mx-auto">
-            Get a verified digital storefront to showcase your products and reach buyers across UAE, Uganda, Kenya, and China.
+            Get a verified digital storefront to showcase your products and reach buyers across Uganda.
           </p>
           {/* Subscription fee prominently displayed */}
           <div className="inline-flex items-center gap-2 bg-violet-50 border border-violet-200 rounded-xl px-4 py-2.5 mb-6">
@@ -639,7 +639,7 @@ export default function StoreRentalDashboard() {
                 {ENTITY_TYPES.map(t => (
                   <button key={t} type="button" onClick={() => setEntityType(t)}
                     className={`rounded-lg border-2 py-2.5 text-sm font-medium transition-all ${
-                      entityType === t ? 'border-sky-500 bg-sky-50 text-sky-700' : 'border-gray-200 text-gray-600 hover:border-sky-200'}`}>
+                      entityType === t ? 'border-red-500 bg-red-50 text-red-700' : 'border-gray-200 text-gray-600 hover:border-red-200'}`}>
                     {t === 'AGENT' ? '👤 Agent' : t === 'COMPANY' ? '🏢 Company' : '🌐 Organisation'}
                   </button>
                 ))}
@@ -649,8 +649,8 @@ export default function StoreRentalDashboard() {
             {/* Store identity — this becomes the entry point that groups this
                 entity's listings, so it must carry real, meaningful information
                 from the moment the store is created. */}
-            <div className="bg-sky-50 border border-sky-100 rounded-xl p-4 space-y-4">
-              <p className="text-xs font-bold text-sky-800 flex items-center gap-1.5">
+            <div className="bg-red-50 border border-red-100 rounded-xl p-4 space-y-4">
+              <p className="text-xs font-bold text-red-800 flex items-center gap-1.5">
                 🏬 Store Information <span className="text-red-400 font-normal">(required)</span>
               </p>
 
@@ -669,7 +669,7 @@ export default function StoreRentalDashboard() {
                   value={applyStoreName}
                   onChange={(e) => setApplyStoreName(e.target.value)}
                   placeholder="e.g. Pearl Traders, TechHub Uganda"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 bg-white"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 bg-white"
                 />
               </div>
 
@@ -682,7 +682,7 @@ export default function StoreRentalDashboard() {
                   onChange={(e) => setApplyStoreDescription(e.target.value)}
                   rows={3}
                   placeholder="Describe your products or services, and what makes your store unique. This is what buyers will see on your store page."
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 bg-white resize-none"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 bg-white resize-none"
                 />
               </div>
 
@@ -696,7 +696,7 @@ export default function StoreRentalDashboard() {
                     value={applyStoreCategory}
                     onChange={(e) => setApplyStoreCategory(e.target.value)}
                     placeholder="e.g. Electronics, Fashion"
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 bg-white"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 bg-white"
                   />
                 </div>
                 <div>
@@ -708,7 +708,7 @@ export default function StoreRentalDashboard() {
                     value={applyContactPhone}
                     onChange={(e) => setApplyContactPhone(e.target.value)}
                     placeholder="+256 7XX XXX XXX"
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 bg-white"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 bg-white"
                   />
                 </div>
               </div>
@@ -784,7 +784,7 @@ export default function StoreRentalDashboard() {
                 </p>
                 {listingCount !== null && (
                   <div className="mt-1 w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-sky-500 rounded-full transition-all"
+                    <div className="h-full bg-red-500 rounded-full transition-all"
                       style={{ width: `${Math.min(100, (listingCount / rental.maxListings) * 100)}%` }}/>
                   </div>
                 )}
@@ -826,7 +826,7 @@ export default function StoreRentalDashboard() {
             {rental.status === 'ACTIVE' && (
               <div className="flex flex-wrap gap-2">
                 <Link href="/listings/create"
-                  className="px-4 py-2 bg-sky-600 text-white text-sm font-semibold rounded-lg hover:bg-sky-700 transition-colors">
+                  className="px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 transition-colors">
                   + Post a Listing
                 </Link>
                 <Link href="/profile/listings"
@@ -834,7 +834,7 @@ export default function StoreRentalDashboard() {
                   Manage Listings
                 </Link>
                 <button onClick={() => setEditingProfile(true)}
-                  className="px-4 py-2 border border-sky-200 text-sky-700 text-sm font-medium rounded-lg hover:bg-sky-50 transition-colors">
+                  className="px-4 py-2 border border-red-200 text-red-700 text-sm font-medium rounded-lg hover:bg-red-50 transition-colors">
                   ✏️ Edit Store Profile
                 </button>
                 {store && (
@@ -859,7 +859,7 @@ export default function StoreRentalDashboard() {
               ) : store ? (
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-5">
                   {/* Banner */}
-                  <div className="h-28 bg-gradient-to-br from-sky-400 to-indigo-600 relative">
+                  <div className="h-28 bg-gradient-to-br from-red-400 to-rose-600 relative">
                     {store.banner && (
                       <Image src={resolveImageUrl(store.banner)} alt="Store banner" fill className="object-cover"/>
                     )}
@@ -878,7 +878,7 @@ export default function StoreRentalDashboard() {
                     <div className="pt-8 flex-1 min-w-0">
                       <h3 className="font-extrabold text-gray-900 text-base">{store.name}</h3>
                       {store.description && <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{store.description}</p>}
-                      <Link href={`/stores/${store.slug}`} className="text-xs text-sky-600 hover:underline mt-1 inline-block">
+                      <Link href={`/stores/${store.slug}`} className="text-xs text-red-600 hover:underline mt-1 inline-block">
                         /stores/{store.slug} →
                       </Link>
                     </div>
@@ -896,7 +896,7 @@ export default function StoreRentalDashboard() {
                 <h2 className="text-base font-bold text-gray-900 mb-1">Listing Placement Routing</h2>
                 <p className="text-xs text-gray-500 mb-4">
                   Choose which homepage sections your listings appear in. You can also control placement per-listing from{' '}
-                  <Link href="/profile/listings" className="text-sky-600 underline">Manage Listings</Link>.
+                  <Link href="/profile/listings" className="text-red-600 underline">Manage Listings</Link>.
                 </p>
 
                 <div className="grid gap-3 sm:grid-cols-3 mb-4">
@@ -916,13 +916,13 @@ export default function StoreRentalDashboard() {
                   ))}
                 </div>
 
-                <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 text-xs text-blue-700 mb-4">
+                <div className="bg-red-50 border border-red-100 rounded-lg p-3 text-xs text-red-700 mb-4">
                   <strong>Note:</strong> Platform partition routing for individual listings is done via the placement dropdown on each listing in{' '}
                   <Link href="/profile/listings" className="underline font-medium">Manage Listings</Link>. The options above set your store-wide preferred partitions.
                 </div>
 
                 <button onClick={handleSavePlacements} disabled={savingPlacements}
-                  className="px-5 py-2 bg-sky-600 text-white text-sm font-semibold rounded-lg hover:bg-sky-700 disabled:opacity-50 transition-colors">
+                  className="px-5 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors">
                   {savingPlacements ? 'Saving…' : 'Save Placement Preferences'}
                 </button>
               </div>
@@ -932,14 +932,14 @@ export default function StoreRentalDashboard() {
                 <h2 className="text-base font-bold text-gray-900 mb-3">Quick Actions</h2>
                 <div className="grid sm:grid-cols-3 gap-3">
                   {[
-                    { href: '/listings/create', icon: '➕', label: 'Post New Listing', desc: 'Add a product or service to your store', color: 'sky' },
-                    { href: '/profile/listings', icon: '📋', label: 'Manage Listings', desc: 'Edit, update status, set placement', color: 'indigo' },
+                    { href: '/listings/create', icon: '➕', label: 'Post New Listing', desc: 'Add a product or service to your store', color: 'red' },
+                    { href: '/profile/listings', icon: '📋', label: 'Manage Listings', desc: 'Edit, update status, set placement', color: 'rose' },
                     { href: '/profile', icon: '👤', label: 'Edit Profile', desc: 'Update contact info, bio, and social links', color: 'gray' },
                   ].map(action => (
                     <Link key={action.href} href={action.href}
                       className={`group flex flex-col gap-1.5 p-3.5 rounded-xl border border-gray-100 bg-gray-50 hover:bg-${action.color}-50 hover:border-${action.color}-200 transition-all`}>
                       <span className="text-xl">{action.icon}</span>
-                      <p className="font-semibold text-gray-800 text-sm group-hover:text-sky-700 transition-colors">{action.label}</p>
+                      <p className="font-semibold text-gray-800 text-sm group-hover:text-red-700 transition-colors">{action.label}</p>
                       <p className="text-xs text-gray-400">{action.desc}</p>
                     </Link>
                   ))}

@@ -1022,16 +1022,16 @@ export default function AdminBulkPostPage() {
       )}
 
       {submitting && submitProgress && (
-        <div className="mb-4 p-3 bg-sky-50 border border-sky-200 rounded-xl text-sm text-sky-700">
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
           <div className="flex items-center justify-between mb-1.5">
             <span className="font-semibold">
               Posting batch {submitProgress.batch} of {submitProgress.batches}…
             </span>
             <span>{submitProgress.done} / {submitProgress.total} created</span>
           </div>
-          <div className="h-1.5 w-full rounded-full bg-sky-100 overflow-hidden">
+          <div className="h-1.5 w-full rounded-full bg-red-100 overflow-hidden">
             <div
-              className="h-full bg-sky-500 transition-all"
+              className="h-full bg-red-500 transition-all"
               style={{ width: `${Math.round((submitProgress.done / Math.max(submitProgress.total, 1)) * 100)}%` }}
             />
           </div>
@@ -1163,8 +1163,8 @@ export default function AdminBulkPostPage() {
       )}
 
       {/* Apply to all — quick-fill shared fields across every listing */}
-      <div className="mb-6 bg-sky-50 border border-sky-200 rounded-2xl p-4">
-        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-sky-700 mb-3">
+      <div className="mb-6 bg-red-50 border border-red-200 rounded-2xl p-4">
+        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-red-700 mb-3">
           ⚡ Apply to All {items.length} Listing{items.length !== 1 ? 's' : ''}
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
@@ -1181,7 +1181,7 @@ export default function AdminBulkPostPage() {
             <select
               value={bulkCountry}
               onChange={(e) => setBulkCountry(e.target.value as Country)}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
             >
               <option value="UAE">🇦🇪 UAE</option>
               <option value="UGANDA">🇺🇬 Uganda</option>
@@ -1194,7 +1194,7 @@ export default function AdminBulkPostPage() {
             <select
               value={bulkCondition}
               onChange={(e) => setBulkCondition(e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
             >
               <option value="NEW">New</option>
               <option value="USED">Used</option>
@@ -1205,15 +1205,15 @@ export default function AdminBulkPostPage() {
           <button
             type="button"
             onClick={applyToAll}
-            className="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-semibold transition-colors"
+            className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-semibold transition-colors"
           >
             Apply to all {items.length} listing{items.length !== 1 ? 's' : ''}
           </button>
           <div className="flex gap-3 text-xs">
-            <button type="button" onClick={() => setAllCollapsed(true)} className="text-sky-700 hover:text-sky-900 font-semibold">
+            <button type="button" onClick={() => setAllCollapsed(true)} className="text-red-700 hover:text-red-900 font-semibold">
               Collapse all
             </button>
-            <button type="button" onClick={() => setAllCollapsed(false)} className="text-sky-700 hover:text-sky-900 font-semibold">
+            <button type="button" onClick={() => setAllCollapsed(false)} className="text-red-700 hover:text-red-900 font-semibold">
               Expand all
             </button>
           </div>
@@ -1235,7 +1235,7 @@ export default function AdminBulkPostPage() {
             return (
               <div
                 key={index}
-                className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 flex items-center justify-between gap-3 cursor-pointer hover:border-sky-300 transition-colors"
+                className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 flex items-center justify-between gap-3 cursor-pointer hover:border-red-300 transition-colors"
                 onClick={() => toggleCollapsed(index)}
               >
                 <div className="flex items-center gap-3 min-w-0">
@@ -1262,7 +1262,7 @@ export default function AdminBulkPostPage() {
                     </p>
                   </div>
                 </div>
-                <span className="text-xs text-sky-600 font-semibold shrink-0">Expand</span>
+                <span className="text-xs text-red-600 font-semibold shrink-0">Expand</span>
               </div>
             );
           }
@@ -1284,7 +1284,7 @@ export default function AdminBulkPostPage() {
                   <button
                     type="button"
                     onClick={() => duplicateItem(index)}
-                    className="text-sky-600 hover:text-sky-800 text-sm font-medium"
+                    className="text-red-600 hover:text-red-800 text-sm font-medium"
                   >
                     Duplicate
                   </button>
@@ -1323,7 +1323,7 @@ export default function AdminBulkPostPage() {
                     value={item.title}
                     onChange={(e) => updateItem(index, 'title', e.target.value)}
                     placeholder="Product title"
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
                   />
                 </div>
 
@@ -1338,7 +1338,7 @@ export default function AdminBulkPostPage() {
                     onChange={(e) => updateItem(index, 'description', e.target.value)}
                     placeholder="Product description. Use ## for headings and - for bullet points."
                     rows={3}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300 resize-none"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 resize-none"
                   />
                 </div>
 
@@ -1348,7 +1348,7 @@ export default function AdminBulkPostPage() {
                   <select
                     value={item.country}
                     onChange={(e) => updateItemCountry(index, e.target.value as Country)}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
                   >
                     <option value="UAE">🇦🇪 UAE</option>
                     <option value="UGANDA">🇺🇬 Uganda</option>
@@ -1370,7 +1370,7 @@ export default function AdminBulkPostPage() {
                     value={item.price}
                     onChange={(e) => updateItem(index, 'price', e.target.value)}
                     placeholder="0.00"
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
                   />
                 </div>
 
@@ -1380,7 +1380,7 @@ export default function AdminBulkPostPage() {
                   <select
                     value={item.condition}
                     onChange={(e) => updateItem(index, 'condition', e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
                   >
                     <option value="NEW">New</option>
                     <option value="USED">Used</option>
@@ -1396,7 +1396,7 @@ export default function AdminBulkPostPage() {
                     required
                     value={item.location}
                     onChange={(e) => updateItem(index, 'location', e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
                   >
                     <option value="">Select location</option>
                     {availableLocations.map((loc) => (
@@ -1428,7 +1428,7 @@ export default function AdminBulkPostPage() {
                     onChange={(e) => updateItem(index, 'stock', e.target.value)}
                     placeholder="e.g. 10"
                     required
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
                   />
                 </div>
 
@@ -1442,7 +1442,7 @@ export default function AdminBulkPostPage() {
                     value={item.tags}
                     onChange={(e) => updateItem(index, 'tags', e.target.value)}
                     placeholder="e.g. electronics, new, sale"
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
                   />
                 </div>
 
@@ -1584,15 +1584,15 @@ export default function AdminBulkPostPage() {
 
                 {/* ─── PROPERTY DETAILS SECTION ─── */}
                 {isPropertyCategory && (
-                  <div className="sm:col-span-2 rounded-xl border border-sky-200 bg-sky-50/50 p-4">
-                    <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-sky-700 mb-3">🏠 Property Details</p>
+                  <div className="sm:col-span-2 rounded-xl border border-red-200 bg-red-50/50 p-4">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-red-700 mb-3">🏠 Property Details</p>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="mb-1 block text-xs font-medium text-gray-700">Property Type</label>
                         <select
                           value={item.propertyDetails.propertyType}
                           onChange={(e) => updatePropertyDetail(index, 'propertyType', e.target.value)}
-                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
                         >
                           <option value="">Select type</option>
                           <option>Apartment</option>
@@ -1611,7 +1611,7 @@ export default function AdminBulkPostPage() {
                         <select
                           value={item.propertyDetails.listingType}
                           onChange={(e) => updatePropertyDetail(index, 'listingType', e.target.value)}
-                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
                         >
                           <option value="">Select</option>
                           <option>For Rent</option>
@@ -1623,7 +1623,7 @@ export default function AdminBulkPostPage() {
                         <select
                           value={item.propertyDetails.bedrooms}
                           onChange={(e) => updatePropertyDetail(index, 'bedrooms', e.target.value)}
-                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
                         >
                           <option value="">Select</option>
                           <option>Studio</option>
@@ -1640,7 +1640,7 @@ export default function AdminBulkPostPage() {
                         <select
                           value={item.propertyDetails.bathrooms}
                           onChange={(e) => updatePropertyDetail(index, 'bathrooms', e.target.value)}
-                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
                         >
                           <option value="">Select</option>
                           <option>1</option>
@@ -1654,7 +1654,7 @@ export default function AdminBulkPostPage() {
                         <select
                           value={item.propertyDetails.furnishedStatus}
                           onChange={(e) => updatePropertyDetail(index, 'furnishedStatus', e.target.value)}
-                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
                         >
                           <option value="">Select</option>
                           <option>Furnished</option>
@@ -1670,7 +1670,7 @@ export default function AdminBulkPostPage() {
                           onChange={(e) => updatePropertyDetail(index, 'sizeSqft', e.target.value)}
                           placeholder="e.g. 1200"
                           min="0"
-                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
                         />
                       </div>
                       <div>
@@ -1680,7 +1680,7 @@ export default function AdminBulkPostPage() {
                           value={item.propertyDetails.floor}
                           onChange={(e) => updatePropertyDetail(index, 'floor', e.target.value)}
                           placeholder="e.g. Ground, 3rd"
-                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
                         />
                       </div>
                     </div>
@@ -1852,7 +1852,7 @@ export default function AdminBulkPostPage() {
                     Images (optional · up to 10)
                   </label>
                   <div
-                    className="border-2 border-dashed border-sky-200 rounded-xl p-4 flex flex-col items-center justify-center gap-2 bg-sky-50/40 hover:bg-sky-50 hover:border-sky-400 transition-colors cursor-pointer"
+                    className="border-2 border-dashed border-red-200 rounded-xl p-4 flex flex-col items-center justify-center gap-2 bg-red-50/40 hover:bg-red-50 hover:border-red-400 transition-colors cursor-pointer"
                     onClick={() => fileInputRefs.current[index]?.click()}
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={(e) => {
@@ -1860,10 +1860,10 @@ export default function AdminBulkPostPage() {
                       handleImageChange(index, e.dataTransfer.files);
                     }}
                   >
-                    <svg className="w-8 h-8 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                     </svg>
-                    <p className="text-xs text-sky-600 font-semibold">Click or drag &amp; drop images</p>
+                    <p className="text-xs text-red-600 font-semibold">Click or drag &amp; drop images</p>
                     <p className="text-[10px] text-gray-400">JPEG, PNG, GIF, WEBP · up to 20 MB each</p>
                   </div>
                   <input
@@ -1901,21 +1901,21 @@ export default function AdminBulkPostPage() {
           <button
             type="button"
             onClick={() => addItems(1)}
-            className="px-5 py-2.5 rounded-xl border border-sky-300 text-sky-700 text-sm font-semibold hover:bg-sky-50 transition-colors disabled:opacity-50"
+            className="px-5 py-2.5 rounded-xl border border-red-300 text-red-700 text-sm font-semibold hover:bg-red-50 transition-colors disabled:opacity-50"
           >
             + Add Another Listing
           </button>
           <button
             type="button"
             onClick={() => addItems(5)}
-            className="px-5 py-2.5 rounded-xl border border-sky-300 text-sky-700 text-sm font-semibold hover:bg-sky-50 transition-colors disabled:opacity-50"
+            className="px-5 py-2.5 rounded-xl border border-red-300 text-red-700 text-sm font-semibold hover:bg-red-50 transition-colors disabled:opacity-50"
           >
             + Add 5 More
           </button>
           <button
             type="submit"
             disabled={submitting}
-            className="px-6 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-sm font-semibold transition-colors disabled:opacity-50 ml-auto"
+            className="px-6 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-colors disabled:opacity-50 ml-auto"
           >
             {submitting
               ? (submitProgress ? `Publishing batch ${submitProgress.batch}/${submitProgress.batches}…` : 'Publishing…')

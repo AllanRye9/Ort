@@ -8,6 +8,7 @@ import { useCart } from '@/context/CartContext';
 import { UserAvatar } from '@/components/ui/UserAvatar';
 import { useRouter, usePathname } from 'next/navigation';
 import CategoryBar from '@/components/layout/CategoryBar';
+import HeaderSearch from '@/components/layout/HeaderSearch';
 import { CountrySelector } from '@/components/ui/CountrySelector';
 import ThemeSwitcher from '@/components/ui/ThemeSwitcher';
 import { api } from '@/lib/api';
@@ -66,17 +67,29 @@ const mobileNavItems = [
 const DRAWER_HEADER_H = '68px';
 const DRAWER_HEADER_WITH_USER_H = '140px';
 
+// Uganda-only launch: other countries are commented out (not deleted) so
+// the full mobile country picker can be restored later by uncommenting
+// these entries. With one entry left, MobileCountryPicker's
+// visibleOptions.length <= 1 check below makes it never render.
 const MOBILE_COUNTRY_OPTIONS = [
-  { value: 'UAE' as const, flag: '🇦🇪', label: 'UAE', sub: 'United Arab Emirates' },
+  // { value: 'UAE' as const, flag: '🇦🇪', label: 'UAE', sub: 'United Arab Emirates' },
   { value: 'UGANDA' as const, flag: '🇺🇬', label: 'Uganda', sub: 'East Africa' },
-  { value: 'KENYA' as const, flag: '🇰🇪', label: 'Kenya', sub: 'East Africa' },
-  { value: 'CHINA' as const, flag: '🇨🇳', label: 'China', sub: 'Asia Pacific' },
+  // { value: 'KENYA' as const, flag: '🇰🇪', label: 'Kenya', sub: 'East Africa' },
+  // { value: 'CHINA' as const, flag: '🇨🇳', label: 'China', sub: 'Asia Pacific' },
 ];
 
 function MobileCountryPicker({ onClose }: { onClose: () => void }) {
   const { country, setCountry, enabledCountries } = useCountry();
   const router = useRouter();
   const SLUGS: Record<string, string> = { UAE: 'uae', UGANDA: 'uganda', KENYA: 'kenya', CHINA: 'china' };
+  // Record lookup instead of a `opt.value === 'UAE' ? ... : ...` ternary chain
+  // on purpose: with only one entry left in MOBILE_COUNTRY_OPTIONS, TS narrows
+  // opt.value to the single literal type "UGANDA", and a chain comparing it
+  // against 'UAE'/'KENYA'/'CHINA' then fails to build ("comparison appears to
+  // be unintentional because the types have no overlap"). Indexing a Record
+  // doesn't require the key to match a narrowed literal type, so this stays
+  // correct however many entries are (un)commented above.
+  const ISO_BY_COUNTRY: Record<string, string> = { UAE: 'AE', UGANDA: 'UG', KENYA: 'KE', CHINA: 'CN' };
   const visibleOptions = MOBILE_COUNTRY_OPTIONS.filter((opt) => enabledCountries.includes(opt.value));
 
   // Nothing to switch between when only one country is enabled.
@@ -91,13 +104,13 @@ function MobileCountryPicker({ onClose }: { onClose: () => void }) {
           onClick={() => { setCountry(opt.value); onClose(); router.push('/country/' + SLUGS[opt.value]); }}
           className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl border-2 transition-all text-sm font-semibold ${
             opt.value === country
-              ? 'border-sky-500 bg-sky-50 text-sky-700'
-              : 'border-gray-200 text-gray-600 hover:border-sky-200 hover:bg-sky-50/60'
+              ? 'border-red-500 bg-red-50 text-red-700'
+              : 'border-gray-200 text-gray-600 hover:border-red-200 hover:bg-red-50/60'
           }`}
         >
           {/* SVG flag — not emoji */}
           <div className="rounded overflow-hidden ring-1 ring-black/10 mb-0.5">
-            <FlagIcon code={opt.value === 'UAE' ? 'AE' : opt.value === 'UGANDA' ? 'UG' : opt.value === 'KENYA' ? 'KE' : 'CN'} size={28} />
+            <FlagIcon code={ISO_BY_COUNTRY[opt.value]} size={28} />
           </div>
           <span>{opt.label}</span>
           <span className="text-[10px] font-normal text-gray-400">{opt.sub}</span>
@@ -109,7 +122,7 @@ function MobileCountryPicker({ onClose }: { onClose: () => void }) {
 
 export default function Header() {
   const { user, logout } = useAuth();
-  const { country, enabledCountries } = useCountry();
+  const { enabledCountries } = useCountry();
   const { totalItems } = useCart();
   const { headerTheme } = useSiteConfig();
   const pathname = usePathname();
@@ -122,10 +135,8 @@ export default function Header() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifPreview, setNotifPreview] = useState<Notification[]>([]);
   const [notifLoading, setNotifLoading] = useState(false);
-  const [searchQ, setSearchQ] = useState('');
-  const [searchCategory, setSearchCategory] = useState('');
+
   const [scrolled, setScrolled] = useState(false);
-  const router = useRouter();
   const profileDropRef = useRef<HTMLDivElement>(null);
   const browseDropRef = useRef<HTMLDivElement>(null);
   const sellDropRef = useRef<HTMLDivElement>(null);
@@ -146,7 +157,7 @@ export default function Header() {
   useEffect(() => {
     if (!headerTheme || typeof window === 'undefined') return;
     const themeMap: Record<string, { primary: string; dark: string; bg: string; text: string; textOn: string }> = {
-      sky:      { primary: '#0EA5E9', dark: '#0284c7', bg: '#e0f2fe', text: '#0f172a', textOn: '#ffffff' },
+      red:      { primary: '#B7291B', dark: '#7A1C15', bg: '#FCE4E1', text: '#1a1310', textOn: '#ffffff' },
       white:    { primary: '#64748b', dark: '#475569', bg: '#f1f5f9', text: '#111827', textOn: '#ffffff' },
       dark:     { primary: '#38bdf8', dark: '#0ea5e9', bg: '#0f172a', text: '#e2e8f0', textOn: '#0f172a' },
       emerald:  { primary: '#10b981', dark: '#059669', bg: '#ecfdf5', text: '#064e3b', textOn: '#ffffff' },
@@ -230,15 +241,6 @@ export default function Header() {
     if (notifOpen) fetchNotifPreview();
   }, [notifOpen, fetchNotifPreview]);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    const params = new URLSearchParams();
-    if (searchQ.trim()) params.set('q', searchQ.trim());
-    if (searchCategory) params.set('category', searchCategory);
-    params.set('country', country);
-    router.push(`/listings?${params.toString()}`);
-  };
-
   const handleMarkAllRead = () => {
     api.put('/notifications/read-all')
       .then(() => {
@@ -251,7 +253,7 @@ export default function Header() {
   return (
     <>
       <header
-        className={`z-50 transition-all duration-500 ${scrolled ? 'bg-white/95 backdrop-blur-2xl border-b border-sky-100/80 shadow-[0_4px_32px_-4px_rgba(14,165,233,0.18),0_2px_8px_-2px_rgba(99,102,241,0.12)]' : 'shadow-[0_2px_24px_0_rgba(99,102,241,0.35)]'}`}
+        className={`z-50 transition-all duration-500 ${scrolled ? 'bg-white/95 backdrop-blur-2xl border-b border-red-100/80 shadow-[0_4px_32px_-4px_rgba(183,41,27,0.18),0_2px_8px_-2px_rgba(122,28,21,0.12)]' : 'shadow-[0_2px_24px_0_rgba(122,28,21,0.35)]'}`}
         style={scrolled ? undefined : { background: 'linear-gradient(135deg, var(--theme-primary-dark) 0%, var(--theme-primary) 50%, var(--theme-primary-dark) 100%)' }}
       >
         <div className="max-w-7xl mx-auto px-3 sm:px-4 flex items-center gap-1.5 sm:gap-2 md:gap-3 h-14 sm:h-16">
@@ -274,7 +276,7 @@ export default function Header() {
               alt="Piitrade — Shop Smart. Shop Trusted."
               fallback={
                 <>
-                  <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center font-black text-sm sm:text-base shadow-lg ${scrolled ? 'bg-gradient-to-br from-violet-600 via-sky-500 to-cyan-400 text-white animate-pulse-glow' : 'bg-white/20 text-white'}`}>Pi</div>
+                  <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center font-black text-sm sm:text-base shadow-lg ${scrolled ? 'bg-gradient-to-br from-premium-navy to-premium-gold text-white animate-pulse-glow' : 'bg-white/20 text-white'}`}>Pi</div>
                   <div className="flex flex-col leading-none gap-0.5">
                     <span className={`font-bold text-base sm:text-lg md:text-xl tracking-tight whitespace-nowrap ${scrolled ? 'text-premium-navy' : 'text-white'}`}>
                       Piitrade
@@ -288,65 +290,32 @@ export default function Header() {
             />
           </Link>
 
-          <form onSubmit={handleSearch} className="hidden sm:flex flex-1 min-w-0 md:max-w-xl">
-            <div className={`flex w-full rounded-xl overflow-hidden ring-2 transition-all shadow-lg ${scrolled ? 'ring-sky-200 focus-within:ring-fuchsia-400' : 'ring-white/30 focus-within:ring-white/70'}`}>
-              {/* All Categories dropdown */}
-              <select
-                value={searchCategory}
-                onChange={(e) => setSearchCategory(e.target.value)}
-                className={`shrink-0 px-2 py-2 text-xs font-semibold border-r focus:outline-none cursor-pointer ${scrolled ? 'bg-gray-50 text-gray-700 border-gray-200' : 'bg-white/10 text-white border-white/20'}`}
-                aria-label="Filter by category"
-              >
-                <option value="">All Categories</option>
-                <option value="motors">Motors</option>
-                <option value="property">Property</option>
-                <option value="electronics">Electronics</option>
-                <option value="fashion">Fashion</option>
-                <option value="furniture">Furniture</option>
-                <option value="jobs">Jobs</option>
-                <option value="services">Services</option>
-                <option value="classifieds">Classifieds</option>
-              </select>
-              <input
-                type="text"
-                value={searchQ}
-                onChange={(e) => setSearchQ(e.target.value)}
-                placeholder="Search products, brands…"
-                className={`flex-1 min-w-0 px-3 md:px-4 py-2 text-sm md:text-base focus:outline-none ${scrolled ? 'bg-white text-gray-900 placeholder:text-gray-400' : 'bg-white/10 text-white placeholder:text-white/60'}`}
-              />
-              <button
-                type="submit"
-                className={`px-3 md:px-4 py-2 text-sm md:text-base font-semibold flex-shrink-0 transition-colors ${scrolled ? 'bg-gradient-to-r from-violet-600 via-sky-600 to-cyan-500 text-white hover:brightness-110' : 'bg-premium-gold/90 text-white hover:bg-premium-gold'}`}
-              >
-                Search
-              </button>
-            </div>
-          </form>
+          <HeaderSearch variant="desktop" scrolled={scrolled} />
 
           <nav className="flex items-center gap-0.5 sm:gap-1 md:gap-1.5 ml-auto flex-shrink-0">
             <Link
               href="/"
-              className={`relative p-1.5 sm:p-2 rounded-lg hidden sm:flex items-center justify-center transition-all group ${scrolled ? 'text-gray-600 hover:bg-red-50 hover:text-red-600' : 'text-white hover:bg-red-500/20'}`}
+              className={`relative p-1.5 sm:p-2 rounded-lg hidden sm:flex items-center justify-center transition-all group ${scrolled ? 'text-gray-600 hover:bg-[var(--theme-bg-light)] hover:text-[var(--theme-primary-dark)]' : 'text-white hover:bg-white/20'}`}
               aria-label="Home"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 22V12h6v10" />
               </svg>
-              <span className="absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 w-0 group-hover:w-4/5 bg-red-500 rounded-full transition-all duration-200" />
+              <span className="absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 w-0 group-hover:w-4/5 bg-[var(--theme-primary-dark)] rounded-full transition-all duration-200" />
             </Link>
 
             <div ref={browseDropRef} className="relative hidden sm:block">
               <button
                 onClick={() => { setBrowseDropOpen((p) => !p); setSellDropOpen(false); }}
-                className={`group relative flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${scrolled ? 'text-gray-700 hover:bg-red-50 hover:text-red-600 border border-gray-200 hover:border-red-200' : 'text-white hover:bg-red-500/20'}`}
+                className={`group relative flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${scrolled ? 'text-gray-700 hover:bg-[var(--theme-bg-light)] hover:text-[var(--theme-primary-dark)] border border-gray-200 hover:border-[var(--theme-primary)]' : 'text-white hover:bg-white/20'}`}
                 aria-expanded={browseDropOpen}
               >
                 Browse
                 <svg className={`w-3 h-3 transition-transform duration-200 ${browseDropOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
                 </svg>
-                <span className="absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 w-0 group-hover:w-4/5 bg-red-500 rounded-full transition-all duration-200" />
+                <span className="absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 w-0 group-hover:w-4/5 bg-[var(--theme-primary-dark)] rounded-full transition-all duration-200" />
               </button>
               {browseDropOpen && (
                 <div className="absolute left-0 top-full mt-1 w-52 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-[200] animate-scale-in">
@@ -354,22 +323,27 @@ export default function Header() {
                     {[
                       { href: '/browse/all', icon: '🌐', label: 'Browse All' },
                       { href: '/listings', icon: '🔍', label: 'All Listings' },
+                      { href: '/market-prices', icon: '🌾', label: 'Uganda Market Prices' },
                       { href: '/motors', icon: '🚗', label: 'Motors' },
                       { href: '/stores', icon: '🏪', label: 'Shop by Store' },
                       { href: '/jobs', icon: '💼', label: 'Job Market' },
                       { href: '/cv-services', icon: '📋', label: 'CV Services' },
                       { href: '/listings?sort=views', icon: '🔥', label: 'Most Popular' },
                       { href: '/listings?sort=price_asc', icon: '💰', label: 'Best Deals' },
-                      ...(enabledCountries.includes('UAE') ? [{ href: '/country/uae', icon: '🇦🇪', label: 'UAE Marketplace' }] : []),
+                      // Uganda-only launch: the UAE/Kenya/China marketplace links are
+                      // disabled — the /country/uae|kenya|china routes now 404 — so
+                      // these are commented out rather than left as dead links.
+                      // Uncomment alongside re-enabling those routes to restore them.
+                      // ...(enabledCountries.includes('UAE') ? [{ href: '/country/uae', icon: '🇦🇪', label: 'UAE Marketplace' }] : []),
                       ...(enabledCountries.includes('UGANDA') ? [{ href: '/country/uganda', icon: '🇺🇬', label: 'Uganda Marketplace' }] : []),
-                      ...(enabledCountries.includes('KENYA') ? [{ href: '/country/kenya', icon: '🇰🇪', label: 'Kenya Marketplace' }] : []),
-                      ...(enabledCountries.includes('CHINA') ? [{ href: '/country/china', icon: '🇨🇳', label: 'China Marketplace' }] : []),
+                      // ...(enabledCountries.includes('KENYA') ? [{ href: '/country/kenya', icon: '🇰🇪', label: 'Kenya Marketplace' }] : []),
+                      // ...(enabledCountries.includes('CHINA') ? [{ href: '/country/china', icon: '🇨🇳', label: 'China Marketplace' }] : []),
                     ].map((item) => (
                       <Link
                         key={item.href}
                         href={item.href}
                         onClick={() => setBrowseDropOpen(false)}
-                        className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors"
+                        className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-[var(--theme-bg-light)] hover:text-[var(--theme-primary-dark)] transition-colors"
                       >
                         <span aria-hidden="true" style={{ fontSize: "1.1rem", lineHeight: 1, display: "inline-block", flexShrink: 0 }}>{item.icon}</span>
                         {item.label}
@@ -383,7 +357,7 @@ export default function Header() {
             <div ref={sellDropRef} className="relative hidden sm:block">
               <button
                 onClick={() => { setSellDropOpen((p) => !p); setBrowseDropOpen(false); }}
-                className={`group relative flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${scrolled ? 'bg-gradient-to-r from-violet-600 via-sky-600 to-cyan-500 text-white hover:from-red-500 hover:via-rose-500 hover:to-red-600 shadow-glow' : 'bg-white/20 text-white hover:bg-red-500/30 border border-white/30 hover:border-red-300/50'}`}
+                className={`group relative flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${scrolled ? 'bg-gradient-to-r from-premium-gold to-premium-gold-dark text-white hover:brightness-110 shadow-glow' : 'bg-premium-gold/90 text-white hover:bg-premium-gold border border-white/30'}`}
                 aria-expanded={sellDropOpen}
               >
                 Sell
@@ -404,7 +378,7 @@ export default function Header() {
                         key={item.href}
                         href={item.href}
                         onClick={() => setSellDropOpen(false)}
-                        className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors"
+                        className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-[var(--theme-bg-light)] hover:text-[var(--theme-primary-dark)] transition-colors"
                       >
                         <span aria-hidden="true" style={{ fontSize: "1.1rem", lineHeight: 1, display: "inline-block", flexShrink: 0 }}>{item.icon}</span>
                         {item.label}
@@ -417,18 +391,18 @@ export default function Header() {
 
             <Link
               href="/profile/favorites"
-              className={`relative p-2 rounded-lg hidden sm:flex items-center justify-center transition-all group ${scrolled ? 'text-gray-600 hover:bg-red-50 hover:text-red-600' : 'text-white hover:bg-red-500/20'}`}
+              className={`relative p-2 rounded-lg hidden sm:flex items-center justify-center transition-all group ${scrolled ? 'text-gray-600 hover:bg-[var(--theme-bg-light)] hover:text-[var(--theme-primary-dark)]' : 'text-white hover:bg-white/20'}`}
               aria-label="Saved Items"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
               </svg>
-              <span className="absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 w-0 group-hover:w-4/5 bg-red-500 rounded-full transition-all duration-200" />
+              <span className="absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 w-0 group-hover:w-4/5 bg-[var(--theme-primary-dark)] rounded-full transition-all duration-200" />
             </Link>
 
             <Link
               href="/cart"
-              className={`relative p-2 rounded-lg hidden sm:flex items-center justify-center transition-all group ${scrolled ? 'text-gray-600 hover:bg-red-50 hover:text-red-600' : 'text-white hover:bg-red-500/20'}`}
+              className={`relative p-2 rounded-lg hidden sm:flex items-center justify-center transition-all group ${scrolled ? 'text-gray-600 hover:bg-[var(--theme-bg-light)] hover:text-[var(--theme-primary-dark)]' : 'text-white hover:bg-white/20'}`}
               aria-label="Shopping Cart"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -442,14 +416,14 @@ export default function Header() {
                   {totalItems > 9 ? '9+' : totalItems}
                 </span>
               )}
-              <span className="absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 w-0 group-hover:w-4/5 bg-red-500 rounded-full transition-all duration-200" />
+              <span className="absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 w-0 group-hover:w-4/5 bg-[var(--theme-primary-dark)] rounded-full transition-all duration-200" />
             </Link>
 
             {user && (
               <div ref={notifRef} className="relative hidden sm:block">
                 <button
                   onClick={() => setNotifOpen((p) => !p)}
-                  className={`relative p-2 rounded-lg group flex items-center justify-center transition-all ${scrolled ? 'text-gray-600 hover:bg-red-50 hover:text-red-600' : 'text-white hover:bg-red-500/20'}`}
+                  className={`relative p-2 rounded-lg group flex items-center justify-center transition-all ${scrolled ? 'text-gray-600 hover:bg-[var(--theme-bg-light)] hover:text-[var(--theme-primary-dark)]' : 'text-white hover:bg-white/20'}`}
                   aria-label="Notifications"
                   aria-expanded={notifOpen}
                 >
@@ -464,10 +438,10 @@ export default function Header() {
                 </button>
                 {notifOpen && (
                   <div className="absolute right-0 top-full mt-1 w-80 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-[200] animate-scale-in">
-                    <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-sky-600 to-indigo-700">
+                    <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-[var(--theme-primary-dark)] to-[var(--theme-primary)]">
                       <p className="text-sm font-bold text-white">Notifications</p>
                       {unreadCount > 0 && (
-                        <button onClick={handleMarkAllRead} className="text-xs text-sky-200 hover:text-white">Mark all read</button>
+                        <button onClick={handleMarkAllRead} className="text-xs text-white/80 hover:text-white">Mark all read</button>
                       )}
                     </div>
                     <div className="overflow-y-auto max-h-72">
@@ -492,7 +466,7 @@ export default function Header() {
                               key={notif.id}
                               href="/notifications"
                               onClick={() => setNotifOpen(false)}
-                              className={`flex items-start gap-3 px-4 py-3 hover:bg-sky-50 transition-colors ${!notif.read ? 'bg-sky-50/60' : ''}`}
+                              className={`flex items-start gap-3 px-4 py-3 hover:bg-red-50 transition-colors ${!notif.read ? 'bg-red-50/60' : ''}`}
                             >
                               <span aria-hidden="true" style={{ fontSize: "1.5rem", lineHeight: 1, flexShrink: 0, marginTop: "0.125rem", display: "inline-block" }}>
                                 {NOTIF_ICONS[notif.type] ?? '🔔'}
@@ -502,13 +476,13 @@ export default function Header() {
                                 <p className="text-[10px] text-gray-500 truncate mt-0.5">{notif.message}</p>
                                 <p className="text-[9px] text-gray-400 mt-0.5">{relativeTime(notif.createdAt)}</p>
                               </div>
-                              {!notif.read && <span className="w-2 h-2 rounded-full bg-sky-500 shrink-0 mt-1.5" aria-hidden="true" />}
+                              {!notif.read && <span className="w-2 h-2 rounded-full bg-red-500 shrink-0 mt-1.5" aria-hidden="true" />}
                             </Link>
                           ))}
                         </div>
                       )}
                     </div>
-                    <Link href="/notifications" className="block text-center text-xs text-sky-600 hover:text-sky-800 py-3 border-t border-gray-100 font-semibold hover:bg-sky-50 transition-colors" onClick={() => setNotifOpen(false)}>
+                    <Link href="/notifications" className="block text-center text-xs text-red-600 hover:text-red-800 py-3 border-t border-gray-100 font-semibold hover:bg-red-50 transition-colors" onClick={() => setNotifOpen(false)}>
                       View All Notifications →
                     </Link>
                   </div>
@@ -519,19 +493,19 @@ export default function Header() {
             <div ref={helpDropRef} className="relative hidden sm:block">
               <button
                 onClick={() => { setHelpDropOpen((p) => !p); setBrowseDropOpen(false); setSellDropOpen(false); }}
-                className={`relative p-2 rounded-lg group flex items-center justify-center transition-all ${scrolled ? 'text-gray-600 hover:bg-red-50 hover:text-red-600' : 'text-white hover:bg-red-500/20'}`}
+                className={`relative p-2 rounded-lg group flex items-center justify-center transition-all ${scrolled ? 'text-gray-600 hover:bg-[var(--theme-bg-light)] hover:text-[var(--theme-primary-dark)]' : 'text-white hover:bg-white/20'}`}
                 aria-label="Help"
                 aria-expanded={helpDropOpen}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span className="absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 w-0 group-hover:w-4/5 bg-red-500 rounded-full transition-all duration-200" />
+                <span className="absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 w-0 group-hover:w-4/5 bg-[var(--theme-primary-dark)] rounded-full transition-all duration-200" />
               </button>
               {helpDropOpen && (
                 <div className="absolute right-0 top-full mt-1 w-56 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-[200] animate-scale-in">
-                  <div className="px-4 py-2.5 bg-gradient-to-r from-red-50 to-rose-50 border-b border-red-100">
-                    <p className="text-xs font-bold text-red-700 uppercase tracking-wider">Support & Help</p>
+                  <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-100">
+                    <p className="text-xs font-bold text-premium-navy uppercase tracking-wider">Support & Help</p>
                   </div>
                   <div className="py-1.5">
                     {[
@@ -545,16 +519,16 @@ export default function Header() {
                         key={item.href}
                         href={item.href}
                         onClick={() => setHelpDropOpen(false)}
-                        className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors"
+                        className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-[var(--theme-bg-light)] hover:text-[var(--theme-primary-dark)] transition-colors"
                       >
                         <span aria-hidden="true" style={{ fontSize: "1.1rem", lineHeight: 1, display: "inline-block", flexShrink: 0 }}>{item.icon}</span>
                         {item.label}
                       </Link>
                     ))}
                   </div>
-                  <div className="px-4 py-3 bg-red-50 border-t border-red-100">
+                  <div className="px-4 py-3 bg-gray-50 border-t border-gray-100">
                     <p className="text-xs text-gray-500 mb-1">Contact support</p>
-                    <a href="mailto:support@piitrade.com" className="text-xs font-semibold text-red-600 hover:text-red-700 transition-colors flex items-center gap-1.5" onClick={() => setHelpDropOpen(false)}>
+                    <a href="mailto:support@piitrade.com" className="text-xs font-semibold text-premium-navy hover:text-[var(--theme-primary-dark)] transition-colors flex items-center gap-1.5" onClick={() => setHelpDropOpen(false)}>
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                       </svg>
@@ -574,7 +548,7 @@ export default function Header() {
               <div ref={profileDropRef} className="relative hidden sm:block">
                 <button
                   onClick={() => setProfileDropOpen((p) => !p)}
-                  className={`flex items-center gap-1.5 text-sm rounded-lg p-1.5 transition-all ${scrolled ? 'text-gray-700 hover:bg-red-50 hover:text-red-600 ring-1 ring-gray-200 hover:ring-red-200' : 'text-white hover:bg-red-500/20'}`}
+                  className={`flex items-center gap-1.5 text-sm rounded-lg p-1.5 transition-all ${scrolled ? 'text-gray-700 hover:bg-[var(--theme-bg-light)] hover:text-[var(--theme-primary-dark)] ring-1 ring-gray-200 hover:ring-[var(--theme-primary)]' : 'text-white hover:bg-white/20'}`}
                   aria-label="My Account"
                   aria-expanded={profileDropOpen}
                 >
@@ -592,7 +566,7 @@ export default function Header() {
 
                 {profileDropOpen && (
                   <div className="absolute right-0 top-full mt-1 w-60 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-[200] animate-scale-in">
-                    <div className="px-4 py-3 bg-gradient-to-r from-rose-600 to-red-500">
+                    <div className="px-4 py-3 bg-gradient-to-r from-[var(--theme-primary-dark)] to-[var(--theme-primary)]">
                       <div className="flex items-center gap-3">
                         <UserAvatar user={user} size="sm" />
                         <div className="min-w-0">
@@ -602,24 +576,24 @@ export default function Header() {
                       </div>
                     </div>
                     <div className="py-1.5">
-                      <Link href="/dashboard" className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors font-medium" onClick={() => setProfileDropOpen(false)}>
+                      <Link href="/dashboard" className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-[var(--theme-bg-light)] hover:text-[var(--theme-primary-dark)] transition-colors font-medium" onClick={() => setProfileDropOpen(false)}>
                         <svg className="w-4 h-4 shrink-0 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
                         Dashboard
                       </Link>
-                      <Link href="/profile" className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors" onClick={() => setProfileDropOpen(false)}>
-                        <svg className="w-4 h-4 shrink-0 text-sky-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                      <Link href="/profile" className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-[var(--theme-bg-light)] hover:text-[var(--theme-primary-dark)] transition-colors" onClick={() => setProfileDropOpen(false)}>
+                        <svg className="w-4 h-4 shrink-0 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                         My Profile
                       </Link>
-                      <Link href="/profile/listings" className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors" onClick={() => setProfileDropOpen(false)}>
-                        <svg className="w-4 h-4 shrink-0 text-sky-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                      <Link href="/profile/listings" className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-[var(--theme-bg-light)] hover:text-[var(--theme-primary-dark)] transition-colors" onClick={() => setProfileDropOpen(false)}>
+                        <svg className="w-4 h-4 shrink-0 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
                         My Listings
                       </Link>
-                      <Link href="/profile/orders" className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors" onClick={() => setProfileDropOpen(false)}>
-                        <svg className="w-4 h-4 shrink-0 text-sky-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
+                      <Link href="/profile/orders" className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-[var(--theme-bg-light)] hover:text-[var(--theme-primary-dark)] transition-colors" onClick={() => setProfileDropOpen(false)}>
+                        <svg className="w-4 h-4 shrink-0 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
                         My Orders
                       </Link>
-                      <Link href="/profile/favorites" className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors" onClick={() => setProfileDropOpen(false)}>
-                        <svg className="w-4 h-4 shrink-0 text-sky-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                      <Link href="/profile/favorites" className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-[var(--theme-bg-light)] hover:text-[var(--theme-primary-dark)] transition-colors" onClick={() => setProfileDropOpen(false)}>
+                        <svg className="w-4 h-4 shrink-0 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
                         Saved Items
                       </Link>
                       {user.role === 'ADMIN' && (
@@ -643,43 +617,15 @@ export default function Header() {
               </div>
             ) : (
               <div className="flex items-center gap-1.5">
-                <Link href="/auth/login" className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition-all ${scrolled ? 'text-gray-700 hover:bg-red-50 hover:text-red-600 border border-gray-200 hover:border-red-200' : 'text-white/90 hover:text-white hover:bg-red-500/20 border border-white/30'}`}>Login</Link>
-                <Link href="/auth/register" className={`hidden sm:flex text-xs font-semibold px-3 py-1.5 rounded-lg transition-all ${scrolled ? 'bg-gradient-to-r from-red-500 to-rose-600 text-white hover:from-red-600 hover:to-rose-700 shadow-sm' : 'bg-white text-red-600 hover:bg-red-50 border border-white/70 font-bold'}`}>Register</Link>
+                <Link href="/auth/login" className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition-all ${scrolled ? 'text-gray-700 hover:bg-[var(--theme-bg-light)] hover:text-[var(--theme-primary-dark)] border border-gray-200 hover:border-[var(--theme-primary)]' : 'text-white/90 hover:text-white hover:bg-white/20 border border-white/30'}`}>Login</Link>
+                <Link href="/auth/register" className={`hidden sm:flex text-xs font-semibold px-3 py-1.5 rounded-lg transition-all ${scrolled ? 'bg-gradient-to-r from-premium-gold to-premium-gold-dark text-white hover:brightness-110 shadow-sm' : 'bg-premium-gold text-white hover:bg-premium-gold-dark border border-white/20 font-bold'}`}>Register</Link>
               </div>
             )}
           </nav>
         </div>
 
-        <div className={`sm:hidden border-t px-3 py-2 ${scrolled ? 'border-sky-100 bg-white' : 'border-white/10 bg-indigo-800/40 backdrop-blur-sm'}`}>
-          <form onSubmit={handleSearch} className="flex flex-col gap-1.5">
-            <select
-              value={searchCategory}
-              onChange={(e) => setSearchCategory(e.target.value)}
-              className={`w-full px-3 py-2 text-xs font-semibold rounded-lg border focus:outline-none ${scrolled ? 'bg-gray-50 text-gray-700 border-gray-200' : 'bg-white/10 text-white border-white/20'}`}
-            >
-              <option value="">All Categories</option>
-              <option value="motors">Motors</option>
-              <option value="property">Property</option>
-              <option value="electronics">Electronics</option>
-              <option value="fashion">Fashion</option>
-              <option value="furniture">Furniture</option>
-              <option value="jobs">Jobs</option>
-              <option value="services">Services</option>
-              <option value="classifieds">Classifieds</option>
-            </select>
-            <div className="flex rounded-lg overflow-hidden ring-2 ring-white/20">
-              <input
-                type="text"
-                value={searchQ}
-                onChange={(e) => setSearchQ(e.target.value)}
-                placeholder="Search products, brands and categories"
-                className={`flex-1 min-w-0 px-3 py-2 text-sm focus:outline-none ${scrolled ? 'bg-white text-gray-900 placeholder:text-gray-400' : 'bg-white/10 text-white placeholder:text-white/60'}`}
-              />
-              <button type="submit" className={`px-4 py-2 text-sm font-semibold ${scrolled ? 'bg-premium-gold text-white hover:bg-premium-gold-dark' : 'bg-premium-gold/90 text-white hover:bg-premium-gold'}`}>
-                Search
-              </button>
-            </div>
-          </form>
+        <div className={`sm:hidden border-t px-3 py-2 ${scrolled ? 'border-red-100 bg-white' : 'border-white/10 bg-[var(--theme-primary-dark)]/40 backdrop-blur-sm'}`}>
+          <HeaderSearch variant="mobile" scrolled={scrolled} />
         </div>
 
         <div className="hidden sm:block"><CategoryBar /></div>
@@ -733,7 +679,7 @@ export default function Header() {
               key={item.href}
               href={item.href}
               onClick={() => setMenuOpen(false)}
-              className="flex items-center gap-3 px-4 py-3.5 text-gray-700 hover:bg-gradient-to-r hover:from-sky-50 hover:to-fuchsia-50 hover:text-indigo-600 transition-colors font-medium text-sm border-b border-gray-50"
+              className="flex items-center gap-3 px-4 py-3.5 text-gray-700 hover:bg-[var(--theme-bg-light)] hover:text-[var(--theme-primary-dark)] transition-colors font-medium text-sm border-b border-gray-50"
             >
               <span aria-hidden="true" style={{ fontSize: "1.4rem", lineHeight: 1, display: "inline-block", width: "1.5rem", textAlign: "center" }}>{item.icon}</span>
               {item.label}
@@ -756,7 +702,7 @@ export default function Header() {
               <Link href="/auth/login" onClick={() => setMenuOpen(false)} className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg theme-header-bg text-white font-semibold text-sm hover:brightness-110 transition-colors">
                 Login
               </Link>
-              <Link href="/auth/register" onClick={() => setMenuOpen(false)} className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg border-2 border-sky-600 text-sky-700 font-semibold text-sm hover:bg-gradient-to-r hover:from-sky-50 hover:to-fuchsia-50 transition-colors">
+              <Link href="/auth/register" onClick={() => setMenuOpen(false)} className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg border-2 border-premium-gold text-premium-gold-dark font-semibold text-sm hover:bg-premium-gold/10 transition-colors">
                 Create Account
               </Link>
             </div>

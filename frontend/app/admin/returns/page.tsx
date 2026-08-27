@@ -81,7 +81,7 @@ export default function AdminReturnsPage() {
                   <div>
                     <p className="font-semibold text-gray-900">{ret.reason}</p>
                     <p className="text-sm text-gray-500 mt-0.5">
-                      Order: <span className="font-mono text-sky-600">{ret.order?.orderNumber}</span> · Buyer: {ret.buyer?.name}
+                      Order: <span className="font-mono text-red-600">{ret.order?.orderNumber}</span> · Buyer: {ret.buyer?.name}
                     </p>
                     {ret.description && <p className="text-sm text-gray-500 mt-1">{ret.description}</p>}
                     <p className="text-xs text-gray-400 mt-1">{new Date(ret.createdAt).toLocaleDateString('en-US')}</p>
@@ -107,7 +107,7 @@ export default function AdminReturnsPage() {
                             ? 'bg-green-100 text-green-700 hover:bg-green-200'
                             : nextStatus === 'REJECTED'
                             ? 'bg-red-100 text-red-700 hover:bg-red-200'
-                            : 'bg-sky-100 text-sky-700 hover:bg-sky-200'
+                            : 'bg-red-100 text-red-700 hover:bg-red-200'
                         }`}
                       >
                         → {nextStatus}

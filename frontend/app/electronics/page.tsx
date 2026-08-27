@@ -16,7 +16,7 @@ export default function ElectronicsPage() {
     <CategoryPageTemplate
       categorySlug="electronics"
       categoryLabel="Electronics"
-      heroGradient="from-blue-900 via-indigo-800 to-blue-900"
+      heroGradient="from-red-900 via-rose-800 to-red-900"
       heroIcon="💻"
       heroTitle={
         <>

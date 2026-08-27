@@ -34,6 +34,10 @@ export interface User {
   role: Role;
   country: Country;
   isVerified: boolean;
+  /** KYC (identity) verification status. See kycStatus for the full
+   *  submission lifecycle — this mirrors kycStatus === 'APPROVED'. */
+  isKycVerified?: boolean;
+  kycStatus?: 'NOT_SUBMITTED' | 'PENDING' | 'APPROVED' | 'REJECTED';
   isBanned: boolean;
   balance?: number;
   cvThemeColor?: string | null;
@@ -48,6 +52,11 @@ export interface User {
     instagram?: string;
     linkedin?: string;
     facebook?: string;
+    /** WhatsApp deep link — direct number chat (wa.me/...), group invite,
+     *  or community invite link. Stored as-is and opened in a new tab. */
+    whatsapp?: string;
+    tiktok?: string;
+    youtube?: string;
   } | null;
   createdAt: string;
 }
@@ -115,6 +124,10 @@ export interface Listing {
     avatar?: string;
     phone?: string;
     isVerified?: boolean;
+    /** KYC (identity) verification status — distinct from `isVerified` above.
+     *  True once the seller's submitted ID documents have been approved by
+     *  an admin. Drives the "KYC Verified" badge and listing priority. */
+    isKycVerified?: boolean;
     role?: Role;
     country?: string;
     createdAt?: string;

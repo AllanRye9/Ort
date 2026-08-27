@@ -11,11 +11,15 @@ const COUNTRY_SLUGS: Record<string, string> = {
   UAE: 'uae', UGANDA: 'uganda', KENYA: 'kenya', CHINA: 'china',
 };
 
+// Uganda-only launch: other countries are commented out (not deleted) so the
+// full multi-country welcome modal can be restored later by uncommenting
+// these entries. With only one entry left, visibleCountries.length <= 1
+// below makes this modal never render at all (nothing to choose between).
 const COUNTRIES: { value: Country; label: string; isoCode: string; desc: string; currency: string; accentColor: string }[] = [
-  { value: 'UAE',    isoCode: 'AE', label: 'UAE',    desc: 'United Arab Emirates', currency: 'AED', accentColor: '#C8A951' },
+  // { value: 'UAE',    isoCode: 'AE', label: 'UAE',    desc: 'United Arab Emirates', currency: 'AED', accentColor: '#C8A951' },
   { value: 'UGANDA', isoCode: 'UG', label: 'Uganda', desc: 'East Africa',           currency: 'UGX', accentColor: '#F5A623' },
-  { value: 'KENYA',  isoCode: 'KE', label: 'Kenya',  desc: 'East Africa',           currency: 'KES', accentColor: '#CE1126' },
-  { value: 'CHINA',  isoCode: 'CN', label: 'China',  desc: 'Asia Pacific',          currency: 'CNY', accentColor: '#DE2910' },
+  // { value: 'KENYA',  isoCode: 'KE', label: 'Kenya',  desc: 'East Africa',           currency: 'KES', accentColor: '#CE1126' },
+  // { value: 'CHINA',  isoCode: 'CN', label: 'China',  desc: 'Asia Pacific',          currency: 'CNY', accentColor: '#DE2910' },
 ];
 
 export default function CountrySelectModal() {
@@ -119,7 +123,7 @@ export default function CountrySelectModal() {
           </button>
 
           {/* Header */}
-          <div className="bg-gradient-to-br from-sky-700 to-sky-500 px-6 py-6 text-white">
+          <div className="bg-gradient-to-br from-red-700 to-red-500 px-6 py-6 text-white">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-11 h-11 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center text-2xl shadow-inner">
                 🌍
@@ -157,8 +161,8 @@ export default function CountrySelectModal() {
                     onClick={() => setSelected(c.value)}
                     className={`group relative flex items-center gap-3 p-3.5 rounded-2xl border-2 text-left transition-all duration-200 ${
                       isSelected
-                        ? 'border-sky-500 bg-sky-50 shadow-md'
-                        : 'border-gray-100 bg-gray-50 hover:border-sky-200 hover:bg-sky-50/40 hover:shadow-sm'
+                        ? 'border-red-500 bg-red-50 shadow-md'
+                        : 'border-gray-100 bg-gray-50 hover:border-red-200 hover:bg-red-50/40 hover:shadow-sm'
                     }`}
                   >
                     {/* Flag */}
@@ -168,18 +172,18 @@ export default function CountrySelectModal() {
 
                     {/* Labels */}
                     <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-bold leading-tight truncate ${isSelected ? 'text-sky-700' : 'text-gray-900'}`}>
+                      <p className={`text-sm font-bold leading-tight truncate ${isSelected ? 'text-red-700' : 'text-gray-900'}`}>
                         {c.label}
                       </p>
                       <p className="text-[10px] text-gray-400 mt-0.5 truncate">{c.desc}</p>
-                      <p className={`text-[10px] font-bold mt-0.5 ${isSelected ? 'text-sky-600' : 'text-gray-400'}`}>
+                      <p className={`text-[10px] font-bold mt-0.5 ${isSelected ? 'text-red-600' : 'text-gray-400'}`}>
                         {c.currency}
                       </p>
                     </div>
 
                     {/* Tick */}
                     {isSelected && (
-                      <span className="shrink-0 text-sky-500">
+                      <span className="shrink-0 text-red-500">
                         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                         </svg>

@@ -51,7 +51,7 @@ export default function OrdersPage() {
   if (!user) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
-        <p className="text-gray-500">Please <Link href="/auth/login" className="text-sky-600 underline">log in</Link> to view your orders.</p>
+        <p className="text-gray-500">Please <Link href="/auth/login" className="text-red-600 underline">log in</Link> to view your orders.</p>
       </div>
     );
   }
@@ -68,7 +68,7 @@ export default function OrdersPage() {
             key={r}
             onClick={() => { setActiveRole(r); setFilterStatus(''); }}
             className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${
-              activeRole === r ? 'bg-sky-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              activeRole === r ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
             {r === 'buyer' ? '🛒 My Purchases' : '🏪 My Sales'}
@@ -84,8 +84,8 @@ export default function OrdersPage() {
             onClick={() => setFilterStatus(s)}
             className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
               filterStatus === s
-                ? 'bg-sky-500 text-white border-sky-500'
-                : 'bg-white text-gray-600 border-gray-200 hover:border-sky-400'
+                ? 'bg-red-500 text-white border-red-500'
+                : 'bg-white text-gray-600 border-gray-200 hover:border-red-400'
             }`}
           >
             {s ? `${STATUS_ICONS[s as OrderStatus]} ${s}` : 'All'}
@@ -103,7 +103,7 @@ export default function OrdersPage() {
         <div className="text-center py-8">
           <div className="text-6xl mb-4">📦</div>
           <p className="text-gray-500 text-lg mb-4">No orders found</p>
-          <Link href="/listings" className="px-6 py-3 rounded-xl bg-sky-500 text-white font-semibold">
+          <Link href="/listings" className="px-6 py-3 rounded-xl bg-red-500 text-white font-semibold">
             Browse Listings
           </Link>
         </div>
@@ -123,7 +123,7 @@ export default function OrdersPage() {
                 <span className="text-xs text-gray-400">{new Date(order.createdAt).toLocaleDateString('en-US')}</span>
                 <Link
                   href={`/profile/orders/${order.id}`}
-                  className="text-xs text-sky-600 hover:text-sky-800 font-semibold"
+                  className="text-xs text-red-600 hover:text-red-800 font-semibold"
                 >
                   View Details →
                 </Link>
@@ -146,7 +146,7 @@ export default function OrdersPage() {
                         <p className="text-sm font-medium text-gray-900 truncate">{item.title}</p>
                         <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
                       </div>
-                      <p className="text-sm font-semibold text-sky-700 whitespace-nowrap">
+                      <p className="text-sm font-semibold text-red-700 whitespace-nowrap">
                         {formatCurrency(item.price * item.quantity, item.currency)}
                       </p>
                     </div>
@@ -181,7 +181,7 @@ export default function OrdersPage() {
         </div>
         <a
           href="mailto:support@piitrade.com"
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-600 text-white text-sm font-semibold hover:bg-sky-700 transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition-colors"
         >
           ✉️ Email Support
         </a>

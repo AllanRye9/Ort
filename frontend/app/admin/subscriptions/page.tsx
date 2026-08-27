@@ -92,7 +92,7 @@ export default function AdminSubscriptionsPage() {
             }}
             className={`px-4 py-2 rounded-xl border text-sm font-semibold transition-colors ${
               scope === value
-                ? 'bg-sky-600 text-white border-sky-600'
+                ? 'bg-red-600 text-white border-red-600'
                 : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
             }`}
           >
@@ -110,7 +110,7 @@ export default function AdminSubscriptionsPage() {
             onClick={() => { setFilter(s); setPage(1); }}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
               filter === s
-                ? 'bg-sky-600 text-white border-sky-600'
+                ? 'bg-red-600 text-white border-red-600'
                 : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
             }`}
           >

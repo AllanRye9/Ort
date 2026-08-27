@@ -178,8 +178,8 @@ function RentalsTab() {
             onClick={() => setStatusFilter(s)}
             className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
               statusFilter === s
-                ? 'bg-sky-500 text-white'
-                : 'bg-white border border-gray-200 text-gray-600 hover:border-sky-300 hover:text-sky-600'
+                ? 'bg-red-500 text-white'
+                : 'bg-white border border-gray-200 text-gray-600 hover:border-red-300 hover:text-red-600'
             }`}
           >
             {s || 'All'}
@@ -262,7 +262,7 @@ function RentalsTab() {
                         )}
                         <button
                           onClick={() => openEdit(rental)}
-                          className="text-xs px-2 py-1 rounded bg-sky-50 text-sky-600 hover:bg-sky-100 transition-colors font-medium"
+                          className="text-xs px-2 py-1 rounded bg-red-50 text-red-600 hover:bg-red-100 transition-colors font-medium"
                         >
                           Edit
                         </button>
@@ -294,7 +294,7 @@ function RentalsTab() {
                 <select
                   value={editStatus}
                   onChange={(e) => setEditStatus(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
                 >
                   {['PENDING', 'ACTIVE', 'EXPIRED', 'CANCELLED'].map((s) => (
                     <option key={s} value={s}>{s}</option>
@@ -309,7 +309,7 @@ function RentalsTab() {
                   min={0}
                   value={editFee}
                   onChange={(e) => setEditFee(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
                 />
               </div>
 
@@ -319,7 +319,7 @@ function RentalsTab() {
                   type="date"
                   value={editEndDate}
                   onChange={(e) => setEditEndDate(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
                 />
               </div>
 
@@ -331,7 +331,7 @@ function RentalsTab() {
                   max={500}
                   value={editMaxListings}
                   onChange={(e) => setEditMaxListings(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
                 />
                 <p className="mt-1 text-[11px] text-gray-400">Default cap is 100 active listings per store.</p>
               </div>
@@ -341,7 +341,7 @@ function RentalsTab() {
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="flex-1 py-2 bg-sky-600 text-white text-sm font-semibold rounded-lg hover:bg-sky-700 disabled:opacity-50 transition-colors"
+                className="flex-1 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
               >
                 {saving ? 'Saving...' : 'Save Changes'}
               </button>
@@ -464,15 +464,15 @@ function PartnersTab() {
           placeholder="Search by store name, owner, email…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+          className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
         />
         <div className="flex gap-2">
           {(['all', 'approved', 'pending'] as const).map((f) => (
             <button key={f} onClick={() => setFilter(f)}
               className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all capitalize ${
                 filter === f
-                  ? 'bg-sky-600 text-white border-sky-600 shadow-sm'
-                  : 'bg-white text-gray-600 border-gray-200 hover:border-sky-300'
+                  ? 'bg-red-600 text-white border-red-600 shadow-sm'
+                  : 'bg-white text-gray-600 border-gray-200 hover:border-red-300'
               }`}>
               {f === 'all' ? `All (${stores.length})` : f === 'approved' ? `Partners (${approvedCount})` : `Pending (${pendingCount})`}
             </button>
@@ -484,7 +484,7 @@ function PartnersTab() {
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
         {fetching ? (
           <div className="p-10 text-center">
-            <div className="w-8 h-8 border-4 border-sky-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+            <div className="w-8 h-8 border-4 border-red-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
             <p className="text-sm text-gray-400">Loading stores…</p>
           </div>
         ) : visible.length === 0 ? (
@@ -523,7 +523,7 @@ function PartnersTab() {
                         </div>
                         <div className="min-w-0">
                           <Link href={`/stores/${store.slug}`} target="_blank"
-                            className="font-semibold text-gray-900 hover:text-sky-600 transition-colors truncate block max-w-[180px]">
+                            className="font-semibold text-gray-900 hover:text-red-600 transition-colors truncate block max-w-[180px]">
                             {store.name}
                           </Link>
                           <p className="text-[11px] text-gray-400 truncate max-w-[180px]">
@@ -559,7 +559,7 @@ function PartnersTab() {
                             {store.partnerWebsite && (
                               <a href={store.partnerWebsite.startsWith('http') ? store.partnerWebsite : `https://${store.partnerWebsite}`}
                                 target="_blank" rel="noopener noreferrer"
-                                className="text-[10px] text-sky-500 hover:underline truncate max-w-[120px] block">
+                                className="text-[10px] text-red-500 hover:underline truncate max-w-[120px] block">
                                 {store.partnerWebsite.replace(/^https?:\/\//, '')}
                               </a>
                             )}
@@ -635,10 +635,10 @@ function PartnersTab() {
       </div>
 
       {/* Info */}
-      <div className="mt-5 bg-sky-50 border border-sky-200 rounded-xl p-4 flex gap-3">
+      <div className="mt-5 bg-red-50 border border-red-200 rounded-xl p-4 flex gap-3">
         <span className="text-lg shrink-0">ℹ️</span>
-        <div className="text-sm text-sky-800 space-y-1">
-          <p><strong>Approval flow:</strong> Click <em>Approve</em> → the store&rsquo;s own logo (or a separate one uploaded from <code className="bg-sky-100 px-1 rounded text-xs">/dashboard/partner-logo</code>) appears automatically on the Partners wall.</p>
+        <div className="text-sm text-red-800 space-y-1">
+          <p><strong>Approval flow:</strong> Click <em>Approve</em> → the store&rsquo;s own logo (or a separate one uploaded from <code className="bg-red-100 px-1 rounded text-xs">/dashboard/partner-logo</code>) appears automatically on the Partners wall.</p>
           <p><strong>Revoke:</strong> Immediately removes the logo from the public Partners wall and resets upload permission.</p>
         </div>
       </div>
@@ -664,7 +664,7 @@ function AdminPartnersAndStoresInner() {
 
   if (authLoading) return (
     <div className="flex items-center justify-center min-h-screen">
-      <div className="w-8 h-8 border-4 border-sky-500 border-t-transparent rounded-full animate-spin" />
+      <div className="w-8 h-8 border-4 border-red-500 border-t-transparent rounded-full animate-spin" />
     </div>
   );
 
@@ -680,13 +680,13 @@ function AdminPartnersAndStoresInner() {
           <h1 className="text-2xl font-black text-gray-900">Partners & Stores</h1>
           <p className="text-sm text-gray-500 mt-0.5">
             Review store applications, approve or reject them, manage approved stores, and control the{' '}
-            <Link href="/stores" target="_blank" className="text-sky-600 hover:underline font-semibold">
+            <Link href="/stores" target="_blank" className="text-red-600 hover:underline font-semibold">
               public Partners wall
             </Link>.
           </p>
         </div>
         <Link href="/stores" target="_blank"
-          className="shrink-0 hidden sm:flex items-center gap-1.5 text-xs font-semibold text-sky-600 border border-sky-200 hover:bg-sky-50 px-3 py-2 rounded-lg transition-colors">
+          className="shrink-0 hidden sm:flex items-center gap-1.5 text-xs font-semibold text-red-600 border border-red-200 hover:bg-red-50 px-3 py-2 rounded-lg transition-colors">
           View Partners Wall ↗
         </Link>
       </div>
@@ -702,7 +702,7 @@ function AdminPartnersAndStoresInner() {
             onClick={() => setTab(key)}
             className={`px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors flex items-center gap-1.5 -mb-px ${
               tab === key
-                ? 'border-sky-600 text-sky-700'
+                ? 'border-red-600 text-red-700'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
@@ -720,7 +720,7 @@ export default function AdminPartnersAndStoresPage() {
   return (
     <Suspense fallback={
       <div className="flex items-center justify-center min-h-screen">
-        <div className="w-8 h-8 border-4 border-sky-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-red-500 border-t-transparent rounded-full animate-spin" />
       </div>
     }>
       <AdminPartnersAndStoresInner />

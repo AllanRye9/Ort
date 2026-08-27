@@ -78,7 +78,7 @@ async function getRecommendedListings(options: {
       where,
         include: {
           category: { select: { id: true, name: true, slug: true } },
-          user: { select: { id: true, name: true, avatar: true } },
+          user: { select: { id: true, name: true, avatar: true, isKycVerified: true } },
           productImages: {
             where: { cdnUrl: { not: null }, status: { not: 'REJECTED' } },
             select: { id: true, cdnUrl: true, uploadedAt: true },
@@ -214,7 +214,7 @@ async function getRelevanceRankedListings(options: {
             parent: { select: { id: true, name: true, slug: true } },
           },
         },
-        user: { select: { id: true, name: true, avatar: true } },
+        user: { select: { id: true, name: true, avatar: true, isKycVerified: true } },
         productImages: {
           where: { cdnUrl: { not: null }, status: { not: 'REJECTED' } },
           select: { id: true, cdnUrl: true, uploadedAt: true },
@@ -290,7 +290,7 @@ router.get('/featured-deal', async (req: Request, res: Response, next: NextFunct
     };
     const include = {
       category: { select: { id: true, name: true, slug: true } },
-      user: { select: { id: true, name: true, avatar: true } },
+      user: { select: { id: true, name: true, avatar: true, isKycVerified: true } },
       productImages: { select: { id: true, cdnUrl: true, uploadedAt: true }, orderBy: { uploadedAt: 'asc' as const }, take: 1 },
     };
 
@@ -333,7 +333,7 @@ router.get('/latest-collections', async (req: Request, res: Response, next: Next
       },
       include: {
         category: { select: { id: true, name: true, slug: true } },
-        user: { select: { id: true, name: true, avatar: true } },
+        user: { select: { id: true, name: true, avatar: true, isKycVerified: true } },
         productImages: { select: { id: true, cdnUrl: true, uploadedAt: true }, orderBy: { uploadedAt: 'asc' }, take: 1 },
       },
       orderBy: { updatedAt: 'desc' },
@@ -365,7 +365,7 @@ router.get('/flash-sales', async (req: Request, res: Response, next: NextFunctio
       },
       include: {
         category: { select: { id: true, name: true, slug: true } },
-        user: { select: { id: true, name: true, avatar: true } },
+        user: { select: { id: true, name: true, avatar: true, isKycVerified: true } },
         productImages: { select: { id: true, cdnUrl: true, uploadedAt: true }, orderBy: { uploadedAt: 'asc' }, take: 1 },
       },
       orderBy: { updatedAt: 'desc' },
@@ -383,6 +383,7 @@ router.get('/', optionalAuthenticate, async (req: AuthRequest, res: Response, ne
     const {
       category, location, country, priceMin, priceMax,
       condition, sort = 'createdAt', page = '1', limit = '20', q, brand, mine, userId, placement,
+      verifiedOnly,
     } = req.query as Record<string, string>;
 
     if (mine === 'true' && !req.user) {
@@ -453,6 +454,7 @@ router.get('/', optionalAuthenticate, async (req: AuthRequest, res: Response, ne
       ...(country && isValidCountry(country) && { country }),
       ...(location && { location: { contains: location, mode: 'insensitive' } }),
       ...(condition && { condition: condition as 'NEW' | 'USED' }),
+      ...(verifiedOnly === 'true' && { user: { isKycVerified: true } }),
       ...((priceMin || priceMax) && {
         price: {
           ...(priceMin && { gte: parseFloat(priceMin) }),
@@ -482,11 +484,15 @@ router.get('/', optionalAuthenticate, async (req: AuthRequest, res: Response, ne
       return;
     }
 
-    const orderBy: Prisma.ListingOrderByWithRelationInput =
+    const orderBy: Prisma.ListingOrderByWithRelationInput | Prisma.ListingOrderByWithRelationInput[] =
       sort === 'price_asc' ? { price: 'asc' }
       : sort === 'price_desc' ? { price: 'desc' }
       : sort === 'views' ? { views: 'desc' }
-      : { createdAt: 'desc' };
+      // Default ("createdAt") and any unrecognized sort value: KYC-verified
+      // sellers' listings surface first (their reward for completing identity
+      // verification — see feature: buyers can "easily find" verified
+      // sellers), then most recent within each tier.
+      : [{ user: { isKycVerified: 'desc' } }, { createdAt: 'desc' }];
 
     const [listings, total] = await Promise.all([
       prisma.listing.findMany({
@@ -502,7 +508,7 @@ router.get('/', optionalAuthenticate, async (req: AuthRequest, res: Response, ne
               parent:   { select: { id: true, name: true, slug: true } },
             },
           },
-          user: { select: { id: true, name: true, avatar: true } },
+          user: { select: { id: true, name: true, avatar: true, isKycVerified: true } },
           productImages: {
             where: { cdnUrl: { not: null }, status: { not: 'REJECTED' } },
             select: { id: true, cdnUrl: true, uploadedAt: true },
@@ -722,7 +728,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response, next: Nex
       },
       include: {
         category: { select: { id: true, name: true, slug: true } },
-        user: { select: { id: true, name: true, avatar: true } },
+        user: { select: { id: true, name: true, avatar: true, isKycVerified: true } },
       },
     });
 
@@ -751,7 +757,7 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
         user: {
           select: {
             id: true, name: true, avatar: true, phone: true,
-            country: true, createdAt: true, role: true, isVerified: true,
+            country: true, createdAt: true, role: true, isVerified: true, isKycVerified: true,
             // Include the user's store so the UI can link to it
             store: { select: { id: true, name: true, slug: true, logo: true, isActive: true } },
           },
@@ -861,7 +867,7 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response, next: N
             parent: { select: { id: true, name: true, slug: true } },
           },
         },
-        user: { select: { id: true, name: true, avatar: true } },
+        user: { select: { id: true, name: true, avatar: true, isKycVerified: true } },
         productImages: {
           where: { cdnUrl: { not: null } },
           select: { id: true, cdnUrl: true, uploadedAt: true },

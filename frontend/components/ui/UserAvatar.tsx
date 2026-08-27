@@ -14,7 +14,7 @@ const sizes = { sm: 32, md: 48, lg: 96 };
 function Initials({ user, px }: { user: Partial<User>; px: number }) {
   return (
     <div
-      className="rounded-full bg-sky-500 flex items-center justify-center text-white font-bold shrink-0"
+      className="rounded-full bg-red-500 flex items-center justify-center text-white font-bold shrink-0"
       style={{ width: px, height: px, fontSize: px * 0.4 }}
     >
       {(user.name || 'U').charAt(0).toUpperCase()}

@@ -68,7 +68,7 @@ export default function TermsPage() {
         {
           title: '10. Governing Law',
           body: [
-            'These terms are governed by and construed in accordance with the laws of the United Arab Emirates. Disputes shall be resolved in the courts of Dubai, UAE, unless otherwise required by applicable local law in the user\'s jurisdiction.',
+            'These terms are governed by and construed in accordance with the laws of the Republic of Uganda. Disputes shall be resolved in the courts of Kampala, Uganda, unless otherwise required by applicable local law in the user\'s jurisdiction.',
           ],
         },
         {

@@ -66,7 +66,7 @@ export default function CategoryPicker({ categories, value, onChange, className 
       <button
         type="button"
         onClick={handleToggle}
-        className="w-full flex items-center justify-between border border-gray-300 rounded-lg px-4 py-2.5 bg-white text-left focus:outline-none focus:ring-2 focus:ring-sky-400 transition-colors hover:border-sky-400"
+        className="w-full flex items-center justify-between border border-gray-300 rounded-lg px-4 py-2.5 bg-white text-left focus:outline-none focus:ring-2 focus:ring-red-400 transition-colors hover:border-red-400"
         aria-expanded={open}
         aria-haspopup="dialog"
       >
@@ -97,9 +97,9 @@ export default function CategoryPicker({ categories, value, onChange, className 
                   key={cat.id}
                   className={`flex items-center justify-between gap-2 px-3 py-2 cursor-pointer text-sm transition-colors ${
                     activeParentId === cat.id || isChildSelected
-                      ? 'bg-sky-50 text-sky-700'
+                      ? 'bg-red-50 text-red-700'
                       : isParentSelected
-                      ? 'bg-sky-100 text-sky-800 font-semibold'
+                      ? 'bg-red-100 text-red-800 font-semibold'
                       : 'text-gray-800 hover:bg-gray-50'
                   }`}
                   onMouseEnter={() => { if (hasChildren) setActiveParentId(cat.id); }}
@@ -131,7 +131,7 @@ export default function CategoryPicker({ categories, value, onChange, className 
               {/* Option to select the parent category itself */}
               <li
                 className={`px-3 py-2 cursor-pointer text-sm transition-colors font-medium ${
-                  activeParent.id === value ? 'bg-sky-100 text-sky-800' : 'text-gray-600 hover:bg-white hover:text-gray-900'
+                  activeParent.id === value ? 'bg-red-100 text-red-800' : 'text-gray-600 hover:bg-white hover:text-gray-900'
                 }`}
                 onClick={() => handleSelect(activeParent.id)}
               >
@@ -142,7 +142,7 @@ export default function CategoryPicker({ categories, value, onChange, className 
                 <li
                   key={sub.id}
                   className={`px-3 py-2 cursor-pointer text-sm transition-colors ${
-                    sub.id === value ? 'bg-sky-100 text-sky-800 font-semibold' : 'text-gray-700 hover:bg-white hover:text-sky-700'
+                    sub.id === value ? 'bg-red-100 text-red-800 font-semibold' : 'text-gray-700 hover:bg-white hover:text-red-700'
                   }`}
                   onClick={() => handleSelect(sub.id)}
                 >

@@ -4,26 +4,23 @@ import type { Metadata } from 'next';
 import HeroSlideshow from '@/components/ui/HeroSlideshow';
 import { CategorySideNav, PromoSideCards } from '@/components/ui/HeroSideCards';
 import CountryFlashDeals from '@/components/ui/CountryFlashDeals';
-import PromoBanners from '@/components/ui/PromoBanners';
-import CategoryPills from '@/components/ui/CategoryPills';
 import CountryThemedHome from '@/components/ui/CountryThemedHome';
 import QuickActions from '@/components/ui/QuickActions';
 import HomeOtherCollections from '@/components/ui/HomeOtherCollections';
 import TrackPageView from '@/components/ui/TrackPageView';
 import SiteAnalytics from '@/components/ui/SiteAnalytics';
 import RegionHintBanner from '@/components/ui/RegionHintBanner';
-import TodaysDeals from '@/components/ui/TodaysDeals';
 import CountryLatestCollections from '@/components/ui/CountryLatestCollections';
 import CountryFeaturedDeal from '@/components/ui/CountryFeaturedDeal';
 import CountryRecentAcrossCategories from '@/components/ui/CountryRecentAcrossCategories';
 import { resolveImageUrl } from '@/lib/utils';
 
 export const metadata: Metadata = {
-  title: 'Piitrade Marketplace - Buy & Sell in UAE, Uganda, Kenya & China',
-  description: 'Discover premium listings on Piitrade: electronics, vehicles, fashion, real estate and more. Trusted marketplace for UAE, Uganda, Kenya and China.',
+  title: 'Piitrade Marketplace - Buy & Sell in Uganda',
+  description: 'Discover premium listings on Piitrade: electronics, vehicles, fashion, real estate and more. Trusted marketplace for Uganda.',
   openGraph: {
-    title: 'Piitrade Marketplace - UAE, Uganda, Kenya & China',
-    description: 'Discover premium listings on Piitrade. Trusted marketplace for UAE, Uganda, Kenya and China.',
+    title: 'Piitrade Marketplace - Uganda',
+    description: 'Discover premium listings on Piitrade. Trusted marketplace for Uganda.',
   },
 };
 
@@ -101,25 +98,25 @@ const features = [
     icon: '🔒',
     title: 'Trusted & Verified',
     desc: 'Every seller is vetted. Secure transactions and verified authenticity.',
-    color: 'from-emerald-500 to-teal-600',
+    color: 'from-[#951f15] to-premium-navy',
   },
   {
     icon: '✦',
     title: 'Curated Selection',
     desc: 'Only the finest listings. Quality over quantity, always.',
-    color: 'from-violet-500 to-purple-600',
+    color: 'from-[#651A15] to-[#4a1109]',
   },
   {
     icon: '💎',
     title: 'Exclusive Pricing',
     desc: 'Member-only deals and exclusive access to premium collections.',
-    color: 'from-amber-500 to-orange-500',
+    color: 'from-premium-gold to-premium-gold-dark',
   },
   {
-    icon: '🌍',
-    title: 'Global Reach',
-    desc: 'Connect with trusted buyers and sellers across UAE, Uganda, Kenya and China.',
-    color: 'from-sky-500 to-blue-600',
+    icon: '🇺🇬',
+    title: 'Nationwide Reach',
+    desc: 'Connect with trusted buyers and sellers across Uganda.',
+    color: 'from-[#7a1c15] to-[#951f15]',
   },
 ];
 
@@ -176,7 +173,7 @@ export default async function HomePage() {
                 href={item.linkUrl || '/listings'}
                 target={item.linkUrl ? '_blank' : '_self'}
                 rel={item.linkUrl ? 'noopener noreferrer' : undefined}
-                className="group relative min-h-[160px] overflow-hidden rounded-xl border border-sky-100 shadow-sm block"
+                className="group relative min-h-[160px] overflow-hidden rounded-xl border border-red-100 shadow-sm block"
               >
                 <Image
                   src={resolveImageUrl(item.cdnUrl)}
@@ -204,7 +201,7 @@ export default async function HomePage() {
             <div className="flex items-center justify-between mb-3">
               <div>
                 <div className="flex items-center gap-2 mb-0.5">
-                  <span className="w-1 h-6 bg-sky-500 rounded-full inline-block" />
+                  <span className="w-1 h-6 bg-red-500 rounded-full inline-block" />
                   <h2 className="text-lg xs:text-xl font-extrabold text-premium-navy">Recent Across Categories</h2>
                 </div>
                 <p className="text-xs text-gray-500 mt-0.5 pl-3">Latest items from key marketplaces — glance before you browse deeper</p>
@@ -222,13 +219,7 @@ export default async function HomePage() {
             />
           </section>
 
-          {/* ═══ 3. CATEGORY PILLS ═══ */}
-          <CategoryPills />
-
-          {/* ═══ 4. TODAY'S DEALS (admin-managed) ═══ */}
-          <TodaysDeals />
-
-          {/* ═══ 5. LATEST COLLECTIONS ═══ */}
+          {/* ═══ 3. LATEST COLLECTIONS ═══ */}
           <section className="animate-fade-up">
             <div className="flex items-center justify-between mb-3">
               <div>
@@ -294,18 +285,18 @@ export default async function HomePage() {
           </section>
 
           {/* ═══ 7. FEATURED DEAL — 6 items per row ═══ */}
-          <section className="animate-fade-up rounded-2xl border-2 border-sky-200 bg-gradient-to-r from-sky-50/60 to-indigo-50/40 p-3 sm:p-4">
+          <section className="animate-fade-up rounded-2xl border-2 border-red-200 bg-gradient-to-r from-red-50/60 to-rose-50/40 p-3 sm:p-4">
             <div className="flex items-center justify-between mb-3">
               <div>
                 <div className="flex items-center gap-2">
                   <h2 className="text-lg xs:text-xl font-extrabold text-premium-navy">✦ FEATURED DEAL</h2>
-                  <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[9px] font-extrabold text-white bg-gradient-to-r from-sky-500 to-indigo-500 shadow-sm animate-pulse">
+                  <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[9px] font-extrabold text-white bg-gradient-to-r from-red-500 to-rose-500 shadow-sm animate-pulse">
                     HANDPICKED FOR YOU
                   </span>
                 </div>
                 <p className="text-xs text-gray-500 mt-0.5">Our premier choice for today. Standout items selected by our experts for exceptional quality and value.</p>
               </div>
-              <Link href="/listings?placement=FEATURED_DEAL" className="text-xs font-semibold text-white bg-gradient-to-r from-sky-500 to-indigo-500 hover:from-sky-600 hover:to-indigo-600 px-3 py-1.5 rounded-lg flex items-center gap-1 interactive shadow-sm transition-all">
+              <Link href="/listings?placement=FEATURED_DEAL" className="text-xs font-semibold text-white bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 px-3 py-1.5 rounded-lg flex items-center gap-1 interactive shadow-sm transition-all">
                 View All Deals
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
               </Link>
@@ -318,7 +309,7 @@ export default async function HomePage() {
             <div className="flex items-center justify-between mb-3">
               <div>
                 <div className="flex items-center gap-2 mb-0.5">
-                  <span className="w-1 h-6 bg-sky-500 rounded-full inline-block" />
+                  <span className="w-1 h-6 bg-red-500 rounded-full inline-block" />
                   <h2 className="text-lg xs:text-xl font-extrabold text-premium-navy">Other Collections</h2>
                 </div>
                 <p className="text-xs text-gray-500 mt-0.5 pl-3">Explore more listings from our marketplace</p>
@@ -333,100 +324,61 @@ export default async function HomePage() {
             )}
           </section>
 
-          {/* ═══ 9. MARKET CTAs ═══ */}
-          <PromoBanners />
-
-          {/* ═══ 10. QUICK ACTIONS ═══ */}
+          {/* ═══ 9. QUICK ACTIONS ═══ */}
           <QuickActions />
 
-          {/* ═══ SAFETY BANNER ═══ */}
-          <section className="bg-premium-cream border border-[#0369a1]/15 rounded-xl p-4 xs:p-5 flex flex-col sm:flex-row items-start sm:items-center gap-3 xs:gap-4">
-            <div className="shrink-0 w-10 h-10 xs:w-12 xs:h-12 rounded-xl bg-[#0369a1]/10 flex items-center justify-center text-2xl">
-              🛡️
+          {/* ═══ TRUST STRIP — safety note + "why Piitrade" highlights folded into one
+               compact row. These don't surface listings, so they no longer get two
+               separate full-width sections' worth of space; all the same links and
+               highlights are still here, just presented as a single slim strip. ═══ */}
+          <section className="bg-white rounded-xl border border-gray-100 p-3 xs:p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5">
+              <div className="flex items-start gap-2.5 sm:shrink-0 sm:max-w-xs">
+                <span className="text-xl shrink-0" aria-hidden="true">🛡️</span>
+                <p className="text-xs text-gray-600 leading-snug">
+                  Meet in public, inspect before paying.{' '}
+                  <Link href="/safety" className="font-semibold text-premium-navy hover:underline interactive">Safety Tips →</Link>
+                </p>
+              </div>
+              <div className="hidden sm:block w-px self-stretch bg-gray-100" aria-hidden="true" />
+              <div className="flex flex-wrap gap-x-4 gap-y-1.5 flex-1">
+                {features.map((f) => (
+                  <span key={f.title} className="flex items-center gap-1.5 text-xs font-medium text-gray-600" title={f.desc}>
+                    <span aria-hidden="true">{f.icon}</span> {f.title}
+                  </span>
+                ))}
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="font-bold text-premium-navy text-sm xs:text-base mb-0.5">Community Safety Comes First</h3>
-              <p className="text-gray-600 text-xs xs:text-sm">
-                Always meet in a public place, never pay in advance without inspecting, and report suspicious listings.
-                Together, we build a safer marketplace.
-              </p>
-            </div>
-            <Link
-              href="/safety"
-              className="shrink-0 text-xs font-semibold text-premium-navy bg-[#0369a1]/10 hover:bg-[#0369a1]/20 border border-[#0369a1]/20 px-3 py-1.5 rounded-lg transition-colors interactive"
-            >
-              Safety Tips →
-            </Link>
           </section>
 
-          {/* ═══ GET VERIFIED CTA ═══ */}
-          <section className="relative overflow-hidden bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 rounded-xl px-4 xs:px-6 py-6 xs:py-8 sm:px-10 text-white">
-            <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
-              <div className="absolute -top-8 -right-8 w-40 h-40 bg-white/10 rounded-full blur-2xl" />
-              <div className="absolute -bottom-8 -left-8 w-48 h-48 bg-white/10 rounded-full blur-2xl" />
-            </div>
-            <div className="relative flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
-              <div className="shrink-0 w-14 h-14 xs:w-16 xs:h-16 bg-white/20 rounded-2xl flex items-center justify-center text-3xl">
-                ✅
-              </div>
-              <div className="text-center sm:text-left flex-1">
-                <h2 className="text-lg xs:text-xl font-extrabold mb-1">Join the Inner Circle — Unlock Exclusive Access</h2>
-                <p className="text-white/80 text-xs xs:text-sm max-w-md">
-                  Verified members get early access to limited drops,
-                  exclusive pricing, and a trust badge on every listing.
-                </p>
-                <div className="flex flex-wrap justify-center sm:justify-start gap-2 mt-2 xs:mt-3 text-xs text-white/80">
-                  <span className="flex items-center gap-1"><span className="text-yellow-300">✓</span> Priority access</span>
-                  <span className="flex items-center gap-1"><span className="text-yellow-300">✓</span> Verified badge</span>
-                  <span className="flex items-center gap-1"><span className="text-yellow-300">✓</span> Member pricing</span>
-                </div>
+          {/* ═══ CONVERSION STRIP — Get Verified + Post Ad combined into one compact
+               two-up row instead of two large full-width banners. Same links and
+               copy, just repositioned into far less vertical space. ═══ */}
+          <section className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-premium-navy via-[#651A15] to-[#4a1109] text-white p-3.5 xs:p-4 flex items-center gap-3">
+              <span className="text-2xl shrink-0" aria-hidden="true">🪪</span>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-bold text-sm leading-tight">Get KYC Verified</h3>
+                <p className="text-red-100/80 text-xs leading-snug">Priority review &amp; a trust badge buyers spot instantly.</p>
               </div>
               <Link
-                href="/profile/subscription"
-                className="shrink-0 bg-white text-violet-700 font-bold px-5 py-2.5 rounded-xl hover:bg-yellow-300 hover:text-violet-900 transition-all interactive shadow-lg hover:shadow-xl hover:-translate-y-0.5 text-sm whitespace-nowrap"
+                href="/profile/verification"
+                className="shrink-0 bg-premium-gold text-white font-bold px-3 py-2 rounded-lg hover:bg-premium-gold-dark transition-colors interactive text-xs whitespace-nowrap"
               >
-                Join Now →
+                Verify →
               </Link>
             </div>
-          </section>
-
-          {/* ═══ WHY PIITRADE ═══ */}
-          <section className="bg-white rounded-lg border border-gray-100 shadow-sm p-4 xs:p-6 sm:p-8">
-            <div className="text-center mb-4 xs:mb-6">
-              <h2 className="text-lg xs:text-xl font-extrabold text-premium-navy">Why Choose Piitrade?</h2>
-              <p className="text-gray-500 text-xs xs:text-sm mt-1">The refined way to buy and sell</p>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 xs:gap-4 stagger-children">
-              {features.map((f) => (
-                <div key={f.title} className="text-center group">
-                  <div className={`w-10 h-10 xs:w-12 xs:h-12 mx-auto mb-2 xs:mb-3 rounded-xl bg-gradient-to-br ${f.color} flex items-center justify-center text-xl xs:text-2xl shadow-lg group-hover:scale-110 group-hover:shadow-xl transition-all duration-300`}>
-                    <span>{f.icon}</span>
-                  </div>
-                  <h3 className="font-bold text-premium-navy text-xs xs:text-sm mb-0.5 xs:mb-1">{f.title}</h3>
-                  <p className="text-[10px] xs:text-xs text-gray-500 leading-relaxed">{f.desc}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          {/* ═══ POST AD CTA ═══ */}
-          <section className="relative overflow-hidden bg-gradient-to-r from-orange-500 via-rose-500 to-pink-600 rounded-lg px-4 xs:px-6 py-6 xs:py-8 sm:px-10 text-white text-center">
-            <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
-              <div className="absolute top-0 left-1/4 w-24 xs:w-32 h-24 xs:h-32 bg-white/10 rounded-full blur-xl" />
-              <div className="absolute bottom-0 right-1/4 w-32 xs:w-40 h-32 xs:h-40 bg-white/10 rounded-full blur-xl" />
-            </div>
-            <div className="relative">
-              <p className="text-3xl xs:text-4xl mb-2 xs:mb-3">🚀</p>
-              <h2 className="text-xl xs:text-2xl font-extrabold mb-1.5 xs:mb-2">Ready to List?</h2>
-              <p className="text-white/80 text-xs xs:text-sm mb-4 xs:mb-5 max-w-sm mx-auto">
-                Showcase your premium items to discerning buyers across UAE, Uganda, Kenya and China.
-              </p>
+            <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-premium-gold-dark via-premium-gold to-premium-gold-light text-white p-3.5 xs:p-4 flex items-center gap-3">
+              <span className="text-2xl shrink-0" aria-hidden="true">🚀</span>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-bold text-sm leading-tight">Ready to List?</h3>
+                <p className="text-white/85 text-xs leading-snug">Showcase your items to buyers across the region.</p>
+              </div>
               <Link
                 href="/listings/create"
-                className="inline-flex items-center gap-2 bg-white text-rose-600 font-bold px-6 py-3 rounded-lg hover:bg-yellow-300 hover:text-rose-700 transition-all interactive shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+                className="shrink-0 bg-white text-premium-gold-dark font-bold px-3 py-2 rounded-lg hover:bg-premium-navy hover:text-white transition-colors interactive text-xs whitespace-nowrap"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
-                Create Listing
+                Create →
               </Link>
             </div>
           </section>

@@ -147,7 +147,7 @@ export default function AdminPackagesPage() {
             }}
             className={`rounded-xl border px-4 py-2 text-sm font-semibold transition-colors ${
               scope === value
-                ? 'border-sky-600 bg-sky-600 text-white'
+                ? 'border-red-600 bg-red-600 text-white'
                 : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
             }`}
           >
@@ -178,7 +178,7 @@ export default function AdminPackagesPage() {
                 value={form.name}
                 onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
                 placeholder="e.g. Free Trial, Starter Plan"
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
               />
             </div>
             <div className="flex items-end gap-3 flex-wrap">
@@ -187,7 +187,7 @@ export default function AdminPackagesPage() {
                 <select
                   value={form.scope}
                   onChange={(e) => setForm((p) => ({ ...p, scope: e.target.value as PackageScope }))}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
                 >
                   <option value="LISTING">Listing</option>
                   <option value="CV">CV</option>
@@ -198,7 +198,7 @@ export default function AdminPackagesPage() {
                   type="checkbox"
                   checked={form.isFree}
                   onChange={(e) => setForm((p) => ({ ...p, isFree: e.target.checked, price: e.target.checked ? '0' : p.price }))}
-                  className="w-4 h-4 rounded accent-sky-600"
+                  className="w-4 h-4 rounded accent-red-600"
                 />
                 <span className="text-sm font-medium text-gray-700">Free Package</span>
               </label>
@@ -207,7 +207,7 @@ export default function AdminPackagesPage() {
                   type="checkbox"
                   checked={form.isActive}
                   onChange={(e) => setForm((p) => ({ ...p, isActive: e.target.checked }))}
-                  className="w-4 h-4 rounded accent-sky-600"
+                  className="w-4 h-4 rounded accent-red-600"
                 />
                 <span className="text-sm font-medium text-gray-700">Active</span>
               </label>
@@ -222,7 +222,7 @@ export default function AdminPackagesPage() {
               onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
               rows={2}
               placeholder="Brief description shown to sellers"
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300 resize-none"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 resize-none"
             />
           </div>
 
@@ -237,7 +237,7 @@ export default function AdminPackagesPage() {
                 disabled={form.isFree}
                 value={form.isFree ? '0' : form.price}
                 onChange={(e) => setForm((p) => ({ ...p, price: e.target.value }))}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300 disabled:bg-gray-50 disabled:text-gray-400"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 disabled:bg-gray-50 disabled:text-gray-400"
               />
             </div>
             <div>
@@ -245,7 +245,7 @@ export default function AdminPackagesPage() {
               <select
                 value={form.currency}
                 onChange={(e) => setForm((p) => ({ ...p, currency: e.target.value }))}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
               >
                 {['USD', 'AED', 'UGX', 'KES', 'CNY'].map((c) => (
                   <option key={c} value={c}>{c}</option>
@@ -261,7 +261,7 @@ export default function AdminPackagesPage() {
                 value={form.durationDays}
                 onChange={(e) => setForm((p) => ({ ...p, durationDays: e.target.value }))}
                 placeholder="e.g. 30"
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
               />
             </div>
             <div>
@@ -274,7 +274,7 @@ export default function AdminPackagesPage() {
                 value={form.maxListings}
                 onChange={(e) => setForm((p) => ({ ...p, maxListings: e.target.value }))}
                 placeholder={form.scope === 'CV' ? 'Leave blank for all tools' : 'Unlimited'}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
               />
             </div>
           </div>
@@ -283,7 +283,7 @@ export default function AdminPackagesPage() {
             <button
               type="submit"
               disabled={saving}
-              className="px-5 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-sm font-semibold transition-colors disabled:opacity-50"
+              className="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-colors disabled:opacity-50"
             >
               {saving ? 'Saving…' : editId ? 'Update Package' : 'Create Package'}
             </button>
@@ -323,7 +323,7 @@ export default function AdminPackagesPage() {
                         FREE TRIAL
                       </span>
                     )}
-                    <span className="inline-block text-[10px] font-bold bg-sky-50 text-sky-700 border border-sky-200 px-2 py-0.5 rounded-full">
+                    <span className="inline-block text-[10px] font-bold bg-red-50 text-red-700 border border-red-200 px-2 py-0.5 rounded-full">
                       {pkg.scope}
                     </span>
                     {!pkg.isActive && (

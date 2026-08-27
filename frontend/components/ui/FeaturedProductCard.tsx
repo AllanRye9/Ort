@@ -9,6 +9,9 @@ interface FeaturedProductCardProps {
   description?: string;
   originalPrice?: string;
   discountedPrice?: string;
+  /** Optional note shown under the price, e.g. "Listed at AED 100" when the
+   *  displayed price has been currency-converted from what the seller posted. */
+  listedPriceNote?: string;
   imageUrl?: string;
   href?: string;
   isHandpicked?: boolean;
@@ -22,6 +25,7 @@ export default function FeaturedProductCard({
   description,
   originalPrice,
   discountedPrice,
+  listedPriceNote,
   imageUrl,
   href,
   isHandpicked = false,
@@ -59,7 +63,7 @@ export default function FeaturedProductCard({
         {/* Handpicked badge — bottom corner, small and subtle */}
         {isHandpicked && (
           <div className="absolute bottom-1.5 right-1.5">
-            <span className="bg-white/90 text-sky-600 text-[9px] font-bold px-1.5 py-0.5 rounded-full backdrop-blur-sm shadow-sm flex items-center gap-0.5">
+            <span className="bg-white/90 text-red-600 text-[9px] font-bold px-1.5 py-0.5 rounded-full backdrop-blur-sm shadow-sm flex items-center gap-0.5">
               <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
               Pick
             </span>
@@ -82,9 +86,12 @@ export default function FeaturedProductCard({
               <span className="text-gray-400 line-through text-[10px] sm:text-xs tabular-nums">{originalPrice}</span>
             )}
             {discountedPrice && (
-              <span className="animate-price-pop text-[#0EA5E9] font-extrabold text-sm sm:text-base tabular-nums">{discountedPrice}</span>
+              <span className="animate-price-pop text-[#B7291B] font-extrabold text-sm sm:text-base tabular-nums">{discountedPrice}</span>
             )}
           </div>
+        )}
+        {listedPriceNote && (
+          <p className="text-[9px] sm:text-[10px] text-gray-400 mt-0.5 leading-none">{listedPriceNote}</p>
         )}
       </div>
     </div>

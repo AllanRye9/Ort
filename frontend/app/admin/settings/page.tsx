@@ -83,7 +83,7 @@ const DEFAULT_SETTINGS: Settings = {
 };
 
 const THEME_OPTIONS = [
-  { key: 'sky',      label: 'Light Blue',    color: '#0EA5E9' },
+  { key: 'red',      label: 'Piitrade Red',  color: '#B7291B' },
   { key: 'white',    label: 'White',         color: '#64748b' },
   { key: 'dark',     label: 'Dark',          color: '#38bdf8' },
   { key: 'emerald',  label: 'Emerald',       color: '#10b981' },
@@ -110,7 +110,7 @@ function ToggleSwitch({ enabled, onChange }: { enabled: boolean; onChange: (v: b
       role="switch"
       aria-checked={enabled}
       onClick={() => onChange(!enabled)}
-      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${enabled ? 'bg-sky-600' : 'bg-gray-300'}`}
+      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${enabled ? 'bg-red-600' : 'bg-gray-300'}`}
     >
       <span className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${enabled ? 'translate-x-6' : 'translate-x-1'}`} />
     </button>
@@ -403,7 +403,7 @@ export default function AdminSettingsPage() {
   const [settings, setSettings] = useState<Settings | null>(DEFAULT_SETTINGS);
   const [socialLinks, setSocialLinks] = useState<SocialLinks>({ facebook: '', instagram: '', linkedin: '', x: '', whatsapp: '', youtube: '', tiktok: '' });
   const [whatsappNumber, setWhatsappNumber] = useState('');
-  const [headerTheme, setHeaderTheme] = useState('sky');
+  const [headerTheme, setHeaderTheme] = useState('red');
   const [deals, setDeals] = useState<Deal[]>([]);
   const [fetching, setFetching] = useState(true);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -492,7 +492,7 @@ export default function AdminSettingsPage() {
 
           if (configResult.status === 'fulfilled') {
             setWhatsappNumber(configResult.value.data?.whatsappNumber || '');
-            setHeaderTheme(configResult.value.data?.headerTheme || 'sky');
+            setHeaderTheme(configResult.value.data?.headerTheme || 'red');
           }
 
           if (dealsResult.status === 'fulfilled') {
@@ -978,7 +978,7 @@ export default function AdminSettingsPage() {
         <button
           onClick={handleSaveTheme}
           disabled={savingTheme}
-          className="bg-sky-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-sky-700 transition-colors disabled:opacity-50"
+          className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
         >
           {savingTheme ? 'Saving…' : 'Apply Theme'}
         </button>
@@ -1178,7 +1178,7 @@ export default function AdminSettingsPage() {
           <button
             type="button"
             onClick={refreshSectionCounts}
-            className="text-xs font-semibold text-sky-600 hover:text-sky-700 flex items-center gap-1"
+            className="text-xs font-semibold text-red-600 hover:text-red-700 flex items-center gap-1"
           >
             ↻ Refresh
           </button>
@@ -1228,7 +1228,7 @@ export default function AdminSettingsPage() {
                                     ? handleAutoFillDeals(country)
                                     : handleAutoFillPlacement(sec.key, country)
                                 }
-                                className="text-[10px] font-semibold text-sky-600 hover:text-sky-800 underline disabled:opacity-50"
+                                className="text-[10px] font-semibold text-red-600 hover:text-red-800 underline disabled:opacity-50"
                               >
                                 {isFilling ? 'Filling…' : `Auto-fill to ${sectionCounts.target ?? 6}`}
                               </button>
@@ -1258,11 +1258,11 @@ export default function AdminSettingsPage() {
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Site Name</label>
-            <input type="text" value={settings.siteName} onChange={(e) => update('siteName', e.target.value)} placeholder="Site name" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500" />
+            <input type="text" value={settings.siteName} onChange={(e) => update('siteName', e.target.value)} placeholder="Site name" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Default Country</label>
-            <select value={settings.defaultCountry} onChange={(e) => update('defaultCountry', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500">
+            <select value={settings.defaultCountry} onChange={(e) => update('defaultCountry', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500">
               <option value="UAE">UAE</option>
               <option value="UGANDA">UGANDA</option>
               <option value="KENYA">KENYA</option>
@@ -1299,11 +1299,11 @@ export default function AdminSettingsPage() {
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Items Per Page</label>
-            <input type="number" min={1} value={settings.itemsPerPage} onChange={(e) => update('itemsPerPage', Number(e.target.value))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500" />
+            <input type="number" min={1} value={settings.itemsPerPage} onChange={(e) => update('itemsPerPage', Number(e.target.value))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Max Images Per Listing</label>
-            <input type="number" min={1} value={settings.maxImagesPerListing} onChange={(e) => update('maxImagesPerListing', Number(e.target.value))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500" />
+            <input type="number" min={1} value={settings.maxImagesPerListing} onChange={(e) => update('maxImagesPerListing', Number(e.target.value))} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Free Trial Period (days)</label>
@@ -1313,7 +1313,7 @@ export default function AdminSettingsPage() {
               max={365}
               value={settings.trialDays ?? 7}
               onChange={(e) => update('trialDays', Number(e.target.value))}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
             />
             <p className="mt-1 text-xs text-gray-400">
               New ordinary users get this many days free before needing a subscription. Set to 0 to disable the trial.
@@ -1322,7 +1322,7 @@ export default function AdminSettingsPage() {
         </div>
       </div>
 
-      <button onClick={handleSave} disabled={saving} className="bg-sky-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-sky-700 transition-colors disabled:opacity-50 mb-10">
+      <button onClick={handleSave} disabled={saving} className="bg-red-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50 mb-10">
         {saving ? 'Saving...' : 'Save Settings'}
       </button>
 
@@ -1344,12 +1344,12 @@ export default function AdminSettingsPage() {
               <span className="w-7 text-center text-lg shrink-0">{icon}</span>
               <div className="flex-1">
                 <label className="block text-xs font-medium text-gray-600 mb-0.5">{label}</label>
-                <input type="url" value={socialLinks[key]} onChange={(e) => updateSocial(key, e.target.value)} placeholder={placeholder} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                <input type="url" value={socialLinks[key]} onChange={(e) => updateSocial(key, e.target.value)} placeholder={placeholder} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500" />
               </div>
             </div>
           ))}
         </div>
-        <button onClick={handleSaveSocial} disabled={savingSocial} className="mt-5 bg-sky-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-sky-700 transition-colors disabled:opacity-50">
+        <button onClick={handleSaveSocial} disabled={savingSocial} className="mt-5 bg-red-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50">
           {savingSocial ? 'Saving...' : 'Save Social Links'}
         </button>
       </div>
@@ -1380,7 +1380,7 @@ export default function AdminSettingsPage() {
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-700 truncate">{logoAltText || 'No alt text set'}</p>
                 <p className="text-xs text-gray-400 mt-0.5 truncate">{logoUrl}</p>
-                <p className="text-xs text-sky-600 mt-1">
+                <p className="text-xs text-red-600 mt-1">
                   Shown on: {logoPages.length > 0
                     ? logoPages.map(k => LOGO_PAGE_OPTIONS.find(o => o.key === k)?.label || k).join(', ')
                     : 'No pages selected'}
@@ -1396,7 +1396,7 @@ export default function AdminSettingsPage() {
             </div>
           ) : (
             <div className="flex items-center gap-3 p-4 rounded-xl bg-gray-50 border border-dashed border-gray-300 text-gray-400">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-violet-600 via-sky-500 to-cyan-400 text-white flex items-center justify-center font-black text-sm">Pi</div>
+              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-violet-600 via-red-500 to-rose-400 text-white flex items-center justify-center font-black text-sm">Pi</div>
               <p className="text-sm">No custom logo uploaded — default wordmark is shown.</p>
             </div>
           )}
@@ -1406,7 +1406,7 @@ export default function AdminSettingsPage() {
         <div className="mb-5">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Upload New Logo</p>
           <div
-            className="flex flex-col items-center justify-center p-6 rounded-xl border-2 border-dashed border-gray-200 hover:border-sky-400 bg-gray-50 hover:bg-sky-50/40 cursor-pointer transition-all group"
+            className="flex flex-col items-center justify-center p-6 rounded-xl border-2 border-dashed border-gray-200 hover:border-red-400 bg-gray-50 hover:bg-red-50/40 cursor-pointer transition-all group"
             onClick={() => logoInputRef.current?.click()}
           >
             {logoPreview ? (
@@ -1415,7 +1415,7 @@ export default function AdminSettingsPage() {
               </div>
             ) : (
               <>
-                <div className="w-12 h-12 rounded-full bg-sky-100 group-hover:bg-sky-200 flex items-center justify-center text-2xl mb-2 transition-colors">📁</div>
+                <div className="w-12 h-12 rounded-full bg-red-100 group-hover:bg-red-200 flex items-center justify-center text-2xl mb-2 transition-colors">📁</div>
                 <p className="text-sm font-medium text-gray-700">Click to select a logo file</p>
                 <p className="text-xs text-gray-400 mt-0.5">PNG, JPG or WebP — max 10 MB</p>
               </>
@@ -1447,7 +1447,7 @@ export default function AdminSettingsPage() {
             value={logoAltText}
             onChange={(e) => setLogoAltText(e.target.value)}
             placeholder="e.g. Piitrade Marketplace"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
           />
           <p className="mt-1 text-xs text-gray-400">Shown to screen readers and when the image fails to load.</p>
         </div>
@@ -1465,7 +1465,7 @@ export default function AdminSettingsPage() {
               step={1}
               value={logoSize}
               onChange={(e) => setLogoSize(Number(e.target.value))}
-              className="flex-1 accent-sky-600"
+              className="flex-1 accent-red-600"
             />
             <div className="flex items-center gap-1 shrink-0">
               <input
@@ -1474,7 +1474,7 @@ export default function AdminSettingsPage() {
                 max={96}
                 value={logoSize}
                 onChange={(e) => setLogoSize(Math.min(96, Math.max(16, Number(e.target.value) || 28)))}
-                className="w-16 border border-gray-300 rounded-lg px-2 py-1.5 text-sm text-center focus:outline-none focus:ring-2 focus:ring-sky-500"
+                className="w-16 border border-gray-300 rounded-lg px-2 py-1.5 text-sm text-center focus:outline-none focus:ring-2 focus:ring-red-500"
               />
               <span className="text-xs text-gray-400">px</span>
             </div>
@@ -1507,14 +1507,14 @@ export default function AdminSettingsPage() {
                   onClick={() => toggleLogoPage(key)}
                   className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
                     active
-                      ? 'border-sky-500 bg-sky-50 text-sky-700 shadow-sm'
-                      : 'border-gray-200 bg-white text-gray-600 hover:border-sky-200 hover:bg-sky-50/40'
+                      ? 'border-red-500 bg-red-50 text-red-700 shadow-sm'
+                      : 'border-gray-200 bg-white text-gray-600 hover:border-red-200 hover:bg-red-50/40'
                   }`}
                 >
                   <span className="text-base leading-none">{icon}</span>
                   <span>{label}</span>
                   {active && (
-                    <span className="ml-auto text-sky-500 text-xs">✓</span>
+                    <span className="ml-auto text-red-500 text-xs">✓</span>
                   )}
                 </button>
               );
@@ -1533,7 +1533,7 @@ export default function AdminSettingsPage() {
             value={logoLinkUrl}
             onChange={(e) => setLogoLinkUrl(e.target.value)}
             placeholder="https://example.com"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
           />
           <p className="mt-1 text-xs text-gray-400">
             Optional. If set, visitors are taken here when they click the logo. Leave blank for a non-clickable logo.
@@ -1549,8 +1549,8 @@ export default function AdminSettingsPage() {
               onClick={() => setLogoDisplayMode('inline')}
               className={`text-left px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
                 logoDisplayMode === 'inline'
-                  ? 'border-sky-500 bg-sky-50 text-sky-700 shadow-sm'
-                  : 'border-gray-200 bg-white text-gray-600 hover:border-sky-200 hover:bg-sky-50/40'
+                  ? 'border-red-500 bg-red-50 text-red-700 shadow-sm'
+                  : 'border-gray-200 bg-white text-gray-600 hover:border-red-200 hover:bg-red-50/40'
               }`}
             >
               Logo + Text
@@ -1561,8 +1561,8 @@ export default function AdminSettingsPage() {
               onClick={() => setLogoDisplayMode('replace')}
               className={`text-left px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
                 logoDisplayMode === 'replace'
-                  ? 'border-sky-500 bg-sky-50 text-sky-700 shadow-sm'
-                  : 'border-gray-200 bg-white text-gray-600 hover:border-sky-200 hover:bg-sky-50/40'
+                  ? 'border-red-500 bg-red-50 text-red-700 shadow-sm'
+                  : 'border-gray-200 bg-white text-gray-600 hover:border-red-200 hover:bg-red-50/40'
               }`}
             >
               Image Only
@@ -1574,7 +1574,7 @@ export default function AdminSettingsPage() {
         <button
           onClick={handleSaveLogo}
           disabled={savingLogo || (!logoFile && !logoUrl)}
-          className="bg-sky-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-sky-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+          className="bg-red-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center gap-2"
         >
           {savingLogo ? (
             <>
@@ -1630,7 +1630,7 @@ export default function AdminSettingsPage() {
         <div className="mb-5">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Upload New Video</p>
           <div
-            className="flex flex-col items-center justify-center p-6 rounded-xl border-2 border-dashed border-gray-200 hover:border-sky-400 bg-gray-50 hover:bg-sky-50/40 cursor-pointer transition-all group"
+            className="flex flex-col items-center justify-center p-6 rounded-xl border-2 border-dashed border-gray-200 hover:border-red-400 bg-gray-50 hover:bg-red-50/40 cursor-pointer transition-all group"
             onClick={() => interviewVideoInputRef.current?.click()}
           >
             {interviewVideoPreview ? (
@@ -1639,7 +1639,7 @@ export default function AdminSettingsPage() {
               </div>
             ) : (
               <>
-                <div className="w-12 h-12 rounded-full bg-sky-100 group-hover:bg-sky-200 flex items-center justify-center text-2xl mb-2 transition-colors">📁</div>
+                <div className="w-12 h-12 rounded-full bg-red-100 group-hover:bg-red-200 flex items-center justify-center text-2xl mb-2 transition-colors">📁</div>
                 <p className="text-sm font-medium text-gray-700">Click to select a video file</p>
                 <p className="text-xs text-gray-400 mt-0.5">MP4, WEBM, MOV or AVI — max 200 MB</p>
               </>
@@ -1671,7 +1671,7 @@ export default function AdminSettingsPage() {
             value={interviewVideoTitle}
             onChange={(e) => setInterviewVideoTitle(e.target.value)}
             placeholder="e.g. How the Interview Simulator Works"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
           />
           <p className="mt-1 text-xs text-gray-400">Shown as a caption above the video on the interview page.</p>
         </div>
@@ -1679,7 +1679,7 @@ export default function AdminSettingsPage() {
         <button
           onClick={handleSaveInterviewVideo}
           disabled={savingInterviewVideo || !interviewVideoFile}
-          className="bg-sky-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-sky-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+          className="bg-red-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center gap-2"
         >
           {savingInterviewVideo ? (
             <>
@@ -1725,7 +1725,7 @@ export default function AdminSettingsPage() {
             </div>
           ) : (
             <div className="flex items-center gap-3 p-4 rounded-xl bg-gray-50 border border-dashed border-gray-300 text-gray-400">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-premium-navy to-sky-700 text-white flex items-center justify-center text-xl">📺</div>
+              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-premium-navy to-red-700 text-white flex items-center justify-center text-xl">📺</div>
               <p className="text-sm">No custom promo video uploaded — the default bundled video is shown.</p>
             </div>
           )}
@@ -1735,7 +1735,7 @@ export default function AdminSettingsPage() {
         <div className="mb-5">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Upload New Video</p>
           <div
-            className="flex flex-col items-center justify-center p-6 rounded-xl border-2 border-dashed border-gray-200 hover:border-sky-400 bg-gray-50 hover:bg-sky-50/40 cursor-pointer transition-all group"
+            className="flex flex-col items-center justify-center p-6 rounded-xl border-2 border-dashed border-gray-200 hover:border-red-400 bg-gray-50 hover:bg-red-50/40 cursor-pointer transition-all group"
             onClick={() => promoVideoInputRef.current?.click()}
           >
             {promoVideoPreview ? (
@@ -1744,7 +1744,7 @@ export default function AdminSettingsPage() {
               </div>
             ) : (
               <>
-                <div className="w-12 h-12 rounded-full bg-sky-100 group-hover:bg-sky-200 flex items-center justify-center text-2xl mb-2 transition-colors">📁</div>
+                <div className="w-12 h-12 rounded-full bg-red-100 group-hover:bg-red-200 flex items-center justify-center text-2xl mb-2 transition-colors">📁</div>
                 <p className="text-sm font-medium text-gray-700">Click to select a video file</p>
                 <p className="text-xs text-gray-400 mt-0.5">MP4, WEBM, MOV or AVI — max 200 MB</p>
               </>
@@ -1776,7 +1776,7 @@ export default function AdminSettingsPage() {
             value={promoVideoTitle}
             onChange={(e) => setPromoVideoTitle(e.target.value)}
             placeholder="e.g. August livestream teaser"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
           />
           <p className="mt-1 text-xs text-gray-400">For your reference only — not displayed on the homepage.</p>
         </div>
@@ -1784,7 +1784,7 @@ export default function AdminSettingsPage() {
         <button
           onClick={handleSavePromoVideo}
           disabled={savingPromoVideo || !promoVideoFile}
-          className="bg-sky-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-sky-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+          className="bg-red-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center gap-2"
         >
           {savingPromoVideo ? (
             <>

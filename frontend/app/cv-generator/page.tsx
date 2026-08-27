@@ -36,8 +36,8 @@ const CATEGORIES = [
     title: 'CV / Resume',
     desc:  'Build your CV with live preview. Pay only when you download.',
     badge: 'Most Popular',
-    badgeColor: 'bg-sky-100 text-sky-700',
-    gradient: 'from-sky-500 to-blue-600',
+    badgeColor: 'bg-red-100 text-red-700',
+    gradient: 'from-red-500 to-red-600',
     cta:   'Start Building',
   },
   {
@@ -90,7 +90,7 @@ export default function CVGeneratorHub() {
   const isFreePackage = !!pkg?.isFree;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-sky-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-red-50">
       <div className="max-w-4xl mx-auto px-4 pt-5 pb-8">
 
         {/* Breadcrumb */}
@@ -101,7 +101,7 @@ export default function CVGeneratorHub() {
         </nav>
 
         {/* Hero */}
-        <div className="bg-gradient-to-br from-sky-600 to-blue-700 rounded-2xl sm:rounded-3xl p-4 sm:p-6 text-white mb-4 shadow-xl">
+        <div className="bg-gradient-to-br from-red-600 to-red-700 rounded-2xl sm:rounded-3xl p-4 sm:p-6 text-white mb-4 shadow-xl">
           <span className="inline-flex items-center gap-1.5 bg-white/15 text-xs font-bold px-3 py-1.5 rounded-full mb-3">
             <span className="text-sm">&#x2728;</span> CV, Certificates &amp; Documents
           </span>
@@ -120,7 +120,7 @@ export default function CVGeneratorHub() {
             )}
           </p>
           <Link href="/cv-generator/builder"
-            className="mt-3 inline-flex items-center gap-2 bg-white text-sky-700 font-bold px-5 py-2 rounded-xl hover:bg-sky-50 transition-all shadow-md text-sm">
+            className="mt-3 inline-flex items-center gap-2 bg-white text-red-700 font-bold px-5 py-2 rounded-xl hover:bg-red-50 transition-all shadow-md text-sm">
             <span className="text-base">&#x1F4C4;</span> Start Building My CV
           </Link>
         </div>
@@ -176,7 +176,7 @@ export default function CVGeneratorHub() {
               <div className="p-3 flex flex-col flex-1">
                 <h3 className="font-bold text-gray-900 text-sm mb-1">{cat.title}</h3>
                 <p className="text-xs text-gray-500 flex-1 leading-relaxed">{cat.desc}</p>
-                <span className="mt-2 text-xs font-semibold text-sky-600 group-hover:underline">{cat.cta} &#8594;</span>
+                <span className="mt-2 text-xs font-semibold text-red-600 group-hover:underline">{cat.cta} &#8594;</span>
               </div>
             </Link>
           ))}
@@ -197,7 +197,7 @@ export default function CVGeneratorHub() {
               { step: '4', icon: '&#x2B07;',  title: 'Download instantly',    desc: 'Your CV downloads immediately after payment confirmation.' },
             ].map(item => (
               <li key={item.step} className="flex items-start gap-3">
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-sky-100 text-sky-700 font-black text-xs flex items-center justify-center shrink-0">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-red-100 text-red-700 font-black text-xs flex items-center justify-center shrink-0">
                   {item.step}
                 </div>
                 <div>
@@ -209,7 +209,7 @@ export default function CVGeneratorHub() {
           </ol>
           <div className="mt-4 pt-3 border-t border-gray-100">
             <Link href="/cv-generator/builder"
-              className="inline-flex items-center gap-2 bg-sky-600 text-white font-bold px-5 py-2.5 rounded-xl hover:bg-sky-700 transition-all text-sm">
+              className="inline-flex items-center gap-2 bg-red-600 text-white font-bold px-5 py-2.5 rounded-xl hover:bg-red-700 transition-all text-sm">
               Start Now &#8594;
             </Link>
           </div>
@@ -220,9 +220,9 @@ export default function CVGeneratorHub() {
         <div className="grid grid-cols-2 gap-2.5">
           {SUPPORT_LINKS.map(link => (
             <Link key={link.href} href={link.href}
-              className="bg-white border border-gray-100 rounded-xl p-3 text-center hover:border-sky-200 hover:shadow-sm transition-all group">
+              className="bg-white border border-gray-100 rounded-xl p-3 text-center hover:border-red-200 hover:shadow-sm transition-all group">
               <div className="text-2xl mb-1.5" dangerouslySetInnerHTML={{ __html: link.icon }}/>
-              <p className="text-xs font-semibold text-gray-700 group-hover:text-sky-600 leading-tight">{link.label}</p>
+              <p className="text-xs font-semibold text-gray-700 group-hover:text-red-600 leading-tight">{link.label}</p>
             </Link>
           ))}
         </div>
@@ -230,8 +230,8 @@ export default function CVGeneratorHub() {
         <div className="mt-5 bg-white rounded-2xl border border-gray-100 p-4 flex flex-wrap gap-4 items-center justify-between">
           <p className="text-sm text-gray-600">Looking for work?</p>
           <div className="flex gap-3">
-            <Link href="/jobs" className="text-sm text-sky-600 hover:underline font-medium">Browse Jobs &#8594;</Link>
-            <Link href="/profile" className="text-sm text-sky-600 hover:underline font-medium">Update Profile &#8594;</Link>
+            <Link href="/jobs" className="text-sm text-red-600 hover:underline font-medium">Browse Jobs &#8594;</Link>
+            <Link href="/profile" className="text-sm text-red-600 hover:underline font-medium">Update Profile &#8594;</Link>
           </div>
         </div>
       </div>

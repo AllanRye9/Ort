@@ -23,16 +23,10 @@ export default function FineJewelleryPage() {
           Discover <span className="text-amber-400">Fine Jewellery</span>
         </>
       }
-      heroSubtitle="Explore exquisite gold, silver and gemstone jewellery from verified sellers across UAE, Uganda, Kenya and China."
+      heroSubtitle="Explore exquisite gold, silver and gemstone jewellery from verified sellers across Uganda."
       subcategories={JEWELLERY_SUBCATEGORIES}
       basePath="/fine-jewellery"
       postCtaLabel="+ Sell Jewellery"
-      whyItems={[
-        { icon: '🔒', title: 'Verified Sellers', desc: 'Every jewellery seller is identity-verified for your peace of mind.' },
-        { icon: '📸', title: 'Detailed Photos', desc: 'High-resolution imagery so you can inspect every piece closely.' },
-        { icon: '💬', title: 'Direct Messaging', desc: 'Negotiate and ask questions directly with the seller.' },
-        { icon: '🌍', title: 'Regional Coverage', desc: 'Fine jewellery listings from UAE, Uganda, Kenya and China.' },
-      ]}
     />
   );
 }

@@ -23,16 +23,10 @@ export default function PremiumServicesPage() {
           Top-Tier <span className="text-fuchsia-400">Premium Services</span>
         </>
       }
-      heroSubtitle="Connect with top-tier service providers — legal, financial, medical, home, tech and beyond — across UAE, Uganda, Kenya and China."
+      heroSubtitle="Connect with top-tier service providers — legal, financial, medical, home, tech and beyond — across Uganda."
       subcategories={SERVICES_SUBCATEGORIES}
       basePath="/premium-services"
       postCtaLabel="+ Offer Your Service"
-      whyItems={[
-        { icon: '🔒', title: 'Verified Providers', desc: 'All service providers are screened and identity-verified.' },
-        { icon: '⭐', title: 'Rated & Reviewed', desc: 'Transparent ratings and reviews from real clients.' },
-        { icon: '💬', title: 'Direct Contact', desc: 'Message and negotiate with providers directly on the platform.' },
-        { icon: '🌍', title: 'Regional Network', desc: 'Premium service listings across UAE, Uganda, Kenya and China.' },
-      ]}
     />
   );
 }

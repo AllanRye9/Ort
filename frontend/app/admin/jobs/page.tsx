@@ -204,7 +204,7 @@ export default function AdminJobsPage() {
         </div>
         <button
           onClick={() => { setShowForm(true); setEditId(null); setForm({ ...EMPTY_FORM }); setSaveError(''); }}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-sky-600 hover:bg-sky-700 text-white text-sm font-bold rounded-xl transition-colors shadow-sm"
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white text-sm font-bold rounded-xl transition-colors shadow-sm"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
@@ -250,7 +250,7 @@ export default function AdminJobsPage() {
                   value={form.title}
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
                   placeholder="e.g. Senior Software Engineer"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
                   required
                 />
               </div>
@@ -261,7 +261,7 @@ export default function AdminJobsPage() {
                   value={form.company}
                   onChange={(e) => setForm({ ...form, company: e.target.value })}
                   placeholder="e.g. Acme Corp"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
                   required
                 />
               </div>
@@ -272,7 +272,7 @@ export default function AdminJobsPage() {
                   value={form.location}
                   onChange={(e) => setForm({ ...form, location: e.target.value })}
                   placeholder="e.g. Dubai, UAE"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
                 />
               </div>
               <div>
@@ -280,7 +280,7 @@ export default function AdminJobsPage() {
                 <select
                   value={form.country}
                   onChange={(e) => setForm({ ...form, country: e.target.value })}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
                 >
                   {COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
@@ -290,7 +290,7 @@ export default function AdminJobsPage() {
                 <select
                   value={form.type}
                   onChange={(e) => setForm({ ...form, type: e.target.value })}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
                 >
                   {JOB_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
                 </select>
@@ -300,7 +300,7 @@ export default function AdminJobsPage() {
                 <select
                   value={form.category}
                   onChange={(e) => setForm({ ...form, category: e.target.value })}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
                 >
                   {JOB_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
@@ -310,7 +310,7 @@ export default function AdminJobsPage() {
                 <select
                   value={form.qualification}
                   onChange={(e) => setForm({ ...form, qualification: e.target.value })}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
                 >
                   {QUALIFICATIONS.map((q) => <option key={q} value={q}>{q}</option>)}
                 </select>
@@ -322,7 +322,7 @@ export default function AdminJobsPage() {
                   value={form.salary}
                   onChange={(e) => setForm({ ...form, salary: e.target.value })}
                   placeholder="e.g. AED 8,000 – 12,000/month"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
                 />
               </div>
               <div>
@@ -331,7 +331,7 @@ export default function AdminJobsPage() {
                   type="date"
                   value={form.deadline}
                   onChange={(e) => setForm({ ...form, deadline: e.target.value })}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
                 />
               </div>
               <div className="sm:col-span-2">
@@ -348,9 +348,9 @@ export default function AdminJobsPage() {
                       value={form.imageUrl}
                       onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
                       placeholder="https://example.com/image.jpg"
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300 mb-1"
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 mb-1"
                     />
-                    <label className="cursor-pointer text-xs text-sky-600 hover:text-sky-700 font-medium">
+                    <label className="cursor-pointer text-xs text-red-600 hover:text-red-700 font-medium">
                       {uploadingImage ? 'Uploading...' : '📎 Upload image'}
                       <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploadingImage} />
                     </label>
@@ -365,7 +365,7 @@ export default function AdminJobsPage() {
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
                 rows={5}
                 placeholder="Describe the role, responsibilities, and requirements…"
-                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300 resize-none"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 resize-none"
                 required
               />
             </div>
@@ -374,7 +374,7 @@ export default function AdminJobsPage() {
               <button
                 type="submit"
                 disabled={saving}
-                className="px-5 py-2.5 bg-sky-600 hover:bg-sky-700 text-white text-sm font-bold rounded-xl transition-colors disabled:opacity-50 shadow-sm"
+                className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white text-sm font-bold rounded-xl transition-colors disabled:opacity-50 shadow-sm"
               >
                 {saving ? 'Saving…' : editId ? 'Update Job' : 'Publish Job'}
               </button>
@@ -397,12 +397,12 @@ export default function AdminJobsPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by title or company…"
-          className="flex-1 min-w-[200px] border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+          className="flex-1 min-w-[200px] border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
         />
         <select
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
-          className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+          className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
         >
           <option value="">All Status</option>
           <option value="ACTIVE">Active</option>
@@ -411,7 +411,7 @@ export default function AdminJobsPage() {
         <select
           value={filterCountry}
           onChange={(e) => setFilterCountry(e.target.value)}
-          className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+          className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
         >
           <option value="">All Countries</option>
           {COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
@@ -443,7 +443,7 @@ export default function AdminJobsPage() {
             <p className="text-sm text-gray-400 mb-4">Post your first job opening to appear on the Jobs Market page</p>
             <button
               onClick={() => { setShowForm(true); setEditId(null); setForm({ ...EMPTY_FORM }); }}
-              className="px-5 py-2.5 bg-sky-600 hover:bg-sky-700 text-white text-sm font-bold rounded-xl transition-colors"
+              className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white text-sm font-bold rounded-xl transition-colors"
             >
               Post First Job
             </button>
@@ -463,7 +463,7 @@ export default function AdminJobsPage() {
                     />
                   </div>
                 ) : (
-                  <div className="w-12 h-12 rounded-xl bg-sky-50 border border-sky-100 flex items-center justify-center text-2xl shrink-0">
+                  <div className="w-12 h-12 rounded-xl bg-red-50 border border-red-100 flex items-center justify-center text-2xl shrink-0">
                     💼
                   </div>
                 )}
@@ -476,7 +476,7 @@ export default function AdminJobsPage() {
                   </div>
                   <p className="text-sm text-gray-600 mb-2">{job.company} · {job.location}</p>
                   <div className="flex flex-wrap gap-2 mb-2">
-                    <span className="text-[11px] bg-sky-50 text-sky-700 border border-sky-100 px-2 py-0.5 rounded-full font-medium">{job.type}</span>
+                    <span className="text-[11px] bg-red-50 text-red-700 border border-red-100 px-2 py-0.5 rounded-full font-medium">{job.type}</span>
                     <span className="text-[11px] bg-purple-50 text-purple-700 border border-purple-100 px-2 py-0.5 rounded-full font-medium">{job.category}</span>
                     <span className="text-[11px] bg-gray-50 text-gray-600 border border-gray-100 px-2 py-0.5 rounded-full font-medium">{job.qualification}</span>
                     <span className="text-[11px] bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 py-0.5 rounded-full font-medium">{job.country}</span>
@@ -487,7 +487,7 @@ export default function AdminJobsPage() {
                 <div className="flex flex-row sm:flex-col gap-2 shrink-0">
                   <button
                     onClick={() => handleEdit(job)}
-                    className="px-3 py-1.5 rounded-lg bg-sky-50 border border-sky-200 text-xs font-semibold text-sky-700 hover:bg-sky-100 transition-colors"
+                    className="px-3 py-1.5 rounded-lg bg-red-50 border border-red-200 text-xs font-semibold text-red-700 hover:bg-red-100 transition-colors"
                   >
                     Edit
                   </button>

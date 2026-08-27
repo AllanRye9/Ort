@@ -257,7 +257,7 @@ export default function DashboardPage() {
               <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
                 <span className="text-xl">📈</span> Top Listings
               </h2>
-              <Link href="/profile/listings" className="text-xs font-semibold text-sky-600 hover:text-sky-700">
+              <Link href="/profile/listings" className="text-xs font-semibold text-red-600 hover:text-red-700">
                 Manage all →
               </Link>
             </div>
@@ -266,7 +266,7 @@ export default function DashboardPage() {
                 <Link
                   key={listing.id}
                   href={`/listings/${listing.id}`}
-                  className="flex items-center gap-3 p-2.5 rounded-xl border border-gray-100 hover:border-sky-200 hover:bg-sky-50 transition-colors group"
+                  className="flex items-center gap-3 p-2.5 rounded-xl border border-gray-100 hover:border-red-200 hover:bg-red-50 transition-colors group"
                 >
                   <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black shrink-0 ${i === 0 ? 'bg-amber-400 text-white' : i === 1 ? 'bg-gray-300 text-gray-700' : 'bg-amber-700/60 text-white'}`}>
                     {i + 1}
@@ -279,7 +279,7 @@ export default function DashboardPage() {
                       className="w-10 h-10 rounded-lg object-cover shrink-0"
                     />
                   )}
-                  <span className="flex-1 text-sm font-semibold text-gray-800 line-clamp-1 group-hover:text-sky-700">{listing.title}</span>
+                  <span className="flex-1 text-sm font-semibold text-gray-800 line-clamp-1 group-hover:text-red-700">{listing.title}</span>
                   <span className="text-xs text-gray-500 shrink-0">👁 {listing.views}</span>
                 </Link>
               ))}
@@ -288,7 +288,7 @@ export default function DashboardPage() {
         )}
 
         {/* Leaderboard teaser */}
-        <div className="bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 rounded-3xl p-4 text-white shadow-xl">
+        <div className="bg-gradient-to-r from-violet-600 via-purple-600 to-rose-600 rounded-3xl p-4 text-white shadow-xl">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div>
               <h2 className="text-xl font-extrabold mb-1">🏅 Climb the Leaderboard</h2>

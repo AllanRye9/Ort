@@ -139,7 +139,7 @@ export default function SessionExpiredModal() {
             }
           `}</style>
 
-          <div className="bg-gradient-to-br from-sky-700 to-sky-500 px-6 py-6 text-white">
+          <div className="bg-gradient-to-br from-red-700 to-red-500 px-6 py-6 text-white">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-11 h-11 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center text-2xl shadow-inner">
                 🔒
@@ -171,7 +171,7 @@ export default function SessionExpiredModal() {
                 autoFocus
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent"
                 placeholder="you@example.com"
               />
             </div>
@@ -186,7 +186,7 @@ export default function SessionExpiredModal() {
                 autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent"
                 placeholder="••••••••"
               />
             </div>
@@ -194,7 +194,7 @@ export default function SessionExpiredModal() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full py-3 rounded-2xl font-bold text-sm text-white bg-sky-600 transition-all shadow-lg hover:shadow-xl hover:brightness-105 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full py-3 rounded-2xl font-bold text-sm text-white bg-red-600 transition-all shadow-lg hover:shadow-xl hover:brightness-105 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {submitting ? 'Signing in…' : 'Sign in & continue'}
             </button>

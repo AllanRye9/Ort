@@ -72,30 +72,34 @@ export default async function CVServicesPage() {
         items={[{ label: 'Home', href: '/' }, { label: 'CV Services' }]}
       />
 
-      {/* Hero */}
-      <div className="overflow-hidden rounded-3xl bg-gradient-to-r from-sky-700 via-sky-600 to-blue-500 px-5 py-4 text-white shadow-xl mb-4">
-        <p className="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-white/85">
-          Piitrade CV Services
-        </p>
-        <h1 className="mt-3 text-2xl sm:text-3xl font-black tracking-tight">
-          CV &amp; Career Suite
-        </h1>
-        <p className="mt-1.5 max-w-2xl text-sm text-white/85">
-          Every CV service runs digitally inside Piitrade. Build for free — pay only when you download. No subscription, no hidden fees.
-        </p>
-        <div className="mt-4 flex flex-wrap gap-3">
-          <Link
-            href="/cv-generator"
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-sky-700 rounded-xl text-sm font-bold hover:bg-sky-50 transition-colors shadow-sm"
-          >
-            📄 Build My CV
-          </Link>
-          <Link
-            href="/jobs"
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/15 hover:bg-white/25 border border-white/30 text-white rounded-xl text-sm font-semibold transition-colors"
-          >
-            🔍 Browse Candidates
-          </Link>
+      {/* Hero — compact single-row banner so services sit higher on the page */}
+      <div className="overflow-hidden rounded-2xl bg-gradient-to-r from-red-700 via-red-600 to-red-500 px-4 py-3 text-white shadow-lg mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-lg sm:text-xl font-black tracking-tight whitespace-nowrap">CV &amp; Career Suite</h1>
+              <span className="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white/85">
+                Piitrade
+              </span>
+            </div>
+            <p className="mt-0.5 max-w-2xl text-xs text-white/85 leading-snug">
+              Build for free — pay only when you download. No subscription, no hidden fees.
+            </p>
+          </div>
+          <div className="flex gap-2 shrink-0">
+            <Link
+              href="/cv-generator"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white text-red-700 rounded-xl text-xs font-bold hover:bg-red-50 transition-colors shadow-sm whitespace-nowrap"
+            >
+              📄 Build My CV
+            </Link>
+            <Link
+              href="/jobs"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white/15 hover:bg-white/25 border border-white/30 text-white rounded-xl text-xs font-semibold transition-colors whitespace-nowrap"
+            >
+              🔍 Browse
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -160,7 +164,7 @@ export default async function CVServicesPage() {
                   <p className="text-xs text-gray-500 leading-relaxed">{svc.desc}</p>
                 </div>
               </div>
-              <div className="mt-3 flex items-center justify-end text-xs font-semibold text-sky-600 group-hover:gap-1.5 transition-all gap-1">
+              <div className="mt-3 flex items-center justify-end text-xs font-semibold text-red-600 group-hover:gap-1.5 transition-all gap-1">
                 Learn more <span className="group-hover:translate-x-0.5 transition-transform">→</span>
               </div>
             </Link>
@@ -177,7 +181,7 @@ export default async function CVServicesPage() {
             <Link
               key={`${link.href}-${link.title}`}
               href={link.href}
-              className="bg-white rounded-2xl border border-gray-100 shadow-sm p-2.5 hover:shadow-md hover:border-sky-200 transition-all text-center group"
+              className="bg-white rounded-2xl border border-gray-100 shadow-sm p-2.5 hover:shadow-md hover:border-red-200 transition-all text-center group"
             >
               <div className="text-2xl mb-1.5 group-hover:scale-110 transition-transform inline-block">
                 {link.icon}

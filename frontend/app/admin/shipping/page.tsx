@@ -100,7 +100,7 @@ export default function AdminShippingPage() {
                     </td>
                     <td className="px-4 py-3 text-center">
                       <div className="flex gap-1 justify-center">
-                        <button onClick={() => handleEdit(r)} className="text-xs px-2 py-1 rounded bg-sky-50 text-sky-600 hover:bg-sky-100">Edit</button>
+                        <button onClick={() => handleEdit(r)} className="text-xs px-2 py-1 rounded bg-red-50 text-red-600 hover:bg-red-100">Edit</button>
                         <button onClick={() => handleDelete(r.id)} className="text-xs px-2 py-1 rounded bg-red-50 text-red-600 hover:bg-red-100">Del</button>
                       </div>
                     </td>
@@ -119,12 +119,12 @@ export default function AdminShippingPage() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
               <input value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} required
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300" />
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
               <select value={form.country} onChange={(e) => setForm((p) => ({ ...p, country: e.target.value }))}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-sky-300">
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-300">
                 <option value="UAE">🇦🇪 UAE</option>
                 <option value="UGANDA">🇺🇬 Uganda</option>
                 <option value="KENYA">🇰🇪 Kenya</option>
@@ -135,34 +135,34 @@ export default function AdminShippingPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Min Days</label>
                 <input type="number" value={form.minDays} onChange={(e) => setForm((p) => ({ ...p, minDays: e.target.value }))} required min="0"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300" />
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Max Days</label>
                 <input type="number" value={form.maxDays} onChange={(e) => setForm((p) => ({ ...p, maxDays: e.target.value }))} required min="0"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300" />
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300" />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Price AED</label>
                 <input type="number" value={form.priceAed} onChange={(e) => setForm((p) => ({ ...p, priceAed: e.target.value }))} min="0" step="0.01"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300" />
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Price UGX</label>
                 <input type="number" value={form.priceUgx} onChange={(e) => setForm((p) => ({ ...p, priceUgx: e.target.value }))} min="0" step="1"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300" />
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Price KES</label>
                 <input type="number" value={form.priceKes} onChange={(e) => setForm((p) => ({ ...p, priceKes: e.target.value }))} min="0" step="1"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300" />
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Price CNY</label>
                 <input type="number" value={form.priceCny} onChange={(e) => setForm((p) => ({ ...p, priceCny: e.target.value }))} min="0" step="0.01"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300" />
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300" />
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -177,7 +177,7 @@ export default function AdminShippingPage() {
                 </button>
               )}
               <button type="submit" disabled={saving}
-                className="flex-1 py-2 rounded-xl bg-sky-500 hover:bg-sky-600 text-white text-sm font-semibold disabled:opacity-50">
+                className="flex-1 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-semibold disabled:opacity-50">
                 {saving ? 'Saving...' : editId ? 'Update' : 'Add Rate'}
               </button>
             </div>

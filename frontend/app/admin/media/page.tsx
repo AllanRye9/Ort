@@ -343,7 +343,7 @@ export default function AdminMediaPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-sky-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-red-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -358,7 +358,7 @@ export default function AdminMediaPage() {
           <div
             key={t.id}
             className={`flex items-center gap-3 px-4 py-3 rounded-xl text-white shadow-lg text-sm font-medium animate-fade-up cursor-pointer ${
-              t.type === 'success' ? 'bg-emerald-500' : t.type === 'error' ? 'bg-red-500' : 'bg-sky-500'
+              t.type === 'success' ? 'bg-emerald-500' : t.type === 'error' ? 'bg-red-500' : 'bg-red-500'
             }`}
             onClick={() => dismiss(t.id)}
           >
@@ -392,7 +392,7 @@ export default function AdminMediaPage() {
                     onClick={() => setActiveSection(s.value)}
                     className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
                       activeSection === s.value
-                        ? 'bg-sky-50 text-sky-700 font-semibold'
+                        ? 'bg-red-50 text-red-700 font-semibold'
                         : 'text-gray-700 hover:bg-gray-50'
                     }`}
                   >
@@ -418,7 +418,7 @@ export default function AdminMediaPage() {
 
               {/* Drop zone */}
               <div
-                className="border-2 border-dashed border-sky-200 rounded-xl p-6 flex flex-col items-center justify-center gap-3 bg-sky-50/40 hover:bg-sky-50 hover:border-sky-400 transition-colors cursor-pointer"
+                className="border-2 border-dashed border-red-200 rounded-xl p-6 flex flex-col items-center justify-center gap-3 bg-red-50/40 hover:bg-red-50 hover:border-red-400 transition-colors cursor-pointer"
                 onClick={() => fileInputRef.current?.click()}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => {
@@ -432,11 +432,11 @@ export default function AdminMediaPage() {
                   }
                 }}
               >
-                <svg className="w-10 h-10 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-10 h-10 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
                 <div className="text-center">
-                  <p className="text-sm font-semibold text-sky-600">Click to browse or drag &amp; drop</p>
+                  <p className="text-sm font-semibold text-red-600">Click to browse or drag &amp; drop</p>
                   <p className="text-xs text-gray-400 mt-0.5">JPEG, PNG, GIF, WEBP · up to 20 MB each · up to 50 files</p>
                 </div>
               </div>
@@ -457,7 +457,7 @@ export default function AdminMediaPage() {
                   value={altText}
                   onChange={(e) => setAltText(e.target.value)}
                   placeholder="e.g. Luxury watches hero image"
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
                 />
               </div>
 
@@ -469,7 +469,7 @@ export default function AdminMediaPage() {
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="Item title"
-                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
                   />
                 </div>
                 <div>
@@ -479,7 +479,7 @@ export default function AdminMediaPage() {
                     value={shortDescription}
                     onChange={(e) => setShortDescription(e.target.value)}
                     placeholder="One-line description"
-                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
                   />
                 </div>
                 <div>
@@ -491,7 +491,7 @@ export default function AdminMediaPage() {
                     value={price}
                     onChange={(e) => setPrice(e.target.value)}
                     placeholder="0.00"
-                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
                   />
                 </div>
                 <div>
@@ -503,7 +503,7 @@ export default function AdminMediaPage() {
                     value={originalPrice}
                     onChange={(e) => setOriginalPrice(e.target.value)}
                     placeholder="0.00"
-                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
                   />
                 </div>
                 <div>
@@ -511,7 +511,7 @@ export default function AdminMediaPage() {
                   <select
                     value={currency}
                     onChange={(e) => setCurrency(e.target.value as 'AED' | 'UGX' | 'KES' | 'CNY' | 'USD')}
-                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
                   >
                     {['USD', 'AED', 'UGX', 'KES', 'CNY'].map((c) => (
                       <option key={c} value={c}>{c}</option>
@@ -531,7 +531,7 @@ export default function AdminMediaPage() {
                     📌 Recommended destinations for <strong>{sectionInfo.label}</strong> — select to auto-fill:
                   </label>
                   <select
-                    className="w-full rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-sky-300"
+                    className="w-full rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-red-300"
                     value=""
                     onChange={(e) => {
                       if (e.target.value) setLinkUrl(e.target.value);
@@ -549,7 +549,7 @@ export default function AdminMediaPage() {
                   onChange={(e) => setLinkUrl(e.target.value)}
                   placeholder="e.g. /listings/abc123 or /electronics"
                   required
-                  className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300 ${
+                  className={`w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 ${
                     linkUrl.trim() ? 'border-emerald-300 bg-emerald-50/40' : 'border-red-300 bg-red-50/30'
                   }`}
                 />
@@ -586,7 +586,7 @@ export default function AdminMediaPage() {
                 type="button"
                 onClick={handleUpload}
                 disabled={uploading || previews.length === 0}
-                className="mt-5 w-full py-3 rounded-xl bg-sky-600 text-white font-bold text-sm hover:bg-sky-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                className="mt-5 w-full py-3 rounded-xl bg-red-600 text-white font-bold text-sm hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
               >
                 {uploading ? (
                   <>
@@ -630,7 +630,7 @@ export default function AdminMediaPage() {
                       Delete selected ({selectedIds.size})
                     </button>
                   )}
-                  <button type="button" onClick={fetchMedia} className="text-xs text-sky-600 hover:text-sky-800 font-medium">↻ Refresh</button>
+                  <button type="button" onClick={fetchMedia} className="text-xs text-red-600 hover:text-red-800 font-medium">↻ Refresh</button>
                 </div>
               </div>
 
@@ -654,7 +654,7 @@ export default function AdminMediaPage() {
                           type="checkbox"
                           checked={selectedIds.has(item.id)}
                           onChange={() => toggleSelected(item.id)}
-                          className="w-4 h-4 rounded accent-sky-500 bg-white/90"
+                          className="w-4 h-4 rounded accent-red-500 bg-white/90"
                           aria-label="Select media item"
                         />
                       </div>
@@ -681,7 +681,7 @@ export default function AdminMediaPage() {
                         {editingLinkId === item.id ? (
                           <div className="mt-1 space-y-1">
                             <select
-                              className="w-full rounded border border-sky-200 bg-sky-50 px-1.5 py-0.5 text-[10px] focus:outline-none"
+                              className="w-full rounded border border-red-200 bg-red-50 px-1.5 py-0.5 text-[10px] focus:outline-none"
                               value=""
                               onChange={(e) => { if (e.target.value) setEditLinkValue(e.target.value); }}
                             >
@@ -696,7 +696,7 @@ export default function AdminMediaPage() {
                                 value={editLinkValue}
                                 onChange={(e) => setEditLinkValue(e.target.value)}
                                 placeholder="/listings/id"
-                                className="flex-1 min-w-0 rounded border border-sky-300 px-1.5 py-0.5 text-[10px] focus:outline-none focus:ring-1 focus:ring-sky-400"
+                                className="flex-1 min-w-0 rounded border border-red-300 px-1.5 py-0.5 text-[10px] focus:outline-none focus:ring-1 focus:ring-red-400"
                                 onKeyDown={(e) => { if (e.key === 'Enter') saveLinkUrl(item); if (e.key === 'Escape') setEditingLinkId(null); }}
                               />
                               <button type="button" onClick={() => saveLinkUrl(item)} disabled={actionLoading === item.id} className="text-[10px] font-bold text-emerald-600 hover:text-emerald-800 shrink-0">✓</button>
@@ -707,7 +707,7 @@ export default function AdminMediaPage() {
                           <button
                             type="button"
                             onClick={() => { setEditingLinkId(item.id); setEditLinkValue(item.linkUrl || ''); }}
-                            className={`mt-1 text-[10px] truncate block w-full text-left ${item.linkUrl ? 'text-sky-500 hover:text-sky-700' : 'text-red-400 hover:text-red-600 font-semibold'}`}
+                            className={`mt-1 text-[10px] truncate block w-full text-left ${item.linkUrl ? 'text-red-500 hover:text-red-700' : 'text-red-400 hover:text-red-600 font-semibold'}`}
                             title={item.linkUrl || 'Set link URL (required)'}
                           >
                             {item.linkUrl ? (
@@ -724,7 +724,7 @@ export default function AdminMediaPage() {
                           type="button"
                           onClick={() => setEditingMetaItem(item)}
                           disabled={actionLoading === item.id}
-                          className="px-3 py-1.5 rounded-lg text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white transition-colors w-28"
+                          className="px-3 py-1.5 rounded-lg text-xs font-bold bg-red-600 hover:bg-red-700 text-white transition-colors w-28"
                         >
                           ✏️ Edit
                         </button>
@@ -776,7 +776,7 @@ export default function AdminMediaPage() {
                   type="text"
                   value={editingMetaItem.title || ''}
                   onChange={(e) => setEditingMetaItem((prev) => prev ? { ...prev, title: e.target.value } : prev)}
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
                 />
               </div>
               <div className="sm:col-span-2">
@@ -785,7 +785,7 @@ export default function AdminMediaPage() {
                   type="text"
                   value={editingMetaItem.shortDescription || ''}
                   onChange={(e) => setEditingMetaItem((prev) => prev ? { ...prev, shortDescription: e.target.value } : prev)}
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
                 />
               </div>
               <div>
@@ -796,7 +796,7 @@ export default function AdminMediaPage() {
                   step="0.01"
                   value={editingMetaItem.price ?? ''}
                   onChange={(e) => setEditingMetaItem((prev) => prev ? { ...prev, price: e.target.value ? Number(e.target.value) : null } : prev)}
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
                 />
               </div>
               <div>
@@ -807,7 +807,7 @@ export default function AdminMediaPage() {
                   step="0.01"
                   value={editingMetaItem.originalPrice ?? ''}
                   onChange={(e) => setEditingMetaItem((prev) => prev ? { ...prev, originalPrice: e.target.value ? Number(e.target.value) : null } : prev)}
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
                 />
               </div>
               <div>
@@ -815,7 +815,7 @@ export default function AdminMediaPage() {
                 <select
                   value={editingMetaItem.currency || 'USD'}
                   onChange={(e) => setEditingMetaItem((prev) => prev ? { ...prev, currency: e.target.value as 'AED' | 'UGX' | 'KES' | 'CNY' | 'USD' } : prev)}
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300"
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
                 >
                   {['USD', 'AED', 'UGX', 'KES', 'CNY'].map((c) => (
                     <option key={c} value={c}>{c}</option>
@@ -835,7 +835,7 @@ export default function AdminMediaPage() {
                 type="button"
                 onClick={saveMetadata}
                 disabled={actionLoading === editingMetaItem.id}
-                className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700 disabled:opacity-50"
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
               >
                 Save
               </button>

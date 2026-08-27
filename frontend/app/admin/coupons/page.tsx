@@ -93,7 +93,7 @@ export default function AdminCouponsPage() {
               <tbody className="divide-y divide-gray-100">
                 {coupons.map((c) => (
                   <tr key={c.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 font-mono font-semibold text-sky-700">{c.code}</td>
+                    <td className="px-4 py-3 font-mono font-semibold text-red-700">{c.code}</td>
                     <td className="px-4 py-3 text-gray-700">
                       {c.type === 'PERCENTAGE' ? `${c.value}%` : c.type === 'FIXED_AMOUNT' ? `${c.value} off` : 'Free shipping'}
                     </td>
@@ -105,7 +105,7 @@ export default function AdminCouponsPage() {
                     </td>
                     <td className="px-4 py-3 text-center">
                       <div className="flex gap-1 justify-center">
-                        <button onClick={() => handleEdit(c)} className="text-xs px-2 py-1 rounded bg-sky-50 text-sky-600 hover:bg-sky-100">Edit</button>
+                        <button onClick={() => handleEdit(c)} className="text-xs px-2 py-1 rounded bg-red-50 text-red-600 hover:bg-red-100">Edit</button>
                         <button onClick={() => handleDelete(c.id)} className="text-xs px-2 py-1 rounded bg-red-50 text-red-600 hover:bg-red-100">Del</button>
                       </div>
                     </td>
@@ -124,13 +124,13 @@ export default function AdminCouponsPage() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Code</label>
               <input value={form.code} onChange={(e) => setForm((p) => ({ ...p, code: e.target.value }))} required disabled={!!editId}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm uppercase focus:outline-none focus:ring-2 focus:ring-sky-300 disabled:bg-gray-50" />
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm uppercase focus:outline-none focus:ring-2 focus:ring-red-300 disabled:bg-gray-50" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
                 <select value={form.type} onChange={(e) => setForm((p) => ({ ...p, type: e.target.value }))}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-sky-300">
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-300">
                   <option value="PERCENTAGE">Percentage</option>
                   <option value="FIXED_AMOUNT">Fixed Amount</option>
                   <option value="FREE_SHIPPING">Free Shipping</option>
@@ -139,25 +139,25 @@ export default function AdminCouponsPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Value</label>
                 <input type="number" value={form.value} onChange={(e) => setForm((p) => ({ ...p, value: e.target.value }))} required min="0"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300" />
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300" />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Min Order</label>
                 <input type="number" value={form.minOrderAmount} onChange={(e) => setForm((p) => ({ ...p, minOrderAmount: e.target.value }))} min="0"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300" />
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Max Uses</label>
                 <input type="number" value={form.maxUses} onChange={(e) => setForm((p) => ({ ...p, maxUses: e.target.value }))} min="1"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300" />
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300" />
               </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Expires At</label>
               <input type="date" value={form.expiresAt} onChange={(e) => setForm((p) => ({ ...p, expiresAt: e.target.value }))}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300" />
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300" />
             </div>
             <div className="flex items-center gap-2">
               <input type="checkbox" checked={form.isActive} onChange={(e) => setForm((p) => ({ ...p, isActive: e.target.checked }))} id="isActive"
@@ -172,7 +172,7 @@ export default function AdminCouponsPage() {
                 </button>
               )}
               <button type="submit" disabled={saving}
-                className="flex-1 py-2 rounded-xl bg-sky-500 hover:bg-sky-600 text-white text-sm font-semibold disabled:opacity-50">
+                className="flex-1 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-semibold disabled:opacity-50">
                 {saving ? 'Saving...' : editId ? 'Update' : 'Create Coupon'}
               </button>
             </div>

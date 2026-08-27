@@ -12,7 +12,7 @@ const SETTINGS_SECTIONS = [
     icon: '👤',
     href: '/profile',
     color: 'border-sky-200 hover:border-sky-400 hover:bg-sky-50',
-    iconBg: 'bg-sky-50',
+    iconBg: 'bg-red-50',
   },
   {
     title: 'My Listings',
@@ -28,7 +28,7 @@ const SETTINGS_SECTIONS = [
     icon: '🏪',
     href: '/dashboard/store-rental',
     color: 'border-indigo-200 hover:border-indigo-400 hover:bg-indigo-50',
-    iconBg: 'bg-indigo-50',
+    iconBg: 'bg-rose-50',
   },
   {
     title: 'Subscription & Billing',
@@ -117,7 +117,7 @@ export default function PortalSettingsPage() {
         <div className="flex flex-wrap gap-3">
           <a
             href="mailto:support@piitrade.com"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-600 text-white text-sm font-semibold hover:bg-sky-700 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition-colors"
           >
             ✉️ Email Support
           </a>

@@ -16,23 +16,17 @@ export default function ArtsCollectiblesPage() {
     <CategoryPageTemplate
       categorySlug="arts-collectibles"
       categoryLabel="Art & Collectibles"
-      heroGradient="from-indigo-900 via-blue-800 to-indigo-900"
+      heroGradient="from-rose-900 via-red-800 to-rose-900"
       heroIcon="🎨"
       heroTitle={
         <>
-          Browse <span className="text-sky-400">Art &amp; Collectibles</span>
+          Browse <span className="text-red-400">Art &amp; Collectibles</span>
         </>
       }
       heroSubtitle="Discover rare original artworks, antiques, sculptures and collectibles from trusted sellers worldwide."
       subcategories={ARTS_SUBCATEGORIES}
       basePath="/arts-collectibles"
       postCtaLabel="+ List Your Artwork"
-      whyItems={[
-        { icon: '🔒', title: 'Verified Sellers', desc: 'All sellers are verified to protect the integrity of every transaction.' },
-        { icon: '📸', title: 'High-Quality Photos', desc: 'Detailed images so you can inspect provenance and condition.' },
-        { icon: '💬', title: 'Direct Messaging', desc: 'Connect directly with sellers and collectors for negotiations.' },
-        { icon: '🌍', title: 'Global Reach', desc: 'Art & collectible listings from UAE, Uganda, Kenya and China.' },
-      ]}
     />
   );
 }

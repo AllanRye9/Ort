@@ -16,7 +16,7 @@ export default function PressPage() {
         {
           title: 'What Piitrade covers',
           body: [
-            'The marketplace supports buying and selling across categories relevant to day-to-day local commerce, with country-aware browsing for UAE and Uganda.',
+            'The marketplace supports buying and selling across categories relevant to day-to-day local commerce, with region-aware browsing across Uganda.',
           ],
         },
       ]}

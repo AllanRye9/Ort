@@ -245,7 +245,7 @@ export default function FlashSalesPage() {
               <h2 className="text-sm font-bold text-gray-900">🏪 Shop by Store</h2>
               {selectedStore && (
                 <button onClick={() => setSelectedStore(null)}
-                  className="text-xs font-semibold text-sky-600 hover:text-sky-700 px-2 py-1 rounded-full border border-sky-200 hover:bg-sky-50 transition-colors">
+                  className="text-xs font-semibold text-red-600 hover:text-red-700 px-2 py-1 rounded-full border border-red-200 hover:bg-red-50 transition-colors">
                   Clear
                 </button>
               )}
@@ -331,7 +331,7 @@ export default function FlashSalesPage() {
                 </p>
                 <div className="flex gap-2 justify-center flex-wrap">
                   {activeFilterCount > 0 && <button onClick={resetFilters} className="bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold px-5 py-2.5 rounded-xl">Clear Filters</button>}
-                  <Link href="/listings" className="bg-sky-600 hover:bg-sky-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl">Browse All</Link>
+                  <Link href="/listings" className="bg-red-600 hover:bg-red-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl">Browse All</Link>
                 </div>
               </div>
             )}

@@ -285,12 +285,12 @@ export default function AdminListingsPage() {
             placeholder="Search by title or description..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full max-w-xs px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm"
+            className="w-full max-w-xs px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
           />
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm"
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
           >
             <option value="">All Statuses</option>
             <option value="ACTIVE">Active</option>
@@ -321,7 +321,7 @@ export default function AdminListingsPage() {
                     type="checkbox"
                     checked={allSelected}
                     onChange={toggleSelectAll}
-                    className="rounded border-gray-300 text-sky-600 focus:ring-sky-500"
+                    className="rounded border-gray-300 text-red-600 focus:ring-red-500"
                     title="Select all"
                   />
                 </th>
@@ -339,20 +339,20 @@ export default function AdminListingsPage() {
               {listings.map((l) => (
                 <tr
                   key={l.id}
-                  className={`hover:bg-gray-50 transition-colors ${selectedIds.has(l.id) ? 'bg-sky-50' : ''}`}
+                  className={`hover:bg-gray-50 transition-colors ${selectedIds.has(l.id) ? 'bg-red-50' : ''}`}
                 >
                   <td className="px-3 py-3">
                     <input
                       type="checkbox"
                       checked={selectedIds.has(l.id)}
                       onChange={() => toggleSelect(l.id)}
-                      className="rounded border-gray-300 text-sky-600 focus:ring-sky-500"
+                      className="rounded border-gray-300 text-red-600 focus:ring-red-500"
                     />
                   </td>
                   <td className="px-3 sm:px-4 py-3 max-w-[160px]">
                     <Link
                       href={`/listings/${l.id}`}
-                      className="hover:text-sky-600 font-medium block truncate"
+                      className="hover:text-red-600 font-medium block truncate"
                       title={l.title}
                     >
                       {l.title}
@@ -368,7 +368,7 @@ export default function AdminListingsPage() {
                   <td className="px-3 sm:px-4 py-3 whitespace-nowrap">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                       l.status === 'ACTIVE' ? 'bg-green-100 text-green-700' :
-                      l.status === 'SOLD' ? 'bg-blue-100 text-blue-700' :
+                      l.status === 'SOLD' ? 'bg-red-100 text-red-700' :
                       l.status === 'HIDDEN' ? 'bg-gray-100 text-gray-600' :
                       l.status === 'REJECTED' ? 'bg-red-100 text-red-700' :
                       'bg-yellow-100 text-yellow-700'
@@ -376,7 +376,7 @@ export default function AdminListingsPage() {
                   </td>
                   <td className="px-3 sm:px-4 py-3 whitespace-nowrap">
                     {l.placement && l.placement !== 'NONE' ? (
-                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-sky-100 text-sky-700">
+                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
                         {l.placement === 'LATEST_COLLECTIONS' ? '⭐ Collections' :
                          l.placement === 'FEATURED_DEAL' ? '✦ FEATURED DEAL' :
                          l.placement === 'FLASH_SALE' ? '⚡ Flash' : l.placement}
@@ -392,7 +392,7 @@ export default function AdminListingsPage() {
                         <button
                           onClick={() => openApproveModal(l)}
                           disabled={actionLoadingId === l.id}
-                          className="text-xs bg-sky-500 hover:bg-sky-600 text-white px-2.5 py-1.5 rounded-lg font-medium transition-colors whitespace-nowrap"
+                          className="text-xs bg-red-500 hover:bg-red-600 text-white px-2.5 py-1.5 rounded-lg font-medium transition-colors whitespace-nowrap"
                         >
                           Approve
                         </button>
@@ -465,7 +465,7 @@ export default function AdminListingsPage() {
             <button
               onClick={() => handleBulkAction('feature')}
               disabled={bulkLoading}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-bold transition-colors disabled:opacity-50"
             >
               ⭐ Mark Featured
             </button>
@@ -521,7 +521,7 @@ export default function AdminListingsPage() {
                         onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
                       />
                       {i === 0 && (
-                        <span className="absolute top-1 left-1 bg-sky-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+                        <span className="absolute top-1 left-1 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">
                           MAIN
                         </span>
                       )}
@@ -546,7 +546,7 @@ export default function AdminListingsPage() {
                     value={opt.value}
                     checked={approveModal.placement === opt.value}
                     onChange={(e) => setApproveModal((prev) => prev ? { ...prev, placement: e.target.value as Listing['placement'] } : prev)}
-                    className="accent-sky-500"
+                    className="accent-red-500"
                   />
                   <span className="text-sm text-gray-700">{opt.label}</span>
                 </label>
@@ -561,7 +561,7 @@ export default function AdminListingsPage() {
               value={approveModal.durationHours}
               onChange={(e) => setApproveModal((prev) => prev ? { ...prev, durationHours: e.target.value } : prev)}
               placeholder="e.g. 48 (max 8760 = 1 year)"
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 mb-4"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 mb-4"
             />
 
             <div className="flex gap-2">
@@ -576,7 +576,7 @@ export default function AdminListingsPage() {
                 type="button"
                 onClick={handleApproveSubmit}
                 disabled={approving}
-                className="flex-1 py-2 rounded-lg bg-sky-500 hover:bg-sky-600 text-white text-sm font-semibold transition-colors disabled:opacity-50"
+                className="flex-1 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-semibold transition-colors disabled:opacity-50"
               >
                 {approving ? 'Approving…' : 'Approve & Place'}
               </button>

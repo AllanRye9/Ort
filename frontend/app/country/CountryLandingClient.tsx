@@ -10,6 +10,14 @@
  * - This ensures: All tab shows everything; category tabs filter the same dataset.
  * - Images: productImages[0].cdnUrl → listing.images[0] → placeholder (in that order).
  * - Per-country CSS animations applied to the header text.
+ *
+ * Uganda-only launch: the UAE/Kenya/China page routes (app/country/uae,
+ * kenya, china) now call notFound() and no longer render this component
+ * with those country values, so the UAE/KENYA/CHINA branches below are
+ * currently unreachable. They're left in place (rather than stripped out)
+ * since THEME is typed Record<Country, ...> and this component is shared
+ * with the still-active Uganda page — restore the other country pages to
+ * make those branches reachable again.
  */
 'use client';
 

@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { resolveImageUrl, getCurrency, formatCurrency, convertCurrency } from '@/lib/utils';
 import { useCountry } from '@/context/CountryContext';
 import type { Currency } from '@/lib/types';
+import { StoreSocialLinks, SocialLinksData } from '@/components/ui/StoreSocialLinks';
 
 
 const COUNTRY_FLAGS: Record<string, string> = {
@@ -46,6 +47,7 @@ interface StoreData {
     companyName: string | null;
     businessDescription: string | null;
     website: string | null;
+    socialLinks: SocialLinksData | null;
     listings: StoreListing[];
   };
 }
@@ -56,7 +58,7 @@ function ListingPriceBadge({ listing, displayCurrency }: { listing: StoreListing
   const showOriginal = displayCurrency !== listing.currency;
   return (
     <div>
-      <p className="text-sm font-bold text-sky-600">{formatCurrency(converted, displayCurrency)}</p>
+      <p className="text-sm font-bold text-red-600">{formatCurrency(converted, displayCurrency)}</p>
       {showOriginal && (
         <p className="text-[10px] text-gray-400">{formatCurrency(listing.price, listing.currency)}</p>
       )}
@@ -86,7 +88,7 @@ export default function StoreSlugPage({ params }: { params: Promise<{ slug: stri
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="w-10 h-10 border-4 border-sky-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-10 h-10 border-4 border-red-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -97,7 +99,7 @@ export default function StoreSlugPage({ params }: { params: Promise<{ slug: stri
         <div className="text-6xl">🏪</div>
         <p className="text-xl font-bold text-gray-800">Store not found</p>
         <p className="text-sm">This store may have been closed or the link is incorrect.</p>
-        <Link href="/stores" className="mt-2 px-6 py-2.5 rounded-xl bg-sky-500 text-white font-bold hover:bg-sky-600 transition-colors">
+        <Link href="/stores" className="mt-2 px-6 py-2.5 rounded-xl bg-red-500 text-white font-bold hover:bg-red-600 transition-colors">
           Browse All Stores
         </Link>
       </div>
@@ -120,8 +122,8 @@ export default function StoreSlugPage({ params }: { params: Promise<{ slug: stri
   return (
     <div className="min-h-screen bg-gray-50/90">
 
-      {/* Banner */}
-      <div className="relative h-44 sm:h-64 bg-gradient-to-br from-sky-500 via-indigo-600 to-purple-700 overflow-hidden">
+      {/* Banner — compact so listings start sooner */}
+      <div className="relative h-20 sm:h-28 bg-gradient-to-br from-red-500 via-rose-600 to-purple-700 overflow-hidden">
         {bannerUrl && (
           <Image src={bannerUrl} alt={displayName} fill className="object-cover" priority sizes="100vw" />
         )}
@@ -129,66 +131,72 @@ export default function StoreSlugPage({ params }: { params: Promise<{ slug: stri
         {/* Back link */}
         <Link
           href="/stores"
-          className="absolute top-4 left-4 flex items-center gap-1.5 bg-white/90 backdrop-blur-sm text-gray-800 text-xs font-semibold px-3 py-1.5 rounded-full shadow hover:bg-white transition-colors"
+          className="absolute top-2.5 left-2.5 sm:top-3 sm:left-3 flex items-center gap-1.5 bg-white/90 backdrop-blur-sm text-gray-800 text-[11px] sm:text-xs font-semibold px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full shadow hover:bg-white transition-colors"
         >
           ← All Stores
         </Link>
         {/* Country badge */}
-        <span className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm text-gray-700 text-xs font-bold px-3 py-1.5 rounded-full shadow">
+        <span className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3 bg-white/90 backdrop-blur-sm text-gray-700 text-[11px] sm:text-xs font-bold px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full shadow">
           {countryFlag} {store.user.country}
         </span>
       </div>
 
       <div className="max-w-6xl mx-auto px-4 pb-10">
 
-        {/* Store header card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 -mt-10 relative z-10 mb-6">
-          <div className="flex items-start gap-4">
-            {/* Logo */}
-            <div className="w-20 h-20 rounded-2xl overflow-hidden border-4 border-white shadow-md shrink-0 bg-gray-50 flex items-center justify-center">
+        {/* Store header card — compact single row: logo, name, stats, actions */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3.5 sm:p-4 -mt-6 sm:-mt-8 relative z-10 mb-4">
+          <div className="flex items-start gap-3">
+            {/* Logo — uses `fill` + `sizes` for correct, non-distorted contain-fit at any logo aspect ratio */}
+            <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden border-2 border-white shadow-md shrink-0 bg-gray-50 flex items-center justify-center">
               {logoUrl ? (
-                <Image src={logoUrl} alt={displayName} width={80} height={80} className="object-contain w-full h-full" />
+                <Image src={logoUrl} alt={displayName} fill className="object-contain p-1" sizes="64px" />
               ) : (
-                <span className="text-3xl">🏪</span>
+                <span className="text-2xl sm:text-3xl">🏪</span>
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900 leading-tight">{displayName}</h1>
-              {store.description && (
-                <p className="text-sm text-gray-500 mt-1 line-clamp-2">{store.description}</p>
-              )}
-              {store.user.businessDescription && !store.description && (
-                <p className="text-sm text-gray-500 mt-1 line-clamp-2">{store.user.businessDescription}</p>
-              )}
-              <div className="flex flex-wrap items-center gap-3 mt-2.5 text-xs text-gray-400">
-                {store.ratingCount > 0 && (
-                  <span className="flex items-center gap-1 text-amber-500 font-semibold">
-                    ⭐ {store.rating.toFixed(1)}
-                    <span className="text-gray-400 font-normal">({store.ratingCount} reviews)</span>
-                  </span>
-                )}
-                <span>📦 {listings.length} active listing{listings.length !== 1 ? 's' : ''}</span>
-                {store.user.website && (
-                  <a
-                    href={store.user.website.startsWith('http') ? store.user.website : `https://${store.user.website}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sky-500 hover:text-sky-600 flex items-center gap-1"
-                  >
-                    🌐 {store.user.website.replace(/^https?:\/\//, '')}
-                  </a>
-                )}
+              <div className="flex items-start justify-between gap-2 flex-wrap">
+                <div className="min-w-0">
+                  <h1 className="text-lg sm:text-xl font-extrabold text-gray-900 leading-tight truncate">{displayName}</h1>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1 text-xs text-gray-400">
+                    {store.ratingCount > 0 && (
+                      <span className="flex items-center gap-1 text-amber-500 font-semibold">
+                        ⭐ {store.rating.toFixed(1)}
+                        <span className="text-gray-400 font-normal">({store.ratingCount})</span>
+                      </span>
+                    )}
+                    <span>📦 {listings.length} active</span>
+                    {store.user.website && (
+                      <a
+                        href={store.user.website.startsWith('http') ? store.user.website : `https://${store.user.website}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-red-500 hover:text-red-600 flex items-center gap-1 truncate"
+                      >
+                        🌐 {store.user.website.replace(/^https?:\/\//, '')}
+                      </a>
+                    )}
+                  </div>
+                </div>
+                {/* Social/contact buttons — only platforms this seller has set
+                    appear (e.g. a WhatsApp number, group, or community link). */}
+                <StoreSocialLinks links={store.user.socialLinks} size="sm" className="shrink-0" />
               </div>
+              {(store.description || store.user.businessDescription) && (
+                <p className="text-xs sm:text-sm text-gray-500 mt-1.5 line-clamp-1">
+                  {store.description || store.user.businessDescription}
+                </p>
+              )}
             </div>
           </div>
         </div>
 
         {/* Price currency notice */}
         {listings.length > 0 && (
-          <div className="bg-sky-50 border border-sky-100 rounded-xl px-4 py-2.5 mb-4 text-xs text-sky-700 font-medium flex items-center gap-2">
-            💱 Prices shown in <strong>{displayCurrency}</strong> — your selected country currency.
+          <div className="bg-red-50 border border-red-100 rounded-xl px-3.5 py-2 mb-3.5 text-[11px] sm:text-xs text-red-700 font-medium flex items-center gap-2">
+            💱 Prices shown in <strong>{displayCurrency}</strong>
             {displayCurrency !== listings[0]?.currency && (
-              <span className="text-sky-500">(converted from listing currency)</span>
+              <span className="text-red-500">(converted from listing currency)</span>
             )}
           </div>
         )}
@@ -202,8 +210,8 @@ export default function StoreSlugPage({ params }: { params: Promise<{ slug: stri
                 onClick={() => setCategoryFilter(cat)}
                 className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
                   categoryFilter === cat
-                    ? 'bg-sky-500 text-white shadow'
-                    : 'bg-white border border-gray-200 text-gray-600 hover:border-sky-300 hover:text-sky-600'
+                    ? 'bg-red-500 text-white shadow'
+                    : 'bg-white border border-gray-200 text-gray-600 hover:border-red-300 hover:text-red-600'
                 }`}
               >
                 {cat}
@@ -224,7 +232,7 @@ export default function StoreSlugPage({ params }: { params: Promise<{ slug: stri
             {categoryFilter !== 'All' && (
               <button
                 onClick={() => setCategoryFilter('All')}
-                className="mt-3 text-sm text-sky-600 font-semibold underline"
+                className="mt-3 text-sm text-red-600 font-semibold underline"
               >
                 Show all listings
               </button>
@@ -266,7 +274,7 @@ export default function StoreSlugPage({ params }: { params: Promise<{ slug: stri
                   </div>
                   {/* Info */}
                   <div className="p-2.5 flex flex-col gap-0.5 flex-1">
-                    <p className="text-xs font-semibold text-gray-800 line-clamp-2 leading-snug group-hover:text-sky-600 transition-colors">
+                    <p className="text-xs font-semibold text-gray-800 line-clamp-2 leading-snug group-hover:text-red-600 transition-colors">
                       {listing.title}
                     </p>
                     <p className="text-[10px] text-gray-400">{listing.location}</p>

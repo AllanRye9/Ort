@@ -13,7 +13,7 @@ const blobs = [
     style: { animationDelay: '0s' },
   },
   {
-    className: 'absolute top-1/3 -right-20 h-80 w-80 rounded-full bg-cyan-300/25 blur-3xl motion-safe:animate-[float_10s_ease-in-out_infinite]',
+    className: 'absolute top-1/3 -right-20 h-80 w-80 rounded-full bg-rose-300/25 blur-3xl motion-safe:animate-[float_10s_ease-in-out_infinite]',
     style: { animationDelay: '0.6s' },
   },
   {
@@ -65,7 +65,7 @@ export default function AuthColorBlend({ children, className = '' }: AuthColorBl
       onPointerLeave={handlePointerLeave}
       className={`relative min-h-[70vh] overflow-hidden px-4 py-5 sm:py-8 [--mx:50%] [--my:50%] [--tilt-x:0deg] [--tilt-y:0deg] ${className}`}
     >
-      <div className="absolute inset-0 bg-gradient-to-br from-indigo-700 via-cyan-600 to-fuchsia-600 dark:from-slate-900 dark:via-indigo-900 dark:to-fuchsia-900" />
+      <div className="absolute inset-0 bg-gradient-to-br from-rose-700 via-rose-600 to-fuchsia-600 dark:from-slate-900 dark:via-rose-900 dark:to-fuchsia-900" />
       <div className="absolute inset-0 bg-[conic-gradient(from_180deg_at_50%_50%,rgba(255,255,255,0.08),rgba(255,255,255,0)_35%,rgba(255,255,255,0.08)_65%,rgba(255,255,255,0))] dark:bg-[conic-gradient(from_180deg_at_50%_50%,rgba(255,255,255,0.04),rgba(255,255,255,0)_35%,rgba(255,255,255,0.04)_65%,rgba(255,255,255,0))]" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_20%,rgba(255,255,255,0.22),transparent_35%),radial-gradient(circle_at_85%_25%,rgba(250,204,21,0.22),transparent_34%),radial-gradient(circle_at_50%_90%,rgba(236,72,153,0.2),transparent_38%)] dark:bg-[radial-gradient(circle_at_15%_20%,rgba(34,211,238,0.2),transparent_35%),radial-gradient(circle_at_85%_25%,rgba(217,70,239,0.22),transparent_34%),radial-gradient(circle_at_50%_90%,rgba(99,102,241,0.18),transparent_38%)]" />
       <div className="pointer-events-none absolute inset-0 transition-all duration-300 ease-out bg-[radial-gradient(520px_circle_at_var(--mx)_var(--my),rgba(255,255,255,0.24),transparent_55%)] dark:bg-[radial-gradient(520px_circle_at_var(--mx)_var(--my),rgba(56,189,248,0.24),transparent_55%)]" />

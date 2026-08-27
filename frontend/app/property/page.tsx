@@ -17,23 +17,17 @@ export default function PropertyPage() {
     <CategoryPageTemplate
       categorySlug="property"
       categoryLabel="Property"
-      heroGradient="from-sky-900 via-blue-800 to-sky-900"
+      heroGradient="from-red-900 via-red-800 to-red-900"
       heroIcon="🏠"
       heroTitle={
         <>
           Find Your <span className="text-amber-400">Perfect Home</span>
         </>
       }
-      heroSubtitle="Browse thousands of property listings for rent and sale across UAE, Uganda, Kenya and China."
+      heroSubtitle="Browse thousands of property listings for rent and sale across Uganda."
       subcategories={PROPERTY_SUBCATEGORIES}
       basePath="/property"
       postCtaLabel="+ List Property"
-      whyItems={[
-        { icon: '🔒', title: 'Verified Listings', desc: 'All properties are verified by our team.' },
-        { icon: '📸', title: 'Full Photo Galleries', desc: 'Browse interior and exterior photos before visiting.' },
-        { icon: '💬', title: 'Contact Landlords', desc: 'Message owners directly to schedule viewings.' },
-        { icon: '🌍', title: 'Regional Coverage', desc: 'Properties in UAE, Uganda, Kenya and China.' },
-      ]}
     />
   );
 }

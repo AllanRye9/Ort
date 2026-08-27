@@ -179,7 +179,7 @@ export default function MyListingsPage() {
         </div>
       )}
 
-      <section className="overflow-hidden rounded-3xl bg-gradient-to-r from-premium-navy via-sky-600 to-sky-400 px-5 py-5 text-white shadow-xl sm:px-6">
+      <section className="overflow-hidden rounded-3xl bg-gradient-to-r from-premium-navy via-red-600 to-red-400 px-5 py-5 text-white shadow-xl sm:px-6">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-white/85">
@@ -190,7 +190,7 @@ export default function MyListingsPage() {
               Create, edit, update status, and control where each listing appears on the marketplace.
             </p>
           </div>
-          <Link href="/listings/create" className="inline-flex items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-bold text-premium-navy transition-colors hover:bg-sky-50">
+          <Link href="/listings/create" className="inline-flex items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-bold text-premium-navy transition-colors hover:bg-red-50">
             + Post New Listing
           </Link>
         </div>
@@ -232,7 +232,7 @@ export default function MyListingsPage() {
             href="/profile/subscription"
             className={`shrink-0 px-4 py-2 rounded-xl text-xs font-semibold transition-colors ${
               !subscription || daysLeft <= 3
-                ? 'bg-sky-600 text-white hover:bg-sky-700'
+                ? 'bg-red-600 text-white hover:bg-red-700'
                 : 'border border-emerald-300 text-emerald-700 hover:bg-emerald-100'
             }`}
           >
@@ -243,7 +243,7 @@ export default function MyListingsPage() {
 
       {/* Promote CTA: visible when user has NO active rental and has active listings */}
       {!hasActiveRental && user?.role !== 'ADMIN' && listings.some((l) => l.status === 'ACTIVE') && (
-        <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-3 rounded-2xl border border-violet-200 bg-gradient-to-r from-violet-50 to-indigo-50 px-5 py-4">
+        <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-3 rounded-2xl border border-violet-200 bg-gradient-to-r from-violet-50 to-rose-50 px-5 py-4">
           <div className="flex-1">
             <p className="text-sm font-semibold text-violet-800">🚀 Promote Your Listings</p>
             <p className="text-xs text-violet-600 mt-0.5">
@@ -261,16 +261,16 @@ export default function MyListingsPage() {
 
       {/* Bulk placement (only for active rental users) */}
       {hasActiveRental && listings.some((l) => l.status === 'ACTIVE') && (
-        <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-3 rounded-2xl border border-indigo-200 bg-indigo-50 px-5 py-4">
+        <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4">
           <div className="flex-1">
-            <p className="text-sm font-semibold text-indigo-800">🎯 Bulk Placement</p>
-            <p className="text-xs text-indigo-600 mt-0.5">Apply a placement to all active listings at once.</p>
+            <p className="text-sm font-semibold text-rose-800">🎯 Bulk Placement</p>
+            <p className="text-xs text-rose-600 mt-0.5">Apply a placement to all active listings at once.</p>
           </div>
           <div className="flex items-center gap-2">
             <select
               value={bulkPlacement}
               onChange={(e) => setBulkPlacement(e.target.value as Placement)}
-              className="rounded-lg border border-indigo-200 bg-white px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300"
+              className="rounded-lg border border-rose-200 bg-white px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-rose-300"
             >
               {(Object.keys(PLACEMENT_LABELS) as Placement[]).map((p) => (
                 <option key={p} value={p}>{PLACEMENT_LABELS[p]}</option>
@@ -279,7 +279,7 @@ export default function MyListingsPage() {
             <button
               onClick={handleBulkPlacement}
               disabled={applyingBulk}
-              className="px-4 py-1.5 rounded-lg bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+              className="px-4 py-1.5 rounded-lg bg-rose-600 text-white text-sm font-semibold hover:bg-rose-700 disabled:opacity-50 transition-colors"
             >
               {applyingBulk ? 'Applying…' : 'Apply to All'}
             </button>
@@ -305,7 +305,7 @@ export default function MyListingsPage() {
           <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-8 text-center">
             <h3 className="text-lg font-bold text-slate-900">No listings yet</h3>
             <p className="mt-2 text-sm text-slate-500">Start by creating your first listing.</p>
-            <Link href="/listings/create" className="mt-5 inline-flex rounded-xl bg-sky-500 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-sky-600">
+            <Link href="/listings/create" className="mt-5 inline-flex rounded-xl bg-red-500 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-red-600">
               Post Your First Listing
             </Link>
           </div>
@@ -336,7 +336,7 @@ export default function MyListingsPage() {
                         <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${getStatusClasses(listing.status)}`}>
                           {listing.status}
                         </span>
-                        <span className="rounded-full bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700">
+                        <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">
                           {listing.category?.name || 'Uncategorized'}
                         </span>
                         {listing.placement && listing.placement !== 'NONE' && (
@@ -356,7 +356,7 @@ export default function MyListingsPage() {
                           <button
                             type="button"
                             onClick={() => loadAnalytics(listing.id)}
-                            className="text-sky-600 hover:underline text-xs"
+                            className="text-red-600 hover:underline text-xs"
                           >
                             Load analytics
                           </button>
@@ -371,7 +371,7 @@ export default function MyListingsPage() {
                           value={listing.status}
                           onChange={(e) => handleStatusChange(listing.id, e.target.value)}
                           disabled={updatingStatus === listing.id || NON_EDITABLE_STATUSES.includes(listing.status)}
-                          className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-red-300 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <option value="ACTIVE">Active</option>
                           <option value="SOLD">Sold</option>
@@ -387,7 +387,7 @@ export default function MyListingsPage() {
                             value={listing.placement || 'NONE'}
                             onChange={(e) => handlePlacementChange(listing.id, e.target.value as Placement)}
                             disabled={updatingPlacement === listing.id}
-                            className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-300 disabled:opacity-50"
+                            className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-rose-300 disabled:opacity-50"
                           >
                             {(Object.keys(PLACEMENT_LABELS) as Placement[]).map((p) => (
                               <option key={p} value={p}>{PLACEMENT_LABELS[p]}</option>
@@ -406,7 +406,7 @@ export default function MyListingsPage() {
                         </Link>
                         <Link
                           href={`/listings/create?edit=${listing.id}`}
-                          className="rounded-lg bg-sky-500 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-sky-600"
+                          className="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-red-600"
                         >
                           Edit
                         </Link>

@@ -25,12 +25,6 @@ export default function ServicesPage() {
       subcategories={SERVICES_SUBCATEGORIES}
       basePath="/services"
       postCtaLabel="+ Offer a Service"
-      whyItems={[
-        { icon: '✅', title: 'Vetted Providers', desc: 'Service providers are screened and rated.' },
-        { icon: '📋', title: 'Detailed Profiles', desc: 'See credentials, reviews and pricing upfront.' },
-        { icon: '💬', title: 'Direct Contact', desc: 'Message providers directly to discuss your needs.' },
-        { icon: '🌍', title: 'Regional Coverage', desc: 'Service providers in UAE, Uganda, Kenya and China.' },
-      ]}
     />
   );
 }

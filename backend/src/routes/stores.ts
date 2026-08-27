@@ -101,6 +101,7 @@ router.get('/partners', async (_req: Request, res: Response, next: NextFunction)
             companyName: true,
             country:     true,
             website:     true,
+            socialLinks: true,
           },
         },
       },
@@ -216,6 +217,7 @@ router.get('/:slug', async (req: Request, res: Response, next: NextFunction) => 
           select: {
             id: true, name: true, avatar: true, country: true,
             createdAt: true, companyName: true, businessDescription: true, website: true,
+            socialLinks: true,
             listings: {
               where: { status: 'ACTIVE' },
               select: {

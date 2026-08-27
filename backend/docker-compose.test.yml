@@ -1,0 +1,126 @@
+# docker-compose.test.yml
+#
+# Production-grade local test stack for the backend: builds the SAME
+# Dockerfile used on Railway and runs it against a real PostgreSQL instance,
+# so you can validate the actual production image (migrations, entrypoint,
+# health checks, non-root user, etc.) before deploying.
+#
+# Usage:
+#   cd backend
+#   cp .env.example .env.test        # then fill in secrets for local testing
+#   docker compose --env-file .env.test -f docker-compose.test.yml up --build
+#
+#   (Every variable below also has a safe default baked in via ${VAR:-...},
+#   so `docker compose -f docker-compose.test.yml up --build` with NO env
+#   file at all also works out of the box for a quick smoke test.)
+#
+#   Backend:    http://localhost:5000/health
+#   PostgreSQL: localhost:55432 (mapped to avoid clashing with a local pg)
+#
+# Tear down (including volumes, for a truly clean slate):
+#   docker compose -f docker-compose.test.yml down -v
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: lapit_test_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-marketplace}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-marketplace_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-marketplace_db}
+    ports:
+      - "55432:5432"
+    volumes:
+      - lapit_test_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-marketplace} -d ${POSTGRES_DB:-marketplace_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    networks:
+      - lapit_test_net
+    # Hardening: no new privileges, minimal capabilities, logs capped.
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: lapit_test_backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-marketplace}:${POSTGRES_PASSWORD:-marketplace_secret}@postgres:5432/${POSTGRES_DB:-marketplace_db}?schema=public
+      JWT_SECRET: ${JWT_SECRET:-test-jwt-secret-change-me}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-test-jwt-refresh-secret-change-me}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1h}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+      API_BASE_URL: ${API_BASE_URL:-http://localhost:5000}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-change-this-to-a-strong-password}
+      ADMIN_SECRET: ${ADMIN_SECRET:-change-this-to-a-strong-admin-registration-secret}
+      RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS:-900000}
+      RATE_LIMIT_MAX: ${RATE_LIMIT_MAX:-100}
+      # Optional S3-compatible storage; leave unset to fall back to local
+      # disk uploads served from the `lapit_test_uploads` volume below.
+      ACCESS_KEY_ID: ${ACCESS_KEY_ID:-}
+      SECRET_ACCESS_KEY: ${SECRET_ACCESS_KEY:-}
+      BUCKET: ${BUCKET:-}
+      ENDPOINT: ${ENDPOINT:-}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+    ports:
+      - "5000:5000"
+    volumes:
+      - lapit_test_uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:5000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - lapit_test_net
+    security_opt:
+      - no-new-privileges:true
+    read_only: false
+    tmpfs:
+      - /tmp
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+
+networks:
+  lapit_test_net:
+    driver: bridge
+
+volumes:
+  lapit_test_pgdata:
+  lapit_test_uploads:

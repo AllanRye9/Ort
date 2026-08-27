@@ -118,7 +118,7 @@ export default function AdminCvHistoryPage() {
             onClick={() => { setStatus(s.value); setPage(1); }}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
               status === s.value
-                ? 'bg-sky-600 text-white border-sky-600'
+                ? 'bg-red-600 text-white border-red-600'
                 : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
             }`}
           >
@@ -130,7 +130,7 @@ export default function AdminCvHistoryPage() {
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Search name, email, title…"
-            className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 w-56 focus:outline-none focus:ring-2 focus:ring-sky-200"
+            className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 w-56 focus:outline-none focus:ring-2 focus:ring-red-200"
           />
           <button type="submit" className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700">
             Search
@@ -189,7 +189,7 @@ export default function AdminCvHistoryPage() {
                       {e.usedAt ? (
                         <span className="inline-block text-xs font-semibold border px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border-emerald-200">Downloaded</span>
                       ) : e.paid ? (
-                        <span className="inline-block text-xs font-semibold border px-2 py-0.5 rounded-full bg-sky-50 text-sky-700 border-sky-200">Paid, not downloaded</span>
+                        <span className="inline-block text-xs font-semibold border px-2 py-0.5 rounded-full bg-red-50 text-red-700 border-red-200">Paid, not downloaded</span>
                       ) : (
                         <span className="inline-block text-xs font-semibold border px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border-amber-200">Unpaid</span>
                       )}

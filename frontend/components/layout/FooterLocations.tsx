@@ -32,7 +32,7 @@ export default function FooterLocations() {
           <li key={country}>
             <Link
               href={`/listings?country=${country}`}
-              className="text-gray-300 hover:text-sky-200 transition-colors flex items-center gap-1.5"
+              className="text-gray-300 hover:text-red-200 transition-colors flex items-center gap-1.5"
             >
               <FlagIcon code={meta.isoCode} size={14} /> {meta.label}
             </Link>
@@ -41,7 +41,7 @@ export default function FooterLocations() {
             <li key={`${country}-${city}`}>
               <Link
                 href={`/listings?country=${country}&location=${encodeURIComponent(city)}`}
-                className="text-gray-300 hover:text-sky-200 transition-colors"
+                className="text-gray-300 hover:text-red-200 transition-colors"
               >
                 {city}
               </Link>

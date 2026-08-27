@@ -40,7 +40,7 @@ function useLocalToast() {
 const statusColors: Record<Toast['type'], string> = {
   success: 'bg-emerald-500',
   error: 'bg-red-500',
-  info: 'bg-sky-500',
+  info: 'bg-red-500',
 };
 
 function SkeletonCard() {
@@ -362,8 +362,8 @@ export default function AdminImagesPage() {
             onClick={() => setStatus(s)}
             className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-colors ${
               status === s
-                ? 'bg-sky-600 text-white'
-                : 'bg-white border border-gray-200 text-gray-600 hover:border-sky-400 hover:text-sky-600'
+                ? 'bg-red-600 text-white'
+                : 'bg-white border border-gray-200 text-gray-600 hover:border-red-400 hover:text-red-600'
             }`}
           >
             {s.charAt(0) + s.slice(1).toLowerCase()}
@@ -383,7 +383,7 @@ export default function AdminImagesPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by product name, seller, or image ID…"
-            className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400"
+            className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-400"
           />
         </div>
         {/* Seller filter */}
@@ -391,7 +391,7 @@ export default function AdminImagesPage() {
           <select
             value={sellerFilter}
             onChange={(e) => setSellerFilter(e.target.value)}
-            className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400 bg-white"
+            className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-400 bg-white"
           >
             <option value="">All sellers</option>
             {sellerOptions.map((s) => (
@@ -403,7 +403,7 @@ export default function AdminImagesPage() {
         <select
           value={sort}
           onChange={(e) => setSort(e.target.value as SortOrder)}
-          className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400 bg-white"
+          className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-400 bg-white"
         >
           <option value="newest">Newest first</option>
           <option value="oldest">Oldest first</option>
@@ -417,7 +417,7 @@ export default function AdminImagesPage() {
             type="checkbox"
             checked={selected.size === filteredImages.length && filteredImages.length > 0}
             onChange={selected.size === filteredImages.length ? clearSelection : selectAll}
-            className="w-4 h-4 rounded accent-sky-500"
+            className="w-4 h-4 rounded accent-red-500"
             aria-label="Select all"
           />
           <span className="text-sm text-gray-500">
@@ -480,7 +480,7 @@ export default function AdminImagesPage() {
             <div
               key={img.id}
               className={`bg-white rounded-lg border overflow-hidden shadow-sm transition-all ${
-                selected.has(img.id) ? 'border-sky-500 ring-2 ring-sky-200' : 'border-gray-100'
+                selected.has(img.id) ? 'border-red-500 ring-2 ring-red-200' : 'border-gray-100'
               }`}
             >
               {/* Image thumbnail */}
@@ -533,7 +533,7 @@ export default function AdminImagesPage() {
                       checked={selected.has(img.id)}
                       onChange={() => toggleSelect(img.id)}
                       onClick={(e) => e.stopPropagation()}
-                      className="w-4 h-4 rounded accent-sky-500"
+                      className="w-4 h-4 rounded accent-red-500"
                       aria-label="Select image"
                     />
                   </div>

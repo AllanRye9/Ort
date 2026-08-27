@@ -132,7 +132,7 @@ export default function PartnerLogoPage() {
   if (authLoading || fetching) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-8 h-8 border-4 border-sky-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-red-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -156,7 +156,7 @@ export default function PartnerLogoPage() {
           <h1 className="text-2xl font-black text-gray-900">Partner Logo</h1>
           <p className="text-sm text-gray-500 mt-0.5">
             Upload your company logo to appear on the public{' '}
-            <Link href="/stores" className="text-sky-600 hover:underline font-semibold">Partners wall</Link>.
+            <Link href="/stores" className="text-red-600 hover:underline font-semibold">Partners wall</Link>.
           </p>
         </div>
       </div>
@@ -210,10 +210,10 @@ export default function PartnerLogoPage() {
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploading}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border-2 border-sky-300 text-sky-700 font-semibold text-sm hover:bg-sky-50 transition-colors disabled:opacity-50"
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border-2 border-red-300 text-red-700 font-semibold text-sm hover:bg-red-50 transition-colors disabled:opacity-50"
                 >
                   {uploading ? (
-                    <><div className="w-4 h-4 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" /> Uploading…</>
+                    <><div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin" /> Uploading…</>
                   ) : (
                     <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -245,14 +245,14 @@ export default function PartnerLogoPage() {
               </label>
               <input type="text" value={partnerName} onChange={(e) => setPartnerName(e.target.value)}
                 placeholder={store.name}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" />
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400" />
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">Website URL <span className="text-gray-400 font-normal">(optional — logo links here)</span></label>
               <input type="url" value={partnerWebsite} onChange={(e) => setPartnerWebsite(e.target.value)}
                 placeholder="https://yourcompany.com"
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" />
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400" />
             </div>
           </div>
 
@@ -260,7 +260,7 @@ export default function PartnerLogoPage() {
           <button
             onClick={handleSave}
             disabled={saving || uploading || !uploadedUrl}
-            className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-700 hover:to-indigo-700 disabled:opacity-50 text-white font-bold rounded-xl shadow-lg transition-all text-sm"
+            className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 disabled:opacity-50 text-white font-bold rounded-xl shadow-lg transition-all text-sm"
           >
             {saving ? (
               <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Saving…</>
@@ -271,7 +271,7 @@ export default function PartnerLogoPage() {
 
           <p className="text-center text-xs text-gray-400">
             Your logo appears immediately on the{' '}
-            <Link href="/stores" className="text-sky-600 hover:underline">Partners wall</Link>{' '}
+            <Link href="/stores" className="text-red-600 hover:underline">Partners wall</Link>{' '}
             after saving.
           </p>
         </div>

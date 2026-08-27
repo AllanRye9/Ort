@@ -10,6 +10,15 @@ import { SearchBar } from '@/components/listings/SearchBar';
 import { useCountry } from '@/context/CountryContext';
 import { FlagIcon } from '@/components/ui/FlagIcon';
 
+const SORT_OPTIONS: Record<string, string> = {
+  recommended: 'Recommended',
+  relevance: 'Best Match',
+  createdAt: 'Most Recent',
+  price_asc: 'Lowest Price',
+  price_desc: 'Highest Price',
+  views: 'Most Popular',
+};
+
 function ListingsContent() {
   const params = useSearchParams();
   const router = useRouter();
@@ -20,6 +29,9 @@ function ListingsContent() {
   const [pages, setPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [filterOpen, setFilterOpen] = useState(false);
+  const [sortOpen, setSortOpen] = useState(false);
+  const [density, setDensity] = useState<'comfortable' | 'compact'>('comfortable');
+  const sortMenuRef = useRef<HTMLDivElement>(null);
 
   const currentPage = parseInt(params ? params.get('page') || '1' : '1');
   const activeSort  = params?.get('sort') || (params?.get('q') ? 'relevance' : 'recommended');
@@ -28,6 +40,16 @@ function ListingsContent() {
   useEffect(() => {
     api.get('/categories').then(({ data }) => setCategories(data)).catch(() => {});
   }, []);
+
+  // Close the sort dropdown on outside click
+  useEffect(() => {
+    if (!sortOpen) return;
+    const onClick = (e: MouseEvent) => {
+      if (sortMenuRef.current && !sortMenuRef.current.contains(e.target as Node)) setSortOpen(false);
+    };
+    document.addEventListener('mousedown', onClick);
+    return () => document.removeEventListener('mousedown', onClick);
+  }, [sortOpen]);
 
   // Stable ref to track the last fetched param string — prevents duplicate requests
   const prevQueryRef = useRef('');
@@ -64,6 +86,22 @@ function ListingsContent() {
     const newParams = new URLSearchParams(params ? params.toString() : '');
     newParams.set('page', String(page));
     router.push(`/listings?${newParams.toString()}`);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const setSort = (value: string) => {
+    const newParams = new URLSearchParams(params ? params.toString() : '');
+    newParams.set('sort', value);
+    newParams.set('page', '1');
+    router.push(`/listings?${newParams.toString()}`);
+    setSortOpen(false);
+  };
+
+  const removeParam = (key: string) => {
+    const p = new URLSearchParams(params ? params.toString() : '');
+    p.delete(key);
+    p.set('page', '1');
+    router.push(`/listings?${p.toString()}`);
   };
 
   const COUNTRY_META: Record<string, { isoCode: string; label: string }> = {
@@ -72,11 +110,18 @@ function ListingsContent() {
     KENYA:  { isoCode: 'KE', label: 'Kenya' },
     CHINA:  { isoCode: 'CN', label: 'China' },
   };
-  const activeCountry = params?.get('country') || country;
-  const activeMeta    = COUNTRY_META[activeCountry];
-  const activeQ       = params?.get('q') || '';
-  const activeCat     = params?.get('category') || '';
-  const placement     = params?.get('placement') ?? '';
+  const activeCountry  = params?.get('country') || country;
+  const activeMeta     = COUNTRY_META[activeCountry];
+  const activeQ        = params?.get('q') || '';
+  const activeCat      = params?.get('category') || '';
+  const activeLocation = params?.get('location') || '';
+  const activeCondition = params?.get('condition') || '';
+  const activePriceMin = params?.get('priceMin') || '';
+  const activePriceMax = params?.get('priceMax') || '';
+  const activeVerified = params?.get('verifiedOnly') === 'true';
+  const placement       = params?.get('placement') ?? '';
+
+  const activeFilterCount = [activeQ, activeCat, activeLocation, activeCondition, activePriceMin || activePriceMax, activeVerified].filter(Boolean).length;
 
   const PLACEMENT_LABELS: Record<string, { title: string; subtitle: string; icon: string }> = {
     FEATURED_DEAL:      { title: "Today's Deals",    subtitle: "Hand-picked deals and featured offers.", icon: '🔥' },
@@ -90,62 +135,106 @@ function ListingsContent() {
   const pageSubtitle = placementMeta?.subtitle
     ?? (activeCat ? `Showing ${activeCat} listings${activeMeta ? ` in ${activeMeta.label}` : ''}` : 'Discover products from verified sellers.');
 
+  const resultsStart = total === 0 ? 0 : (currentPage - 1) * 20 + 1;
+  const resultsEnd = Math.min(currentPage * 20, total);
+
   return (
     <div>
-      {/* Hero header */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-sky-500 via-blue-600 to-purple-700 py-5 sm:py-8 px-4">
-        <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 25% 50%, #ffffff30 0%, transparent 60%)' }} />
-        <div className="relative max-w-4xl mx-auto text-center flex flex-col items-center gap-2">
+      {/* ── Compact hero header — trimmed further so listings sit higher on the page ── */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-premium-navy via-[#651A15] to-[#4a1109] py-3 sm:py-4 px-4">
+        {/* Ambient texture */}
+        <div
+          className="absolute inset-0 opacity-[0.07]"
+          style={{ backgroundImage: 'radial-gradient(circle at 15% 20%, #fff 0%, transparent 45%), radial-gradient(circle at 85% 80%, #fff 0%, transparent 40%)' }}
+          aria-hidden="true"
+        />
+        <div className="absolute inset-x-0 bottom-0 h-[3px] bg-gradient-to-r from-transparent via-premium-gold to-transparent" aria-hidden="true" />
+
+        <div className="relative max-w-4xl mx-auto flex items-center justify-center gap-2.5 flex-wrap">
           {activeMeta && !placement && (
-            <div className="rounded-lg overflow-hidden ring-2 ring-white/40 shadow-md">
-              <FlagIcon code={activeMeta.isoCode} size={36} />
+            <div className="rounded-lg overflow-hidden ring-2 ring-white/40 shadow-md shrink-0">
+              <FlagIcon code={activeMeta.isoCode} size={24} />
             </div>
           )}
-          {placementMeta && <span className="text-4xl" aria-hidden="true">{placementMeta.icon}</span>}
-          <h1 className="text-xl sm:text-2xl font-bold text-white mb-1">{pageTitle}</h1>
-          <p className="text-sky-100 text-xs sm:text-sm">{pageSubtitle}</p>
+          {placementMeta && <span className="text-xl shrink-0" aria-hidden="true">{placementMeta.icon}</span>}
+          <h1 className="text-sm sm:text-lg font-extrabold text-white tracking-tight">{pageTitle}</h1>
+          <span className="hidden sm:inline text-red-100/70 text-xs">{pageSubtitle}</span>
+          {!loading && (
+            <span className="inline-flex items-center gap-1.5 bg-white/10 border border-white/20 text-white text-[11px] font-semibold px-2.5 py-0.5 rounded-full backdrop-blur-sm shrink-0">
+              <span className="w-1.5 h-1.5 rounded-full bg-premium-gold-light" aria-hidden="true" />
+              {total.toLocaleString()} {total === 1 ? 'listing' : 'listings'}
+            </span>
+          )}
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-3 sm:py-5">
         {/* Search bar */}
-        <div className="mb-3 sm:mb-4">
-          <SearchBar
-            initialQ={params ? params.get('q') || '' : ''}
-            initialLocation={params ? params.get('location') || '' : ''}
-          />
+        <div className="mb-3 sm:mb-4 relative z-10">
+          <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-1">
+            <SearchBar
+              initialQ={params ? params.get('q') || '' : ''}
+              initialLocation={params ? params.get('location') || '' : ''}
+            />
+          </div>
         </div>
 
         {/* Active filters summary */}
-        {(activeQ || activeCat) && (
-          <div className="flex flex-wrap gap-2 mb-3">
+        {activeFilterCount > 0 && (
+          <div className="flex flex-wrap items-center gap-2 mb-3 xs:mb-4">
             {activeQ && (
-              <span className="inline-flex items-center gap-1.5 bg-sky-100 text-sky-700 text-xs font-semibold px-3 py-1 rounded-full">
+              <span className="inline-flex items-center gap-1.5 bg-red-50 border border-red-100 text-red-700 text-xs font-semibold px-3 py-1.5 rounded-full">
                 🔍 &quot;{activeQ}&quot;
-                <button
-                  type="button"
-                  onClick={() => {
-                    const p = new URLSearchParams(params ? params.toString() : '');
-                    p.delete('q');
-                    router.push(`/listings?${p.toString()}`);
-                  }}
-                  className="ml-1 hover:text-sky-900"
-                >×</button>
+                <button type="button" onClick={() => removeParam('q')} className="ml-0.5 hover:text-red-900 interactive" aria-label="Remove search filter">×</button>
               </span>
             )}
             {activeCat && (
-              <span className="inline-flex items-center gap-1.5 bg-violet-100 text-violet-700 text-xs font-semibold px-3 py-1 rounded-full capitalize">
+              <span className="inline-flex items-center gap-1.5 bg-violet-50 border border-violet-100 text-violet-700 text-xs font-semibold px-3 py-1.5 rounded-full capitalize">
                 📂 {activeCat}
+                <button type="button" onClick={() => removeParam('category')} className="ml-0.5 hover:text-violet-900 interactive" aria-label="Remove category filter">×</button>
+              </span>
+            )}
+            {activeLocation && (
+              <span className="inline-flex items-center gap-1.5 bg-amber-50 border border-amber-100 text-amber-700 text-xs font-semibold px-3 py-1.5 rounded-full">
+                📍 {activeLocation}
+                <button type="button" onClick={() => removeParam('location')} className="ml-0.5 hover:text-amber-900 interactive" aria-label="Remove location filter">×</button>
+              </span>
+            )}
+            {activeCondition && (
+              <span className="inline-flex items-center gap-1.5 bg-teal-50 border border-teal-100 text-teal-700 text-xs font-semibold px-3 py-1.5 rounded-full">
+                {activeCondition === 'NEW' ? '✨ New' : '📦 Used'}
+                <button type="button" onClick={() => removeParam('condition')} className="ml-0.5 hover:text-teal-900 interactive" aria-label="Remove condition filter">×</button>
+              </span>
+            )}
+            {(activePriceMin || activePriceMax) && (
+              <span className="inline-flex items-center gap-1.5 bg-rose-50 border border-rose-100 text-rose-700 text-xs font-semibold px-3 py-1.5 rounded-full">
+                💰 {activePriceMin || '0'} – {activePriceMax || '∞'}
                 <button
                   type="button"
                   onClick={() => {
                     const p = new URLSearchParams(params ? params.toString() : '');
-                    p.delete('category');
+                    p.delete('priceMin'); p.delete('priceMax'); p.set('page', '1');
                     router.push(`/listings?${p.toString()}`);
                   }}
-                  className="ml-1 hover:text-violet-900"
+                  className="ml-0.5 hover:text-rose-900 interactive"
+                  aria-label="Remove price filter"
                 >×</button>
               </span>
+            )}
+            {activeVerified && (
+              <span className="inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-100 text-emerald-700 text-xs font-semibold px-3 py-1.5 rounded-full">
+                🪪 KYC Verified Only
+                <button type="button" onClick={() => removeParam('verifiedOnly')} className="ml-0.5 hover:text-emerald-900 interactive" aria-label="Remove verified sellers filter">×</button>
+              </span>
+            )}
+            {activeFilterCount > 1 && (
+              <button
+                type="button"
+                onClick={() => router.push(`/listings?country=${country}`)}
+                className="text-xs font-semibold text-gray-400 hover:text-red-500 transition-colors interactive underline underline-offset-2"
+              >
+                Clear all
+              </button>
             )}
           </div>
         )}
@@ -157,12 +246,17 @@ function ListingsContent() {
           </p>
           <button
             onClick={() => setFilterOpen(true)}
-            className="flex items-center gap-1.5 bg-white border border-gray-200 text-gray-700 px-3 py-1.5 rounded-xl text-sm font-semibold hover:bg-gray-50 transition-colors shadow-sm"
+            className="relative flex items-center gap-1.5 bg-white border border-gray-200 text-gray-700 px-3 py-1.5 rounded-xl text-sm font-semibold hover:bg-gray-50 transition-colors shadow-sm interactive"
           >
-            <svg className="w-4 h-4 text-sky-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z" />
             </svg>
             Filters
+            {activeFilterCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 w-4.5 h-4.5 min-w-[18px] px-1 flex items-center justify-center rounded-full bg-red-600 text-white text-[10px] font-bold">
+                {activeFilterCount}
+              </span>
+            )}
           </button>
         </div>
 
@@ -170,67 +264,120 @@ function ListingsContent() {
           <FilterSidebar categories={categories} isOpen={filterOpen} onClose={() => setFilterOpen(false)} />
 
           <div className="flex-1 min-w-0">
-            <div className="hidden md:flex items-center justify-between mb-4">
+            {/* Desktop toolbar */}
+            <div className="hidden md:flex items-center justify-between mb-4 bg-white/70 backdrop-blur-sm border border-gray-100 rounded-xl px-4 py-2.5 shadow-sm">
               <p className="text-gray-500 text-sm">
-                <span className="text-gray-900 font-bold">{total}</span> listings found
+                {total > 0 ? (
+                  <>Showing <span className="text-gray-900 font-bold">{resultsStart}–{resultsEnd}</span> of <span className="text-gray-900 font-bold">{total.toLocaleString()}</span></>
+                ) : (
+                  <span className="text-gray-900 font-bold">0 listings</span>
+                )}
               </p>
-              <div className="flex items-center gap-2">
-                <label htmlFor="sort-top" className="text-xs text-gray-500 whitespace-nowrap">Sort by:</label>
-                <select
-                  id="sort-top"
-                  value={activeSort}
-                  onChange={(e) => {
-                    const newParams = new URLSearchParams(params ? params.toString() : '');
-                    newParams.set('sort', e.target.value);
-                    newParams.set('page', '1');
-                    router.push(`/listings?${newParams.toString()}`);
-                  }}
-                  className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-sky-300 bg-white text-gray-700"
-                >
-                  <option value="recommended">Recommended</option>
-                  {activeQ && <option value="relevance">Best Match</option>}
-                  <option value="createdAt">Most Recent</option>
-                  <option value="price_asc">Lowest Price</option>
-                  <option value="price_desc">Highest Price</option>
-                  <option value="views">Most Popular</option>
-                </select>
+
+              <div className="flex items-center gap-3">
+                {/* Density toggle */}
+                <div className="flex items-center gap-0.5 bg-gray-100 rounded-lg p-0.5">
+                  <button
+                    onClick={() => setDensity('comfortable')}
+                    aria-label="Comfortable grid"
+                    aria-pressed={density === 'comfortable'}
+                    className={`p-1.5 rounded-md transition-colors interactive ${density === 'comfortable' ? 'bg-white text-red-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1" strokeWidth={2}/><rect x="14" y="3" width="7" height="7" rx="1" strokeWidth={2}/><rect x="3" y="14" width="7" height="7" rx="1" strokeWidth={2}/><rect x="14" y="14" width="7" height="7" rx="1" strokeWidth={2}/></svg>
+                  </button>
+                  <button
+                    onClick={() => setDensity('compact')}
+                    aria-label="Compact grid"
+                    aria-pressed={density === 'compact'}
+                    className={`p-1.5 rounded-md transition-colors interactive ${density === 'compact' ? 'bg-white text-red-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="4" height="4" rx="0.5" strokeWidth={2}/><rect x="10" y="3" width="4" height="4" rx="0.5" strokeWidth={2}/><rect x="17" y="3" width="4" height="4" rx="0.5" strokeWidth={2}/><rect x="3" y="10" width="4" height="4" rx="0.5" strokeWidth={2}/><rect x="10" y="10" width="4" height="4" rx="0.5" strokeWidth={2}/><rect x="17" y="10" width="4" height="4" rx="0.5" strokeWidth={2}/><rect x="3" y="17" width="4" height="4" rx="0.5" strokeWidth={2}/><rect x="10" y="17" width="4" height="4" rx="0.5" strokeWidth={2}/><rect x="17" y="17" width="4" height="4" rx="0.5" strokeWidth={2}/></svg>
+                  </button>
+                </div>
+
+                <div className="w-px h-5 bg-gray-200" aria-hidden="true" />
+
+                {/* Sort dropdown */}
+                <div className="relative" ref={sortMenuRef}>
+                  <button
+                    onClick={() => setSortOpen((v) => !v)}
+                    aria-haspopup="listbox"
+                    aria-expanded={sortOpen}
+                    className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-red-600 transition-colors interactive"
+                  >
+                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9M3 12h5m10-8v16m0 0l-4-4m4 4l4-4"/></svg>
+                    {SORT_OPTIONS[activeSort] || 'Sort'}
+                    <svg className={`w-3.5 h-3.5 text-gray-400 transition-transform ${sortOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                  </button>
+                  {sortOpen && (
+                    <ul
+                      role="listbox"
+                      className="absolute right-0 top-full mt-2 w-44 bg-white border border-gray-100 rounded-xl shadow-xl overflow-hidden z-30 animate-fade-in"
+                    >
+                      {Object.entries(SORT_OPTIONS)
+                        .filter(([key]) => key !== 'relevance' || activeQ)
+                        .map(([key, label]) => (
+                          <li key={key}>
+                            <button
+                              role="option"
+                              aria-selected={activeSort === key}
+                              onClick={() => setSort(key)}
+                              className={`w-full text-left px-4 py-2.5 text-sm flex items-center justify-between transition-colors ${
+                                activeSort === key ? 'bg-red-50 text-red-700 font-semibold' : 'text-gray-600 hover:bg-gray-50'
+                              }`}
+                            >
+                              {label}
+                              {activeSort === key && (
+                                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" /></svg>
+                              )}
+                            </button>
+                          </li>
+                        ))}
+                    </ul>
+                  )}
+                </div>
               </div>
             </div>
 
-            <ListingGrid listings={listings} loading={loading} />
+            <ListingGrid listings={listings} loading={loading} density={density} />
 
             {!loading && pages > 1 && (
-              <div className="flex flex-wrap justify-center gap-1.5 mt-8">
-                <button
-                  onClick={() => goToPage(Math.max(1, currentPage - 1))}
-                  disabled={currentPage === 1}
-                  className="px-3 py-2 rounded-lg text-sm font-medium bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                >← Prev</button>
-                {Array.from({ length: pages }, (_, i) => i + 1)
-                  .filter((p) => Math.abs(p - currentPage) <= 2 || p === 1 || p === pages)
-                  .reduce<(number | 'ellipsis')[]>((acc, p, idx, arr) => {
-                    if (idx > 0 && p - (arr[idx - 1] as number) > 1) acc.push('ellipsis');
-                    acc.push(p);
-                    return acc;
-                  }, [])
-                  .map((p, i) =>
-                    p === 'ellipsis'
-                      ? <span key={`e-${i}`} className="flex items-center px-1 text-gray-400 text-sm">…</span>
-                      : (
-                        <button
-                          key={p}
-                          onClick={() => goToPage(p as number)}
-                          className={`w-9 h-9 rounded-lg text-sm font-semibold transition-all ${
-                            p === currentPage ? 'bg-sky-600 text-white shadow-md' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:border-sky-200'
-                          }`}
-                        >{p}</button>
-                      )
-                  )}
-                <button
-                  onClick={() => goToPage(Math.min(pages, currentPage + 1))}
-                  disabled={currentPage === pages}
-                  className="px-3 py-2 rounded-lg text-sm font-medium bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                >Next →</button>
+              <div className="flex flex-col items-center gap-2 mt-8">
+                <p className="hidden sm:block text-xs text-gray-400">
+                  Showing {resultsStart}–{resultsEnd} of {total.toLocaleString()} listings
+                </p>
+                <div className="flex flex-wrap justify-center gap-1.5">
+                  <button
+                    onClick={() => goToPage(Math.max(1, currentPage - 1))}
+                    disabled={currentPage === 1}
+                    className="px-3 py-2 rounded-lg text-sm font-medium bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors interactive"
+                  >← Prev</button>
+                  {Array.from({ length: pages }, (_, i) => i + 1)
+                    .filter((p) => Math.abs(p - currentPage) <= 2 || p === 1 || p === pages)
+                    .reduce<(number | 'ellipsis')[]>((acc, p, idx, arr) => {
+                      if (idx > 0 && p - (arr[idx - 1] as number) > 1) acc.push('ellipsis');
+                      acc.push(p);
+                      return acc;
+                    }, [])
+                    .map((p, i) =>
+                      p === 'ellipsis'
+                        ? <span key={`e-${i}`} className="flex items-center px-1 text-gray-400 text-sm">…</span>
+                        : (
+                          <button
+                            key={p}
+                            onClick={() => goToPage(p as number)}
+                            className={`w-9 h-9 rounded-lg text-sm font-semibold transition-all interactive ${
+                              p === currentPage ? 'bg-red-600 text-white shadow-md' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:border-red-200'
+                            }`}
+                          >{p}</button>
+                        )
+                    )}
+                  <button
+                    onClick={() => goToPage(Math.min(pages, currentPage + 1))}
+                    disabled={currentPage === pages}
+                    className="px-3 py-2 rounded-lg text-sm font-medium bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors interactive"
+                  >Next →</button>
+                </div>
               </div>
             )}
           </div>

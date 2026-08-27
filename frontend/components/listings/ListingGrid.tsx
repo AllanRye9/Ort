@@ -5,6 +5,9 @@ interface Props {
   listings: Listing[];
   showFavorite?: boolean;
   loading?: boolean;
+  /** 'comfortable' (default) = current 2/3/4-col grid. 'compact' packs more
+   *  cards per row for buyers who want to scan volume over card detail. */
+  density?: 'comfortable' | 'compact';
 }
 
 function SkeletonCard() {
@@ -24,10 +27,14 @@ function SkeletonCard() {
   );
 }
 
-export function ListingGrid({ listings, showFavorite = true, loading = false }: Props) {
+export function ListingGrid({ listings, showFavorite = true, loading = false, density = 'comfortable' }: Props) {
+  const gridCols = density === 'compact'
+    ? 'grid-cols-2 sm:grid-cols-4 md:grid-cols-5 xl:grid-cols-6'
+    : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4';
+
   if (loading) {
     return (
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 xs:gap-3">
+      <div className={`grid ${gridCols} gap-2 xs:gap-3`}>
         {Array.from({ length: 12 }).map((_, i) => <SkeletonCard key={i} />)}
       </div>
     );
@@ -48,7 +55,7 @@ export function ListingGrid({ listings, showFavorite = true, loading = false }: 
   }
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 xs:gap-3 stagger-children">
+    <div className={`grid ${gridCols} gap-2 xs:gap-3 stagger-children`}>
       {listings.map((listing) => (
         <ListingCard key={listing.id} listing={listing} showFavorite={showFavorite} />
       ))}

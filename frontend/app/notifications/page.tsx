@@ -80,7 +80,7 @@ export default function NotificationsPage() {
   if (!user) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
-        <p className="text-gray-500">Please <Link href="/auth/login" className="text-sky-600 underline">log in</Link> to view notifications.</p>
+        <p className="text-gray-500">Please <Link href="/auth/login" className="text-red-600 underline">log in</Link> to view notifications.</p>
       </div>
     );
   }
@@ -91,13 +91,13 @@ export default function NotificationsPage() {
         <h1 className="text-2xl font-bold text-gray-900">
           Notifications
           {unreadCount > 0 && (
-            <span className="ml-2 px-2.5 py-0.5 rounded-full bg-sky-500 text-white text-sm font-semibold">{unreadCount}</span>
+            <span className="ml-2 px-2.5 py-0.5 rounded-full bg-red-500 text-white text-sm font-semibold">{unreadCount}</span>
           )}
         </h1>
         {unreadCount > 0 && (
           <button
             onClick={markAllRead}
-            className="text-sm text-sky-600 hover:text-sky-800 font-medium"
+            className="text-sm text-red-600 hover:text-red-800 font-medium"
           >
             Mark all as read
           </button>
@@ -122,7 +122,7 @@ export default function NotificationsPage() {
             <div
               key={notif.id}
               className={`relative flex gap-4 items-start p-4 rounded-2xl border transition-colors ${
-                notif.read ? 'bg-white border-gray-100' : 'bg-sky-50 border-sky-100'
+                notif.read ? 'bg-white border-gray-100' : 'bg-red-50 border-red-100'
               }`}
             >
               <div className="text-2xl flex-shrink-0 mt-0.5">
@@ -137,7 +137,7 @@ export default function NotificationsPage() {
                 {typeof notif.data?.orderId === 'string' && (
                   <Link
                     href={`/profile/orders/${notif.data.orderId}`}
-                    className="text-xs text-sky-600 hover:text-sky-800 font-medium mt-1 inline-block"
+                    className="text-xs text-red-600 hover:text-red-800 font-medium mt-1 inline-block"
                   >
                     View Order →
                   </Link>
@@ -147,7 +147,7 @@ export default function NotificationsPage() {
                 {!notif.read && (
                   <button
                     onClick={() => markRead(notif.id)}
-                    className="text-xs text-sky-600 hover:text-sky-800 px-2 py-1 rounded-lg hover:bg-sky-100 transition-colors"
+                    className="text-xs text-red-600 hover:text-red-800 px-2 py-1 rounded-lg hover:bg-red-100 transition-colors"
                   >
                     Mark read
                   </button>
@@ -160,7 +160,7 @@ export default function NotificationsPage() {
                 </button>
               </div>
               {!notif.read && (
-                <span className="absolute top-4 right-4 w-2 h-2 rounded-full bg-sky-500" />
+                <span className="absolute top-4 right-4 w-2 h-2 rounded-full bg-red-500" />
               )}
             </div>
           ))}

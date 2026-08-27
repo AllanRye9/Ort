@@ -94,7 +94,7 @@ function ResetPasswordForm() {
                 minLength={6}
                 autoComplete="new-password"
                 placeholder="At least 6 characters"
-                className="w-full rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 pr-10 text-sm text-slate-900 placeholder:text-slate-400 focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-200 transition"
+                className="w-full rounded-xl border border-red-200 bg-red-50 px-4 py-3 pr-10 text-sm text-slate-900 placeholder:text-slate-400 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-200 transition"
               />
               <button
                 type="button"
@@ -135,13 +135,13 @@ function ResetPasswordForm() {
               required
               autoComplete="new-password"
               placeholder="Repeat your new password"
-              className="w-full rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-200 transition"
+              className="w-full rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-200 transition"
             />
           </div>
           <button
             type="submit"
             disabled={loading}
-            className="w-full inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-fuchsia-600 via-sky-600 to-indigo-600 px-5 py-3 text-sm font-semibold text-white transition-all hover:brightness-110 shadow-glow disabled:opacity-60"
+            className="w-full inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-fuchsia-600 via-red-600 to-rose-600 px-5 py-3 text-sm font-semibold text-white transition-all hover:brightness-110 shadow-glow disabled:opacity-60"
           >
             {loading ? 'Updating password…' : 'Set new password'}
           </button>
@@ -164,7 +164,7 @@ export default function ResetPasswordPage() {
   return (
     <AuthColorBlend>
       <div className="mx-auto max-w-xl rounded-3xl border border-white/30 dark:border-white/20 bg-white/95 dark:bg-slate-900/85 p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
-        <span className="inline-flex rounded-full bg-sky-100 dark:bg-sky-500/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-sky-700 dark:text-sky-200">
+        <span className="inline-flex rounded-full bg-red-100 dark:bg-red-500/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-red-700 dark:text-red-200">
           Account security
         </span>
         <h1 className="mt-4 text-3xl font-black tracking-tight text-slate-950 dark:text-white sm:text-4xl">

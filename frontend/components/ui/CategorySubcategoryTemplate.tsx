@@ -130,22 +130,21 @@ function SubcategoryContent({
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className={`relative overflow-hidden bg-gradient-to-br ${meta.color} text-white py-8 sm:py-12`}>
-        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_30%_50%,white_0%,transparent_60%)]" />
-        <div className="relative max-w-7xl mx-auto px-4">
-          <nav className="flex items-center gap-2 text-xs text-white/70 mb-3">
+      {/* Compact identity strip */}
+      <div className={`relative overflow-hidden bg-gradient-to-r ${meta.color} text-white`}>
+        <div className="relative max-w-7xl mx-auto px-3 sm:px-4 py-2.5 sm:py-3">
+          <nav className="flex items-center gap-1.5 text-[11px] text-white/60 mb-1 truncate">
             <Link href="/" className="hover:text-white transition-colors">Home</Link>
             <span>/</span>
             <Link href={categoryHref} className="hover:text-white transition-colors">{categoryLabel}</Link>
             <span>/</span>
-            <span className="text-white font-semibold">{meta.label}</span>
+            <span className="text-white/90 font-semibold">{meta.label}</span>
           </nav>
-          <div className="flex items-center gap-4">
-            <span className="text-4xl">{meta.icon}</span>
-            <div>
-              <h1 className="text-2xl sm:text-4xl font-black">{meta.label}</h1>
-              <p className="text-white/80 text-sm mt-1">
+          <div className="flex items-center gap-3">
+            <span className="text-xl sm:text-2xl shrink-0" aria-hidden="true">{meta.icon}</span>
+            <div className="min-w-0 flex-1">
+              <h1 className="text-sm sm:text-lg font-extrabold leading-tight truncate">{meta.label}</h1>
+              <p className="hidden sm:block text-white/70 text-xs leading-snug">
                 {total > 0
                   ? `${total.toLocaleString('en-US')} listing${total !== 1 ? 's' : ''} available`
                   : 'Browse available listings'}
@@ -155,7 +154,7 @@ function SubcategoryContent({
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-6">
+      <div className="max-w-7xl mx-auto px-4 py-4">
         {/* Filters bar */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-6 flex flex-wrap gap-3 items-center">
           <div className="flex items-center gap-2">
@@ -165,7 +164,7 @@ function SubcategoryContent({
               onChange={(e) =>
                 updateParam('priceRange', e.target.value === 'Any Price' ? '' : e.target.value)
               }
-              className="border border-gray-200 rounded-lg px-3 py-1.5 text-xs text-gray-700 focus:ring-2 focus:ring-sky-300 outline-none"
+              className="border border-gray-200 rounded-lg px-3 py-1.5 text-xs text-gray-700 focus:ring-2 focus:ring-red-300 outline-none"
             >
               {priceRanges.map((r) => (
                 <option key={r.label}>{r.label}</option>
@@ -177,7 +176,7 @@ function SubcategoryContent({
             <select
               value={sortBy}
               onChange={(e) => updateParam('sort', e.target.value)}
-              className="border border-gray-200 rounded-lg px-3 py-1.5 text-xs text-gray-700 focus:ring-2 focus:ring-sky-300 outline-none"
+              className="border border-gray-200 rounded-lg px-3 py-1.5 text-xs text-gray-700 focus:ring-2 focus:ring-red-300 outline-none"
             >
               <option value="createdAt">Newest</option>
               <option value="price_asc">Price: Low to High</option>
@@ -223,8 +222,8 @@ function SubcategoryContent({
                     onClick={() => updateParam('page', String(pg))}
                     className={`w-9 h-9 rounded-lg text-sm font-semibold transition-colors ${
                       currentPage === pg
-                        ? 'bg-sky-600 text-white'
-                        : 'bg-white border border-gray-200 text-gray-700 hover:bg-sky-50'
+                        ? 'bg-red-600 text-white'
+                        : 'bg-white border border-gray-200 text-gray-700 hover:bg-red-50'
                     }`}
                   >
                     {pg}
@@ -242,7 +241,7 @@ function SubcategoryContent({
             </p>
             <Link
               href="/listings/create"
-              className="inline-block bg-sky-600 text-white font-semibold px-6 py-3 rounded-xl hover:bg-sky-700 transition-colors"
+              className="inline-block bg-red-600 text-white font-semibold px-6 py-3 rounded-xl hover:bg-red-700 transition-colors"
             >
               Post {meta.label} Ad
             </Link>
@@ -259,7 +258,7 @@ function SubcategoryContent({
               <Link
                 key={slug}
                 href={`${basePath}/${slug}`}
-                className="inline-flex items-center gap-1.5 bg-white border border-gray-200 text-gray-700 hover:bg-sky-50 hover:border-sky-200 hover:text-sky-700 px-3 py-1.5 rounded-full text-xs font-medium transition-colors"
+                className="inline-flex items-center gap-1.5 bg-white border border-gray-200 text-gray-700 hover:bg-red-50 hover:border-red-200 hover:text-red-700 px-3 py-1.5 rounded-full text-xs font-medium transition-colors"
               >
                 <span>{s.icon}</span> {s.label}
               </Link>

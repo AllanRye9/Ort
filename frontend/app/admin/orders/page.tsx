@@ -88,7 +88,7 @@ export default function AdminOrdersPage() {
             <tbody className="divide-y divide-gray-100">
               {orders.map((order) => (
                 <tr key={order.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3 font-mono font-semibold text-sky-700">{order.orderNumber}</td>
+                  <td className="px-4 py-3 font-mono font-semibold text-red-700">{order.orderNumber}</td>
                   <td className="px-4 py-3 text-gray-700 hidden md:table-cell">{order.buyer?.name}</td>
                   <td className="px-4 py-3 text-gray-700 hidden lg:table-cell">{order.seller?.name}</td>
                   {/* Variant summary — critical for logistics fulfilment */}
@@ -101,7 +101,7 @@ export default function AdminOrdersPage() {
                             <span className="text-gray-500 ml-1">×{item.quantity}</span>
                           )}
                           {item.variantSummary && (
-                            <div className="text-sky-600 font-medium mt-0.5 line-clamp-1">{item.variantSummary}</div>
+                            <div className="text-red-600 font-medium mt-0.5 line-clamp-1">{item.variantSummary}</div>
                           )}
                         </div>
                       ))}

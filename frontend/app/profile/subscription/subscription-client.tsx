@@ -124,7 +124,7 @@ export default function SubscriptionClientPage({ defaultScope }: SubscriptionCli
         ]}
       />
 
-      <section className="overflow-hidden rounded-2xl bg-gradient-to-r from-premium-navy via-sky-600 to-sky-400 px-5 py-6 text-white shadow-xl sm:px-7 mb-6 animate-fade-in">
+      <section className="overflow-hidden rounded-2xl bg-gradient-to-r from-premium-navy via-red-600 to-red-400 px-5 py-6 text-white shadow-xl sm:px-7 mb-6 animate-fade-in">
         <p className="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-white/85">
           {isCvScope ? 'CV Package' : 'Listing Package'}
         </p>
@@ -141,7 +141,7 @@ export default function SubscriptionClientPage({ defaultScope }: SubscriptionCli
             </p>
             <a
               href={isCvScope ? '/cv-generator' : '/listings/create'}
-              className="inline-flex items-center justify-center rounded-xl bg-white px-4 py-2 text-sm font-semibold text-sky-700 transition-colors hover:bg-sky-50"
+              className="inline-flex items-center justify-center rounded-xl bg-white px-4 py-2 text-sm font-semibold text-red-700 transition-colors hover:bg-red-50"
             >
               {isCvScope ? 'Open CV Tools' : 'Create a Listing'}
             </a>
@@ -257,10 +257,10 @@ export default function SubscriptionClientPage({ defaultScope }: SubscriptionCli
                   key={pkg.id}
                   className={`rounded-2xl border p-4 transition-all flex flex-col ${
                     isCurrentPkg
-                      ? 'border-sky-400 bg-sky-50 shadow-sm'
+                      ? 'border-red-400 bg-red-50 shadow-sm'
                       : pkg.isFree
                       ? 'border-emerald-200 bg-emerald-50/50 hover:border-emerald-300'
-                      : 'border-gray-200 bg-white hover:border-sky-200 hover:shadow-sm'
+                      : 'border-gray-200 bg-white hover:border-red-200 hover:shadow-sm'
                   }`}
                 >
                   <div className="mb-2">
@@ -269,12 +269,12 @@ export default function SubscriptionClientPage({ defaultScope }: SubscriptionCli
                         ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
                         : tier === '1 Year'
                         ? 'bg-violet-100 text-violet-700 border-violet-200'
-                        : 'bg-sky-100 text-sky-700 border-sky-200'
+                        : 'bg-red-100 text-red-700 border-red-200'
                     }`}>
                       {tier}
                     </span>
                     {isCurrentPkg && (
-                      <span className="ml-1.5 text-[10px] font-bold bg-sky-100 text-sky-700 border border-sky-200 px-2 py-0.5 rounded-full">
+                      <span className="ml-1.5 text-[10px] font-bold bg-red-100 text-red-700 border border-red-200 px-2 py-0.5 rounded-full">
                         CURRENT
                       </span>
                     )}
@@ -311,13 +311,13 @@ export default function SubscriptionClientPage({ defaultScope }: SubscriptionCli
                         value={paymentRef}
                         onChange={(e) => setPaymentRef(e.target.value)}
                         placeholder="Payment reference / transaction ID"
-                        className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-sky-300"
+                        className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-red-300"
                       />
                     </div>
                   )}
 
                   {isCurrentPkg ? (
-                    <div className="flex items-center gap-1 text-sky-600 text-xs font-semibold mt-auto">
+                    <div className="flex items-center gap-1 text-red-600 text-xs font-semibold mt-auto">
                       <span>✓</span> Active plan
                     </div>
                   ) : subscription?.status === 'ACTIVE' ? (
@@ -336,7 +336,7 @@ export default function SubscriptionClientPage({ defaultScope }: SubscriptionCli
                       className={`mt-auto w-full py-2 rounded-xl text-white text-sm font-semibold transition-colors disabled:opacity-50 ${
                         pkg.isFree
                           ? 'bg-emerald-500 hover:bg-emerald-600'
-                          : 'bg-sky-600 hover:bg-sky-700'
+                          : 'bg-red-600 hover:bg-red-700'
                       }`}
                     >
                       {subscribing === pkg.id

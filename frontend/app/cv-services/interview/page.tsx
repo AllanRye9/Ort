@@ -152,15 +152,15 @@ export default function InterviewPrepPage() {
           <h2 className="text-lg font-black text-gray-900 mb-1">Start Digital Interview Simulation</h2>
           <p className="text-sm text-gray-500 mb-3">Before your interview, make sure your application is complete:</p>
           <div className="flex flex-col sm:flex-row gap-3 mb-5">
-            <div className="flex-1 bg-sky-50 border border-sky-100 rounded-xl p-3 text-sm text-sky-800 font-semibold flex items-center gap-2">
+            <div className="flex-1 bg-red-50 border border-red-100 rounded-xl p-3 text-sm text-red-800 font-semibold flex items-center gap-2">
               📄 Create your CV and Cover Letter
             </div>
           </div>
           <div className="flex flex-wrap gap-3">
-            <Link href="/cv-generator/builder" className="inline-flex items-center gap-2 rounded-xl bg-sky-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-sky-700">
+            <Link href="/cv-generator/builder" className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-red-700">
               📄 Build Your CV
             </Link>
-            <Link href="/cv-generator/cover-letter" className="inline-flex items-center gap-2 rounded-xl border border-sky-200 px-5 py-2.5 text-sm font-semibold text-sky-700 hover:bg-sky-50">
+            <Link href="/cv-generator/cover-letter" className="inline-flex items-center gap-2 rounded-xl border border-red-200 px-5 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-50">
               📝 Write Cover Letter
             </Link>
             <Link href="/cv-generator?theme=bold" className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-rose-700">

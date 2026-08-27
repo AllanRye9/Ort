@@ -705,19 +705,19 @@ function CreateListingContent() {
   if (!user) {
     return (
       <div className="max-w-3xl mx-auto px-4 py-4 sm:py-6">
-        <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-premium-navy via-sky-600 to-sky-400 text-white shadow-xl">
+        <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-premium-navy via-red-600 to-red-400 text-white shadow-xl">
           <div className="px-5 py-5 sm:px-6 sm:py-6">
             <p className="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-white/90">
               Seller Access
             </p>
             <h1 className="mt-4 text-3xl font-black tracking-tight sm:text-4xl">Post products after you sign in</h1>
             <p className="mt-3 max-w-2xl text-sm text-white/85 sm:text-base">
-              Sign in or create an account to publish products, attach images, and place each item in its correct category for UAE and Uganda buyers.
+              Sign in or create an account to publish products, attach images, and place each item in its correct category for Uganda buyers.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <Link
                 href="/auth/login?redirect=/listings/create"
-                className="rounded-xl bg-white px-5 py-3 text-sm font-bold text-premium-navy transition-colors hover:bg-sky-50"
+                className="rounded-xl bg-white px-5 py-3 text-sm font-bold text-premium-navy transition-colors hover:bg-red-50"
               >
                 Sign In to Post
               </Link>
@@ -739,7 +739,7 @@ function CreateListingContent() {
   if (user && !ALLOWED_LISTING_ROLES.includes(user.role)) {
     return (
       <div className="max-w-3xl mx-auto px-4 py-4 sm:py-6">
-        <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-violet-700 via-purple-600 to-sky-600 text-white shadow-xl">
+        <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-violet-700 via-purple-600 to-red-600 text-white shadow-xl">
           <div className="px-5 py-5 sm:px-6 sm:py-6">
             <p className="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-white/90">
               🏪 Seller Access Required
@@ -788,13 +788,13 @@ function CreateListingContent() {
           </p>
 
           {redirectToSub && (
-            <div className="mb-5 p-4 bg-sky-50 border border-sky-200 rounded-xl text-left">
-              <p className="text-sm font-bold text-sky-800 mb-1">🚀 Unlock more listings</p>
-              <p className="text-xs text-sky-700 mb-2">
+            <div className="mb-5 p-4 bg-red-50 border border-red-200 rounded-xl text-left">
+              <p className="text-sm font-bold text-red-800 mb-1">🚀 Unlock more listings</p>
+              <p className="text-xs text-red-700 mb-2">
                 Upgrade your plan to post more listings and reach more buyers. Choose from:
               </p>
               {packages.length > 0 ? (
-                <ul className="text-xs text-sky-700 space-y-0.5 mb-3">
+                <ul className="text-xs text-red-700 space-y-0.5 mb-3">
                   {packages.map((pkg) => (
                     <li key={pkg.id}>
                       {pkg.isFree ? '✅' : pkg.durationDays === 365 ? '⭐' : '💳'}{' '}
@@ -803,9 +803,9 @@ function CreateListingContent() {
                   ))}
                 </ul>
               ) : (
-                <p className="text-xs text-sky-500 italic mb-3">Loading plans…</p>
+                <p className="text-xs text-red-500 italic mb-3">Loading plans…</p>
               )}
-              <p className="text-[10px] text-sky-500">Redirecting to subscription plans in a moment…</p>
+              <p className="text-[10px] text-red-500">Redirecting to subscription plans in a moment…</p>
             </div>
           )}
 
@@ -819,7 +819,7 @@ function CreateListingContent() {
             {redirectToSub ? (
               <Link
                 href="/profile/subscription"
-                className="px-4 py-2 text-sm font-semibold bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors"
+                className="px-4 py-2 text-sm font-semibold bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
               >
                 Choose a Plan
               </Link>
@@ -840,7 +840,7 @@ function CreateListingContent() {
   return (
     <div className="max-w-4xl mx-auto px-3 py-4 sm:py-6 animate-fade-in">
       {/* Compact hero banner */}
-      <section className="relative overflow-hidden rounded-xl bg-gradient-to-r from-premium-navy to-sky-600 px-4 py-3 text-white shadow-md">
+      <section className="relative overflow-hidden rounded-xl bg-gradient-to-r from-premium-navy to-red-600 px-4 py-3 text-white shadow-md">
         <div className="absolute right-0 top-0 h-16 w-16 rounded-full bg-white/10 blur-2xl" />
         <div className="relative flex flex-wrap items-center justify-between gap-2">
           <div>
@@ -892,9 +892,9 @@ function CreateListingContent() {
 
       {/* Package picker — shown inline when the user has no active subscription */}
       {user.role !== 'ADMIN' && subscription === null && (
-        <div id="package-picker" className="mt-4 rounded-xl border border-sky-200 bg-sky-50 p-4 animate-fade-in">
-          <p className="text-sm font-bold text-sky-800 mb-1">📦 Choose a posting plan</p>
-          <p className="text-xs text-sky-600 mb-4">
+        <div id="package-picker" className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 animate-fade-in">
+          <p className="text-sm font-bold text-red-800 mb-1">📦 Choose a posting plan</p>
+          <p className="text-xs text-red-600 mb-4">
             Select a plan to post your listing. Free trial activates instantly; paid plans are activated after admin approval, then your listing countdown begins.
           </p>
 
@@ -912,8 +912,8 @@ function CreateListingContent() {
                   onClick={() => { setSelectedPkgId(pkg.id); setSubscribeError(''); }}
                   className={`relative flex flex-col rounded-xl border-2 p-3 text-left transition-all ${
                     isSelected
-                      ? 'border-sky-500 bg-white shadow-md'
-                      : 'border-gray-200 bg-white hover:border-sky-300'
+                      ? 'border-red-500 bg-white shadow-md'
+                      : 'border-gray-200 bg-white hover:border-red-300'
                   }`}
                 >
                   {pkg.isFree && (
@@ -923,12 +923,12 @@ function CreateListingContent() {
                     <span className="absolute right-2 top-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">BEST VALUE</span>
                   )}
                   <span className="text-xs font-bold text-gray-900 mb-1">{pkgTierLabel(pkg)}</span>
-                  <span className="text-lg font-extrabold text-sky-700">{pkgPriceLabel(pkg)}</span>
+                  <span className="text-lg font-extrabold text-red-700">{pkgPriceLabel(pkg)}</span>
                   {pkg.description && (
                     <span className="mt-1 text-[11px] text-gray-500 leading-tight">{pkg.description}</span>
                   )}
                   {isSelected && (
-                    <span className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-sky-600">
+                    <span className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-red-600">
                       <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
                       Selected
                     </span>
@@ -948,7 +948,7 @@ function CreateListingContent() {
                 value={paymentRef}
                 onChange={(e) => setPaymentRef(e.target.value)}
                 placeholder="e.g. TXN123456 or bank transfer ref"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
               />
               <p className="mt-1 text-[11px] text-gray-500">Enter your payment reference. Your subscription will be activated after admin approval.</p>
             </div>
@@ -963,7 +963,7 @@ function CreateListingContent() {
               type="button"
               onClick={handleSubscribe}
               disabled={subscribing}
-              className="px-4 py-2 rounded-lg bg-sky-600 text-white text-sm font-semibold hover:bg-sky-700 disabled:opacity-60 transition-colors"
+              className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-60 transition-colors"
             >
               {subscribing
                 ? 'Processing…'
@@ -995,7 +995,7 @@ function CreateListingContent() {
           <section className="rounded-xl border border-white/60 bg-white/95 p-4 shadow-sm animate-slide-up">
             {error && <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
 
-            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-sky-700 mb-3">Product details</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-red-700 mb-3">Product details</p>
 
             <div className="space-y-3">
               <div>
@@ -1006,7 +1006,7 @@ function CreateListingContent() {
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
                   placeholder="e.g. iPhone 15 Pro Max 256GB"
                   maxLength={100}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-400"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-400"
                 />
               </div>
 
@@ -1017,7 +1017,7 @@ function CreateListingContent() {
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
                   rows={4}
                   placeholder="Describe brand, model, condition, warranty, accessories, and any details a buyer should know."
-                  className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-400"
+                  className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-400"
                 />
               </div>
             </div>
@@ -1028,7 +1028,7 @@ function CreateListingContent() {
             className="relative z-20 overflow-visible rounded-xl border border-white/60 bg-white/95 p-4 shadow-sm animate-slide-up scroll-mt-24"
             style={{ animationDelay: '60ms' }}
           >
-            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-sky-700 mb-3">Category &amp; pricing</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-red-700 mb-3">Category &amp; pricing</p>
 
             <div className="space-y-3 md:space-y-4">
               <div>
@@ -1040,7 +1040,7 @@ function CreateListingContent() {
                   className="z-20"
                 />
                 {selectedCategoryLabel && (
-                  <p className="mt-1.5 text-xs font-medium text-sky-700">Listed under: {selectedCategoryLabel}</p>
+                  <p className="mt-1.5 text-xs font-medium text-red-700">Listed under: {selectedCategoryLabel}</p>
                 )}
               </div>
 
@@ -1054,7 +1054,7 @@ function CreateListingContent() {
                       setCountry(nextCountry);
                       setForm({ ...form, country: nextCountry, location: '' });
                     }}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-400"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-400"
                     required
                   >
                     <option value="UAE">🇦🇪 UAE</option>
@@ -1062,7 +1062,7 @@ function CreateListingContent() {
                     <option value="KENYA">🇰🇪 Kenya</option>
                     <option value="CHINA">🇨🇳 China</option>
                   </select>
-                  <p className="mt-1 text-[11px] text-sky-600 font-medium">
+                  <p className="mt-1 text-[11px] text-red-600 font-medium">
                     Currency: <span className="font-bold">{listingCurrency}</span> — listings will only appear to buyers in this country.
                   </p>
                 </div>
@@ -1075,7 +1075,7 @@ function CreateListingContent() {
                     placeholder="0.00"
                     min="0"
                     step="0.01"
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-400"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-400"
                   />
                 </div>
                 <div>
@@ -1087,7 +1087,7 @@ function CreateListingContent() {
                     placeholder="e.g. 1"
                     min="0"
                     step="1"
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-400"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-400"
                   />
                   <p className="mt-1 text-[11px] text-gray-500">Number of units available for this listing.</p>
                 </div>
@@ -1096,7 +1096,7 @@ function CreateListingContent() {
                   <select
                     value={form.condition}
                     onChange={(e) => setForm({ ...form, condition: e.target.value })}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-400"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-400"
                   >
                     <option value="USED">Used</option>
                     <option value="NEW">New</option>
@@ -1107,7 +1107,7 @@ function CreateListingContent() {
                   <select
                     value={form.location}
                     onChange={(e) => setForm({ ...form, location: e.target.value })}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-400"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-400"
                   >
                     <option value="">Select location</option>
                     {availableLocations.map((loc) => (
@@ -1299,15 +1299,15 @@ function CreateListingContent() {
 
           {/* ─── PROPERTY DETAILS SECTION ─── */}
           {isPropertyCategory && (
-            <section className="rounded-xl border border-sky-200 bg-sky-50/50 p-4 shadow-sm animate-slide-up" style={{ animationDelay: '90ms' }}>
-              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-sky-700 mb-3">🏠 Property Details</p>
+            <section className="rounded-xl border border-red-200 bg-red-50/50 p-4 shadow-sm animate-slide-up" style={{ animationDelay: '90ms' }}>
+              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-red-700 mb-3">🏠 Property Details</p>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="mb-1 block text-xs font-medium text-gray-700">Property Type</label>
                   <select
                     value={propertyDetails.propertyType}
                     onChange={(e) => setPropertyDetails({ ...propertyDetails, propertyType: e.target.value })}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
                   >
                     <option value="">Select type</option>
                     <option>Apartment</option>
@@ -1326,7 +1326,7 @@ function CreateListingContent() {
                   <select
                     value={propertyDetails.listingType}
                     onChange={(e) => setPropertyDetails({ ...propertyDetails, listingType: e.target.value })}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
                   >
                     <option value="">Select</option>
                     <option>For Rent</option>
@@ -1338,7 +1338,7 @@ function CreateListingContent() {
                   <select
                     value={propertyDetails.bedrooms}
                     onChange={(e) => setPropertyDetails({ ...propertyDetails, bedrooms: e.target.value })}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
                   >
                     <option value="">Select</option>
                     <option>Studio</option>
@@ -1355,7 +1355,7 @@ function CreateListingContent() {
                   <select
                     value={propertyDetails.bathrooms}
                     onChange={(e) => setPropertyDetails({ ...propertyDetails, bathrooms: e.target.value })}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
                   >
                     <option value="">Select</option>
                     <option>1</option>
@@ -1369,7 +1369,7 @@ function CreateListingContent() {
                   <select
                     value={propertyDetails.furnishedStatus}
                     onChange={(e) => setPropertyDetails({ ...propertyDetails, furnishedStatus: e.target.value })}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
                   >
                     <option value="">Select</option>
                     <option>Furnished</option>
@@ -1385,7 +1385,7 @@ function CreateListingContent() {
                     onChange={(e) => setPropertyDetails({ ...propertyDetails, sizeSqft: e.target.value })}
                     placeholder="e.g. 1200"
                     min="0"
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
                   />
                 </div>
                 <div>
@@ -1395,7 +1395,7 @@ function CreateListingContent() {
                     value={propertyDetails.floor}
                     onChange={(e) => setPropertyDetails({ ...propertyDetails, floor: e.target.value })}
                     placeholder="e.g. Ground, 3rd"
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
                   />
                 </div>
               </div>
@@ -1604,7 +1604,7 @@ function CreateListingContent() {
           </section>
 
           <section className="rounded-xl border border-white/60 bg-white/95 p-4 shadow-sm animate-slide-up" style={{ animationDelay: '120ms' }}>
-            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-sky-700 mb-3">Photos</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-red-700 mb-3">Photos</p>
 
             {uploadedCount > 0 && (
               <div className="mb-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-2.5">
@@ -1648,7 +1648,7 @@ function CreateListingContent() {
             <div
               role="button"
               tabIndex={0}
-              className="rounded-xl border-2 border-dashed border-gray-300 p-4 text-center transition-colors hover:border-sky-400 cursor-pointer"
+              className="rounded-xl border-2 border-dashed border-gray-300 p-4 text-center transition-colors hover:border-red-400 cursor-pointer"
               onClick={() => fileInputRef.current?.click()}
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInputRef.current?.click(); } }}
             >
@@ -1675,7 +1675,7 @@ function CreateListingContent() {
           <button
             type="submit"
             disabled={submitting || uploadingImages}
-            className="w-full rounded-xl bg-sky-500 py-3 text-sm font-semibold text-white transition-all hover:bg-sky-600 disabled:opacity-50 shadow-sm hover:shadow-md"
+            className="w-full rounded-xl bg-red-500 py-3 text-sm font-semibold text-white transition-all hover:bg-red-600 disabled:opacity-50 shadow-sm hover:shadow-md"
           >
             {(() => {
               if (submitting) return isEditMode ? 'Saving…' : 'Posting…';
@@ -1705,7 +1705,7 @@ function CreateListingContent() {
                 </div>
                 <div className="flex gap-2">
                   <dt className="font-semibold text-gray-700 w-20 shrink-0">Price:</dt>
-                  <dd className="text-gray-600 font-bold text-sky-700">
+                  <dd className="text-gray-600 font-bold text-red-700">
                     {listingCurrency} {parseFloat(form.price || '0').toLocaleString('en-US')}
                   </dd>
                 </div>
@@ -1746,7 +1746,7 @@ function CreateListingContent() {
                   type="button"
                   onClick={handleSubmit}
                   disabled={submitting}
-                  className="flex-1 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-sm font-semibold transition-colors disabled:opacity-50"
+                  className="flex-1 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-colors disabled:opacity-50"
                 >
                   {submitting ? 'Submitting…' : isEditMode ? 'Confirm & Save' : 'Confirm & Post'}
                 </button>
@@ -1778,7 +1778,7 @@ function CreateListingContent() {
                 <button
                   type="button"
                   onClick={() => { setShowMaxListingsModal(false); router.push('/profile/subscription'); }}
-                  className="flex-1 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-sm font-semibold transition-colors"
+                  className="flex-1 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-colors"
                 >
                   Upgrade Plan
                 </button>
@@ -1789,7 +1789,7 @@ function CreateListingContent() {
 
         <aside className="space-y-4">
           <section className="rounded-xl border border-white/60 bg-white/95 p-4 shadow-sm">
-            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-sky-700 mb-2">Summary</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-red-700 mb-2">Summary</p>
             <div className="space-y-2 text-xs text-slate-600">
               <div className="flex justify-between">
                 <span className="text-slate-400">Seller</span>
@@ -1815,7 +1815,7 @@ function CreateListingContent() {
           </section>
 
           <section className="rounded-xl border border-white/60 bg-white/95 p-4 shadow-sm">
-            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-sky-700 mb-2">Checklist</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-red-700 mb-2">Checklist</p>
             <ul className="space-y-1.5 text-xs text-slate-600">
               <li className="flex items-start gap-1.5"><span className={`mt-0.5 w-3.5 h-3.5 rounded-full flex-shrink-0 flex items-center justify-center text-[9px] font-bold ${form.categoryId ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-400'}`}>{form.categoryId ? '✓' : '·'}</span>Choose category</li>
               <li className="flex items-start gap-1.5"><span className={`mt-0.5 w-3.5 h-3.5 rounded-full flex-shrink-0 flex items-center justify-center text-[9px] font-bold ${form.title ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-400'}`}>{form.title ? '✓' : '·'}</span>Add title</li>

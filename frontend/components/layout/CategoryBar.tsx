@@ -10,19 +10,19 @@ import { useActiveSubcategoryCounts } from '@/hooks/useActiveSubcategoryCounts';
 
 const MENU_CLOSE_DELAY_MS = 150;
 
-interface MegaMenuColumn {
+export interface MegaMenuColumn {
   heading: string;
   links: { label: string; href: string }[];
 }
 
-interface TopCategory {
+export interface TopCategory {
   label: string;
   icon: string;
   href: string;
   megaMenu?: MegaMenuColumn[];
 }
 
-const topCategories: TopCategory[] = [
+export const topCategories: TopCategory[] = [
   {
     label: 'Motors',
     icon: '🚗',
@@ -327,17 +327,14 @@ function CategoryBarInner() {
   return (
     /* Outer wrapper is the positioning context for mega menus so they escape the overflow container */
     <div className="relative" ref={outerRef}>
-      {/* Scrollable category links row — centered with equal side padding */}
-      <div className="flex justify-center items-center gap-0 overflow-x-auto no-scrollbar">
-        <span className="flex items-center gap-1 px-2.5 py-1 text-[11px] xs:text-xs font-semibold whitespace-nowrap text-gray-200 select-none">
-          Shop wise, Shop Trusted
-        </span>
+      {/* Scrollable category links row — thin, text-only "classifieds" strip with hairline dividers */}
+      <div className="flex justify-center items-stretch overflow-x-auto no-scrollbar divide-x divide-white/10">
         <Link
           href="/listings"
-          className={`relative flex items-center gap-1 px-2.5 py-1 text-[11px] xs:text-xs font-semibold whitespace-nowrap transition-all interactive ${getLinkClasses(isListingsView && !currentQ)}`}
+          className={`relative flex items-center px-2 py-0.5 text-[10.5px] xs:text-[11px] font-semibold whitespace-nowrap transition-all interactive ${getLinkClasses(isListingsView && !currentQ)}`}
         >
           All
-          {isListingsView && !currentQ && <span className="absolute inset-x-2 -bottom-0.5 h-0.5 rounded-full bg-white/90" aria-hidden="true" />}
+          {isListingsView && !currentQ && <span className="absolute inset-x-1.5 -bottom-0 h-0.5 rounded-full bg-white/90" aria-hidden="true" />}
         </Link>
         {visibleTopCategories.map((cat) => {
           // Determine if this category is active based on the current pathname/query.
@@ -360,11 +357,10 @@ function CategoryBarInner() {
             >
               <Link
                 href={cat.href}
-                className={`relative flex items-center gap-1 px-2.5 py-1 text-[11px] xs:text-xs font-semibold whitespace-nowrap transition-all interactive ${getLinkClasses(isActive)}`}
+                className={`relative flex items-center px-2 py-0.5 text-[10.5px] xs:text-[11px] font-semibold whitespace-nowrap transition-all interactive ${getLinkClasses(isActive)}`}
               >
-                <span aria-hidden="true" className="text-[11px]">{cat.icon}</span>
                 {cat.label}
-                {isActive && <span className="absolute inset-x-2 -bottom-0.5 h-0.5 rounded-full bg-white/90" aria-hidden="true" />}
+                {isActive && <span className="absolute inset-x-1.5 -bottom-0 h-0.5 rounded-full bg-white/90" aria-hidden="true" />}
               </Link>
             </div>
           );
@@ -375,7 +371,7 @@ function CategoryBarInner() {
           Left offset is computed dynamically so it appears below the hovered item. */}
       {activeCategory?.megaMenu && (
         <div
-          className="absolute top-full pt-1 z-[60]"
+          className="absolute top-full pt-0.5 z-[60]"
           style={{ left: `${menuLeftPx}px` }}
           onMouseEnter={() => handleMouseEnter(activeCategory.label)}
           onMouseLeave={handleMouseLeave}
@@ -409,16 +405,13 @@ function CategoryBarInner() {
 export default function CategoryBar() {
   return (
     <div className="w-full border-t border-white/10 theme-category-bar shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 py-0.5">
+      <div className="max-w-7xl mx-auto px-4">
         <Suspense
           fallback={
-            <div className="flex justify-center items-center gap-0 overflow-x-auto no-scrollbar py-0.5">
-              <span className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap text-gray-200 select-none">
-                Shop wise, Shop Trusted
-              </span>
+            <div className="flex justify-center items-stretch overflow-x-auto no-scrollbar divide-x divide-white/10">
               <Link
                 href="/listings"
-                className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap text-gray-200 hover:text-white hover:bg-red-600 transition-all interactive"
+                className="flex items-center px-2 py-0.5 text-[10.5px] font-semibold whitespace-nowrap text-gray-200 hover:text-white hover:bg-red-600 transition-all interactive"
               >
                 All
               </Link>
@@ -426,9 +419,8 @@ export default function CategoryBar() {
                 <Link
                   key={cat.label}
                   href={cat.href}
-                  className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap text-gray-200 hover:text-white hover:bg-red-600 transition-all interactive"
+                  className="flex items-center px-2 py-0.5 text-[10.5px] font-semibold whitespace-nowrap text-gray-200 hover:text-white hover:bg-red-600 transition-all interactive"
                 >
-                  <span aria-hidden="true" className="text-[11px]">{cat.icon}</span>
                   {cat.label}
                 </Link>
               ))}

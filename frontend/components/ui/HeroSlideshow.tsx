@@ -220,7 +220,7 @@ export default function HeroSlideshow({
       {/* Navigation arrows */}
       <button
         onClick={goBack}
-        className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-black/30 hover:bg-[#0EA5E9]/80 text-white flex items-center justify-center transition-colors backdrop-blur-sm"
+        className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-black/30 hover:bg-[#B7291B]/80 text-white flex items-center justify-center transition-colors backdrop-blur-sm"
         aria-label="Previous slide"
         style={{ zIndex: 4 }}
       >
@@ -230,7 +230,7 @@ export default function HeroSlideshow({
       </button>
       <button
         onClick={advance}
-        className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-black/30 hover:bg-[#0EA5E9]/80 text-white flex items-center justify-center transition-colors backdrop-blur-sm"
+        className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-black/30 hover:bg-[#B7291B]/80 text-white flex items-center justify-center transition-colors backdrop-blur-sm"
         aria-label="Next slide"
         style={{ zIndex: 4 }}
       >
@@ -248,7 +248,7 @@ export default function HeroSlideshow({
             aria-label={`Go to slide ${i + 1}`}
             className={`h-1.5 rounded-full transition-all duration-300 ${
               i === current
-                ? 'w-6 bg-[#0EA5E9]'
+                ? 'w-6 bg-[#B7291B]'
                 : 'w-1.5 bg-white/30 hover:bg-white/50'
             }`}
           />

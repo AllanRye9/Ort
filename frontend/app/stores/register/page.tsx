@@ -130,7 +130,7 @@ export default function StoreRegisterPage() {
           </p>
           <Link
             href="/dashboard/store-rental"
-            className="inline-block bg-sky-600 text-white px-6 py-2.5 rounded-xl font-semibold text-sm hover:bg-sky-700 transition-colors"
+            className="inline-block bg-red-600 text-white px-6 py-2.5 rounded-xl font-semibold text-sm hover:bg-red-700 transition-colors"
           >
             Go to Store Dashboard
           </Link>
@@ -140,7 +140,7 @@ export default function StoreRegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-violet-50 via-white to-sky-50 py-10 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-violet-50 via-white to-red-50 py-10 px-4">
       <div className="max-w-3xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
@@ -214,8 +214,8 @@ export default function StoreRegisterPage() {
                 onClick={() => setEntityType(type)}
                 className={`rounded-xl border-2 py-2.5 text-sm font-medium transition-all ${
                   entityType === type
-                    ? 'border-sky-500 bg-sky-50 text-sky-700'
-                    : 'border-gray-200 text-gray-600 hover:border-sky-200'
+                    ? 'border-red-500 bg-red-50 text-red-700'
+                    : 'border-gray-200 text-gray-600 hover:border-red-200'
                 }`}
               >
                 {type === 'USER' ? 'Individual' : type.charAt(0) + type.slice(1).toLowerCase()}

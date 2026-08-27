@@ -53,13 +53,13 @@ export default function VerifyEmailClientPage() {
           <p className="text-sm text-slate-600 dark:text-slate-300 mb-5">{message}</p>
 
           {state === 'loading' && (
-            <div className="mx-auto w-8 h-8 border-4 border-sky-200 border-t-sky-500 rounded-full animate-spin" />
+            <div className="mx-auto w-8 h-8 border-4 border-red-200 border-t-red-500 rounded-full animate-spin" />
           )}
 
           {state !== 'loading' && (
             <Link
               href="/auth/login"
-              className="inline-flex items-center justify-center w-full py-3 rounded-xl bg-gradient-to-r from-fuchsia-600 via-sky-600 to-indigo-600 text-white text-sm font-bold shadow-glow hover:brightness-110 transition-all"
+              className="inline-flex items-center justify-center w-full py-3 rounded-xl bg-gradient-to-r from-fuchsia-600 via-red-600 to-rose-600 text-white text-sm font-bold shadow-glow hover:brightness-110 transition-all"
             >
               Go to Sign In
             </Link>

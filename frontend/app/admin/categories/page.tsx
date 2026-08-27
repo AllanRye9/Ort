@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { useRouter } from 'next/navigation';
-import { CategoryFieldDef } from '@/lib/types';
+import { CategoryFieldDef, ListingStatus } from '@/lib/types';
 
 interface Category {
   id: string;
@@ -33,6 +34,16 @@ interface CategoryForm {
 }
 
 const emptyForm: CategoryForm = { name: '', slug: '', icon: '', parentId: '' };
+
+// A listing as shown in the "Fix Listings" move modal — just enough to pick
+// it out of a list and confirm it's the right thing to move.
+interface MoveListing {
+  id: string;
+  title: string;
+  status: ListingStatus;
+  categoryId: string;
+  productImages: { cdnUrl: string | null }[];
+}
 
 function generateSlug(name: string) {
   return name
@@ -130,6 +141,17 @@ export default function AdminCategoriesPage() {
   // both scoped to the selected country's active listing counts.
   const [inventoryFilter, setInventoryFilter] = useState<'all' | 'low' | 'healthy'>('all');
   const [sortBy, setSortBy] = useState<'name' | 'countAsc' | 'countDesc'>('name');
+
+  // "Fix Listings" move modal — re-categorize some or all of a category's
+  // listings into a different category in bulk.
+  const [moveCategoryId, setMoveCategoryId] = useState<string | null>(null);
+  const [moveListings, setMoveListings] = useState<MoveListing[]>([]);
+  const [moveFetching, setMoveFetching] = useState(false);
+  const [moveSelectedIds, setMoveSelectedIds] = useState<Set<string>>(new Set());
+  const [moveTargetId, setMoveTargetId] = useState('');
+  const [moveSaving, setMoveSaving] = useState(false);
+  const [moveMessage, setMoveMessage] = useState('');
+  const [moveError, setMoveError] = useState('');
 
   useEffect(() => {
     if (!loading && (!user || user.role !== 'ADMIN')) router.push('/admin/auth/login');
@@ -232,6 +254,100 @@ export default function AdminCategoriesPage() {
       setCategories((prev) => prev.filter((c) => c.id !== id));
     } catch {
       /* silently handled */
+    }
+  };
+
+  // "Fix Listings" move handlers
+  const fetchMoveListings = (categoryId: string) => {
+    setMoveFetching(true);
+    api.get('/admin/listings', { params: { categoryId, limit: 100 } })
+      .then(({ data }) => {
+        setMoveListings(
+          data.listings.map((l: MoveListing) => ({
+            id: l.id,
+            title: l.title,
+            status: l.status,
+            categoryId: l.categoryId,
+            productImages: l.productImages ?? [],
+          }))
+        );
+      })
+      .catch(() => setMoveError('Failed to load listings for this category.'))
+      .finally(() => setMoveFetching(false));
+  };
+
+  const openMoveModal = (cat: Category) => {
+    setMoveCategoryId(cat.id);
+    setMoveSelectedIds(new Set());
+    setMoveTargetId('');
+    setMoveMessage('');
+    setMoveError('');
+    fetchMoveListings(cat.id);
+  };
+
+  const closeMoveModal = () => {
+    setMoveCategoryId(null);
+    setMoveListings([]);
+    setMoveSelectedIds(new Set());
+    setMoveTargetId('');
+    setMoveMessage('');
+    setMoveError('');
+  };
+
+  const toggleMoveSelect = (id: string) => {
+    setMoveSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleMoveSelectAll = () => {
+    setMoveSelectedIds((prev) =>
+      prev.size === moveListings.length ? new Set() : new Set(moveListings.map((l) => l.id))
+    );
+  };
+
+  // Destination options for the move modal: top-level categories first,
+  // each immediately followed by its own children, with the current
+  // (source) category excluded so a listing can't be "moved" to itself.
+  const moveTargetOptions = (excludeId: string) => {
+    const options: { id: string; label: string; group: 'Parent' | 'Child' }[] = [];
+    const topLevel = categories.filter((c) => !c.parentId).slice().sort((a, b) => a.name.localeCompare(b.name));
+    for (const parent of topLevel) {
+      if (parent.id !== excludeId) {
+        options.push({ id: parent.id, label: parent.name, group: 'Parent' });
+      }
+      const children = categories
+        .filter((c) => c.parentId === parent.id)
+        .slice()
+        .sort((a, b) => a.name.localeCompare(b.name));
+      for (const child of children) {
+        if (child.id !== excludeId) {
+          options.push({ id: child.id, label: `${parent.name} / ${child.name}`, group: 'Child' });
+        }
+      }
+    }
+    return options;
+  };
+
+  const handleMoveSubmit = async () => {
+    if (!moveTargetId || moveSelectedIds.size === 0) return;
+    setMoveSaving(true);
+    setMoveError('');
+    setMoveMessage('');
+    try {
+      const ids = Array.from(moveSelectedIds);
+      const { data } = await api.post('/admin/listings/move-category', { ids, categoryId: moveTargetId });
+      setMoveMessage(data.message || `Moved ${ids.length} listing(s).`);
+      setMoveListings((prev) => prev.filter((l) => !moveSelectedIds.has(l.id)));
+      setMoveSelectedIds(new Set());
+      fetchCategories();
+    } catch {
+      setMoveError('Failed to move the selected listings. Please try again.');
+    } finally {
+      setMoveSaving(false);
     }
   };
 
@@ -382,7 +498,7 @@ export default function AdminCategoriesPage() {
             aria-label="Country"
             value={selectedCountry}
             onChange={(e) => setSelectedCountry(e.target.value as typeof ALL_COUNTRIES[number])}
-            className="border border-gray-300 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+            className="border border-gray-300 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
           >
             {ALL_COUNTRIES.map((c) => (
               <option key={c} value={c}>{COUNTRY_LABELS[c]}</option>
@@ -390,7 +506,7 @@ export default function AdminCategoriesPage() {
           </select>
           <button
             onClick={() => { setShowAddForm(!showAddForm); setAddForm(emptyForm); }}
-            className="bg-sky-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-sky-700 transition-colors"
+            className="bg-red-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
           >
             {showAddForm ? 'Cancel' : 'Add Category'}
           </button>
@@ -428,7 +544,7 @@ export default function AdminCategoriesPage() {
             id="category-sort-select"
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-            className="border border-gray-300 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-sky-500"
+            className="border border-gray-300 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-red-500"
           >
             <option value="name">Name (A–Z)</option>
             <option value="countAsc">Listings (Low → High)</option>
@@ -438,7 +554,7 @@ export default function AdminCategoriesPage() {
       </div>
 
       {populateMessage && (
-        <div className="mb-3 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-700">
+        <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
           {populateMessage}
         </div>
       )}
@@ -454,7 +570,7 @@ export default function AdminCategoriesPage() {
                 value={addForm.name}
                 onChange={(e) => handleAddNameChange(e.target.value)}
                 placeholder="Category name"
-                className="w-full border border-gray-300 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                className="w-full border border-gray-300 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
               />
             </div>
             <div>
@@ -464,7 +580,7 @@ export default function AdminCategoriesPage() {
                 value={addForm.slug}
                 onChange={(e) => setAddForm((prev) => ({ ...prev, slug: e.target.value }))}
                 placeholder="category-slug"
-                className="w-full border border-gray-300 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                className="w-full border border-gray-300 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
               />
             </div>
             <div>
@@ -474,7 +590,7 @@ export default function AdminCategoriesPage() {
                 value={addForm.icon}
                 onChange={(e) => setAddForm((prev) => ({ ...prev, icon: e.target.value }))}
                 placeholder="🏷️"
-                className="w-full border border-gray-300 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                className="w-full border border-gray-300 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
               />
             </div>
             <div>
@@ -482,7 +598,7 @@ export default function AdminCategoriesPage() {
               <select
                 value={addForm.parentId}
                 onChange={(e) => setAddForm((prev) => ({ ...prev, parentId: e.target.value }))}
-                className="w-full border border-gray-300 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                className="w-full border border-gray-300 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
               >
                 <option value="">None</option>
                 {categories.map((c) => (
@@ -495,7 +611,7 @@ export default function AdminCategoriesPage() {
             <button
               onClick={handleAddSubmit}
               disabled={addLoading || !addForm.name.trim()}
-              className="bg-sky-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-sky-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="bg-red-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {addLoading ? 'Creating...' : 'Create Category'}
             </button>
@@ -534,13 +650,13 @@ export default function AdminCategoriesPage() {
             )}
             {visibleCategories.map((cat) =>
               editingId === cat.id ? (
-                <tr key={cat.id} className="bg-sky-50">
+                <tr key={cat.id} className="bg-red-50">
                   <td className="px-3 sm:px-4 py-2">
                     <input
                       type="text"
                       value={editForm.name}
                       onChange={(e) => handleEditNameChange(e.target.value)}
-                      className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                      className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
                     />
                   </td>
                   <td className="px-3 sm:px-4 py-2">
@@ -548,7 +664,7 @@ export default function AdminCategoriesPage() {
                       type="text"
                       value={editForm.slug}
                       onChange={(e) => setEditForm((prev) => ({ ...prev, slug: e.target.value }))}
-                      className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                      className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
                     />
                   </td>
                   <td className="px-3 sm:px-4 py-2">
@@ -556,14 +672,14 @@ export default function AdminCategoriesPage() {
                       type="text"
                       value={editForm.icon}
                       onChange={(e) => setEditForm((prev) => ({ ...prev, icon: e.target.value }))}
-                      className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                      className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
                     />
                   </td>
                   <td className="px-3 sm:px-4 py-2">
                     <select
                       value={editForm.parentId}
                       onChange={(e) => setEditForm((prev) => ({ ...prev, parentId: e.target.value }))}
-                      className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                      className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
                     >
                       <option value="">None</option>
                       {categories.filter((c) => c.id !== cat.id).map((c) => (
@@ -630,7 +746,7 @@ export default function AdminCategoriesPage() {
                     <div className="flex gap-1.5 flex-wrap">
                       <button
                         onClick={() => startEdit(cat)}
-                        className="text-xs px-2.5 py-1 rounded font-medium bg-sky-500 text-white hover:bg-sky-600 transition-colors"
+                        className="text-xs px-2.5 py-1 rounded font-medium bg-red-500 text-white hover:bg-red-600 transition-colors"
                       >
                         Edit
                       </button>
@@ -650,6 +766,14 @@ export default function AdminCategoriesPage() {
                           {populatingId === cat.id ? 'Populating...' : 'Populate'}
                         </button>
                       )}
+                      <button
+                        onClick={() => openMoveModal(cat)}
+                        disabled={countFor(cat) === 0}
+                        title={countFor(cat) === 0 ? 'No listings in this category yet' : 'Move some or all of this category\'s listings to a different category'}
+                        className="text-xs px-2.5 py-1 rounded font-medium bg-sky-500 text-white hover:bg-sky-600 transition-colors disabled:opacity-50"
+                      >
+                        Fix Listings
+                      </button>
                       <button
                         onClick={() => handleDelete(cat.id, cat.name)}
                         className="text-xs px-2.5 py-1 rounded font-medium bg-red-500 text-white hover:bg-red-600 transition-colors"
@@ -839,6 +963,101 @@ export default function AdminCategoriesPage() {
                 className="flex-1 py-2 rounded-lg bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold transition-colors disabled:opacity-50"
               >
                 {schemaSaving ? 'Saving…' : 'Save Custom Fields'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Fix Listings — bulk move-category modal */}
+      {moveCategoryId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full p-5 max-h-[90vh] flex flex-col">
+            <h2 className="text-lg font-bold text-gray-900">Fix Listings</h2>
+            <p className="text-sm text-gray-500 mt-1 mb-4">
+              Move some or all of the listings currently in &ldquo;{categories.find((c) => c.id === moveCategoryId)?.name}&rdquo;
+              to a different category. Only the category link changes — images, title, price, and status all stay
+              exactly the same. Any featured placement (Premium Collections, Featured Deal, Flash Sale) on a moved
+              listing is cleared, since a featured slot from the old category shouldn&apos;t carry over.
+            </p>
+
+            {moveFetching ? (
+              <div className="py-8 text-center text-sm text-gray-400">Loading listings…</div>
+            ) : moveListings.length === 0 ? (
+              <div className="py-8 text-center text-sm text-gray-400">No listings found in this category.</div>
+            ) : (
+              <div className="flex-1 overflow-y-auto border border-gray-200 rounded-lg">
+                <label className="flex items-center gap-2 px-3 py-2 border-b border-gray-100 bg-gray-50 text-xs font-medium text-gray-600 sticky top-0">
+                  <input
+                    type="checkbox"
+                    checked={moveSelectedIds.size === moveListings.length}
+                    onChange={toggleMoveSelectAll}
+                    className="rounded border-gray-300 text-sky-600 focus:ring-sky-400"
+                  />
+                  Select all ({moveListings.length})
+                </label>
+                {moveListings.map((listing) => {
+                  const thumb = listing.productImages.find((pi) => pi.cdnUrl)?.cdnUrl ?? null;
+                  return (
+                    <label
+                      key={listing.id}
+                      className="flex items-center gap-3 px-3 py-2 border-b border-gray-100 last:border-b-0 hover:bg-gray-50 cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={moveSelectedIds.has(listing.id)}
+                        onChange={() => toggleMoveSelect(listing.id)}
+                        className="rounded border-gray-300 text-sky-600 focus:ring-sky-400"
+                      />
+                      <div className="w-10 h-10 rounded bg-gray-100 overflow-hidden shrink-0 relative">
+                        {thumb && (
+                          <Image src={thumb} alt={listing.title} fill sizes="40px" className="object-cover" />
+                        )}
+                      </div>
+                      <span className="flex-1 text-sm text-gray-800 truncate">{listing.title}</span>
+                      <span className="shrink-0 text-[11px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-600 font-medium">
+                        {listing.status}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="mt-4">
+              <label className="block text-xs font-medium text-gray-500 mb-1">Move to category</label>
+              <select
+                value={moveTargetId}
+                onChange={(e) => setMoveTargetId(e.target.value)}
+                className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+              >
+                <option value="">Select a category…</option>
+                {moveTargetOptions(moveCategoryId).map((opt) => (
+                  <option key={opt.id} value={opt.id}>
+                    {opt.group === 'Child' ? `↳ ${opt.label}` : opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {moveMessage && <p className="mt-2 text-xs text-emerald-600 font-medium">{moveMessage}</p>}
+            {moveError && <p className="mt-2 text-xs text-red-600 font-medium">{moveError}</p>}
+
+            <div className="flex gap-2 mt-4">
+              <button
+                type="button"
+                onClick={closeMoveModal}
+                className="flex-1 py-2 rounded-lg border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 transition-colors"
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                onClick={handleMoveSubmit}
+                disabled={moveSaving || !moveTargetId || moveSelectedIds.size === 0}
+                className="flex-1 py-2 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-sm font-semibold transition-colors disabled:opacity-50"
+              >
+                {moveSaving ? 'Moving…' : `Move ${moveSelectedIds.size} Listing${moveSelectedIds.size === 1 ? '' : 's'}`}
               </button>
             </div>
           </div>

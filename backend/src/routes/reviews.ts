@@ -16,8 +16,27 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response, next: Nex
       return next(createError('Rating must be an integer between 1 and 5', 400));
     }
 
+    const reviewerId = req.user!.userId;
+    if (reviewerId === revieweeId) return next(createError('You cannot review yourself', 400));
+
+    // Only allow a review if the reviewer and reviewee were counterparties
+    // (buyer/seller) on a completed (DELIVERED) order for this listing.
+    const completedOrder = await prisma.order.findFirst({
+      where: {
+        status: 'DELIVERED',
+        items: { some: { listingId } },
+        OR: [
+          { buyerId: reviewerId, sellerId: revieweeId },
+          { sellerId: reviewerId, buyerId: revieweeId },
+        ],
+      },
+    });
+    if (!completedOrder) {
+      return next(createError('You can only review users you have completed a transaction with', 403));
+    }
+
     const review = await prisma.review.create({
-      data: { reviewerId: req.user!.userId, revieweeId, listingId, rating: ratingNum, comment },
+      data: { reviewerId, revieweeId, listingId, rating: ratingNum, comment },
       include: { reviewer: { select: { id: true, name: true, avatar: true } } },
     });
     res.status(201).json(review);
@@ -161,6 +180,18 @@ router.post('/listing/:listingId', authenticate, async (req: AuthRequest, res: R
     });
     if (existing) return next(createError('You have already reviewed this listing', 409));
 
+    // Only users who have completed a transaction for this listing may review it.
+    // "Completed" = the reviewer has a DELIVERED order containing this listing.
+    const completedOrderItem = await prisma.orderItem.findFirst({
+      where: {
+        listingId,
+        order: { buyerId: userId, status: 'DELIVERED' },
+      },
+    });
+    if (!completedOrderItem) {
+      return next(createError('Only buyers who have completed a purchase of this item can leave a review', 403));
+    }
+
     const review = await prisma.productReview.create({
       data: {
         listingId,
@@ -169,7 +200,7 @@ router.post('/listing/:listingId', authenticate, async (req: AuthRequest, res: R
         title: title || null,
         content,
         status: 'PENDING',
-        verifiedPurchase: false,
+        verifiedPurchase: true,
       },
       include: { user: { select: { id: true, name: true, avatar: true } } },
     });

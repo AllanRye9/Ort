@@ -142,28 +142,27 @@ function BrandsPageContent({
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className={`relative overflow-hidden bg-gradient-to-br ${meta.color} text-white py-8 sm:py-12`}>
-        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_30%_50%,white_0%,transparent_60%)]" />
-        <div className="relative max-w-7xl mx-auto px-4">
-          <nav className="flex items-center gap-2 text-xs text-white/70 mb-3">
+      {/* Compact identity strip */}
+      <div className={`relative overflow-hidden bg-gradient-to-r ${meta.color} text-white`}>
+        <div className="relative max-w-7xl mx-auto px-3 sm:px-4 py-2.5 sm:py-3">
+          <nav className="flex items-center gap-1.5 text-[11px] text-white/60 mb-1 truncate">
             <Link href="/" className="hover:text-white transition-colors">Home</Link>
             <span>/</span>
             <Link href={categoryHref} className="hover:text-white transition-colors">{categoryLabel}</Link>
             <span>/</span>
-            <span className="text-white font-semibold">{meta.label}</span>
+            <span className="text-white/90 font-semibold">{meta.label}</span>
           </nav>
-          <div className="flex items-center gap-4">
-            <span className="text-4xl">{meta.icon}</span>
-            <div>
-              <h1 className="text-2xl sm:text-4xl font-black">{meta.label}</h1>
-              <p className="text-white/80 text-sm mt-1">Browse all {meta.label.toLowerCase()}, or filter by brand</p>
+          <div className="flex items-center gap-3">
+            <span className="text-xl sm:text-2xl shrink-0" aria-hidden="true">{meta.icon}</span>
+            <div className="min-w-0 flex-1">
+              <h1 className="text-sm sm:text-lg font-extrabold leading-tight truncate">{meta.label}</h1>
+              <p className="hidden sm:block text-white/70 text-xs leading-snug">Browse all {meta.label.toLowerCase()}, or filter by brand</p>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 py-6">
         {/* All listings in this subcategory */}
         <section className="mb-10">
           <div className="flex items-center justify-between mb-4">
@@ -177,7 +176,7 @@ function BrandsPageContent({
             </div>
             <Link
               href={`/listings?category=${encodeURIComponent(subcategorySlug)}&sort=recommended`}
-              className="text-sm font-semibold text-sky-600 hover:text-sky-700 flex items-center gap-1 transition-colors shrink-0"
+              className="text-sm font-semibold text-red-600 hover:text-red-700 flex items-center gap-1 transition-colors shrink-0"
             >
               View All
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -225,7 +224,7 @@ function BrandsPageContent({
               </div>
               <Link
                 href={`/listings?category=${encodeURIComponent(subcategorySlug)}&sort=recommended`}
-                className="text-sm font-semibold text-sky-600 hover:text-sky-700 flex items-center gap-1 transition-colors"
+                className="text-sm font-semibold text-red-600 hover:text-red-700 flex items-center gap-1 transition-colors"
               >
                 View All {meta.label}
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -238,7 +237,7 @@ function BrandsPageContent({
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
               <Link
                 href={`/listings?category=${encodeURIComponent(subcategorySlug)}&sort=recommended`}
-                className="group flex flex-col items-center justify-center gap-3 p-5 bg-white rounded-2xl border-2 border-dashed border-gray-200 hover:border-sky-400 hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
+                className="group flex flex-col items-center justify-center gap-3 p-5 bg-white rounded-2xl border-2 border-dashed border-gray-200 hover:border-red-400 hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
               >
                 <span className="text-3xl">🏷️</span>
                 <span className="font-bold text-gray-800 text-sm text-center">All {meta.label}</span>

@@ -5,7 +5,7 @@ export default function AboutPage() {
     <ContentPage
       eyebrow="About Piitrade"
       title="A marketplace built for trusted local trade"
-      intro="Piitrade connects buyers and sellers across UAE and Uganda with fast discovery, local relevance, and clearer trust signals for every listing."
+      intro="Piitrade connects buyers and sellers across Uganda with fast discovery, local relevance, and clearer trust signals for every listing."
       sections={[
         {
           title: 'What we do',
@@ -17,7 +17,7 @@ export default function AboutPage() {
         {
           title: 'Where we operate',
           body: [
-            'Piitrade is currently focused on UAE and Uganda, with country-aware browsing that helps shoppers see listings relevant to their own market.',
+            'Piitrade is currently focused on Uganda, with region-aware browsing that helps shoppers see listings relevant to their own area.',
             'That regional focus lets us keep the experience simpler and more useful than a generic global marketplace.',
           ],
         },

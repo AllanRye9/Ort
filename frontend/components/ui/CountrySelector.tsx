@@ -6,11 +6,15 @@ import { useRouter } from 'next/navigation';
 import type { Country } from '@/lib/types';
 import { FlagIcon } from '@/components/ui/FlagIcon'; // ✅ added missing import
 
+// Uganda-only launch: other countries are commented out (not deleted) so the
+// full multi-country marketplace can be restored later by uncommenting these
+// entries — no other changes needed here since visibleOptions/enabledCountries
+// filtering already reads from this list.
 const COUNTRY_OPTIONS = [
-  { value: 'UAE'    as Country, flag: '🇦🇪', isoCode: 'AE', label: 'UAE',    full: 'United Arab Emirates', slug: 'uae'    },
+  // { value: 'UAE'    as Country, flag: '🇦🇪', isoCode: 'AE', label: 'UAE',    full: 'United Arab Emirates', slug: 'uae'    },
   { value: 'UGANDA' as Country, flag: '🇺🇬', isoCode: 'UG', label: 'Uganda', full: 'Uganda',               slug: 'uganda' },
-  { value: 'KENYA'  as Country, flag: '🇰🇪', isoCode: 'KE', label: 'Kenya',  full: 'Kenya',                slug: 'kenya'  },
-  { value: 'CHINA'  as Country, flag: '🇨🇳', isoCode: 'CN', label: 'China',  full: 'China',                slug: 'china'  },
+  // { value: 'KENYA'  as Country, flag: '🇰🇪', isoCode: 'KE', label: 'Kenya',  full: 'Kenya',                slug: 'kenya'  },
+  // { value: 'CHINA'  as Country, flag: '🇨🇳', isoCode: 'CN', label: 'China',  full: 'China',                slug: 'china'  },
 ];
 
 export function CountrySelector({ light = false }: { light?: boolean }) {
@@ -79,7 +83,7 @@ export function CountrySelector({ light = false }: { light?: boolean }) {
           aria-label="Select country"
           className="absolute right-0 top-full mt-1.5 w-52 bg-white rounded-xl shadow-2xl border border-gray-100 z-[200] overflow-hidden animate-scale-in"
         >
-          <div className="px-3 py-2 bg-gradient-to-r from-sky-600 to-blue-600">
+          <div className="px-3 py-2 bg-gradient-to-r from-red-600 to-red-600">
             <p className="text-[10px] font-bold text-white uppercase tracking-wider">Marketplace Region</p>
           </div>
           {visibleOptions.map((opt) => (
@@ -91,8 +95,8 @@ export function CountrySelector({ light = false }: { light?: boolean }) {
               onClick={() => handleSelect(opt)}
               className={`w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm transition-colors ${
                 opt.value === country
-                  ? 'bg-sky-50 text-sky-700 font-semibold border-l-2 border-sky-500'
-                  : 'text-gray-700 hover:bg-sky-50/60 border-l-2 border-transparent'
+                  ? 'bg-red-50 text-red-700 font-semibold border-l-2 border-red-500'
+                  : 'text-gray-700 hover:bg-red-50/60 border-l-2 border-transparent'
               }`}
             >
               <FlagIcon code={opt.isoCode} size={12} className="shrink-0" />
@@ -101,7 +105,7 @@ export function CountrySelector({ light = false }: { light?: boolean }) {
                 <div className="text-[10px] text-gray-400">{opt.full}</div>
               </div>
               {opt.value === country && (
-                <svg className="ml-auto w-4 h-4 text-sky-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="ml-auto w-4 h-4 text-red-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                 </svg>
               )}

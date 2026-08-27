@@ -45,7 +45,7 @@ const COUNTRY_FLAGS: Record<string, string> = {
   CHINA: '🇨🇳',
 };
 
-const DEFAULT_THEME = '#0EA5E9'; // sky-500
+const DEFAULT_THEME = '#B7291B'; // red-500
 
 function extractResponseStatus(error: unknown): number | undefined {
   return (error as { response?: { status?: number } }).response?.status;
@@ -81,7 +81,7 @@ function DocViewer({ doc, onClose }: { doc: UserDoc; onClose: () => void }) {
           </div>
           <button
             onClick={() => downloadUserDocument(doc.id, doc.fileName)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-xs font-semibold transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold transition-colors"
           >
             ⬇ Download
           </button>
@@ -97,7 +97,7 @@ function DocViewer({ doc, onClose }: { doc: UserDoc; onClose: () => void }) {
         <div className="flex-1 overflow-auto bg-gray-50">
           {fileLoading ? (
             <div className="flex items-center justify-center py-16">
-              <div className="w-8 h-8 border-4 border-sky-200 border-t-sky-500 rounded-full animate-spin" />
+              <div className="w-8 h-8 border-4 border-red-200 border-t-red-500 rounded-full animate-spin" />
             </div>
           ) : !fileUrl ? (
             <div className="flex flex-col items-center justify-center py-10 gap-2">
@@ -115,7 +115,7 @@ function DocViewer({ doc, onClose }: { doc: UserDoc; onClose: () => void }) {
               <p className="text-gray-600 font-medium">{doc.fileName}</p>
               <button
                 onClick={() => downloadUserDocument(doc.id, doc.fileName)}
-                className="px-5 py-2.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-sm font-semibold transition-colors"
+                className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-semibold transition-colors"
               >
                 Open / Download File
               </button>
@@ -138,7 +138,7 @@ export default function CandidateProfilePage() {
   const [viewingDoc, setViewingDoc] = useState<UserDoc | null>(null);
   const [activeType, setActiveType] = useState<string>('ALL');
 
-  // Page theme (from candidate's cvThemeColor or default sky-500)
+  // Page theme (from candidate's cvThemeColor or default red-500)
   const themeColor = candidate?.cvThemeColor || DEFAULT_THEME;
 
   useEffect(() => {
@@ -175,7 +175,7 @@ export default function CandidateProfilePage() {
   if (authLoading) {
     return (
       <div className="min-h-[70vh] flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-sky-200 border-t-sky-500 rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-red-200 border-t-red-500 rounded-full animate-spin" />
       </div>
     );
   }
@@ -199,7 +199,7 @@ export default function CandidateProfilePage() {
       <div className="max-w-4xl mx-auto px-4 py-5 text-center">
         <p className="text-5xl mb-4">🔍</p>
         <p className="font-bold text-gray-800 mb-2">Candidate not found</p>
-        <Link href="/jobs" className="text-sky-600 hover:underline text-sm">
+        <Link href="/jobs" className="text-red-600 hover:underline text-sm">
           ← Back to Job Market
         </Link>
       </div>
@@ -270,7 +270,7 @@ export default function CandidateProfilePage() {
               className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-semibold transition-colors ${
                 activeType === type
                   ? 'text-white shadow-sm'
-                  : 'bg-white border border-gray-200 text-gray-600 hover:border-sky-400 hover:text-sky-600'
+                  : 'bg-white border border-gray-200 text-gray-600 hover:border-red-400 hover:text-red-600'
               }`}
               style={activeType === type ? { backgroundColor: themeColor } : {}}
             >

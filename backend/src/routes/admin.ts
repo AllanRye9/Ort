@@ -170,6 +170,47 @@ router.get('/stats', async (_req: Request, res: Response, next: NextFunction) =>
   }
 });
 
+// ─── Visitor Logs (proof-of-visit: IP, date/time, device, time on site) ────────
+// One row per deviceId per local day — see VisitorLog in schema.prisma and
+// POST /api/stats/track for how these rows are written.
+
+router.get('/visitor-logs', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const page = Math.max(1, parseInt((req.query.page as string) || '1'));
+    const limit = Math.min(100, parseInt((req.query.limit as string) || '25'));
+    const search = ((req.query.search as string) || '').trim();
+    const date = ((req.query.date as string) || '').trim(); // exact dayKey, e.g. 2026-08-25
+
+    const where: Record<string, unknown> = {};
+    if (date) {
+      where.dayKey = date;
+    }
+    if (search) {
+      where.OR = [
+        { ip: { contains: search, mode: 'insensitive' } },
+        { deviceId: { contains: search, mode: 'insensitive' } },
+        { country: { contains: search, mode: 'insensitive' } },
+        { device: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    const [logs, total, uniqueDeviceCount] = await Promise.all([
+      prisma.visitorLog.findMany({
+        where,
+        orderBy: { lastSeenAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.visitorLog.count({ where }),
+      prisma.visitorLog.groupBy({ by: ['deviceId'] }).then((rows) => rows.length),
+    ]);
+
+    res.json({ logs, pagination: { total, page, limit }, uniqueDeviceCount });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // ─── Analytics ─────────────────────────────────────────────────────────────────
 
 router.get('/analytics', async (_req: Request, res: Response, next: NextFunction) => {
@@ -414,6 +455,122 @@ router.put('/users/:id', async (req: AuthRequest, res: Response, next: NextFunct
   }
 });
 
+// ─── KYC (Know Your Customer) identity verification queue ─────────────────────
+
+router.get('/kyc', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const page = Math.max(1, parseInt(req.query.page as string || '1'));
+    const limit = Math.min(100, parseInt(req.query.limit as string || '20'));
+    const status = (req.query.status as string || 'PENDING').trim();
+    const validStatuses = ['NOT_SUBMITTED', 'PENDING', 'APPROVED', 'REJECTED'];
+    const where = validStatuses.includes(status) ? { kycStatus: status as 'NOT_SUBMITTED' | 'PENDING' | 'APPROVED' | 'REJECTED' } : {};
+
+    const [users, total] = await Promise.all([
+      prisma.user.findMany({
+        where,
+        select: {
+          id: true, name: true, email: true, role: true, country: true,
+          kycStatus: true, kycDocumentType: true, kycDocumentUrl: true, kycSelfieUrl: true,
+          kycFullName: true, kycSubmittedAt: true, kycReviewedAt: true, kycRejectionReason: true,
+          isKycVerified: true,
+        },
+        // Oldest submission first (FIFO), so the queue processes in submission order.
+        orderBy: { kycSubmittedAt: 'asc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.user.count({ where }),
+    ]);
+
+    res.json({ users, pagination: { total, page, limit } });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.put('/kyc/:id/approve', async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const target = await prisma.user.findUnique({
+      where: { id: req.params.id },
+      select: { id: true, name: true, email: true, kycStatus: true },
+    });
+    if (!target) throw createError('User not found', 404);
+    if (target.kycStatus !== 'PENDING') {
+      throw createError('Only submissions with status PENDING can be approved', 400);
+    }
+
+    const user = await prisma.user.update({
+      where: { id: req.params.id },
+      data: {
+        kycStatus: 'APPROVED',
+        isKycVerified: true,
+        kycReviewedAt: new Date(),
+        kycReviewedBy: req.user?.userId,
+        kycRejectionReason: null,
+      },
+      select: { id: true, name: true, email: true, kycStatus: true, isKycVerified: true },
+    });
+
+    await prisma.notification.create({
+      data: {
+        userId: user.id,
+        type: 'KYC_APPROVED',
+        title: 'Identity Verified',
+        message: 'Your identity verification (KYC) has been approved. Your listings now get priority review and your profile shows a KYC Verified badge.',
+        data: {},
+      },
+    }).catch((err) => logger.error('Failed to create KYC_APPROVED notification', err));
+
+    res.json(user);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.put('/kyc/:id/reject', async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const { reason } = req.body;
+    if (!reason || typeof reason !== 'string' || !reason.trim()) {
+      throw createError('A rejection reason is required', 400);
+    }
+
+    const target = await prisma.user.findUnique({
+      where: { id: req.params.id },
+      select: { id: true, kycStatus: true },
+    });
+    if (!target) throw createError('User not found', 404);
+    if (target.kycStatus !== 'PENDING') {
+      throw createError('Only submissions with status PENDING can be rejected', 400);
+    }
+
+    const user = await prisma.user.update({
+      where: { id: req.params.id },
+      data: {
+        kycStatus: 'REJECTED',
+        isKycVerified: false,
+        kycReviewedAt: new Date(),
+        kycReviewedBy: req.user?.userId,
+        kycRejectionReason: reason.trim(),
+      },
+      select: { id: true, name: true, email: true, kycStatus: true, kycRejectionReason: true },
+    });
+
+    await prisma.notification.create({
+      data: {
+        userId: user.id,
+        type: 'KYC_REJECTED',
+        title: 'Identity Verification Rejected',
+        message: `Your KYC submission was rejected: ${user.kycRejectionReason}. You can resubmit with corrected documents.`,
+        data: {},
+      },
+    }).catch((err) => logger.error('Failed to create KYC_REJECTED notification', err));
+
+    res.json(user);
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.post('/users/:id/approve-admin', async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     if (req.user?.userId === req.params.id) {
@@ -495,6 +652,7 @@ router.get('/listings', async (req: Request, res: Response, next: NextFunction) 
     const limit = Math.min(100, parseInt(req.query.limit as string || '20'));
     const search = (req.query.search as string || '').trim();
     const status = (req.query.status as string || '').trim();
+    const categoryId = (req.query.categoryId as string || '').trim();
 
     const where: Record<string, unknown> = {};
 
@@ -509,12 +667,16 @@ router.get('/listings', async (req: Request, res: Response, next: NextFunction) 
       where.status = status;
     }
 
+    if (categoryId) {
+      where.categoryId = categoryId;
+    }
+
     const [listings, total] = await Promise.all([
       prisma.listing.findMany({
         where,
         include: {
-          user: { select: { id: true, name: true, email: true } },
-          category: { select: { name: true } },
+          user: { select: { id: true, name: true, email: true, isKycVerified: true } },
+          category: { select: { id: true, name: true, slug: true } },
           productImages: {
             where: { cdnUrl: { not: null }, status: { not: 'REJECTED' } },
             select: { cdnUrl: true },
@@ -524,7 +686,13 @@ router.get('/listings', async (req: Request, res: Response, next: NextFunction) 
         },
         skip: (page - 1) * limit,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        // KYC-verified sellers' listings surface first within the queue so
+        // their submissions get reviewed faster (see feature: "priority
+        // access" for verified sellers), then fall back to submission order.
+        orderBy: [
+          { user: { isKycVerified: 'desc' } },
+          { createdAt: status === 'PENDING' ? 'asc' : 'desc' },
+        ],
       }),
       prisma.listing.count({ where }),
     ]);
@@ -537,7 +705,7 @@ router.get('/listings', async (req: Request, res: Response, next: NextFunction) 
 
 router.put('/listings/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { status, placement, placementExpiresAt } = req.body;
+    const { status, placement, placementExpiresAt, categoryId } = req.body;
     const nextStatus = status as ListingStatus | undefined;
     const nextPlacement = placement as Placement | undefined;
     const validStatuses: ListingStatus[] = ['ACTIVE', 'PENDING', 'SOLD', 'EXPIRED', 'HIDDEN', 'REJECTED'];
@@ -547,6 +715,13 @@ router.put('/listings/:id', async (req: Request, res: Response, next: NextFuncti
     }
     if (nextPlacement && !validPlacements.includes(nextPlacement)) {
       throw createError('Invalid listing placement', 400);
+    }
+
+    if (categoryId) {
+      const targetCategory = await prisma.category.findUnique({ where: { id: categoryId } });
+      if (!targetCategory) {
+        throw createError('Category not found', 404);
+      }
     }
 
     // Flash Deals cap: max 100 active flash-sale listings
@@ -562,17 +737,62 @@ router.put('/listings/:id', async (req: Request, res: Response, next: NextFuncti
 
     const mustClearPlacement = nextStatus && ['SOLD', 'EXPIRED', 'HIDDEN', 'REJECTED'].includes(nextStatus);
 
+    // Re-categorizing a listing without also explicitly setting a placement
+    // resets it to NONE — a featured slot from the old category shouldn't
+    // silently carry over into the new one.
+    const mustClearPlacementForRecategorize = categoryId && nextPlacement === undefined;
+
     const listing = await prisma.listing.update({
       where: { id: req.params.id },
       data: {
         ...(nextStatus && { status: nextStatus }),
+        ...(categoryId && { categoryId }),
         ...(nextPlacement !== undefined && { placement: nextPlacement }),
         ...(placementExpiresAt !== undefined && { placementExpiresAt: placementExpiresAt ? new Date(placementExpiresAt) : null }),
         ...(mustClearPlacement && { placement: 'NONE', placementExpiresAt: null }),
         ...(nextPlacement === 'NONE' && { placementExpiresAt: null }),
+        ...(mustClearPlacementForRecategorize && { placement: 'NONE', placementExpiresAt: null }),
       },
     });
     res.json(listing);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ─── Bulk move listings to a different category ────────────────────────────────
+// Only ever touches categoryId + placement/placementExpiresAt on the moved
+// listings — title, images, price, status, etc. are left untouched.
+router.post('/listings/move-category', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { ids, categoryId } = req.body as { ids?: string[]; categoryId?: string };
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      throw createError('ids must be a non-empty array', 400);
+    }
+    if (!categoryId) {
+      throw createError('categoryId is required', 400);
+    }
+
+    const targetCategory = await prisma.category.findUnique({ where: { id: categoryId } });
+    if (!targetCategory) {
+      throw createError('Category not found', 404);
+    }
+
+    const featuredClearedCount = await prisma.listing.count({
+      where: { id: { in: ids }, placement: { not: 'NONE' } },
+    });
+
+    const result = await prisma.listing.updateMany({
+      where: { id: { in: ids } },
+      data: { categoryId, placement: 'NONE', placementExpiresAt: null },
+    });
+
+    res.json({
+      message: `Moved ${result.count} listing(s) to ${targetCategory.name}${featuredClearedCount > 0 ? `, cleared featured placement on ${featuredClearedCount} of them` : ''}.`,
+      moved: result.count,
+      placementCleared: featuredClearedCount,
+    });
   } catch (err) {
     next(err);
   }

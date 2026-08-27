@@ -47,7 +47,7 @@ export default function RegionHintBanner() {
 
   if (phase === 'hint') {
     return (
-      <div className="mx-1 mt-2 flex items-center gap-3 rounded-xl border border-sky-200 bg-sky-50 px-4 py-2.5 text-sm text-sky-800 shadow-sm animate-fade-down">
+      <div className="mx-1 mt-2 flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-800 shadow-sm animate-fade-down">
         {/* SVG flag — not emoji */}
         {info.isoCode ? (
           <div className="rounded overflow-hidden ring-1 ring-black/10 shrink-0">
@@ -58,7 +58,7 @@ export default function RegionHintBanner() {
         )}
         <p className="flex-1">
           <span className="font-semibold">Showing listings for {info.name}.</span>{' '}
-          <span className="text-sky-600">Prices shown in your local currency. Use the region selector in the top bar to change country.</span>
+          <span className="text-red-600">Prices shown in your local currency. Use the region selector in the top bar to change country.</span>
         </p>
         <button
           onClick={() => {
@@ -66,7 +66,7 @@ export default function RegionHintBanner() {
             setPhase('ad');
           }}
           aria-label="Dismiss region hint"
-          className="shrink-0 rounded-lg p-1 text-sky-400 hover:text-sky-700 hover:bg-sky-100 transition-colors"
+          className="shrink-0 rounded-lg p-1 text-red-400 hover:text-red-700 hover:bg-red-100 transition-colors"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -82,7 +82,10 @@ export default function RegionHintBanner() {
       <span className="text-lg shrink-0">✨</span>
       <div className="flex-1 min-w-0">
         <p className="font-bold text-amber-800 truncate">Advertise with Piitrade</p>
-        <p className="text-amber-600 text-xs truncate">Reach thousands of premium buyers across UAE, Uganda, Kenya &amp; China.</p>
+        {/* Uganda-only launch: copy commented out below referenced all four
+            countries; restore it when the other storefronts are re-enabled. */}
+        {/* <p className="text-amber-600 text-xs truncate">Reach thousands of premium buyers across UAE, Uganda, Kenya &amp; China.</p> */}
+        <p className="text-amber-600 text-xs truncate">Reach thousands of premium buyers across Uganda.</p>
       </div>
       <Link
         href="/advertising"

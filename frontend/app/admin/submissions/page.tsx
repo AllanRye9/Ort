@@ -136,7 +136,7 @@ export default function AdminSubmissionsPage() {
                 <h3 className="font-semibold text-gray-900 text-sm line-clamp-1">{listing.title}</h3>
                 <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{listing.description}</p>
                 <div className="flex items-center justify-between mt-2">
-                  <span className="text-sm font-bold text-sky-600">
+                  <span className="text-sm font-bold text-red-600">
                     {listing.currency} {listing.price.toLocaleString('en-US')}
                   </span>
                   <span className="text-[10px] text-gray-400">{formatDate(listing.createdAt)}</span>
@@ -183,7 +183,7 @@ export default function AdminSubmissionsPage() {
                 onClick={() => setApproval({ ...approval, placement: 'LATEST_COLLECTIONS' })}
                 className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors border ${
                   approval.placement === 'LATEST_COLLECTIONS'
-                    ? 'bg-sky-50 border-sky-500 text-sky-700'
+                    ? 'bg-red-50 border-red-500 text-red-700'
                     : 'border-gray-200 text-gray-500 hover:border-gray-300'
                 }`}
               >
@@ -194,7 +194,7 @@ export default function AdminSubmissionsPage() {
                 onClick={() => setApproval({ ...approval, placement: 'FEATURED_DEAL' })}
                 className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors border ${
                   approval.placement === 'FEATURED_DEAL'
-                    ? 'bg-sky-50 border-sky-500 text-sky-700'
+                    ? 'bg-red-50 border-red-500 text-red-700'
                     : 'border-gray-200 text-gray-500 hover:border-gray-300'
                 }`}
               >
@@ -207,7 +207,7 @@ export default function AdminSubmissionsPage() {
             <select
               value={approval.durationHours}
               onChange={(e) => setApproval({ ...approval, durationHours: e.target.value })}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 mb-4"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 mb-4"
             >
               <option value="24">24 Hours</option>
               <option value="48">48 Hours</option>
@@ -230,7 +230,7 @@ export default function AdminSubmissionsPage() {
                 type="button"
                 onClick={handleApprove}
                 disabled={actionLoading !== null}
-                className="flex-1 py-2 rounded-lg bg-sky-500 hover:bg-sky-600 text-white text-sm font-semibold transition-colors disabled:opacity-50"
+                className="flex-1 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-semibold transition-colors disabled:opacity-50"
               >
                 {actionLoading ? 'Approving...' : 'Confirm Approval'}
               </button>

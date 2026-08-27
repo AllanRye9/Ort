@@ -303,7 +303,7 @@ export default function AdminDashboard() {
           emoji="👥"
           value={stats.users}
           label="Total Users"
-          gradient="bg-gradient-to-br from-sky-500 to-sky-600"
+          gradient="bg-gradient-to-br from-red-500 to-red-600"
           sub={`+${stats.newUsersThisMonth} this month`}
           href="/admin/users"
         />
@@ -343,7 +343,7 @@ export default function AdminDashboard() {
           emoji="🆕"
           value={stats.newUsersThisMonth}
           label="New/Month"
-          gradient="bg-gradient-to-br from-[#0284c7] to-[#0369a1]"
+          gradient="bg-gradient-to-br from-[#7a1c15] to-[#5c1610]"
         />
       </div>
 
@@ -372,10 +372,10 @@ export default function AdminDashboard() {
         <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100 flex flex-col">
           <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100 shrink-0">
             <h2 className="font-bold text-gray-900 text-xs flex items-center gap-1.5">
-              <span className="w-1 h-3.5 bg-sky-500 rounded-full" />
+              <span className="w-1 h-3.5 bg-red-500 rounded-full" />
               Recent Users
             </h2>
-            <Link href="/admin/users" className="text-[10px] text-sky-600 hover:text-sky-700 font-semibold">
+            <Link href="/admin/users" className="text-[10px] text-red-600 hover:text-red-700 font-semibold">
               All →
             </Link>
           </div>
@@ -390,10 +390,10 @@ export default function AdminDashboard() {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {recentUsers.slice(0, 5).map((u) => (
-                  <tr key={u.id} className="hover:bg-sky-50/50 transition-colors">
+                  <tr key={u.id} className="hover:bg-red-50/50 transition-colors">
                     <td className="px-3 py-1.5">
                       <div className="flex items-center gap-1.5 min-w-0">
-                        <div className="w-5 h-5 rounded-full bg-gradient-to-br from-sky-400 to-sky-600 flex items-center justify-center text-[9px] font-bold text-white shrink-0">
+                        <div className="w-5 h-5 rounded-full bg-gradient-to-br from-red-400 to-red-600 flex items-center justify-center text-[9px] font-bold text-white shrink-0">
                           {u.name.charAt(0).toUpperCase()}
                         </div>
                         <span className="font-semibold text-gray-900 text-[11px] truncate">{u.name}</span>
@@ -401,7 +401,7 @@ export default function AdminDashboard() {
                     </td>
                     <td className="px-3 py-1.5">
                       <span className={`inline-block px-1 py-0.5 rounded-full text-[8px] font-bold ${
-                        u.role === 'ADMIN' ? 'bg-purple-100 text-purple-700' : 'bg-sky-100 text-sky-700'
+                        u.role === 'ADMIN' ? 'bg-purple-100 text-purple-700' : 'bg-red-100 text-red-700'
                       }`}>
                         {u.role}
                       </span>
@@ -424,7 +424,7 @@ export default function AdminDashboard() {
               <span className="w-1 h-3.5 bg-purple-500 rounded-full" />
               Recent Listings
             </h2>
-            <Link href="/admin/listings" className="text-[10px] text-sky-600 hover:text-sky-700 font-semibold">
+            <Link href="/admin/listings" className="text-[10px] text-red-600 hover:text-red-700 font-semibold">
               All →
             </Link>
           </div>
@@ -509,7 +509,7 @@ export default function AdminDashboard() {
                   </div>
                   <div className="w-full bg-gray-100 rounded-full h-1">
                     <div
-                      className="h-1 rounded-full bg-gradient-to-r from-[#0284c7] to-[#0EA5E9] transition-all duration-700"
+                      className="h-1 rounded-full bg-gradient-to-r from-[#7a1c15] to-[#B7291B] transition-all duration-700"
                       style={{ width: `${(count / maxCountryCount) * 100}%` }}
                     />
                   </div>
@@ -555,7 +555,7 @@ export default function AdminDashboard() {
       {/* ── Countries Reached ── list with visit counts ───────────────────────── */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         {/* Header */}
-        <div className="px-4 py-3 bg-gradient-to-r from-violet-600 to-indigo-600 flex items-center justify-between">
+        <div className="px-4 py-3 bg-gradient-to-r from-violet-600 to-rose-600 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-lg">🌍</span>
             <div>
@@ -621,7 +621,7 @@ export default function AdminDashboard() {
                           {/* Progress bar */}
                           <div className="h-1 rounded-full bg-gray-100 overflow-hidden">
                             <div
-                              className="h-full rounded-full bg-gradient-to-r from-violet-500 to-indigo-400 transition-all"
+                              className="h-full rounded-full bg-gradient-to-r from-violet-500 to-rose-400 transition-all"
                               style={{ width: `${pct}%` }}
                             />
                           </div>

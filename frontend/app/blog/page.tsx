@@ -45,9 +45,9 @@ export default async function BlogPage() {
   return (
     <div>
       {/* Hero */}
-      <div className="bg-gradient-to-br from-indigo-700 via-sky-700 to-blue-800 py-10 px-4 text-center">
+      <div className="bg-gradient-to-br from-rose-700 via-red-700 to-red-800 py-10 px-4 text-center">
         <h1 className="text-3xl md:text-4xl font-extrabold text-white mb-2">Piitrade Blog</h1>
-        <p className="text-sky-100 text-sm md:text-base max-w-xl mx-auto">
+        <p className="text-red-100 text-sm md:text-base max-w-xl mx-auto">
           Marketplace insights, safety guides, selling tips and feature announcements.
         </p>
       </div>
@@ -68,7 +68,7 @@ export default async function BlogPage() {
                 className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col"
               >
                 {/* Featured image */}
-                <div className="relative h-44 bg-gradient-to-br from-sky-100 to-indigo-100 overflow-hidden shrink-0">
+                <div className="relative h-44 bg-gradient-to-br from-red-100 to-rose-100 overflow-hidden shrink-0">
                   {post.featuredImage ? (
                     <Image
                       src={resolveImageUrl(post.featuredImage)}
@@ -83,7 +83,7 @@ export default async function BlogPage() {
                 </div>
 
                 <div className="p-4 flex flex-col flex-1">
-                  <h2 className="font-bold text-gray-900 text-sm leading-snug mb-2 group-hover:text-sky-600 transition-colors line-clamp-2">
+                  <h2 className="font-bold text-gray-900 text-sm leading-snug mb-2 group-hover:text-red-600 transition-colors line-clamp-2">
                     {post.title}
                   </h2>
                   {post.excerpt && (

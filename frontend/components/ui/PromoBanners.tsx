@@ -14,44 +14,44 @@ interface Banner {
 
 const banners: Banner[] = [
   {
-    title: 'UAE Marketplace',
-    subtitle: 'Discover exclusive listings across the Emirates',
-    cta: 'Explore UAE',
-    href: '/country/uae',         // links to UAE country landing page
+    title: 'Kampala',
+    subtitle: 'The capital — the highest concentration of listings on Piitrade',
+    cta: 'Explore Kampala',
+    href: '/listings?location=Kampala',
     emoji: '🏙️',
-    isoCode: 'AE',
-    bgGradient: 'from-sky-500 to-cyan-600',
-    cities: 'Dubai · Abu Dhabi · Sharjah · Ajman',
-  },
-  {
-    title: 'Uganda Marketplace',
-    subtitle: 'Explore curated collections from sellers across Uganda',
-    cta: 'Explore Uganda',
-    href: '/country/uganda',      // links to Uganda country landing page
-    emoji: '🌿',
     isoCode: 'UG',
     bgGradient: 'from-emerald-500 to-green-700',
-    cities: 'Kampala · Jinja · Gulu · Mbarara',
+    cities: 'Central Region',
   },
   {
-    title: 'Kenya Marketplace',
-    subtitle: 'Browse quality goods from sellers across Kenya',
-    cta: 'Explore Kenya',
-    href: '/country/kenya',       // links to Kenya country landing page
-    emoji: '🦁',
-    isoCode: 'KE',
+    title: 'Jinja',
+    subtitle: 'Source of the Nile — a growing hub for trade and tourism',
+    cta: 'Explore Jinja',
+    href: '/listings?location=Jinja',
+    emoji: '🌊',
+    isoCode: 'UG',
+    bgGradient: 'from-red-500 to-rose-600',
+    cities: 'Eastern Region',
+  },
+  {
+    title: 'Gulu',
+    subtitle: 'Northern Uganda\'s commercial centre',
+    cta: 'Explore Gulu',
+    href: '/listings?location=Gulu',
+    emoji: '🌾',
+    isoCode: 'UG',
+    bgGradient: 'from-amber-500 to-orange-600',
+    cities: 'Northern Region',
+  },
+  {
+    title: 'Mbarara',
+    subtitle: 'The heart of the southwest — vibrant local markets',
+    cta: 'Explore Mbarara',
+    href: '/listings?location=Mbarara',
+    emoji: '🐄',
+    isoCode: 'UG',
     bgGradient: 'from-red-500 to-rose-700',
-    cities: 'Nairobi · Mombasa · Kisumu · Nakuru',
-  },
-  {
-    title: 'China Marketplace',
-    subtitle: 'Connect with sellers across China',
-    cta: 'Explore China',
-    href: '/country/china',       // links to China country landing page
-    emoji: '🏯',
-    isoCode: 'CN',
-    bgGradient: 'from-orange-500 to-amber-600',
-    cities: 'Beijing · Shanghai · Guangzhou · Shenzhen',
+    cities: 'Western Region',
   },
 ];
 

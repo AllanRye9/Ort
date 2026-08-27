@@ -154,7 +154,7 @@ export default function AdminAnalytics() {
         <BarChart
           data={data.userGrowth.slice(-30)}
           label="User Growth (Last 30 Days)"
-          color="bg-sky-500"
+          color="bg-red-500"
         />
         <BarChart
           data={data.listingGrowth.slice(-30)}
@@ -168,7 +168,7 @@ export default function AdminAnalytics() {
         <HorizontalBarChart
           items={data.topCategories.map((c) => ({ name: c.name, value: c.count }))}
           label="Top Categories"
-          color="bg-sky-500"
+          color="bg-red-500"
         />
 
         {/* Listings by Country */}

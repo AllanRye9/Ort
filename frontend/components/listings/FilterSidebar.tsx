@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCountry } from '@/context/CountryContext';
 import { Category } from '@/lib/types';
@@ -17,10 +18,86 @@ const pricePresets = [
   { label: 'Over 1M', min: '1000000', max: '' },
 ];
 
+const SECTION_KEYS = ['trust', 'category', 'location', 'condition', 'price', 'sort'] as const;
+type SectionKey = typeof SECTION_KEYS[number];
+
+const STORAGE_KEY = 'piitrade:filters:collapsed-sections';
+
+/** Collapsible section wrapper — every filter group can be expanded/collapsed
+ *  independently, and the open/closed state is remembered between visits. */
+function FilterSection({
+  id,
+  icon,
+  title,
+  collapsed,
+  onToggle,
+  children,
+}: {
+  id: SectionKey;
+  icon: string;
+  title: string;
+  collapsed: boolean;
+  onToggle: (id: SectionKey) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="border-b border-gray-100 last:border-b-0 pb-3 last:pb-0">
+      <button
+        type="button"
+        onClick={() => onToggle(id)}
+        aria-expanded={!collapsed}
+        className="w-full flex items-center justify-between gap-2 py-1 group interactive"
+      >
+        <h3 className="font-bold text-gray-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
+          <span aria-hidden="true">{icon}</span> {title}
+        </h3>
+        <svg
+          className={`w-3.5 h-3.5 text-gray-400 group-hover:text-gray-600 transition-transform duration-200 shrink-0 ${collapsed ? '-rotate-90' : ''}`}
+          fill="none" stroke="currentColor" viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {!collapsed && <div className="mt-2.5">{children}</div>}
+    </div>
+  );
+}
+
 export function FilterSidebar({ categories, isOpen = false, onClose }: Props) {
   const router = useRouter();
   const params = useSearchParams();
   const { country, locations } = useCountry();
+
+  // Which sections are collapsed — persisted so the layout survives navigation/reloads.
+  const [collapsed, setCollapsed] = useState<Record<SectionKey, boolean>>({
+    trust: false, category: false, location: false, condition: false, price: false, sort: false,
+  });
+  const [panelCollapsed, setPanelCollapsed] = useState(false);
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(STORAGE_KEY);
+      if (raw) setCollapsed((prev) => ({ ...prev, ...JSON.parse(raw) }));
+      const panelRaw = window.localStorage.getItem('piitrade:filters:panel-collapsed');
+      if (panelRaw) setPanelCollapsed(panelRaw === 'true');
+    } catch { /* ignore */ }
+  }, []);
+
+  const toggleSection = (id: SectionKey) => {
+    setCollapsed((prev) => {
+      const next = { ...prev, [id]: !prev[id] };
+      try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+  };
+
+  const togglePanel = () => {
+    setPanelCollapsed((prev) => {
+      const next = !prev;
+      try { window.localStorage.setItem('piitrade:filters:panel-collapsed', String(next)); } catch { /* ignore */ }
+      return next;
+    });
+  };
 
   const update = (key: string, value: string) => {
     const newParams = new URLSearchParams(params ? params.toString() : '');
@@ -47,8 +124,13 @@ export function FilterSidebar({ categories, isOpen = false, onClose }: Props) {
     (p) => p.min === currentMin && p.max === currentMax
   );
 
+  const activeFilterCount = [
+    params?.get('category'), params?.get('location'), params?.get('condition'),
+    currentMin || currentMax, params?.get('verifiedOnly') === 'true' ? 'true' : '',
+  ].filter(Boolean).length;
+
   const content = (
-    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 sm:p-5 space-y-5">
+    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 sm:p-5 space-y-3">
       {/* Close button – mobile only */}
       {onClose && (
         <div className="flex items-center justify-between pb-3 border-b border-gray-100 md:hidden">
@@ -67,40 +149,55 @@ export function FilterSidebar({ categories, isOpen = false, onClose }: Props) {
 
       {/* Header – desktop */}
       <div className="hidden md:flex items-center justify-between pb-3 border-b border-gray-100">
-        <h2 className="font-extrabold text-gray-900 text-sm">Filters</h2>
-        <button
-          onClick={() => { router.push(`/listings?country=${country}`); onClose?.(); }}
-          className="text-xs text-sky-600 hover:text-sky-700 font-semibold transition-colors interactive"
-        >
-          Clear all
-        </button>
+        <h2 className="font-extrabold text-gray-900 text-sm flex items-center gap-1.5">
+          <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z" /></svg>
+          Filters
+          {activeFilterCount > 0 && (
+            <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-bold">
+              {activeFilterCount}
+            </span>
+          )}
+        </h2>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => { router.push(`/listings?country=${country}`); onClose?.(); }}
+            className="text-xs text-red-600 hover:text-red-700 font-semibold transition-colors interactive"
+          >
+            Clear all
+          </button>
+          <button
+            onClick={togglePanel}
+            aria-label="Collapse filter panel"
+            className="text-gray-400 hover:text-gray-600 transition-colors interactive"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" /></svg>
+          </button>
+        </div>
       </div>
 
       {/* ── Verified Sellers filter ── */}
-      <div>
-        <h3 className="font-bold text-gray-800 text-xs uppercase tracking-wider mb-2.5">Trust & Safety</h3>
+      <FilterSection id="trust" icon="🛡️" title="Trust & Safety" collapsed={collapsed.trust} onToggle={toggleSection}>
         <label className="flex items-center gap-2.5 cursor-pointer group">
           <div className="relative">
             <input
               type="checkbox"
-              checked={params?.get('verified') === 'true'}
-              onChange={(e) => update('verified', e.target.checked ? 'true' : '')}
+              checked={params?.get('verifiedOnly') === 'true'}
+              onChange={(e) => update('verifiedOnly', e.target.checked ? 'true' : '')}
               className="sr-only peer"
             />
-            <div className="w-9 h-5 bg-gray-200 peer-checked:bg-sky-500 rounded-full transition-colors" />
+            <div className="w-9 h-5 bg-gray-200 peer-checked:bg-emerald-500 rounded-full transition-colors" />
             <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-4" />
           </div>
           <span className="text-sm text-gray-700 group-hover:text-gray-900 transition-colors">
-            Verified Sellers Only
+            KYC Verified Sellers Only
           </span>
         </label>
         <p className="text-[10px] text-gray-400 mt-1.5">
           See only listings from identity-verified sellers
         </p>
-      </div>
+      </FilterSection>
 
-      <div>
-        <h3 className="font-bold text-gray-800 text-xs uppercase tracking-wider mb-2">Category</h3>
+      <FilterSection id="category" icon="📂" title="Category" collapsed={collapsed.category} onToggle={toggleSection}>
         <select
           value={params?.get('category') || ''}
           onChange={(e) => update('category', e.target.value)}
@@ -111,10 +208,9 @@ export function FilterSidebar({ categories, isOpen = false, onClose }: Props) {
             <option key={cat.id} value={cat.slug}>{cat.icon} {cat.name}</option>
           ))}
         </select>
-      </div>
+      </FilterSection>
 
-      <div>
-        <h3 className="font-bold text-gray-800 text-xs uppercase tracking-wider mb-2">Location</h3>
+      <FilterSection id="location" icon="📍" title="Location" collapsed={collapsed.location} onToggle={toggleSection}>
         <select
           value={params?.get('location') || ''}
           onChange={(e) => update('location', e.target.value)}
@@ -125,10 +221,9 @@ export function FilterSidebar({ categories, isOpen = false, onClose }: Props) {
             <option key={loc} value={loc}>{loc}</option>
           ))}
         </select>
-      </div>
+      </FilterSection>
 
-      <div>
-        <h3 className="font-bold text-gray-800 text-xs uppercase tracking-wider mb-2.5">Condition</h3>
+      <FilterSection id="condition" icon="🏷️" title="Condition" collapsed={collapsed.condition} onToggle={toggleSection}>
         <div className="flex gap-2">
           {[
             { value: '', label: 'Any' },
@@ -140,19 +235,17 @@ export function FilterSidebar({ categories, isOpen = false, onClose }: Props) {
               onClick={() => update('condition', c.value)}
               className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all interactive border ${
                 params?.get('condition') === c.value || (!params?.get('condition') && c.value === '')
-                  ? 'bg-sky-500 text-white border-sky-500 shadow-sm'
-                  : 'bg-white text-gray-600 border-gray-200 hover:border-sky-200 hover:text-sky-600'
+                  ? 'bg-red-500 text-white border-red-500 shadow-sm'
+                  : 'bg-white text-gray-600 border-gray-200 hover:border-red-200 hover:text-red-600'
               }`}
             >
               {c.label}
             </button>
           ))}
         </div>
-      </div>
+      </FilterSection>
 
-      <div>
-        <h3 className="font-bold text-gray-800 text-xs uppercase tracking-wider mb-2">Price Range</h3>
-
+      <FilterSection id="price" icon="💰" title="Price Range" collapsed={collapsed.price} onToggle={toggleSection}>
         {/* Preset ranges */}
         <div className="grid grid-cols-2 gap-1.5 mb-3">
           {pricePresets.map((preset) => (
@@ -161,8 +254,8 @@ export function FilterSidebar({ categories, isOpen = false, onClose }: Props) {
               onClick={() => updateMultiple({ priceMin: preset.min, priceMax: preset.max })}
               className={`py-1.5 px-2 rounded-lg text-xs font-medium transition-all interactive border ${
                 activePricePreset?.label === preset.label
-                  ? 'bg-sky-500 text-white border-sky-500 shadow-sm'
-                  : 'bg-white text-gray-600 border-gray-200 hover:border-sky-200 hover:text-sky-600'
+                  ? 'bg-red-500 text-white border-red-500 shadow-sm'
+                  : 'bg-white text-gray-600 border-gray-200 hover:border-red-200 hover:text-red-600'
               }`}
             >
               {preset.label}
@@ -192,10 +285,9 @@ export function FilterSidebar({ categories, isOpen = false, onClose }: Props) {
             />
           </div>
         </div>
-      </div>
+      </FilterSection>
 
-      <div>
-        <h3 className="font-bold text-gray-800 text-xs uppercase tracking-wider mb-2">Sort By</h3>
+      <FilterSection id="sort" icon="↕️" title="Sort By" collapsed={collapsed.sort} onToggle={toggleSection}>
         <select
           value={params?.get('sort') || 'createdAt'}
           onChange={(e) => update('sort', e.target.value)}
@@ -206,7 +298,7 @@ export function FilterSidebar({ categories, isOpen = false, onClose }: Props) {
           <option value="price_desc">Highest Price</option>
           <option value="views">Most Popular</option>
         </select>
-      </div>
+      </FilterSection>
 
       <button
         onClick={() => { router.push(`/listings?country=${country}`); onClose?.(); }}
@@ -217,12 +309,34 @@ export function FilterSidebar({ categories, isOpen = false, onClose }: Props) {
     </div>
   );
 
+  // Collapsed rail — desktop only, shown instead of the full panel to free up width
+  const collapsedRail = (
+    <button
+      onClick={togglePanel}
+      aria-label="Expand filters"
+      className="hidden md:flex flex-col items-center gap-2 w-11 shrink-0 bg-white rounded-xl border border-gray-100 shadow-sm py-4 hover:border-red-200 hover:bg-red-50/40 transition-colors interactive sticky top-20 h-fit"
+    >
+      <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z" /></svg>
+      <span className="text-[10px] font-bold text-gray-500 [writing-mode:vertical-lr] tracking-wider">FILTERS</span>
+      {activeFilterCount > 0 && (
+        <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-bold">
+          {activeFilterCount}
+        </span>
+      )}
+      <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" /></svg>
+    </button>
+  );
+
   return (
     <>
-      {/* Desktop sidebar */}
-      <aside className="hidden md:block w-60 shrink-0">
-        {content}
-      </aside>
+      {/* Desktop sidebar — collapses to a slim rail to give listings more width */}
+      {panelCollapsed ? collapsedRail : (
+        <aside className="hidden md:block w-60 shrink-0">
+          <div className="sticky top-20">
+            {content}
+          </div>
+        </aside>
+      )}
 
       {/* Mobile drawer */}
       {isOpen && (
@@ -242,4 +356,3 @@ export function FilterSidebar({ categories, isOpen = false, onClose }: Props) {
     </>
   );
 }
-

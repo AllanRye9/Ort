@@ -21,7 +21,8 @@ export default function QuickActions() {
     : 'https://wa.me/?text=Hi%20I%20found%20you%20on%20Piitrade';
 
   return (
-    <section className="flex flex-wrap justify-center gap-3 py-4" aria-label="Quick actions">
+    <section className="flex flex-wrap justify-center gap-2.5 py-4" aria-label="Quick actions">
+      {/* WhatsApp keeps its brand-recognized green — the one intentional exception to the palette */}
       <a
         href={waHref}
         target="_blank"
@@ -37,7 +38,7 @@ export default function QuickActions() {
 
       <Link
         href="/listings?q=electronics"
-        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-cyan-500 to-sky-600 text-white font-semibold text-sm hover:from-cyan-600 hover:to-sky-700 hover:shadow-lg hover:-translate-y-0.5 transition-all shadow-sm interactive"
+        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white border border-premium-navy/20 text-premium-navy font-semibold text-sm hover:bg-premium-navy hover:text-white hover:border-premium-navy hover:shadow-lg hover:-translate-y-0.5 transition-all shadow-sm interactive"
         aria-label="Browse tech sale"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -49,7 +50,7 @@ export default function QuickActions() {
       {/* Sell on Piitrade — leads to store subscription plan, not registration */}
       <Link
         href={sellHref}
-        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-violet-600 to-purple-700 text-white font-semibold text-sm hover:from-violet-700 hover:to-purple-800 hover:shadow-lg hover:-translate-y-0.5 transition-all shadow-sm interactive"
+        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-premium-navy to-[#4a1109] text-white font-semibold text-sm hover:shadow-lg hover:-translate-y-0.5 transition-all shadow-sm interactive"
         aria-label="Sell on Piitrade — subscribe to a store plan"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -60,7 +61,7 @@ export default function QuickActions() {
 
       <Link
         href="/listings"
-        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-rose-500 to-pink-600 text-white font-semibold text-sm hover:from-rose-600 hover:to-pink-700 hover:shadow-lg hover:-translate-y-0.5 transition-all shadow-sm interactive"
+        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-premium-gold to-premium-gold-dark text-white font-semibold text-sm hover:shadow-lg hover:-translate-y-0.5 transition-all shadow-sm interactive"
         aria-label="Browse all listings"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
