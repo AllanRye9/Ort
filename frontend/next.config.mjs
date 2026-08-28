@@ -5,6 +5,14 @@ const nextConfig = {
   // doesn't need to ship the full node_modules tree.
   output: 'standalone',
 
+  // Safety net on top of the fetch-level fix in app/layout.tsx: the default
+  // is 60s, which is exactly what was being hit ("took more than 60
+  // seconds") when the backend was slow to respond during static
+  // generation. The root-layout fetch now times out itself well before
+  // this, but a higher ceiling here avoids the same failure mode if any
+  // other page/route ever adds its own slow build-time fetch.
+  staticPageGenerationTimeout: 120,
+
   eslint: {
     // Linting is run in CI / locally; don't let it block production builds.
     ignoreDuringBuilds: true,

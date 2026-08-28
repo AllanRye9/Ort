@@ -59,8 +59,17 @@ export const viewport: Viewport = {
 
 async function getBackgroundImage(): Promise<string | null> {
   try {
+    // This fetch runs on every single page (it lives in the root layout),
+    // including at build time during static generation. Without a hard
+    // timeout, an unreachable/slow backend (e.g. NEXT_PUBLIC_API_URL not
+    // yet up during a Docker/CI build) leaves the request hanging until
+    // Next's own 60s per-page static-generation timeout kills it — which,
+    // multiplied across ~98 routes, is what was causing the build to time
+    // out page after page. Fail fast instead so a bad/slow backend just
+    // means "no background image" rather than a broken build.
     const response = await fetch(`${SITE_MEDIA_API_BASE}/api/site-media?section=background`, {
       next: { revalidate: 300 },
+      signal: AbortSignal.timeout(5000),
     });
 
     if (!response.ok) return null;
