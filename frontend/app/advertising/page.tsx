@@ -152,7 +152,7 @@ export default function AdvertisingPage() {
               ))}
             </div>
             <p className="mt-3 text-sm text-slate-500">
-              Send the details above to <a href="mailto:support@piitrade.com" className="font-semibold text-red-600 hover:text-red-700">support@piitrade.com</a> and we'll follow up with a placement plan.
+              Send the details above to <a href="mailto:support@piitrade.com" className="font-semibold text-red-600 hover:text-red-700">support@piitrade.com</a> and we&apos;ll follow up with a placement plan.
             </p>
           </div>
 

@@ -1,4 +1,5 @@
 import { Router, Response, NextFunction } from 'express';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../utils/prisma';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { createError } from '../middleware/errorHandler';
@@ -160,7 +161,10 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response, next: Nex
         where: { userId: req.user!.userId, listingId: { in: listingIds } },
       });
 
-      // Build a rich order detail object for notifications (product options + all details)
+      // Build a rich order detail object for notifications (product options + all details).
+      // Cast to Prisma.InputJsonValue: Prisma's Json fields require a value assignable to
+      // InputJsonValue, which does not accept `unknown` — even though variantSummary here
+      // is always either a string or null at runtime.
       const orderDetails = {
         orderId: newOrder.id,
         orderNumber: newOrder.orderNumber,
@@ -170,9 +174,9 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response, next: Nex
           title: oi.title,
           quantity: oi.quantity,
           price: oi.price,
-          variantSummary: (oi as Record<string, unknown>).variantSummary || null,
+          variantSummary: ((oi as Record<string, unknown>).variantSummary ?? null) as Prisma.InputJsonValue,
         })),
-      };
+      } as Prisma.InputJsonValue;
 
       // Collect admin user IDs to notify
       const admins = await tx.user.findMany({
@@ -339,7 +343,7 @@ router.put('/:id/status', authenticate, async (req: AuthRequest, res: Response, 
           type: notifMap[status] as 'ORDER_CONFIRMED',
           title: `Order ${status.toLowerCase()}`,
           message: `Your order ${order.orderNumber} has been ${status.toLowerCase()}.`,
-          data: { orderId: order.id },
+          data: { orderId: order.id } as Prisma.InputJsonValue,
         },
       });
     }
@@ -377,7 +381,7 @@ router.post('/:id/return', authenticate, async (req: AuthRequest, res: Response,
         type: 'RETURN_REQUESTED',
         title: 'Return requested',
         message: `Buyer has requested a return for order ${order.orderNumber}.`,
-        data: { orderId: order.id, returnId: ret.id },
+        data: { orderId: order.id, returnId: ret.id } as Prisma.InputJsonValue,
       },
     });
 
