@@ -170,7 +170,51 @@ fi
 
 echo
 echo "== Step 5: verifying the build =="
-npm run build
+echo "Available memory:"
+free -h 2>/dev/null || vm_stat 2>/dev/null || echo "(could not detect — neither 'free' nor 'vm_stat' is available)"
+
+# "Next.js build worker exited with code: null and signal: SIGTERM" almost
+# always means the OS or a container/cgroup memory limit killed a build
+# worker process — not a code bug. Two mitigations that don't require
+# knowing the exact memory ceiling in advance:
+#   - Give Node a heap ceiling a bit BELOW whatever RAM is actually
+#     available. Counter-intuitively, raising --max-old-space-size doesn't
+#     help an environment that's genuinely memory-constrained — it just lets
+#     V8 grow further before garbage-collecting, which can make a real OOM
+#     kill happen *later* but *harder*. 2048 MB is a conservative default
+#     for typical 4GB CI runners / Codespaces; override by exporting
+#     NODE_OPTIONS yourself first if you know your container's actual limit.
+#   - Cap Next's parallel static-generation workers (see the printed
+#     guidance below on failure) — this script can't safely do that
+#     automatically since it would mean blindly editing
+#     frontend/next.config.mjs without having seen its current contents.
+if [ -z "${NODE_OPTIONS:-}" ]; then
+  export NODE_OPTIONS="--max-old-space-size=2048"
+  echo "NODE_OPTIONS not set — defaulting to --max-old-space-size=2048."
+fi
+
+if ! npm run build; then
+  echo
+  echo "Build failed. If the error above was:"
+  echo "  'Next.js build worker exited with code: null and signal: SIGTERM'"
+  echo "that's almost always an out-of-memory kill, not a code bug:"
+  echo
+  echo "  1. Add experimental.cpus = 1 to frontend/next.config.mjs, e.g.:"
+  echo "       const nextConfig = {"
+  echo "         experimental: { cpus: 1 },"
+  echo "         // ...your existing config keys stay as they are"
+  echo "       };"
+  echo "     This caps Next to one build worker at a time instead of"
+  echo "     spawning one per CPU core, which is usually what exhausts"
+  echo "     memory on constrained containers/CI runners."
+  echo "  2. If it still fails after that, try a lower heap ceiling, e.g.:"
+  echo "       NODE_OPTIONS='--max-old-space-size=1536' bash fix-repo.sh"
+  echo "  3. If it still fails after both, the container/runner most likely"
+  echo "     needs more RAM than it currently has — check your"
+  echo "     Codespace/CI machine tier against the 'Available memory' line"
+  echo "     printed above."
+  exit 1
+fi
 
 echo
 echo "== Step 6: push =="
