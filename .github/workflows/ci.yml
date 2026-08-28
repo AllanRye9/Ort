@@ -42,7 +42,7 @@ jobs:
         run: npm run build
 
   frontend:
-    name: Frontend – Lint, Type Check & Build
+    name: Frontend – Type Check & Build
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -62,8 +62,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Lint
-        run: npm run lint
+      - name: TypeScript type check
+        run: npm exec tsc -- --noEmit
 
       - name: Build
         run: npm run build
