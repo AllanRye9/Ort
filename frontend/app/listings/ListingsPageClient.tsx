@@ -9,6 +9,7 @@ import { FilterSidebar } from '@/components/listings/FilterSidebar';
 import { SearchBar } from '@/components/listings/SearchBar';
 import { useCountry } from '@/context/CountryContext';
 import { FlagIcon } from '@/components/ui/FlagIcon';
+import { warmLocationCache, attachCachedLocation } from '@/lib/geolocation';
 
 const SORT_OPTIONS: Record<string, string> = {
   recommended: 'Recommended',
@@ -54,6 +55,14 @@ function ListingsContent() {
   // Stable ref to track the last fetched param string — prevents duplicate requests
   const prevQueryRef = useRef('');
 
+  // Best-effort location warm-up: kicks off the browser's geolocation
+  // permission prompt once per session (if not already answered) so a
+  // fix is cached and ready by the time a search request goes out. Never
+  // blocks — see lib/geolocation.ts.
+  useEffect(() => {
+    warmLocationCache();
+  }, []);
+
   useEffect(() => {
     const merged = new URLSearchParams(params ? params.toString() : '');
     // Always inject the selected country unless already in the URL params
@@ -67,7 +76,13 @@ function ListingsContent() {
     const controller = new AbortController();
     setLoading(true);
 
-    api.get(`/listings?${queryKey}`, { signal: controller.signal })
+    // Clone before attaching location so a newly-warmed cache never changes
+    // `queryKey` (above) and triggers a spurious duplicate fetch — location
+    // only ever enriches the outgoing request, never the dedup check.
+    const requestParams = new URLSearchParams(merged);
+    attachCachedLocation(requestParams);
+
+    api.get(`/listings?${requestParams.toString()}`, { signal: controller.signal })
       .then(({ data }) => {
         setListings(data.listings || []);
         setTotal(data.pagination?.total || 0);

@@ -254,6 +254,8 @@ model User {
   storeRentals     StoreRental[]        @relation("StoreRentalUser")
   listingEngagements ListingEngagement[]
   cvDownloadTokens CvDownloadToken[]
+  searchLogs       SearchLog[]
+  listingClickLogs ListingClickLog[]
 
   @@index([kycStatus, kycSubmittedAt])
   @@index([isKycVerified])
@@ -366,6 +368,7 @@ model Listing {
   orderItems   OrderItem[]
   cartItems    CartItem[]
   engagement  ListingEngagement[]
+  clickLogs   ListingClickLog[]
 
   @@index([country, status, createdAt(sort: Desc)])
   @@index([categoryId, country, status])
@@ -387,6 +390,81 @@ model ListingEngagement {
 
   @@index([userId, createdAt])
   @@index([listingId, createdAt])
+}
+
+// ─── Search & click analytics ──────────────────────────────────────────────
+// Records every genuine search (a typed term and/or an applied filter — bare
+// unfiltered browsing is not logged) made through GET /listings, and every
+// listing detail view ("item click") made through GET /listings/:id.
+// `context`/snapshot fields are the always-recorded facts about what was
+// searched / clicked; the userId/userEmail/userPhone/location fields are
+// filled in only when available (signed-in user and/or the browser granted
+// geolocation) — see utils/analyticsLogger.ts, which writes both models.
+
+model SearchLog {
+  id                String   @id @default(uuid())
+  // Free-text search term (the `q` param), if any — a filter-only search
+  // (e.g. category + price range with no typed term) leaves this null.
+  query             String?
+  // JSON snapshot of the full search context (q, category, location,
+  // country, priceMin, priceMax, condition, brand, verifiedOnly, sort,
+  // page) — the mandatory record of what was searched, kept as JSON so new
+  // filters can be added later without a schema migration.
+  context           String
+  resultCount       Int?
+
+  userId            String?
+  user              User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  // Snapshots taken at search time (not a live join) so the log stays
+  // accurate even if the user later changes their email/phone.
+  userEmail         String?
+  userPhone         String?
+
+  ip                String?
+  // Country code detected from the CDN/edge header (e.g. Cloudflare's
+  // cf-ipcountry) — always-available, coarse location signal.
+  ipCountry         String?
+  // Best-effort, high-accuracy location from the browser's Geolocation API,
+  // only present when the visitor's browser granted permission.
+  latitude          Float?
+  longitude         Float?
+  locationAccuracy  Float?   // meters
+  userAgent         String?
+
+  createdAt         DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([query])
+  @@index([userId, createdAt])
+}
+
+model ListingClickLog {
+  id                String   @id @default(uuid())
+  listingId         String?
+  listing           Listing? @relation(fields: [listingId], references: [id], onDelete: SetNull)
+  // Snapshots of the clicked item's title/image at click time — kept even
+  // if the listing is later edited or deleted, so the "most clicked items"
+  // report always has a title and image preview to show.
+  listingTitle      String
+  listingImage      String?
+
+  userId            String?
+  user              User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userEmail         String?
+  userPhone         String?
+
+  ip                String?
+  ipCountry         String?
+  latitude          Float?
+  longitude         Float?
+  locationAccuracy  Float?   // meters
+  userAgent         String?
+
+  createdAt         DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([listingId, createdAt])
+  @@index([userId, createdAt])
 }
 
 model CartItem {

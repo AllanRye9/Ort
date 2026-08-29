@@ -211,6 +211,166 @@ router.get('/visitor-logs', async (req: Request, res: Response, next: NextFuncti
   }
 });
 
+// ─── Search & click analytics ───────────────────────────────────────────────
+// Raw logs are written by utils/analyticsLogger.ts from GET /listings
+// (search) and GET /listings/:id (item click) — see that file for exactly
+// what's recorded (search context / item title+image are always recorded;
+// user and location details only when available).
+
+router.get('/search-logs', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const page = Math.max(1, parseInt((req.query.page as string) || '1'));
+    const limit = Math.min(100, parseInt((req.query.limit as string) || '25'));
+    const search = ((req.query.search as string) || '').trim();
+
+    const where: Prisma.SearchLogWhereInput = search
+      ? {
+          OR: [
+            { query: { contains: search, mode: 'insensitive' } },
+            { userEmail: { contains: search, mode: 'insensitive' } },
+            { userPhone: { contains: search, mode: 'insensitive' } },
+            { ip: { contains: search, mode: 'insensitive' } },
+            { ipCountry: { contains: search, mode: 'insensitive' } },
+          ],
+        }
+      : {};
+
+    const [logs, total] = await Promise.all([
+      prisma.searchLog.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.searchLog.count({ where }),
+    ]);
+
+    res.json({ logs, pagination: { total, page, limit, pages: Math.ceil(total / limit) } });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get('/click-logs', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const page = Math.max(1, parseInt((req.query.page as string) || '1'));
+    const limit = Math.min(100, parseInt((req.query.limit as string) || '25'));
+    const search = ((req.query.search as string) || '').trim();
+
+    const where: Prisma.ListingClickLogWhereInput = search
+      ? {
+          OR: [
+            { listingTitle: { contains: search, mode: 'insensitive' } },
+            { userEmail: { contains: search, mode: 'insensitive' } },
+            { userPhone: { contains: search, mode: 'insensitive' } },
+            { ip: { contains: search, mode: 'insensitive' } },
+            { ipCountry: { contains: search, mode: 'insensitive' } },
+          ],
+        }
+      : {};
+
+    const [logs, total] = await Promise.all([
+      prisma.listingClickLog.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.listingClickLog.count({ where }),
+    ]);
+
+    res.json({ logs, pagination: { total, page, limit, pages: Math.ceil(total / limit) } });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Aggregated "most clicked items" — grouped by listing so a still-active
+// listing shows its live click count. Deleted listings (listingId set to
+// null by the FK's onDelete: SetNull) are grouped separately by their
+// snapshotted title/image so they still surface in the ranking instead of
+// silently disappearing.
+router.get('/click-logs/most-clicked', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const limit = Math.min(100, Math.max(1, parseInt((req.query.limit as string) || '20')));
+
+    const [byListing, byDeletedListing] = await Promise.all([
+      prisma.listingClickLog.groupBy({
+        by: ['listingId'],
+        where: { listingId: { not: null } },
+        _count: { listingId: true },
+        orderBy: { _count: { listingId: 'desc' } },
+        take: limit,
+      }),
+      prisma.listingClickLog.groupBy({
+        by: ['listingTitle', 'listingImage'],
+        where: { listingId: null },
+        _count: { listingTitle: true },
+        orderBy: { _count: { listingTitle: 'desc' } },
+        take: limit,
+      }),
+    ]);
+
+    const listingIds = byListing.map((row) => row.listingId).filter((id): id is string => id !== null);
+    const listings = await prisma.listing.findMany({
+      where: { id: { in: listingIds } },
+      select: {
+        id: true, title: true, images: true, status: true,
+        // Same "best available image" resolution used on listing cards
+        // site-wide (see frontend/components/listings/ListingCard.tsx) and
+        // by utils/analyticsLogger.ts: an approved product image first,
+        // falling back to the legacy `images[0]`.
+        productImages: {
+          where: { cdnUrl: { not: null }, status: { not: 'REJECTED' } },
+          select: { cdnUrl: true },
+          orderBy: { uploadedAt: 'asc' },
+          take: 1,
+        },
+      },
+    });
+    interface MostClickedListing {
+      id: string;
+      title: string;
+      images: string[];
+      status: string;
+      productImages: { cdnUrl: string | null }[];
+    }
+    const listingMap = new Map<string, MostClickedListing>(
+      (listings as MostClickedListing[]).map((l) => [l.id, l]),
+    );
+
+    const activeItems = byListing.map((row) => {
+      const listing = row.listingId ? listingMap.get(row.listingId) : undefined;
+      return {
+        listingId: row.listingId,
+        // Prefer the live listing's current title/image (kept up to date if
+        // the seller edits it); fall back to nothing if it was somehow
+        // removed from the map (shouldn't happen given the where filter).
+        title: listing?.title ?? 'Unknown listing',
+        image: listing?.productImages?.[0]?.cdnUrl ?? listing?.images?.[0] ?? null,
+        status: listing?.status ?? null,
+        clicks: row._count.listingId,
+      };
+    });
+
+    const deletedItems = byDeletedListing.map((row) => ({
+      listingId: null,
+      title: row.listingTitle,
+      image: row.listingImage,
+      status: 'DELETED' as const,
+      clicks: row._count.listingTitle,
+    }));
+
+    const mostClicked = [...activeItems, ...deletedItems]
+      .sort((a, b) => b.clicks - a.clicks)
+      .slice(0, limit);
+
+    res.json({ items: mostClicked });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // ─── Analytics ─────────────────────────────────────────────────────────────────
 
 router.get('/analytics', async (_req: Request, res: Response, next: NextFunction) => {

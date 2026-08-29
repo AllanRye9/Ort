@@ -5,6 +5,7 @@ import { createError } from '../middleware/errorHandler';
 import { Prisma } from '@prisma/client';
 import { sendListingLikedEmail } from '../utils/email';
 import { logger } from '../utils/logger';
+import { recordSearchLog, recordListingClick } from '../utils/analyticsLogger';
 
 const router = Router();
 
@@ -466,6 +467,36 @@ router.get('/', optionalAuthenticate, async (req: AuthRequest, res: Response, ne
         : {}),
     };
 
+    // ─── Search logging ───────────────────────────────────────────────────
+    // A "search" is a typed term and/or an applied filter — bare unfiltered
+    // browsing (e.g. the homepage feed, or paging through it) isn't logged.
+    // "Viewing my own listings" (mine=true) is a dashboard view, not a
+    // marketplace search, so it's excluded too. See utils/analyticsLogger.ts
+    // for what gets recorded (search context is mandatory; user/location
+    // details are attached only when available).
+    const isSearchEvent = !viewingOwnListings && Boolean(
+      (q && q.trim()) || category || location || brand || priceMin || priceMax ||
+      condition || verifiedOnly === 'true',
+    );
+    const searchContext = {
+      q: q?.trim() || undefined,
+      category: category || undefined,
+      location: location || undefined,
+      country: country || undefined,
+      priceMin: priceMin || undefined,
+      priceMax: priceMax || undefined,
+      condition: condition || undefined,
+      brand: brand || undefined,
+      verifiedOnly: verifiedOnly === 'true' ? true : undefined,
+      sort,
+      page: pageNum,
+    };
+    const logSearch = (resultCount: number) => {
+      if (!isSearchEvent) return;
+      void recordSearchLog(req, { query: q?.trim() || null, context: searchContext, resultCount })
+        .catch((err) => logger.error('Failed to record search log', err));
+    };
+
     if (sort === 'recommended') {
       const ranked = await getRecommendedListings({
         where,
@@ -474,12 +505,14 @@ router.get('/', optionalAuthenticate, async (req: AuthRequest, res: Response, ne
         userId: req.user?.userId ?? null,
         country,
       });
+      logSearch(ranked.pagination.total);
       res.json(ranked);
       return;
     }
 
     if (sort === 'relevance' && q && q.trim()) {
       const ranked = await getRelevanceRankedListings({ where, q, pageNum, limitNum });
+      logSearch(ranked.pagination.total);
       res.json(ranked);
       return;
     }
@@ -522,6 +555,7 @@ router.get('/', optionalAuthenticate, async (req: AuthRequest, res: Response, ne
       prisma.listing.count({ where }),
     ]);
 
+    logSearch(total);
     res.json({
       listings,
       pagination: { total, page: pageNum, limit: limitNum, pages: Math.ceil(total / limitNum) },
@@ -746,7 +780,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response, next: Nex
   }
 });
 
-router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/:id', optionalAuthenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const listing = await prisma.listing.findUnique({
       where: { id: req.params.id },
@@ -778,6 +812,10 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
     }
 
     await prisma.listing.update({ where: { id: req.params.id }, data: { views: { increment: 1 } } });
+
+    // Record the "item clicked" event — fire-and-forget so a logging
+    // failure or slow write never delays or breaks the listing page.
+    void recordListingClick(req, listing).catch((err) => logger.error('Failed to record listing click log', err));
 
     res.json(listing);
   } catch (err) {

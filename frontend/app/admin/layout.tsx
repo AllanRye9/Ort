@@ -12,6 +12,8 @@ const navGroups = [
       { href: '/admin', label: 'Dashboard', icon: '📊' },
       { href: '/admin/analytics', label: 'Analytics', icon: '📈' },
       { href: '/admin/visitor-logs', label: 'Visitor Logs', icon: '🧾' },
+      { href: '/admin/search-logs', label: 'Search Logs', icon: '🔎' },
+      { href: '/admin/click-logs', label: 'Item Clicks', icon: '🖱️' },
     ],
   },
   {

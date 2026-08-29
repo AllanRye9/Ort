@@ -18,6 +18,7 @@ import { useCart } from '@/context/CartContext';
 import { useRouter } from 'next/navigation';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { getAccessToken } from '@/lib/authStorage';
+import { warmLocationCache, attachCachedLocationToParams } from '@/lib/geolocation';
 
 /* ─────────────────────────────────────────────────────────────
    Helper to cast user object to User type
@@ -301,7 +302,13 @@ export default function ListingDetailClient() {
   }, [zoomOpen, nextImage, prevImage]);
 
   useEffect(() => {
-    api.get(`/listings/${id}`).then(({ data }) => setListing(data)).catch(() => setListing(null)).finally(() => setLoading(false));
+    warmLocationCache();
+  }, []);
+
+  useEffect(() => {
+    const params: Record<string, string> = {};
+    attachCachedLocationToParams(params);
+    api.get(`/listings/${id}`, { params }).then(({ data }) => setListing(data)).catch(() => setListing(null)).finally(() => setLoading(false));
   }, [id]);
 
   useEffect(() => {

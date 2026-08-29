@@ -23,10 +23,32 @@ ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# Node's default V8 heap ceiling is derived from the host's total memory,
+# which in a containerized build (Railway, Docker) is often much higher
+# than the container's actual enforced memory limit — V8 then grows the
+# heap toward that inflated ceiling during webpack's minification /
+# output-file-tracing steps, gets OOM-killed by the container runtime once
+# it crosses the real limit, and the build simply hangs for a long time
+# before dying with no clear error. Setting an explicit, conservative
+# ceiling here makes the build respect the container's real budget: it
+# either completes cleanly or fails fast with a legible "heap out of
+# memory" error instead of a silent long-hang-then-kill. Override at
+# build time with `--build-arg BUILD_MAX_OLD_SPACE_MB=<n>` if your
+# Railway build container has a smaller (or larger) memory allocation.
+ARG BUILD_MAX_OLD_SPACE_MB=4096
+ENV NODE_OPTIONS=--max-old-space-size=${BUILD_MAX_OLD_SPACE_MB}
+
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-RUN npm run build
+# BuildKit cache mount for Next's incremental build cache: without this,
+# Railway's ephemeral build filesystem means every deploy recompiles the
+# entire app from scratch. With it, unchanged pages/modules across builds
+# are reused, cutting rebuild time substantially. Safe no-op fallback if
+# the builder doesn't support BuildKit cache mounts (the leading
+# `# syntax=docker/dockerfile:1` pragma above already requires BuildKit).
+RUN --mount=type=cache,target=/app/.next/cache \
+    npm run build
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Stage 3: runner — minimal production image using the Next.js standalone
