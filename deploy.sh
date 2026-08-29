@@ -424,7 +424,7 @@ fi
 echo ""
 echo "Committing changes..."
 
-git commit -m "$(TZ=Asia/Dubai date +'')"
+git commit -m "$(TZ="Asia/Dubai" date +'%D-%M-%Y %H:%M:%S')"
 
 # ============================================================
 # Push
