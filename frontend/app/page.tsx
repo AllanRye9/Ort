@@ -14,6 +14,7 @@ import CountryLatestCollections from '@/components/ui/CountryLatestCollections';
 import CountryFeaturedDeal from '@/components/ui/CountryFeaturedDeal';
 import CountryRecentAcrossCategories from '@/components/ui/CountryRecentAcrossCategories';
 import { resolveImageUrl } from '@/lib/utils';
+import { API_URL } from '@/lib/apiUrl';
 
 export const metadata: Metadata = {
   title: 'Piitrade Marketplace - Buy & Sell in Uganda',
@@ -42,7 +43,7 @@ interface SiteMediaItem {
 
 async function getHomeData() {
   try {
-    const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+    const apiBase = API_URL;
     const [listingRes, flashRes, featuredRes, latestCollRes, mediaRes] = await Promise.all([
       fetch(`${apiBase}/api/listings?limit=24&sort=createdAt`, { next: { revalidate: 60 } }),
       fetch(`${apiBase}/api/listings/flash-sales`, { next: { revalidate: 30 } }),

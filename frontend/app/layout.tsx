@@ -12,8 +12,7 @@ import Footer from '@/components/layout/Footer';
 import { ToastProvider } from '@/components/ui/Toast';
 import PublicShell from '@/components/layout/PublicShell';
 import { resolveImageUrl } from '@/lib/utils';
-
-const SITE_MEDIA_API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+import { API_URL } from '@/lib/apiUrl';
 
 export const metadata: Metadata = {
   title: 'Piitrade Marketplace - Uganda',
@@ -69,7 +68,7 @@ async function getBackgroundImage(): Promise<string | null> {
     // multiplied across ~98 routes, is what was causing the build to time
     // out page after page. Fail fast instead so a bad/slow backend just
     // means "no background image" rather than a broken build.
-    const response = await fetch(`${SITE_MEDIA_API_BASE}/api/site-media?section=background`, {
+    const response = await fetch(`${API_URL}/api/site-media?section=background`, {
       next: { revalidate: 300 },
       signal: AbortSignal.timeout(5000),
     });

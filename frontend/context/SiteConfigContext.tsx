@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { API_URL } from '@/lib/apiUrl';
 
 export interface Deal {
   id: string;
@@ -68,10 +69,9 @@ export function SiteConfigProvider({ children }: { children: ReactNode }) {
   const [config, setConfig] = useState<SiteConfig>(defaultConfig);
 
   useEffect(() => {
-    const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
     // Add a timestamp so the browser never serves a stale cached response —
     // the server-side endpoint shuffles deals randomly on every request.
-    const url = `${apiBase}/api/public/site-config?_t=${Date.now()}`;
+    const url = `${API_URL}/api/public/site-config?_t=${Date.now()}`;
     fetch(url, { cache: 'no-store' })
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => { if (data) setConfig((prev) => ({ ...prev, ...data })); })

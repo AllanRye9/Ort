@@ -3,30 +3,14 @@ import { clearAuthSession, getAccessToken, hasStoredAuthSession, setAuthSession 
 import { isCountrySwitching } from '@/lib/countrySwitch';
 import { registerProactiveRefresh, scheduleProactiveRefresh, cancelProactiveRefresh } from '@/lib/sessionRefreshScheduler';
 import { requestReauth } from '@/lib/sessionExpiry';
+import { API_URL } from '@/lib/apiUrl';
 
-// Strip trailing slashes so that template literals like `${API_URL}/api`
-// never produce a double-slash (e.g. "https://example.com//api").
-const configuredApiUrl = process.env.NEXT_PUBLIC_API_URL || '';
-const normalizedConfiguredApiUrl = configuredApiUrl.replace(/\/+$/, '');
-
-function resolveApiUrl(): string {
-  if (normalizedConfiguredApiUrl) {
-    return normalizedConfiguredApiUrl;
-  }
-
-  // Safe local default for dev/docker compose when NEXT_PUBLIC_API_URL is missing.
-  if (typeof window !== 'undefined') {
-    const host = window.location.hostname.toLowerCase();
-    if (host === 'piitrade.com' || host === 'www.piitrade.com') {
-      return window.location.origin;
-    }
-    return 'http://localhost:5000';
-  }
-
-  return 'http://backend:5000';
-}
-
-export const API_URL = resolveApiUrl();
+// Re-exported so existing client-side imports (`import { API_URL, api } from
+// '@/lib/api'`) keep working unchanged. Server Components should import
+// API_URL from '@/lib/apiUrl' directly instead of from here — this module
+// pulls in the client-only session-refresh scheduler below, which breaks
+// the server build if bundled server-side. See lib/apiUrl.ts for why.
+export { API_URL };
 
 export const api = axios.create({
   baseURL: `${API_URL}/api`,

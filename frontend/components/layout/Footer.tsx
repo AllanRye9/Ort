@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import BrandLogo from '@/components/ui/BrandLogo';
 import VisitorStats from '@/components/ui/VisitorStats';
+import { API_URL } from '@/lib/apiUrl';
 
 interface SocialLinks {
   facebook?: string | null;
@@ -14,8 +15,7 @@ interface SocialLinks {
 
 async function getSocialLinks(): Promise<SocialLinks> {
   try {
-    const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-    const res = await fetch(`${apiBase}/api/site-media/social-links`, { next: { revalidate: 300 } });
+    const res = await fetch(`${API_URL}/api/site-media/social-links`, { next: { revalidate: 300 } });
     if (!res.ok) return {};
     return res.json();
   } catch {
@@ -39,8 +39,7 @@ function joinCountryLabels(countries: string[]): string {
 
 async function getEnabledCountries(): Promise<string[]> {
   try {
-    const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-    const res = await fetch(`${apiBase}/api/public/site-config`, { next: { revalidate: 60 } });
+    const res = await fetch(`${API_URL}/api/public/site-config`, { next: { revalidate: 60 } });
     if (!res.ok) return ['UGANDA'];
     const data = await res.json();
     return Array.isArray(data.enabledCountries) && data.enabledCountries.length > 0
