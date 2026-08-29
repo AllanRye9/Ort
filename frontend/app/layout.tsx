@@ -58,6 +58,8 @@ export const viewport: Viewport = {
 };
 
 async function getBackgroundImage(): Promise<string | null> {
+  if (process.env.NEXT_PHASE === 'phase-production-build') return null;
+
   try {
     // This fetch runs on every single page (it lives in the root layout),
     // including at build time during static generation. Without a hard
