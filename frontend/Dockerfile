@@ -41,14 +41,40 @@ ENV NODE_OPTIONS=--max-old-space-size=${BUILD_MAX_OLD_SPACE_MB}
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# BuildKit cache mount for Next's incremental build cache: without this,
-# Railway's ephemeral build filesystem means every deploy recompiles the
-# entire app from scratch. With it, unchanged pages/modules across builds
-# are reused, cutting rebuild time substantially. Safe no-op fallback if
-# the builder doesn't support BuildKit cache mounts (the leading
-# `# syntax=docker/dockerfile:1` pragma above already requires BuildKit).
-RUN --mount=type=cache,target=/app/.next/cache \
-    npm run build
+# NOTE on BuildKit cache mounts: this build intentionally does NOT use
+# `--mount=type=cache` for Next's .next/cache directory. Two real, documented
+# constraints make that not worth the fragility here:
+#
+# 1. Railway's builder rejects a plain `--mount=type=cache,id=<anything>`.
+#    It requires the id to be prefixed with the literal Railway *service*
+#    UUID, hardcoded, in the exact form:
+#      --mount=type=cache,id=s/<service-id>-<target-path>,target=<target-path>
+#    (see https://docs.railway.com/builds/dockerfiles#cache-mounts). Railway
+#    explicitly does not support passing that id via ARG/ENV — it must be a
+#    literal string baked into this file — which would permanently couple
+#    this Dockerfile to one specific Railway service and break the moment
+#    that service is recreated (new UUID) or the image is built anywhere
+#    else (Render, plain `docker build`, CI, another Railway service).
+# 2. This repo is explicitly meant to be portable across hosts (see
+#    .env.example mentioning both Render and Railway), so a hardcoded
+#    per-service id is the wrong default here.
+#
+# Net effect: without the cache mount, `npm run build` re-runs Next's build
+# from a clean slate on every image build, which is slower but always
+# correct everywhere. Dependency installation (the more expensive step) is
+# still cached via normal Docker layer caching, since `npm ci` runs in its
+# own layer (Stage 1: deps) keyed on package.json/package-lock.json and is
+# unaffected by source-code changes.
+#
+# If you want the extra Next.js incremental-build speedup AND are committed
+# to staying on this specific Railway service, you can opt back in by
+# replacing the line below with:
+#   RUN --mount=type=cache,id=s/<your-railway-service-id>-next-cache,target=/app/.next/cache \
+#       npm run build
+# Find <your-railway-service-id> in the Railway dashboard: Service → Settings
+# → the UUID shown there (also exposed as the RAILWAY_SERVICE_ID variable at
+# runtime, but it cannot be interpolated into the mount id at build time).
+RUN npm run build
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Stage 3: runner — minimal production image using the Next.js standalone
