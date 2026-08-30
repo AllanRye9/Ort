@@ -121,7 +121,7 @@ function MobileCountryPicker({ onClose }: { onClose: () => void }) {
 
 export default function Header() {
   const { user, logout } = useAuth();
-  const { enabledCountries } = useCountry();
+  const { country, enabledCountries } = useCountry();
   const { totalItems } = useCart();
   const { headerTheme } = useSiteConfig();
   const pathname = usePathname();
@@ -396,6 +396,27 @@ export default function Header() {
               <span className="absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 w-0 group-hover:w-4/5 bg-[var(--theme-primary-dark)] rounded-full transition-all duration-200" />
             </Link>
 
+            {/* Mobile-only cart bubble — mirrors the round white cart button in the
+                top-right of the reference mobile layout (Header's other cart link
+                above is desktop-only). */}
+            <Link
+              href="/cart"
+              className="relative sm:hidden flex items-center justify-center w-9 h-9 rounded-full bg-white shadow-md text-[var(--theme-primary-dark)] flex-shrink-0"
+              aria-label="Shopping Cart"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+              {totalItems > 0 && (
+                <span
+                  className="absolute -top-1 -right-1 w-4 h-4 bg-[var(--theme-primary)] text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none ring-2 ring-white"
+                  aria-label={`${totalItems} item${totalItems !== 1 ? 's' : ''} in cart`}
+                >
+                  {totalItems > 9 ? '9+' : totalItems}
+                </span>
+              )}
+            </Link>
+
             {user && (
               <div ref={notifRef} className="relative hidden sm:block">
                 <button
@@ -600,9 +621,36 @@ export default function Header() {
           </nav>
         </div>
 
+        {/* Mobile-only "Deliver to" style row — shows the active marketplace
+            region, mirroring the location bar at the top of the reference
+            mobile layout. Piitrade doesn't do doorstep delivery scheduling,
+            so this communicates the equivalent concept: which marketplace
+            region listings are being shown for. */}
+        {!scrolled && (
+          <div className="sm:hidden px-3 pb-2 -mt-1">
+            <Link href="/listings" className="flex items-center gap-1 text-white/95 text-sm font-medium">
+              <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+              <span className="truncate">Browsing <span className="font-bold">{country === 'UGANDA' ? 'Uganda' : country}</span></span>
+              <svg className="w-3.5 h-3.5 opacity-80 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+            </Link>
+          </div>
+        )}
+
         <div className={`sm:hidden border-t px-3 py-2 ${scrolled ? 'border-red-100 bg-white' : 'border-white/10 bg-[var(--theme-primary-dark)]/40 backdrop-blur-sm'}`}>
           <HeaderSearch variant="mobile" scrolled={scrolled} />
         </div>
+
+        {/* Mobile-only tagline strip — the bold "BACK TO THE GOOD STUFF"-style
+            banner text sitting on the brand-colour header, directly above
+            where the page content (category grid) begins. Only shown on the
+            homepage's own top bar state (unscrolled), so it doesn't linger
+            once the header has compacted while scrolling other pages. */}
+        {!scrolled && pathname === '/' && (
+          <div className="sm:hidden px-4 pt-1 pb-5 text-center">
+            <p className="text-white/70 text-[11px] font-bold uppercase tracking-wider">Back to the</p>
+            <p className="text-white text-2xl font-black uppercase tracking-tight -mt-0.5">Good Deals</p>
+          </div>
+        )}
 
         <div className="hidden sm:block"><CategoryBar /></div>
       </header>

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import type { Metadata } from 'next';
 import HeroSlideshow from '@/components/ui/HeroSlideshow';
+import MobileCategoryGrid from '@/components/ui/MobileCategoryGrid';
 import { CategorySideNav, PromoSideCards } from '@/components/ui/HeroSideCards';
 import CountryFlashDeals from '@/components/ui/CountryFlashDeals';
 import CountryThemedHome from '@/components/ui/CountryThemedHome';
@@ -145,6 +146,14 @@ export default async function HomePage() {
         <TrackPageView />
         {/* Region hint banner — shown once per session to inform about country/currency filtering */}
         <RegionHintBanner />
+
+        {/* ═══ MOBILE CATEGORY GRID ═══
+            Sits directly under the header's tagline strip on phones, mirroring
+            the icon-grid-then-promo-carousel structure of the reference
+            mobile layout. Desktop keeps its existing CategoryBar mega-menu
+            instead, so this is mobile-only. */}
+        <MobileCategoryGrid />
+
         {/* ═══ HERO ═══ */}
         <section className="p-[6px]">
           <div className="flex items-stretch gap-2 min-h-[260px] sm:min-h-[310px] max-h-[370px]">
