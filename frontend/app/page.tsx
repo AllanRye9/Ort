@@ -99,13 +99,13 @@ const features = [
     icon: '🔒',
     title: 'Trusted & Verified',
     desc: 'Every seller is vetted. Secure transactions and verified authenticity.',
-    color: 'from-[#951f15] to-premium-navy',
+    color: 'from-[#FF6500] to-premium-navy',
   },
   {
     icon: '✦',
     title: 'Curated Selection',
     desc: 'Only the finest listings. Quality over quantity, always.',
-    color: 'from-[#651A15] to-[#4a1109]',
+    color: 'from-[#9A3300] to-[#6B2400]',
   },
   {
     icon: '💎',
@@ -117,7 +117,7 @@ const features = [
     icon: '🇺🇬',
     title: 'Nationwide Reach',
     desc: 'Connect with trusted buyers and sellers across Uganda.',
-    color: 'from-[#7a1c15] to-[#951f15]',
+    color: 'from-[#E94B00] to-[#FF6500]',
   },
 ];
 
@@ -356,7 +356,7 @@ export default async function HomePage() {
                two-up row instead of two large full-width banners. Same links and
                copy, just repositioned into far less vertical space. ═══ */}
           <section className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-premium-navy via-[#651A15] to-[#4a1109] text-white p-3.5 xs:p-4 flex items-center gap-3">
+            <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-premium-navy via-[#9A3300] to-[#6B2400] text-white p-3.5 xs:p-4 flex items-center gap-3">
               <span className="text-2xl shrink-0" aria-hidden="true">🪪</span>
               <div className="flex-1 min-w-0">
                 <h3 className="font-bold text-sm leading-tight">Get KYC Verified</h3>

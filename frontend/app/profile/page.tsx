@@ -496,7 +496,7 @@ export default function ProfilePage() {
       {/* Profile header */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-4">
         {/* Banner with gold gradient */}
-        <div className="h-24 bg-gradient-to-r from-premium-navy via-[#5c1610] to-premium-gold" />
+        <div className="h-24 bg-gradient-to-r from-premium-navy via-[#C23F00] to-premium-gold" />
         <div className="px-4 sm:px-6 pb-4 sm:pb-6 -mt-12">
           <div className="flex flex-col sm:flex-row items-start sm:items-end gap-3 sm:gap-4">
             <div className="relative group">
@@ -538,7 +538,7 @@ export default function ProfilePage() {
                   type="button"
                   onClick={() => avatarInputRef.current?.click()}
                   disabled={uploadingAvatar}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#B7291B] text-white text-xs font-semibold hover:bg-[#7a1c15] transition-colors disabled:opacity-50"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#F55906] text-white text-xs font-semibold hover:bg-[#E94B00] transition-colors disabled:opacity-50"
                   aria-label="Upload profile photo"
                 >
                   {uploadingAvatar ? (
@@ -629,12 +629,12 @@ export default function ProfilePage() {
             <div className="flex items-center gap-3">
               <input
                 type="color"
-                value={form.cvThemeColor || '#B7291B'}
+                value={form.cvThemeColor || '#F55906'}
                 onChange={(e) => setForm({ ...form, cvThemeColor: e.target.value })}
                 className="w-12 h-10 rounded-lg border border-gray-200 cursor-pointer p-0.5"
               />
               <div className="flex gap-2 flex-wrap">
-                {['#B7291B','#10B981','#8B5CF6','#F59E0B','#EF4444','#EC4899','#0369A1','#064E3B'].map((c) => (
+                {['#F55906','#10B981','#8B5CF6','#F59E0B','#EF4444','#EC4899','#0369A1','#064E3B'].map((c) => (
                   <button
                     key={c}
                     type="button"
@@ -811,7 +811,7 @@ export default function ProfilePage() {
       {/* Quick links */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
         {[
-          { href: '/profile/listings', icon: '📋', label: 'My Listings', desc: 'Manage your ads', accent: 'border-red-200 hover:border-[#B7291B]' },
+          { href: '/profile/listings', icon: '📋', label: 'My Listings', desc: 'Manage your ads', accent: 'border-red-200 hover:border-[#F55906]' },
           { href: '/profile/favorites', icon: '❤️', label: 'Favorites', desc: 'Saved items', accent: 'border-pink-200 hover:border-pink-400' },
           { href: '/notifications', icon: '🔔', label: 'Notifications', desc: 'Platform updates', accent: 'border-green-200 hover:border-green-400' },
           { href: '/profile/subscription', icon: '🔔', label: 'Subscription', desc: 'Your listing plan', accent: 'border-purple-200 hover:border-purple-400' },

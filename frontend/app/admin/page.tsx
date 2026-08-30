@@ -343,7 +343,7 @@ export default function AdminDashboard() {
           emoji="🆕"
           value={stats.newUsersThisMonth}
           label="New/Month"
-          gradient="bg-gradient-to-br from-[#7a1c15] to-[#5c1610]"
+          gradient="bg-gradient-to-br from-[#E94B00] to-[#C23F00]"
         />
       </div>
 
@@ -493,7 +493,7 @@ export default function AdminDashboard() {
           {/* Users by Country */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-3 flex-1">
             <h2 className="font-bold text-gray-900 text-xs mb-2 flex items-center gap-1.5">
-              <span className="w-1 h-3.5 rounded-full" style={{ background: '#C5A059' }} />
+              <span className="w-1 h-3.5 rounded-full" style={{ background: '#FF6500' }} />
               By Country
             </h2>
             <div className="space-y-1.5">
@@ -509,7 +509,7 @@ export default function AdminDashboard() {
                   </div>
                   <div className="w-full bg-gray-100 rounded-full h-1">
                     <div
-                      className="h-1 rounded-full bg-gradient-to-r from-[#7a1c15] to-[#B7291B] transition-all duration-700"
+                      className="h-1 rounded-full bg-gradient-to-r from-[#E94B00] to-[#F55906] transition-all duration-700"
                       style={{ width: `${(count / maxCountryCount) * 100}%` }}
                     />
                   </div>
@@ -524,7 +524,7 @@ export default function AdminDashboard() {
           {/* Quick Actions */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-2.5">
             <h2 className="font-bold text-gray-900 text-xs mb-2 flex items-center gap-1.5">
-              <span className="w-1 h-3.5 rounded-full" style={{ background: '#C5A059' }} />
+              <span className="w-1 h-3.5 rounded-full" style={{ background: '#FF6500' }} />
               Quick Actions
             </h2>
             <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">

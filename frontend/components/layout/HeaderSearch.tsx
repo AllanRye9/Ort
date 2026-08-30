@@ -196,15 +196,15 @@ export default function HeaderSearch({ variant, scrolled }: HeaderSearchProps) {
         <div
           className={
             isDesktop
-              ? `flex w-full rounded-xl overflow-hidden ring-2 transition-all shadow-lg ${scrolled ? 'ring-red-200 focus-within:ring-[var(--theme-primary)]' : 'ring-white/30 focus-within:ring-white/70'}`
-              : `flex w-full rounded-lg overflow-hidden ring-2 transition-all ${scrolled ? 'ring-red-200 focus-within:ring-[var(--theme-primary)]' : 'ring-white/20 focus-within:ring-white/70'}`
+              ? `flex w-full rounded-full overflow-hidden ring-2 transition-all shadow-search ${scrolled ? 'ring-red-200 focus-within:ring-[var(--theme-primary)]' : 'ring-white/30 focus-within:ring-white/70'}`
+              : `flex w-full rounded-full overflow-hidden ring-2 transition-all shadow-search ${scrolled ? 'ring-red-200 focus-within:ring-[var(--theme-primary)]' : 'ring-white/20 focus-within:ring-white/70'}`
           }
         >
           {isDesktop && (
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className={`shrink-0 px-2 py-2 text-xs font-semibold border-r focus:outline-none cursor-pointer ${scrolled ? 'bg-gray-50 text-gray-700 border-gray-200' : 'bg-white/10 text-white border-white/20'}`}
+              className={`shrink-0 px-3 py-3 text-xs font-semibold border-r focus:outline-none cursor-pointer ${scrolled ? 'bg-gray-50 text-gray-700 border-gray-200' : 'bg-white/10 text-white border-white/20'}`}
               aria-label="Filter by category"
             >
               {TOP_LEVEL_CATEGORY_OPTIONS.map((c) => (
@@ -225,7 +225,7 @@ export default function HeaderSearch({ variant, scrolled }: HeaderSearchProps) {
               aria-expanded={open}
               aria-autocomplete="list"
               autoComplete="off"
-              className={`w-full px-3 md:px-4 ${isDesktop ? 'py-2 text-sm md:text-base' : 'py-2 text-sm'} focus:outline-none ${scrolled ? 'bg-white text-gray-900 placeholder:text-gray-400' : 'bg-white/10 text-white placeholder:text-white/60'}`}
+              className={`w-full px-3 md:px-4 ${isDesktop ? 'py-3 text-sm md:text-base' : 'py-2.5 text-sm'} focus:outline-none ${scrolled ? 'bg-white text-gray-900 placeholder:text-gray-400' : 'bg-white/10 text-white placeholder:text-white/60'}`}
             />
             {q && (
               <button
@@ -242,8 +242,8 @@ export default function HeaderSearch({ variant, scrolled }: HeaderSearchProps) {
             type="submit"
             className={
               isDesktop
-                ? `px-3 md:px-4 py-2 text-sm md:text-base font-semibold flex-shrink-0 transition-colors ${scrolled ? 'bg-gradient-to-r from-[var(--theme-primary-dark)] to-[var(--theme-primary)] text-white hover:brightness-110' : 'bg-premium-gold/90 text-white hover:bg-premium-gold'}`
-                : `px-4 py-2 text-sm font-semibold ${scrolled ? 'bg-premium-gold text-white hover:bg-premium-gold-dark' : 'bg-premium-gold/90 text-white hover:bg-premium-gold'}`
+                ? `px-4 md:px-5 py-3 text-sm md:text-base font-bold flex-shrink-0 transition-colors ${scrolled ? 'bg-gradient-to-r from-[var(--theme-primary-dark)] to-[var(--theme-primary)] text-white hover:brightness-110' : 'bg-premium-gold/90 text-white hover:bg-premium-gold'}`
+                : `px-4 py-2.5 text-sm font-bold ${scrolled ? 'bg-premium-gold text-white hover:bg-premium-gold-dark' : 'bg-premium-gold/90 text-white hover:bg-premium-gold'}`
             }
           >
             Search

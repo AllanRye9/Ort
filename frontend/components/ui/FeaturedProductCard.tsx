@@ -86,7 +86,7 @@ export default function FeaturedProductCard({
               <span className="text-gray-400 line-through text-[10px] sm:text-xs tabular-nums">{originalPrice}</span>
             )}
             {discountedPrice && (
-              <span className="animate-price-pop text-[#B7291B] font-extrabold text-sm sm:text-base tabular-nums">{discountedPrice}</span>
+              <span className="animate-price-pop text-[#F55906] font-extrabold text-sm sm:text-base tabular-nums">{discountedPrice}</span>
             )}
           </div>
         )}

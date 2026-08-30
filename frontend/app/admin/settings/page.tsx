@@ -82,23 +82,10 @@ const DEFAULT_SETTINGS: Settings = {
   trialDays: 7,
 };
 
+// The site now ships with a single locked brand colour, so there is nothing
+// left to pick — this list intentionally has just the one entry.
 const THEME_OPTIONS = [
-  { key: 'red',      label: 'Piitrade Red',  color: '#B7291B' },
-  { key: 'white',    label: 'White',         color: '#64748b' },
-  { key: 'dark',     label: 'Dark',          color: '#38bdf8' },
-  { key: 'emerald',  label: 'Emerald',       color: '#10b981' },
-  { key: 'violet',   label: 'Violet',        color: '#7c3aed' },
-  { key: 'rose',     label: 'Rose',          color: '#f43f5e' },
-  { key: 'amber',    label: 'Amber',         color: '#f59e0b' },
-  { key: 'indigo',   label: 'Indigo',        color: '#4f46e5' },
-  { key: 'navy',     label: 'Navy Blue',     color: '#1d4ed8' },
-  { key: 'ocean',    label: 'Ocean',         color: '#0891b2' },
-  { key: 'teal',     label: 'Teal',          color: '#0d9488' },
-  { key: 'gold',     label: 'Gold Luxury',   color: '#ca8a04' },
-  { key: 'midnight', label: 'Midnight',      color: '#818cf8' },
-  { key: 'forest',   label: 'Forest',        color: '#16a34a' },
-  { key: 'coral',    label: 'Coral',         color: '#ea580c' },
-  { key: 'royal',    label: 'Royal Purple',  color: '#9333ea' },
+  { key: 'red',      label: 'Piitrade Orange',  color: '#F55906' },
 ];
 
 // ─── Toggle Switch ─────────────────────────────────────────────────────────────

@@ -156,7 +156,7 @@ function ListingsContent() {
   return (
     <div>
       {/* ── Compact hero header — trimmed further so listings sit higher on the page ── */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-premium-navy via-[#651A15] to-[#4a1109] py-3 sm:py-4 px-4">
+      <div className="relative overflow-hidden bg-gradient-to-br from-premium-navy via-[#9A3300] to-[#6B2400] py-3 sm:py-4 px-4">
         {/* Ambient texture */}
         <div
           className="absolute inset-0 opacity-[0.07]"

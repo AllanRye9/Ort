@@ -50,7 +50,7 @@ export default function QuickActions() {
       {/* Sell on Piitrade — leads to store subscription plan, not registration */}
       <Link
         href={sellHref}
-        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-premium-navy to-[#4a1109] text-white font-semibold text-sm hover:shadow-lg hover:-translate-y-0.5 transition-all shadow-sm interactive"
+        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-premium-navy to-[#6B2400] text-white font-semibold text-sm hover:shadow-lg hover:-translate-y-0.5 transition-all shadow-sm interactive"
         aria-label="Sell on Piitrade — subscribe to a store plan"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

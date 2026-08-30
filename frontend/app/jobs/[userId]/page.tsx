@@ -45,7 +45,7 @@ const COUNTRY_FLAGS: Record<string, string> = {
   CHINA: '🇨🇳',
 };
 
-const DEFAULT_THEME = '#B7291B'; // red-500
+const DEFAULT_THEME = '#F55906'; // red-500
 
 function extractResponseStatus(error: unknown): number | undefined {
   return (error as { response?: { status?: number } }).response?.status;

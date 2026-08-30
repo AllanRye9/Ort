@@ -10,7 +10,6 @@ import { useRouter, usePathname } from 'next/navigation';
 import CategoryBar from '@/components/layout/CategoryBar';
 import HeaderSearch from '@/components/layout/HeaderSearch';
 import { CountrySelector } from '@/components/ui/CountrySelector';
-import ThemeSwitcher from '@/components/ui/ThemeSwitcher';
 import { api } from '@/lib/api';
 import type { Notification, NotificationType } from '@/lib/types';
 import { useSiteConfig } from '@/context/SiteConfigContext';
@@ -153,40 +152,18 @@ export default function Header() {
   // "PIITRADE EXCHANGE · Money Transfer Rates" text (see SiteAnalytics.tsx).
   // The header always shows the default Piitrade wordmark.
 
-  // Sync admin-set header theme to CSS variables on mount / change
+  // The site now ships with a single locked brand colour (Piitrade Orange).
+  // The admin "header theme" setting no longer changes the palette — this
+  // just keeps the CSS custom properties pinned to orange on mount.
   useEffect(() => {
-    if (!headerTheme || typeof window === 'undefined') return;
-    const themeMap: Record<string, { primary: string; dark: string; bg: string; text: string; textOn: string }> = {
-      red:      { primary: '#B7291B', dark: '#7A1C15', bg: '#FCE4E1', text: '#1a1310', textOn: '#ffffff' },
-      white:    { primary: '#64748b', dark: '#475569', bg: '#f1f5f9', text: '#111827', textOn: '#ffffff' },
-      dark:     { primary: '#38bdf8', dark: '#0ea5e9', bg: '#0f172a', text: '#e2e8f0', textOn: '#0f172a' },
-      emerald:  { primary: '#10b981', dark: '#059669', bg: '#ecfdf5', text: '#064e3b', textOn: '#ffffff' },
-      violet:   { primary: '#7c3aed', dark: '#6d28d9', bg: '#f5f3ff', text: '#1e1b4b', textOn: '#ffffff' },
-      rose:     { primary: '#f43f5e', dark: '#e11d48', bg: '#fff1f2', text: '#4c0519', textOn: '#ffffff' },
-      amber:    { primary: '#f59e0b', dark: '#d97706', bg: '#fffbeb', text: '#451a03', textOn: '#1c1917' },
-      indigo:   { primary: '#4f46e5', dark: '#4338ca', bg: '#eef2ff', text: '#1e1b4b', textOn: '#ffffff' },
-      navy:     { primary: '#1d4ed8', dark: '#1e40af', bg: '#eff6ff', text: '#1e3a5f', textOn: '#ffffff' },
-      ocean:    { primary: '#0891b2', dark: '#0e7490', bg: '#ecfeff', text: '#083344', textOn: '#ffffff' },
-      teal:     { primary: '#0d9488', dark: '#0f766e', bg: '#f0fdfa', text: '#042f2e', textOn: '#ffffff' },
-      gold:     { primary: '#ca8a04', dark: '#a16207', bg: '#fefce8', text: '#422006', textOn: '#ffffff' },
-      midnight: { primary: '#818cf8', dark: '#6366f1', bg: '#0f0c29', text: '#c7d2fe', textOn: '#0f0c29' },
-      forest:   { primary: '#16a34a', dark: '#15803d', bg: '#f0fdf4', text: '#052e16', textOn: '#ffffff' },
-      coral:    { primary: '#ea580c', dark: '#c2410c', bg: '#fff7ed', text: '#431407', textOn: '#ffffff' },
-      royal:    { primary: '#9333ea', dark: '#7e22ce', bg: '#faf5ff', text: '#3b0764', textOn: '#ffffff' },
-    };
-    const t = themeMap[headerTheme];
-    if (!t) return;
+    if (typeof window === 'undefined') return;
     const root = document.documentElement;
-    root.style.setProperty('--theme-primary', t.primary);
-    root.style.setProperty('--theme-primary-dark', t.dark);
-    root.style.setProperty('--theme-bg-light', t.bg);
-    root.style.setProperty('--theme-text', t.text);
-    root.style.setProperty('--theme-text-on-primary', t.textOn);
-    if (headerTheme === 'dark' || headerTheme === 'midnight') {
-      root.classList.add('theme-dark');
-    } else {
-      root.classList.remove('theme-dark');
-    }
+    root.style.setProperty('--theme-primary', '#F55906');
+    root.style.setProperty('--theme-primary-dark', '#E94B00');
+    root.style.setProperty('--theme-bg-light', '#FFE4D1');
+    root.style.setProperty('--theme-text', '#1a1310');
+    root.style.setProperty('--theme-text-on-primary', '#ffffff');
+    root.classList.remove('theme-dark');
   }, [headerTheme]);
 
   useEffect(() => {
@@ -253,7 +230,7 @@ export default function Header() {
   return (
     <>
       <header
-        className={`z-50 transition-all duration-500 ${scrolled ? 'bg-white/95 backdrop-blur-2xl border-b border-red-100/80 shadow-[0_4px_32px_-4px_rgba(183,41,27,0.18),0_2px_8px_-2px_rgba(122,28,21,0.12)]' : 'shadow-[0_2px_24px_0_rgba(122,28,21,0.35)]'}`}
+        className={`z-50 transition-all duration-500 ${scrolled ? 'bg-white/95 backdrop-blur-2xl border-b border-red-100/80 shadow-[0_4px_32px_-4px_rgba(245,89,6,0.18),0_2px_8px_-2px_rgba(233,75,0,0.12)]' : 'shadow-[0_2px_24px_0_rgba(233,75,0,0.35)]'}`}
         style={scrolled ? undefined : { background: 'linear-gradient(135deg, var(--theme-primary-dark) 0%, var(--theme-primary) 50%, var(--theme-primary-dark) 100%)' }}
       >
         <div className="max-w-7xl mx-auto px-3 sm:px-4 flex items-center gap-1.5 sm:gap-2 md:gap-3 h-14 sm:h-16">
@@ -540,7 +517,6 @@ export default function Header() {
             </div>
 
             <div className="hidden sm:flex items-center gap-1.5">
-              <ThemeSwitcher dropdown light />
               <CountrySelector light />
             </div>
 
