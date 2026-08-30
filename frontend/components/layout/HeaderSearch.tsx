@@ -8,6 +8,10 @@ import { useCountry } from '@/context/CountryContext';
 const RECENT_SEARCHES_KEY = 'piitrade_recent_searches';
 const MAX_RECENT = 6;
 
+// Category options are no longer exposed as a visible dropdown in the search
+// bar (this is now a plain advanced search field), but they're kept here so
+// typed category names (e.g. "Motors") still resolve to a category filter
+// via the suggestions list below.
 const TOP_LEVEL_CATEGORY_OPTIONS = [
   { value: '', label: 'All Categories' },
   { value: 'motors', label: 'Motors' },
@@ -178,20 +182,8 @@ export default function HeaderSearch({ variant, scrolled }: HeaderSearchProps) {
   return (
     <form
       onSubmit={handleSubmit}
-      className={isDesktop ? 'hidden sm:flex flex-1 min-w-0 md:max-w-xl' : 'flex flex-col gap-1.5'}
+      className={isDesktop ? 'hidden sm:flex flex-1 min-w-0 md:max-w-xl' : 'flex w-full'}
     >
-      {!isDesktop && (
-        <select
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          className={`w-full px-3 py-2 text-xs font-semibold rounded-lg border focus:outline-none ${scrolled ? 'bg-gray-50 text-gray-700 border-gray-200' : 'bg-white/10 text-white border-white/20'}`}
-          aria-label="Filter by category"
-        >
-          {TOP_LEVEL_CATEGORY_OPTIONS.map((c) => (
-            <option key={c.value} value={c.value}>{c.label}</option>
-          ))}
-        </select>
-      )}
       <div ref={wrapRef} className="relative w-full">
         <div
           className={
@@ -200,18 +192,6 @@ export default function HeaderSearch({ variant, scrolled }: HeaderSearchProps) {
               : `flex w-full rounded-full overflow-hidden ring-2 transition-all shadow-search ${scrolled ? 'ring-red-200 focus-within:ring-[var(--theme-primary)]' : 'ring-white/20 focus-within:ring-white/70'}`
           }
         >
-          {isDesktop && (
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className={`shrink-0 px-3 py-3 text-xs font-semibold border-r focus:outline-none cursor-pointer ${scrolled ? 'bg-gray-50 text-gray-700 border-gray-200' : 'bg-white/10 text-white border-white/20'}`}
-              aria-label="Filter by category"
-            >
-              {TOP_LEVEL_CATEGORY_OPTIONS.map((c) => (
-                <option key={c.value} value={c.value}>{c.label}</option>
-              ))}
-            </select>
-          )}
           <div className="relative flex-1 min-w-0">
             <input
               ref={inputRef}

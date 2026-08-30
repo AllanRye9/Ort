@@ -627,16 +627,16 @@ export default function Header() {
             so this communicates the equivalent concept: which marketplace
             region listings are being shown for. */}
         {!scrolled && (
-          <div className="sm:hidden px-3 pb-2 -mt-1">
-            <Link href="/listings" className="flex items-center gap-1 text-white/95 text-sm font-medium">
-              <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+          <div className="sm:hidden px-3 pb-1.5 -mt-1">
+            <Link href="/listings" className="flex items-center gap-1 text-white/95 text-xs font-medium">
+              <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
               <span className="truncate">Browsing <span className="font-bold">{country === 'UGANDA' ? 'Uganda' : country}</span></span>
               <svg className="w-3.5 h-3.5 opacity-80 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
             </Link>
           </div>
         )}
 
-        <div className={`sm:hidden border-t px-3 py-2 ${scrolled ? 'border-red-100 bg-white' : 'border-white/10 bg-[var(--theme-primary-dark)]/40 backdrop-blur-sm'}`}>
+        <div className={`sm:hidden border-t px-3 py-1.5 ${scrolled ? 'border-red-100 bg-white' : 'border-white/10 bg-[var(--theme-primary-dark)]/40 backdrop-blur-sm'}`}>
           <HeaderSearch variant="mobile" scrolled={scrolled} />
         </div>
 
@@ -644,11 +644,12 @@ export default function Header() {
             banner text sitting on the brand-colour header, directly above
             where the page content (category grid) begins. Only shown on the
             homepage's own top bar state (unscrolled), so it doesn't linger
-            once the header has compacted while scrolling other pages. */}
+            once the header has compacted while scrolling other pages.
+            Kept compact so the header doesn't crowd out the content below it. */}
         {!scrolled && pathname === '/' && (
-          <div className="sm:hidden px-4 pt-1 pb-5 text-center">
-            <p className="text-white/70 text-[11px] font-bold uppercase tracking-wider">Back to the</p>
-            <p className="text-white text-2xl font-black uppercase tracking-tight -mt-0.5">Good Deals</p>
+          <div className="sm:hidden px-4 pt-1 pb-2 text-center">
+            <p className="text-white/70 text-[10px] font-bold uppercase tracking-wider">Back to the</p>
+            <p className="text-white text-lg font-black uppercase tracking-tight -mt-0.5">Good Deals</p>
           </div>
         )}
 
