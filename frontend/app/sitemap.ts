@@ -2,12 +2,18 @@ import type { MetadataRoute } from 'next';
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://piitrade.com';
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+const REQUEST_TIMEOUT_MS = 5000;
+
+async function fetchSitemapData(path: string, revalidate: number): Promise<Response> {
+  return fetch(`${API_BASE}${path}`, {
+    next: { revalidate },
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+  });
+}
 
 async function fetchSitemapListings(): Promise<{ id: string; updatedAt: string }[]> {
   try {
-    const res = await fetch(`${API_BASE}/api/listings?limit=1000&sort=updatedAt`, {
-      next: { revalidate: 3600 },
-    });
+    const res = await fetchSitemapData('/api/listings?limit=1000&sort=updatedAt', 3600);
     if (!res.ok) return [];
     const data = await res.json();
     return (data.listings || []).map((l: { id: string; updatedAt: string }) => ({
@@ -21,7 +27,7 @@ async function fetchSitemapListings(): Promise<{ id: string; updatedAt: string }
 
 async function fetchSitemapBlogPosts(): Promise<{ slug: string; updatedAt: string }[]> {
   try {
-    const res = await fetch(`${API_BASE}/api/blog?limit=500`, { next: { revalidate: 3600 } });
+    const res = await fetchSitemapData('/api/blog?limit=500', 3600);
     if (!res.ok) return [];
     const data = await res.json();
     return (data.posts || []).map((p: { slug: string; updatedAt: string }) => ({
@@ -35,7 +41,7 @@ async function fetchSitemapBlogPosts(): Promise<{ slug: string; updatedAt: strin
 
 async function fetchSitemapCategories(): Promise<{ slug: string }[]> {
   try {
-    const res = await fetch(`${API_BASE}/api/categories`, { next: { revalidate: 86400 } });
+    const res = await fetchSitemapData('/api/categories', 86400);
     if (!res.ok) return [];
     const data = await res.json();
     return (data.categories || data || []).map((c: { slug: string }) => ({ slug: c.slug }));

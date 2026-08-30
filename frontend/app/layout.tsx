@@ -11,8 +11,7 @@ import { SiteConfigProvider } from '@/context/SiteConfigContext';
 import Footer from '@/components/layout/Footer';
 import { ToastProvider } from '@/components/ui/Toast';
 import PublicShell from '@/components/layout/PublicShell';
-import { resolveImageUrl } from '@/lib/utils';
-import { API_URL } from '@/lib/apiUrl';
+import BackgroundImage from '@/components/layout/BackgroundImage';
 
 export const metadata: Metadata = {
   title: 'Piitrade Marketplace - Uganda',
@@ -56,39 +55,7 @@ export const viewport: Viewport = {
   ],
 };
 
-async function getBackgroundImage(): Promise<string | null> {
-  if (process.env.NEXT_PHASE === 'phase-production-build') return null;
-
-  try {
-    // This fetch runs on every single page (it lives in the root layout),
-    // including at build time during static generation. Without a hard
-    // timeout, an unreachable/slow backend (e.g. NEXT_PUBLIC_API_URL not
-    // yet up during a Docker/CI build) leaves the request hanging until
-    // Next's own 60s per-page static-generation timeout kills it — which,
-    // multiplied across ~98 routes, is what was causing the build to time
-    // out page after page. Fail fast instead so a bad/slow backend just
-    // means "no background image" rather than a broken build.
-    const response = await fetch(`${API_URL}/api/site-media?section=background`, {
-      next: { revalidate: 300 },
-      signal: AbortSignal.timeout(5000),
-    });
-
-    if (!response.ok) return null;
-
-    const data = await response.json();
-    const firstMedia = Array.isArray(data?.media)
-      ? data.media.find((item: { cdnUrl?: string | null }) => item?.cdnUrl)
-      : null;
-
-    return firstMedia?.cdnUrl ? resolveImageUrl(firstMedia.cdnUrl) : null;
-  } catch {
-    return null;
-  }
-}
-
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const backgroundImage = await getBackgroundImage();
-
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body className="font-sans">
@@ -98,15 +65,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <CartProvider>
               <ToastProvider>
                 <div className="relative isolate min-h-screen flex flex-col">
-                  {backgroundImage && (
-                    <>
-                      <div
-                        className="pointer-events-none fixed inset-0 -z-20 bg-cover bg-center bg-no-repeat"
-                        style={{ backgroundImage: `url("${backgroundImage}")` }}
-                      />
-                      <div className="site-bg-overlay pointer-events-none fixed inset-0 -z-10" />
-                    </>
-                  )}
+                  <BackgroundImage />
                   <PublicShell footer={<Footer />}>
                     {children}
                   </PublicShell>
