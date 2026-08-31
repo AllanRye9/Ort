@@ -1382,7 +1382,12 @@ router.post(
       const categorySlugMap = new Map(categoryRecords.map((c) => [c.id, c.slug]));
 
 
-      // Process images for each listing item.
+      // Process images for each listing item. Upload failures (S3 outage,
+      // misconfigured credentials, local-disk permission/space issues on
+      // the host, etc.) are translated into a clear, actionable 400 here —
+      // left unguarded, a raw filesystem/SDK error would otherwise surface
+      // to the admin as an opaque "Internal Server Error" with no
+      // indication of which row or file caused it.
       const imageUrlsByIndex: string[][] = await Promise.all(
         items.map(async (item, idx) => {
           const files = filesByIndex.get(idx) || [];
@@ -1399,6 +1404,12 @@ router.post(
             try {
               cdnUrl = await uploadToCDN(tempPath, f.filename, folder);
               urls.push(cdnUrl);
+            } catch (uploadErr) {
+              logger.error(`Bulk image upload failed for row ${idx + 1} (${f.originalname}):`, uploadErr);
+              throw createError(
+                `Row ${idx + 1}: failed to upload image "${f.originalname}". Please try again, or remove the image and retry.`,
+                502,
+              );
             } finally {
               try { fs.unlinkSync(tempPath); } catch { /* best-effort */ }
             }
