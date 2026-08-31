@@ -237,6 +237,17 @@ export async function uploadToCDN(tempFilePath: string, filename: string, folder
   }
 
   // ── 2. Local filesystem ───────────────────────────────────────────────────────
+  // Production deployments on Railway do not persist the container filesystem across
+  // deploys or restarts. If S3 is not configured, silently falling back to local disk
+  // creates broken /uploads/... URLs after the next deployment because the files are
+  // missing from the new instance. Fail clearly instead of generating permanent 404s.
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(
+      'Production uploads require S3-compatible storage or a mounted persistent volume. ' +
+      'Local filesystem fallback is not durable on Railway and produces broken image URLs.'
+    );
+  }
+
   return uploadToLocal(tempFilePath, filename, folder);
 }
 

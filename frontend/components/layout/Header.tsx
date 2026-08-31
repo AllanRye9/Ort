@@ -647,7 +647,7 @@ export default function Header() {
             once the header has compacted while scrolling other pages.
             Kept compact so the header doesn't crowd out the content below it. */}
         {!scrolled && pathname === '/' && (
-          <div className="sm:hidden px-4 pt-1 pb-2 text-center">
+          <div className="sm:hidden px-4 pt-1 pb-4 text-center relative z-0">
             <p className="text-white/70 text-[10px] font-bold uppercase tracking-wider">Back to the</p>
             <p className="text-white text-lg font-black uppercase tracking-tight -mt-0.5">Good Deals</p>
           </div>

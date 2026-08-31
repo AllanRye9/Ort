@@ -13,6 +13,7 @@ import SiteAnalytics from '@/components/ui/SiteAnalytics';
 import CountryLatestCollections from '@/components/ui/CountryLatestCollections';
 import CountryFeaturedDeal from '@/components/ui/CountryFeaturedDeal';
 import CountryRecentAcrossCategories from '@/components/ui/CountryRecentAcrossCategories';
+import BackToSchoolSection from '@/components/ui/BackToSchoolSection';
 import { resolveImageUrl } from '@/lib/utils';
 import { API_URL } from '@/lib/apiUrl';
 
@@ -150,6 +151,11 @@ export default async function HomePage() {
             mobile layout. Desktop keeps its existing CategoryBar mega-menu
             instead, so this is mobile-only. */}
         <MobileCategoryGrid />
+
+        {/* ═══ BACK TO SCHOOL FLASH SALE (mobile) ═══ */}
+        <div className="sm:hidden px-3 pt-2">
+          <BackToSchoolSection />
+        </div>
 
         {/* ═══ HERO ═══ */}
         <section className="p-[6px]">
