@@ -357,8 +357,9 @@ function CategoryBarInner() {
             >
               <Link
                 href={cat.href}
-                className={`relative flex items-center px-2 py-0.5 text-[10.5px] xs:text-[11px] font-semibold whitespace-nowrap transition-all interactive ${getLinkClasses(isActive)}`}
+                className={`relative flex items-center gap-1 px-2 py-0.5 text-[10.5px] xs:text-[11px] font-semibold whitespace-nowrap transition-all interactive ${getLinkClasses(isActive)}`}
               >
+                <span aria-hidden="true">{cat.icon}</span>
                 {cat.label}
                 {isActive && <span className="absolute inset-x-1.5 -bottom-0 h-0.5 rounded-full bg-white/90" aria-hidden="true" />}
               </Link>
@@ -419,8 +420,9 @@ export default function CategoryBar() {
                 <Link
                   key={cat.label}
                   href={cat.href}
-                  className="flex items-center px-2 py-0.5 text-[10.5px] font-semibold whitespace-nowrap text-gray-200 hover:text-white hover:bg-red-600 transition-all interactive"
+                  className="flex items-center gap-1 px-2 py-0.5 text-[10.5px] font-semibold whitespace-nowrap text-gray-200 hover:text-white hover:bg-red-600 transition-all interactive"
                 >
+                  <span aria-hidden="true">{cat.icon}</span>
                   {cat.label}
                 </Link>
               ))}

@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { useRouter } from 'next/navigation';
-import { resolveImageUrl } from '@/lib/utils';
+import { resolveImageUrl, getApiErrorMessage } from '@/lib/utils';
 
 interface ClickLog {
   id: string;
@@ -75,6 +75,7 @@ export default function AdminClickLogsPage() {
 
   const [mostClicked, setMostClicked] = useState<MostClickedItem[]>([]);
   const [mostClickedLoading, setMostClickedLoading] = useState(true);
+  const [mostClickedError, setMostClickedError] = useState('');
 
   const [logs, setLogs] = useState<ClickLog[]>([]);
   const [total, setTotal] = useState(0);
@@ -95,8 +96,8 @@ export default function AdminClickLogsPage() {
       const { data } = await api.get('/admin/click-logs', { params });
       setLogs(data.logs);
       setTotal(data.pagination.total);
-    } catch {
-      setError('Failed to load click logs.');
+    } catch (err) {
+      setError(getApiErrorMessage(err, 'Failed to load click logs.'));
     } finally {
       setFetching(false);
     }
@@ -110,7 +111,7 @@ export default function AdminClickLogsPage() {
     if (user?.role !== 'ADMIN') return;
     api.get('/admin/click-logs/most-clicked', { params: { limit: 10 } })
       .then(({ data }) => setMostClicked(data.items))
-      .catch(() => {})
+      .catch((err) => setMostClickedError(getApiErrorMessage(err, 'Failed to load most-clicked items.')))
       .finally(() => setMostClickedLoading(false));
   }, [user]);
 
@@ -141,6 +142,8 @@ export default function AdminClickLogsPage() {
         <h2 className="text-sm font-semibold text-gray-700 mb-2">Most Clicked Items</h2>
         {mostClickedLoading ? (
           <p className="text-sm text-gray-400">Loading…</p>
+        ) : mostClickedError ? (
+          <p className="text-sm text-red-600">{mostClickedError}</p>
         ) : mostClicked.length === 0 ? (
           <p className="text-sm text-gray-400">No item clicks recorded yet.</p>
         ) : (

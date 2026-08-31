@@ -26,7 +26,7 @@ const MOBILE_CATEGORIES: MobileCategory[] = [
 
 export default function MobileCategoryGrid() {
   return (
-    <section aria-label="Shop by category" className="sm:hidden px-3 pt-3 pb-1 bg-white -mt-2 relative z-10 rounded-t-2xl">
+    <section aria-label="Shop by category" className="sm:hidden px-3 pt-3 pb-1 bg-white -mt-3 relative z-10 rounded-t-2xl">
       <div className="grid grid-cols-4 gap-x-2 gap-y-3">
         {MOBILE_CATEGORIES.map((cat) => (
           <Link

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { useRouter } from 'next/navigation';
+import { getApiErrorMessage } from '@/lib/utils';
 
 interface SearchLog {
   id: string;
@@ -72,8 +73,8 @@ export default function AdminSearchLogsPage() {
       const { data } = await api.get('/admin/search-logs', { params });
       setLogs(data.logs);
       setTotal(data.pagination.total);
-    } catch {
-      setError('Failed to load search logs.');
+    } catch (err) {
+      setError(getApiErrorMessage(err, 'Failed to load search logs.'));
     } finally {
       setFetching(false);
     }

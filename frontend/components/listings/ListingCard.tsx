@@ -7,7 +7,6 @@ import { Listing } from '@/lib/types';
 import { CurrencyDisplay } from '@/components/ui/CurrencyDisplay';
 import { resolveImageUrl } from '@/lib/utils';
 import { FavoriteButton } from './FavoriteButton';
-import { QuickAddButton } from './QuickAddButton';
 import { FlagIcon } from '@/components/ui/FlagIcon';
 import { useCountry } from '@/context/CountryContext';
 
@@ -78,17 +77,11 @@ export function ListingCard({ listing, showFavorite = true, cleanImage = false }
         {/* Badges */}
         {!cleanImage && (
           <div className="absolute top-1.5 xs:top-2 left-1.5 xs:left-2 flex flex-col gap-1">
-            {/* Country badge — SVG flag via FlagIcon, not text/emoji.
-                Uganda is the sole active market right now (see Header's
-                "Uganda-only launch" note), so labelling every single
-                listing with it is redundant noise — only show this badge
-                for any other country value that might still show up. */}
-            {listing.country !== 'UGANDA' && (
-              <span className="badge text-[9px] xs:text-[10px] shadow-sm bg-white/95 text-slate-700 border border-white/80 backdrop-blur-sm flex items-center gap-0.5">
-                <FlagIcon code={countryFlag} size={11} />
-                {countryLabel}
-              </span>
-            )}
+            {/* Country badge — SVG flag via FlagIcon, not text/emoji */}
+            <span className="badge text-[9px] xs:text-[10px] shadow-sm bg-white/95 text-slate-700 border border-white/80 backdrop-blur-sm flex items-center gap-0.5">
+              <FlagIcon code={countryFlag} size={11} />
+              {countryLabel}
+            </span>
             {listing.condition === 'NEW' && (
               <span className="badge badge-new text-[9px] xs:text-[10px] shadow-sm"><span aria-hidden="true">✦</span> New</span>
             )}
@@ -125,16 +118,6 @@ export function ListingCard({ listing, showFavorite = true, cleanImage = false }
         {showFavorite && !cleanImage && (
           <div className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
             <FavoriteButton listingId={listing.id} />
-          </div>
-        )}
-
-        {/* Quick add-to-cart — lets shoppers add straight from the grid
-            without opening the listing. Always visible on mobile (no hover
-            state there); fades in on hover for desktop like the favorite
-            button above it. */}
-        {!cleanImage && listing.status !== 'SOLD' && (
-          <div className="absolute bottom-1.5 right-1.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200">
-            <QuickAddButton listing={listing} />
           </div>
         )}
       </div>{/* end image container */}

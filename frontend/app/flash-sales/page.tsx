@@ -8,6 +8,7 @@ import { Listing, Category } from '@/lib/types';
 import { ListingCard } from '@/components/listings/ListingCard';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { useCountry } from '@/context/CountryContext';
+import { resolveImageUrl } from '@/lib/utils';
 // import { getCountryPriceRanges } from '@/lib/utils';
 import { FilterPanel } from '@/components/listings/RecentListingsSection'; // FilterPanel lives in shared component
 
@@ -258,7 +259,7 @@ export default function FlashSalesPage() {
                   <button key={store.id} onClick={() => setSelectedStore(sel ? null : store.userId)}
                     className={`shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-semibold transition-all ${sel ? 'bg-purple-50 border-purple-400 ring-2 ring-purple-300 text-purple-800' : 'bg-white border-gray-200 text-gray-700 hover:border-purple-300 hover:bg-purple-50'}`}>
                     {store.logo
-                      ? <Image src={store.logo} alt={store.name} width={20} height={20} className="w-5 h-5 rounded-md object-cover" />
+                      ? <Image src={resolveImageUrl(store.logo)} alt={store.name} width={20} height={20} className="w-5 h-5 rounded-md object-cover" />
                       : <span className="w-5 h-5 rounded-md bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center text-xs">🏢</span>}
                     {store.name}
                     <span className="bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded-full text-[10px] font-bold">{cnt}</span>

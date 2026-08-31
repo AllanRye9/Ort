@@ -174,16 +174,48 @@ router.get('/stats', async (_req: Request, res: Response, next: NextFunction) =>
 // One row per deviceId per local day — see VisitorLog in schema.prisma and
 // POST /api/stats/track for how these rows are written.
 
+// Device-category prefixes exactly as produced by describeDevice() in
+// stats.ts (e.g. "Mobile · Safari") — used to validate the deviceCategory
+// filter below so an arbitrary/unexpected value can't silently return an
+// empty result set.
+const VISITOR_DEVICE_CATEGORIES = ['Mobile', 'Desktop', 'Tablet', 'Unknown device'] as const;
+
+// Columns safe to sort visitor logs by — allowlisted so `sortBy` can never
+// be used to inject an arbitrary/unexpected Prisma orderBy key.
+const VISITOR_LOG_SORT_COLUMNS = [
+  'lastSeenAt', 'firstSeenAt', 'visitCount', 'durationSeconds', 'country', 'device', 'ip',
+] as const;
+type VisitorLogSortColumn = (typeof VISITOR_LOG_SORT_COLUMNS)[number];
+
 router.get('/visitor-logs', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const page = Math.max(1, parseInt((req.query.page as string) || '1'));
     const limit = Math.min(100, parseInt((req.query.limit as string) || '25'));
     const search = ((req.query.search as string) || '').trim();
     const date = ((req.query.date as string) || '').trim(); // exact dayKey, e.g. 2026-08-25
+    const country = ((req.query.country as string) || '').trim().toUpperCase();
+    const deviceCategory = ((req.query.deviceCategory as string) || '').trim();
+
+    const requestedSortBy = (req.query.sortBy as string) || 'lastSeenAt';
+    const sortBy: VisitorLogSortColumn = (VISITOR_LOG_SORT_COLUMNS as readonly string[]).includes(requestedSortBy)
+      ? (requestedSortBy as VisitorLogSortColumn)
+      : 'lastSeenAt';
+    const sortDir: 'asc' | 'desc' = req.query.sortDir === 'asc' ? 'asc' : 'desc';
 
     const where: Record<string, unknown> = {};
     if (date) {
       where.dayKey = date;
+    }
+    if (country) {
+      where.country = country;
+    }
+    if (deviceCategory && (VISITOR_DEVICE_CATEGORIES as readonly string[]).includes(deviceCategory)) {
+      // "Unknown device" is the device field's exact value with no " · "
+      // suffix (see describeDevice() in stats.ts); every other category is
+      // a prefix ("Mobile · Safari", "Mobile · Chrome", ...).
+      where.device = deviceCategory === 'Unknown device'
+        ? deviceCategory
+        : { startsWith: `${deviceCategory} ·` };
     }
     if (search) {
       where.OR = [
@@ -194,18 +226,35 @@ router.get('/visitor-logs', async (req: Request, res: Response, next: NextFuncti
       ];
     }
 
-    const [logs, total, uniqueDeviceCount] = await Promise.all([
+    // Country breakdown is computed against every filter except `country`
+    // itself, so the dropdown always lists every country available within
+    // the current search/date scope — not just whichever one is currently
+    // selected.
+    const { country: _omitCountry, ...whereForBreakdown } = where;
+
+    const [logs, total, uniqueDeviceCount, countryBreakdownRows] = await Promise.all([
       prisma.visitorLog.findMany({
         where,
-        orderBy: { lastSeenAt: 'desc' },
+        orderBy: { [sortBy]: sortDir },
         skip: (page - 1) * limit,
         take: limit,
       }),
       prisma.visitorLog.count({ where }),
-      prisma.visitorLog.groupBy({ by: ['deviceId'] }).then((rows) => rows.length),
+      prisma.visitorLog.groupBy({ by: ['deviceId'], where }).then((rows) => rows.length),
+      prisma.visitorLog.groupBy({
+        by: ['country'],
+        where: whereForBreakdown,
+        _count: { country: true },
+        orderBy: { _count: { country: 'desc' } },
+      }),
     ]);
 
-    res.json({ logs, pagination: { total, page, limit }, uniqueDeviceCount });
+    const countryBreakdown = countryBreakdownRows.map((row) => ({
+      country: row.country,
+      count: row._count.country,
+    }));
+
+    res.json({ logs, pagination: { total, page, limit }, uniqueDeviceCount, countryBreakdown });
   } catch (err) {
     next(err);
   }

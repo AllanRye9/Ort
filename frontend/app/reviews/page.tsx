@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
+import { resolveImageUrl } from '@/lib/utils';
 
 interface ReviewUser {
   id: string;
@@ -227,7 +228,7 @@ export default function ReviewsPage() {
                   <div className="flex items-center gap-3">
                     {review.user.avatar ? (
                       <Image
-                        src={review.user.avatar}
+                        src={resolveImageUrl(review.user.avatar)}
                         alt={review.user.name}
                         width={40}
                         height={40}

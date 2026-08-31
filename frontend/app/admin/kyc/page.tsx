@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { useRouter } from 'next/navigation';
-import { formatDate, timeAgo } from '@/lib/utils';
+import { formatDate, timeAgo, resolveImageUrl } from '@/lib/utils';
 
 type StatusFilter = 'PENDING' | 'APPROVED' | 'REJECTED';
 type DocumentType = 'NATIONAL_ID' | 'PASSPORT' | 'DRIVERS_LICENSE' | 'BUSINESS_LICENSE';
@@ -217,16 +217,16 @@ export default function AdminKycPage() {
                 <div className="mt-3 pt-3 border-t border-gray-100 space-y-3">
                   <div className="flex gap-3 flex-wrap">
                     {s.kycDocumentUrl && (
-                      <a href={s.kycDocumentUrl} target="_blank" rel="noopener noreferrer" className="block">
+                      <a href={resolveImageUrl(s.kycDocumentUrl)} target="_blank" rel="noopener noreferrer" className="block">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={s.kycDocumentUrl} alt="ID document" className="h-40 rounded-lg border border-gray-200 object-cover" />
+                        <img src={resolveImageUrl(s.kycDocumentUrl)} alt="ID document" className="h-40 rounded-lg border border-gray-200 object-cover" />
                         <p className="text-[10px] text-center text-gray-400 mt-1">Document</p>
                       </a>
                     )}
                     {s.kycSelfieUrl && (
-                      <a href={s.kycSelfieUrl} target="_blank" rel="noopener noreferrer" className="block">
+                      <a href={resolveImageUrl(s.kycSelfieUrl)} target="_blank" rel="noopener noreferrer" className="block">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={s.kycSelfieUrl} alt="Selfie" className="h-40 rounded-lg border border-gray-200 object-cover" />
+                        <img src={resolveImageUrl(s.kycSelfieUrl)} alt="Selfie" className="h-40 rounded-lg border border-gray-200 object-cover" />
                         <p className="text-[10px] text-center text-gray-400 mt-1">Selfie</p>
                       </a>
                     )}

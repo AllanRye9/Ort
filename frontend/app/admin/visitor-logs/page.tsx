@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { useRouter } from 'next/navigation';
+import { FlagIcon } from '@/components/ui/FlagIcon';
+import { getApiErrorMessage } from '@/lib/utils';
 
 interface VisitorLog {
   id: string;
@@ -19,6 +21,16 @@ interface VisitorLog {
   visitCount: number;
 }
 
+interface CountryBreakdownRow {
+  country: string | null;
+  count: number;
+}
+
+type SortColumn = 'lastSeenAt' | 'firstSeenAt' | 'visitCount' | 'durationSeconds' | 'country' | 'device' | 'ip';
+type SortDir = 'asc' | 'desc';
+
+const DEVICE_CATEGORIES = ['Mobile', 'Desktop', 'Tablet', 'Unknown device'] as const;
+
 /** Formats a duration in seconds as e.g. "2m 14s" or "45s". */
 function formatDuration(seconds: number): string {
   if (seconds < 60) return `${seconds}s`;
@@ -33,6 +45,32 @@ function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
 
+function SortHeader({
+  label, column, sortBy, sortDir, onSort,
+}: {
+  label: string;
+  column: SortColumn;
+  sortBy: SortColumn;
+  sortDir: SortDir;
+  onSort: (col: SortColumn) => void;
+}) {
+  const active = sortBy === column;
+  return (
+    <th
+      onClick={() => onSort(column)}
+      className={`text-left px-3 sm:px-4 py-2 text-xs font-medium cursor-pointer select-none whitespace-nowrap hover:text-gray-900 ${active ? 'text-gray-900' : 'text-gray-600'}`}
+      title={`Sort by ${label}`}
+    >
+      <span className="inline-flex items-center gap-1">
+        {label}
+        <span className={`text-[10px] ${active ? 'opacity-100' : 'opacity-25'}`}>
+          {active && sortDir === 'asc' ? '▲' : '▼'}
+        </span>
+      </span>
+    </th>
+  );
+}
+
 export default function AdminVisitorLogsPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
@@ -40,28 +78,42 @@ export default function AdminVisitorLogsPage() {
   const [logs, setLogs] = useState<VisitorLog[]>([]);
   const [total, setTotal] = useState(0);
   const [uniqueDeviceCount, setUniqueDeviceCount] = useState(0);
+  const [countryBreakdown, setCountryBreakdown] = useState<CountryBreakdownRow[]>([]);
   const [fetching, setFetching] = useState(true);
   const [error, setError] = useState('');
 
   const [search, setSearch] = useState('');
   const [dateFilter, setDateFilter] = useState('');
+  const [countryFilter, setCountryFilter] = useState('');
+  const [deviceCategoryFilter, setDeviceCategoryFilter] = useState('');
+  const [showBreakdown, setShowBreakdown] = useState(false);
+  const [sortBy, setSortBy] = useState<SortColumn>('lastSeenAt');
+  const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [page, setPage] = useState(1);
   const limit = 25;
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
-  const fetchLogs = useCallback(async (query: string, date: string, pageNum: number) => {
+  const fetchLogs = useCallback(async (
+    query: string, date: string, country: string, deviceCategory: string,
+    sortColumn: SortColumn, direction: SortDir, pageNum: number,
+  ) => {
     try {
       setFetching(true);
       setError('');
-      const params: Record<string, string | number> = { page: pageNum, limit };
+      const params: Record<string, string | number> = {
+        page: pageNum, limit, sortBy: sortColumn, sortDir: direction,
+      };
       if (query) params.search = query;
       if (date) params.date = date;
+      if (country) params.country = country;
+      if (deviceCategory) params.deviceCategory = deviceCategory;
       const { data } = await api.get('/admin/visitor-logs', { params });
       setLogs(data.logs);
       setTotal(data.pagination.total);
       setUniqueDeviceCount(data.uniqueDeviceCount);
-    } catch {
-      setError('Failed to load visitor logs.');
+      setCountryBreakdown(data.countryBreakdown || []);
+    } catch (err) {
+      setError(getApiErrorMessage(err, 'Failed to load visitor logs.'));
     } finally {
       setFetching(false);
     }
@@ -74,14 +126,27 @@ export default function AdminVisitorLogsPage() {
   useEffect(() => {
     if (user?.role !== 'ADMIN') return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => fetchLogs(search, dateFilter, page), 300);
+    debounceRef.current = setTimeout(
+      () => fetchLogs(search, dateFilter, countryFilter, deviceCategoryFilter, sortBy, sortDir, page),
+      300,
+    );
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [search, dateFilter, page, user, fetchLogs]);
+  }, [search, dateFilter, countryFilter, deviceCategoryFilter, sortBy, sortDir, page, user, fetchLogs]);
 
-  // Reset to page 1 whenever the filters change.
-  useEffect(() => { setPage(1); }, [search, dateFilter]);
+  // Reset to page 1 whenever a filter or sort changes (not on page itself).
+  useEffect(() => { setPage(1); }, [search, dateFilter, countryFilter, deviceCategoryFilter, sortBy, sortDir]);
+
+  const handleSort = (column: SortColumn) => {
+    if (sortBy === column) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortBy(column);
+      setSortDir('desc');
+    }
+  };
 
   const totalPages = Math.max(1, Math.ceil(total / limit));
+  const activeFilterCount = [dateFilter, countryFilter, deviceCategoryFilter].filter(Boolean).length;
 
   if (loading) return <div className="p-8 text-center">Loading...</div>;
 
@@ -108,13 +173,13 @@ export default function AdminVisitorLogsPage() {
         </div>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-2 mb-4">
+      <div className="flex flex-col sm:flex-row flex-wrap gap-2 mb-3">
         <input
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by IP, device ID, country, or device type…"
-          className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
+          className="flex-1 min-w-[220px] border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
         />
         <input
           type="date"
@@ -122,16 +187,75 @@ export default function AdminVisitorLogsPage() {
           onChange={(e) => setDateFilter(e.target.value)}
           className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
         />
-        {dateFilter && (
+        <select
+          value={countryFilter}
+          onChange={(e) => setCountryFilter(e.target.value)}
+          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 bg-white"
+        >
+          <option value="">All countries</option>
+          {countryBreakdown.map((row) => (
+            <option key={row.country ?? 'unknown'} value={row.country ?? ''}>
+              {row.country ?? 'Unknown'} ({row.count})
+            </option>
+          ))}
+        </select>
+        <select
+          value={deviceCategoryFilter}
+          onChange={(e) => setDeviceCategoryFilter(e.target.value)}
+          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 bg-white"
+        >
+          <option value="">All devices</option>
+          {DEVICE_CATEGORIES.map((cat) => (
+            <option key={cat} value={cat}>{cat}</option>
+          ))}
+        </select>
+        <button
+          type="button"
+          onClick={() => setShowBreakdown((v) => !v)}
+          className={`text-xs px-3 py-2 rounded-lg border whitespace-nowrap ${showBreakdown ? 'border-red-300 bg-red-50 text-red-700' : 'border-gray-200 text-gray-500 hover:bg-gray-50'}`}
+        >
+          {showBreakdown ? 'Hide' : 'Show'} country breakdown
+        </button>
+        {activeFilterCount > 0 && (
           <button
             type="button"
-            onClick={() => setDateFilter('')}
+            onClick={() => { setDateFilter(''); setCountryFilter(''); setDeviceCategoryFilter(''); }}
             className="text-xs px-3 py-2 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50"
           >
-            Clear date
+            Clear filters ({activeFilterCount})
           </button>
         )}
       </div>
+
+      {showBreakdown && (
+        <div className="mb-4 bg-white rounded-xl shadow-sm p-3">
+          <p className="text-xs text-gray-500 mb-2">
+            Visits by country within the current search/date scope — click a country to filter by it.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {countryBreakdown.length === 0 ? (
+              <span className="text-sm text-gray-400">No data.</span>
+            ) : (
+              countryBreakdown.map((row) => (
+                <button
+                  key={row.country ?? 'unknown'}
+                  type="button"
+                  onClick={() => setCountryFilter(row.country ?? '')}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs transition-colors ${
+                    countryFilter === row.country
+                      ? 'border-red-300 bg-red-50 text-red-700'
+                      : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  {row.country && <FlagIcon code={row.country} size={14} />}
+                  <span>{row.country ?? 'Unknown'}</span>
+                  <span className="text-gray-400 tabular-nums">{row.count}</span>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
 
       {error && <p className="text-sm text-red-600 mb-3">{error}</p>}
 
@@ -139,14 +263,14 @@ export default function AdminVisitorLogsPage() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-100">
-              <th className="text-left px-3 sm:px-4 py-2 text-xs font-medium text-gray-600">Date</th>
-              <th className="text-left px-3 sm:px-4 py-2 text-xs font-medium text-gray-600">First Seen</th>
-              <th className="text-left px-3 sm:px-4 py-2 text-xs font-medium text-gray-600">Last Seen</th>
-              <th className="text-left px-3 sm:px-4 py-2 text-xs font-medium text-gray-600">IP Address</th>
-              <th className="text-left px-3 sm:px-4 py-2 text-xs font-medium text-gray-600">Country</th>
-              <th className="text-left px-3 sm:px-4 py-2 text-xs font-medium text-gray-600">Device</th>
-              <th className="text-left px-3 sm:px-4 py-2 text-xs font-medium text-gray-600">Time on Site</th>
-              <th className="text-left px-3 sm:px-4 py-2 text-xs font-medium text-gray-600">Visits</th>
+              <SortHeader label="Date" column="firstSeenAt" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+              <th className="text-left px-3 sm:px-4 py-2 text-xs font-medium text-gray-600 whitespace-nowrap">First Seen</th>
+              <SortHeader label="Last Seen" column="lastSeenAt" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+              <SortHeader label="IP Address" column="ip" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+              <SortHeader label="Country" column="country" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+              <SortHeader label="Device" column="device" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+              <SortHeader label="Time on Site" column="durationSeconds" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
+              <SortHeader label="Visits" column="visitCount" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
               <th className="text-left px-3 sm:px-4 py-2 text-xs font-medium text-gray-600">Device ID</th>
             </tr>
           </thead>
@@ -162,7 +286,14 @@ export default function AdminVisitorLogsPage() {
                   <td className="px-3 sm:px-4 py-2 text-gray-500 whitespace-nowrap">{formatTime(log.firstSeenAt)}</td>
                   <td className="px-3 sm:px-4 py-2 text-gray-500 whitespace-nowrap">{formatTime(log.lastSeenAt)}</td>
                   <td className="px-3 sm:px-4 py-2 font-mono text-gray-800 whitespace-nowrap">{log.ip}</td>
-                  <td className="px-3 sm:px-4 py-2 text-gray-500">{log.country ?? '—'}</td>
+                  <td className="px-3 sm:px-4 py-2 text-gray-600 whitespace-nowrap">
+                    {log.country ? (
+                      <span className="inline-flex items-center gap-1.5">
+                        <FlagIcon code={log.country} size={16} />
+                        {log.country}
+                      </span>
+                    ) : '—'}
+                  </td>
                   <td className="px-3 sm:px-4 py-2 text-gray-700 whitespace-nowrap" title={log.userAgent ?? undefined}>
                     {log.device ?? 'Unknown device'}
                   </td>

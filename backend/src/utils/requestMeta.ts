@@ -1,9 +1,14 @@
 import { Request } from 'express';
 
 /**
- * Extracts the client's IP address, honoring the X-Forwarded-For chain set
- * up via `app.set('trust proxy', 1)` in app.ts. Falls back to the raw
- * socket address, then 'unknown' if neither is available (e.g. in tests).
+ * Extracts the real client IP. The site sits behind two proxy hops —
+ * Cloudflare's edge, then the hosting platform's own reverse proxy — so
+ * `req.ip` (via the single-hop `trust proxy` setting in app.ts) resolves
+ * to Cloudflare's edge address, not the visitor's. Cloudflare always sets
+ * `CF-Connecting-IP` to the true original client IP regardless of how many
+ * hops follow it, so prefer that; fall back to the X-Forwarded-For-derived
+ * `req.ip`, then the raw socket address, then 'unknown' (e.g. in tests, or
+ * local development with no Cloudflare in front).
  *
  * This mirrors the identical helper already used for visitor logging in
  * routes/stats.ts — kept here as a shared, reusable copy so the new
@@ -11,6 +16,8 @@ import { Request } from 'express';
  * doesn't need to import across route files.
  */
 export function getClientIp(req: Request): string {
+  const cfConnectingIp = req.headers['cf-connecting-ip'];
+  if (typeof cfConnectingIp === 'string' && cfConnectingIp) return cfConnectingIp;
   return req.ip || req.socket?.remoteAddress || 'unknown';
 }
 

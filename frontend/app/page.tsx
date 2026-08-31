@@ -10,10 +10,10 @@ import QuickActions from '@/components/ui/QuickActions';
 import HomeOtherCollections from '@/components/ui/HomeOtherCollections';
 import TrackPageView from '@/components/ui/TrackPageView';
 import SiteAnalytics from '@/components/ui/SiteAnalytics';
+import RegionHintBanner from '@/components/ui/RegionHintBanner';
 import CountryLatestCollections from '@/components/ui/CountryLatestCollections';
 import CountryFeaturedDeal from '@/components/ui/CountryFeaturedDeal';
 import CountryRecentAcrossCategories from '@/components/ui/CountryRecentAcrossCategories';
-import BackToSchoolSection from '@/components/ui/BackToSchoolSection';
 import { resolveImageUrl } from '@/lib/utils';
 import { API_URL } from '@/lib/apiUrl';
 
@@ -144,6 +144,8 @@ export default async function HomePage() {
       <div className="animate-fade-in pb-4">
         {/* Track page views silently on each homepage load */}
         <TrackPageView />
+        {/* Region hint banner — shown once per session to inform about country/currency filtering */}
+        <RegionHintBanner />
 
         {/* ═══ MOBILE CATEGORY GRID ═══
             Sits directly under the header's tagline strip on phones, mirroring
@@ -151,11 +153,6 @@ export default async function HomePage() {
             mobile layout. Desktop keeps its existing CategoryBar mega-menu
             instead, so this is mobile-only. */}
         <MobileCategoryGrid />
-
-        {/* ═══ BACK TO SCHOOL FLASH SALE (mobile) ═══ */}
-        <div className="sm:hidden px-3 pt-2">
-          <BackToSchoolSection />
-        </div>
 
         {/* ═══ HERO ═══ */}
         <section className="p-[6px]">

@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { CategoryFieldDef, ListingStatus } from '@/lib/types';
+import { resolveImageUrl } from '@/lib/utils';
 
 interface Category {
   id: string;
@@ -1011,7 +1012,7 @@ export default function AdminCategoriesPage() {
                       />
                       <div className="w-10 h-10 rounded bg-gray-100 overflow-hidden shrink-0 relative">
                         {thumb && (
-                          <Image src={thumb} alt={listing.title} fill sizes="40px" className="object-cover" />
+                          <Image src={resolveImageUrl(thumb)} alt={listing.title} fill sizes="40px" className="object-cover" />
                         )}
                       </div>
                       <span className="flex-1 text-sm text-gray-800 truncate">{listing.title}</span>

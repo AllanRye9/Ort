@@ -7,7 +7,7 @@ import { api } from '@/lib/api';
 import { Listing } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { CurrencyDisplay } from '@/components/ui/CurrencyDisplay';
-import { formatDate } from '@/lib/utils';
+import { formatDate, resolveImageUrl } from '@/lib/utils';
 import Link from 'next/link';
 
 const PLACEMENT_OPTIONS = [
@@ -513,7 +513,7 @@ export default function AdminListingsPage() {
                   {approveModal.images.map((src, i) => (
                     <div key={i} className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
                       <Image
-                        src={src.startsWith('http') ? src : `${process.env.NEXT_PUBLIC_API_URL || ''}${src}`}
+                        src={resolveImageUrl(src)}
                         alt={`Listing image ${i + 1}`}
                         fill
                         className="object-cover"

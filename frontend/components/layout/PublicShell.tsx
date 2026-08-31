@@ -11,10 +11,6 @@ const CountrySelectModal = dynamic(() => import('@/components/ui/CountrySelectMo
   ssr: false,
 });
 
-const MobileSpecialOffersPopup = dynamic(() => import('@/components/ui/MobileSpecialOffersPopup'), {
-  ssr: false,
-});
-
 const SessionExpiredModal = dynamic(() => import('@/components/ui/SessionExpiredModal'), {
   ssr: false,
 });
@@ -56,7 +52,6 @@ export default function PublicShell({
       <CountrySelectModal />
       <SessionExpiredModal />
       <CountryTransitionOverlay />
-      <MobileSpecialOffersPopup />
       <main className="flex-1 pt-0 pb-4 has-bottom-nav md:pb-4 px-[1%] md:px-[7%]">
         {children}
       </main>

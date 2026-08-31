@@ -6,6 +6,28 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
+ * Extracts a real, specific error message from a failed axios request —
+ * the backend's `errorHandler` already returns distinct messages for
+ * different failure modes (e.g. "Database schema is not ready" for a
+ * missing table, "Unable to connect to the database" for a connection
+ * failure, or an auth message for an expired session) via `{ message }`
+ * in the response body. Falls back to a generic message only when no
+ * response was received at all (e.g. a genuine network/CORS failure) or
+ * the body didn't include one.
+ */
+export function getApiErrorMessage(err: unknown, fallback: string): string {
+  if (err && typeof err === 'object') {
+    const withResponse = err as { response?: { status?: number; data?: { message?: string } }; message?: string };
+    const backendMessage = withResponse.response?.data?.message;
+    const status = withResponse.response?.status;
+    if (backendMessage) return status ? `${backendMessage} (HTTP ${status})` : backendMessage;
+    if (status) return `${fallback} (HTTP ${status})`;
+    if (withResponse.message) return `${fallback} — ${withResponse.message}`;
+  }
+  return fallback;
+}
+
+/**
  * Resolves a backend image URL that may contain a localhost origin.
  * In production the backend stores absolute URLs using API_BASE_URL.
  * If that env var was not set, the stored URL will contain "localhost"
@@ -24,47 +46,23 @@ export function normalizeExternalUrl(url: string): string {
 
 export function resolveImageUrl(url: string): string {
   if (!url) return '';
-  const apiBase = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/+$/, '');
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
   if (url.startsWith('data:') || url.startsWith('blob:')) return url;
-
-  // Re-write backend-origin absolute URLs that were saved before a deploy/domain
-  // change (for example a Railway backend URL or localhost URL). These URLs are
-  // still valid if they point at the same backend, but after a reassignment they
-  // often become stale and start returning 404s from an old service instance.
-  try {
-    const parsed = new URL(url);
-    const pathPart = `${parsed.pathname}${parsed.search}${parsed.hash}`;
-    const backendPath = pathPart.startsWith('/api/') || pathPart.startsWith('/uploads/') || pathPart.startsWith('/media/');
-    const backendHost = parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1'
-      || parsed.hostname.includes('railway.app')
-      || parsed.hostname.includes('render.com')
-      || parsed.hostname.includes('vercel.app');
-
-    if (backendPath && backendHost && apiBase) {
-      return `${apiBase}${pathPart}`;
-    }
-  } catch {
-    // Fallback to the regular relative/absolute handling below.
-  }
-
   if (url.startsWith('http://localhost:') || url.startsWith('https://localhost:')) {
     const slashIdx = url.indexOf('/', url.indexOf('://') + 3);
     if (slashIdx === -1) return url;
     const pathPart = url.substring(slashIdx);
     return apiBase ? `${apiBase}${pathPart}` : pathPart;
   }
-
-  // Rewrite relative API/upload paths to use the backend base URL.
-  if ((url.startsWith('/api/') || url.startsWith('/uploads/') || url.startsWith('/media/')) && apiBase) {
+  // Rewrite relative API/upload paths to use the backend base URL
+  if ((url.startsWith('/api/') || url.startsWith('/uploads/')) && apiBase) {
     return `${apiBase}${url}`;
   }
-
   // Rewrite any other relative path into an absolute backend URL.
   if (!url.startsWith('http://') && !url.startsWith('https://')) {
     const normalized = url.startsWith('/') ? url : `/${url}`;
     return apiBase ? `${apiBase}${normalized}` : normalized;
   }
-
   return url;
 }
 
