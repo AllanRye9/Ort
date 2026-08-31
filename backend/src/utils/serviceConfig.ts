@@ -63,6 +63,30 @@ export function validateAndLogServiceConfig(): void {
     `Storage=[S3:${s.s3 ? 'on' : 'off'}${endpointInfo}, LocalFallback:on], ` +
     `Email=[Resend:${readiness.email.resend ? 'on' : 'off'}, SMTP:${readiness.email.smtp ? 'on' : 'off'}, LogFallback:on]`
   );
+
+  // Loud, hard-to-miss warning: on Railway (and most PaaS containers) the
+  // filesystem is ephemeral — anything written to the local `uploads/`
+  // fallback disappears on the next deploy/restart. Without S3 configured,
+  // every uploaded listing photo is one redeploy away from silently
+  // 404ing for every user (this is exactly what caused the electronics
+  // listing images to break in production). Uploads that already went to
+  // local disk under a since-recycled container cannot be recovered — this
+  // only prevents it from happening again going forward.
+  const isEphemeralHost = Boolean(
+    process.env.RAILWAY_ENVIRONMENT_ID || process.env.RAILWAY_PROJECT_ID
+  );
+  if (!s.s3 && isEphemeralHost) {
+    logger.warn(
+      '⚠ S3 storage is NOT configured (ACCESS_KEY_ID / SECRET_ACCESS_KEY / BUCKET missing) ' +
+      'while running on Railway. Uploaded images are being written to the local ' +
+      'filesystem fallback (/uploads), which is wiped on every deploy or restart — ' +
+      'previously uploaded listing photos WILL 404 after the next deploy. ' +
+      'Fix by either (1) setting ACCESS_KEY_ID, SECRET_ACCESS_KEY, BUCKET (and ' +
+      'ENDPOINT if using a non-AWS S3-compatible bucket) so uploads persist in ' +
+      'object storage, or (2) attaching a Railway Volume mounted at /app/uploads ' +
+      'so the local fallback itself survives deploys.'
+    );
+  }
 }
 
 export function getServiceReadiness(): ServiceReadiness {

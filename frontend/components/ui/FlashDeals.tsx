@@ -115,6 +115,12 @@ function FlashCard({ card, displayCurrency }: { card: CardData; displayCurrency:
   const [itemsLeft, maxItems] = useItemsLeft(card.id);
   const pct = Math.round((itemsLeft / maxItems) * 100);
   const isLow = itemsLeft <= 5;
+  // Tracks whether the resolved image actually failed to load (e.g. the
+  // backend's local-disk upload fallback got wiped by a redeploy and now
+  // 404s). Falls back to the "Coming soon" placeholder instead of leaving
+  // a broken image + a failed network request nagging the console.
+  const [imgFailed, setImgFailed] = useState(false);
+  const showImage = !!card.imageUrl && !imgFailed;
 
   // Convert price to display currency if needed
   const displayPrice = card.price !== null && card.currency
@@ -131,14 +137,15 @@ function FlashCard({ card, displayCurrency }: { card: CardData; displayCurrency:
         style={{ boxShadow: 'inset 0 0 0 1.5px rgba(251,146,60,0.5)' }} />
 
       <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-orange-50 to-amber-50">
-        {card.imageUrl ? (
+        {showImage ? (
           <Image
-            src={card.imageUrl}
+            src={card.imageUrl as string}
             alt={card.title}
             fill
             className="object-cover transition-transform duration-500 group-hover:scale-110"
             sizes="(max-width: 640px) 33vw, 16vw"
             loading="lazy"
+            onError={() => setImgFailed(true)}
           />
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">

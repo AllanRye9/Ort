@@ -646,9 +646,10 @@ export default function Header() {
             homepage's own top bar state (unscrolled), so it doesn't linger
             once the header has compacted while scrolling other pages. */}
         {!scrolled && pathname === '/' && (
-          <div className="sm:hidden px-4 pt-1 pb-5 text-center">
-            <p className="text-white/70 text-[11px] font-bold uppercase tracking-wider">Back to the</p>
-            <p className="text-white text-2xl font-black uppercase tracking-tight -mt-0.5">Good Deals</p>
+          <div className="sm:hidden px-4 pt-0.5 pb-2.5 text-center">
+            <p className="text-white uppercase tracking-wide whitespace-nowrap text-sm font-black leading-none">
+              <span className="text-white/70 font-bold mr-1">Back to the</span>Good Deals
+            </p>
           </div>
         )}
 

@@ -1,3 +1,6 @@
+'use client';
+
+import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { resolveImageUrl } from '@/lib/utils';
@@ -37,18 +40,27 @@ export default function FeaturedProductCard({
 
   const navigable = !!resolvedHref;
 
+  // Tracks whether the resolved image actually failed to load at runtime
+  // (e.g. it was uploaded to the backend's local-disk fallback and then
+  // wiped by a redeploy, leaving a dead URL). Falls back to the same
+  // "No image available" placeholder used when there's no imageUrl at all,
+  // instead of showing a broken image / spamming the console with 404s.
+  const [imgFailed, setImgFailed] = useState(false);
+  const showImage = !!imageUrl && !imgFailed;
+
   const cardBody = (
     <div className={`bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden transition-all duration-300 shine-card${navigable ? ' hover:shadow-lg hover:-translate-y-0.5' : ''}`}>
       {/* Image — no text overlaid */}
       <div className="aspect-[4/3] relative overflow-hidden bg-gray-50">
-        {imageUrl ? (
+        {showImage ? (
           <Image
-            src={resolveImageUrl(imageUrl)}
+            src={resolveImageUrl(imageUrl as string)}
             alt={title}
             fill
             className="object-cover group-hover:scale-105 transition-transform duration-300"
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
             loading="lazy"
+            onError={() => setImgFailed(true)}
           />
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-gray-100">

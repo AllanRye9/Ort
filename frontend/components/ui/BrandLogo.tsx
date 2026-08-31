@@ -61,6 +61,10 @@ export default function BrandLogo({
   alt = 'Piitrade — Shop Smart. Shop Trusted.',
 }: BrandLogoProps) {
   const [logoUrl, setLogoUrl] = useState<string | null>(typeof cachedLogoUrl === 'string' ? cachedLogoUrl : null);
+  // If the uploaded logo image 404s at runtime (e.g. it was stored on the
+  // backend's local-disk fallback and lost on redeploy), drop back to the
+  // text/markup fallback instead of showing a broken image in the header.
+  const [imgFailed, setImgFailed] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -72,7 +76,7 @@ export default function BrandLogo({
     };
   }, []);
 
-  if (logoUrl) {
+  if (logoUrl && !imgFailed) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
@@ -80,6 +84,7 @@ export default function BrandLogo({
         alt={alt}
         className={imgClassName}
         style={{ height: imgHeight, width: 'auto', display: 'block' }}
+        onError={() => setImgFailed(true)}
       />
     );
   }

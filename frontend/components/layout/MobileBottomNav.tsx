@@ -45,11 +45,43 @@ const navItems = [
   },
 ];
 
+function renderNavLink(item: (typeof navItems)[number], isActive: boolean, href: string) {
+  return (
+    <Link
+      key={item.href}
+      href={href}
+      className={`flex flex-col items-center justify-center py-2 flex-1 gap-0.5 interactive transition-colors ${
+        isActive ? 'text-premium-gold' : 'text-gray-400 hover:text-gray-600'
+      }`}
+      aria-label={item.label}
+      aria-current={isActive ? 'page' : undefined}
+    >
+      <div className={`relative p-1 rounded-xl transition-all ${isActive ? 'bg-premium-gold/10' : ''}`}>
+        {item.icon(Boolean(isActive))}
+      </div>
+      <span className={`text-[10px] font-medium ${isActive ? 'font-semibold' : ''}`}>{item.label}</span>
+    </Link>
+  );
+}
+
 export function MobileBottomNav() {
   const pathname = usePathname();
   const { user } = useAuth();
 
   if (pathname && pathname.startsWith('/admin')) return null;
+
+  const isActive = (item: (typeof navItems)[number]) =>
+    Boolean(item.href === '/' ? pathname === '/' : pathname && pathname.startsWith(item.href) && item.href !== '/');
+  const hrefFor = (item: (typeof navItems)[number]) => (item.label === 'Profile' && !user ? '/auth/login' : item.href);
+
+  const sellItem = navItems.find((item) => item.isSell)!;
+  // Everything else splits evenly across the two halves of the bar so the
+  // Sell button — positioned absolutely below — lands at the true
+  // horizontal centre of the screen rather than wherever a plain flex
+  // distribution of 4 unequal-count items would happen to put it.
+  const otherItems = navItems.filter((item) => !item.isSell);
+  const leftItems = otherItems.slice(0, Math.ceil(otherItems.length / 2));
+  const rightItems = otherItems.slice(Math.ceil(otherItems.length / 2));
 
   return (
     <nav
@@ -57,46 +89,33 @@ export function MobileBottomNav() {
       style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
       aria-label="Mobile navigation"
     >
-      <div className="bg-white border-t border-gray-100 shadow-[0_-4px_24px_0_rgb(0,0,0,0.08)]">
-        <div className="flex items-center justify-around px-1">
-          {navItems.map((item) => {
-            const isActive = item.href === '/' ? pathname === '/' : (pathname && pathname.startsWith(item.href) && item.href !== '/');
-            const href = item.label === 'Profile' && !user ? '/auth/login' : item.href;
+      <div className="relative bg-white border-t border-gray-100 shadow-[0_-4px_24px_0_rgb(0,0,0,0.08)]">
+        <div className="flex items-stretch px-1">
+          <div className="flex flex-1 items-stretch justify-evenly">
+            {leftItems.map((item) => renderNavLink(item, isActive(item), hrefFor(item)))}
+          </div>
 
-            if (item.isSell) {
-              return (
-                <Link
-                  key={item.href}
-                  href={href}
-                  className="flex flex-col items-center justify-center py-1.5 flex-1 interactive group"
-                  aria-label={item.label}
-                >
-                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-premium-gold to-premium-gold-dark flex items-center justify-center text-white shadow-lg -mt-5 group-active:scale-95 transition-transform">
-                    {item.icon(false)}
-                  </div>
-                  <span className="text-[10px] font-medium text-premium-gold mt-0.5">{item.label}</span>
-                </Link>
-              );
-            }
+          {/* Spacer matching the floating Sell button's footprint, so the
+              left/right groups don't creep under it. */}
+          <div className="w-16 shrink-0" aria-hidden="true" />
 
-            return (
-              <Link
-                key={item.href}
-                href={href}
-                className={`flex flex-col items-center justify-center py-2 flex-1 gap-0.5 interactive transition-colors ${
-                  isActive ? 'text-premium-gold' : 'text-gray-400 hover:text-gray-600'
-                }`}
-                aria-label={item.label}
-                aria-current={isActive ? 'page' : undefined}
-              >
-                <div className={`relative p-1 rounded-xl transition-all ${isActive ? 'bg-premium-gold/10' : ''}`}>
-                  {item.icon(Boolean(isActive))}
-                </div>
-                <span className={`text-[10px] font-medium ${isActive ? 'font-semibold' : ''}`}>{item.label}</span>
-              </Link>
-            );
-          })}
+          <div className="flex flex-1 items-stretch justify-evenly">
+            {rightItems.map((item) => renderNavLink(item, isActive(item), hrefFor(item)))}
+          </div>
         </div>
+
+        {/* Sell — floats dead-centre of the bar (not just centred among the
+            other flex items), elevated above the bar like a FAB. */}
+        <Link
+          href={hrefFor(sellItem)}
+          className="absolute left-1/2 -translate-x-1/2 -top-5 flex flex-col items-center justify-center interactive group"
+          aria-label={sellItem.label}
+        >
+          <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-premium-gold to-premium-gold-dark flex items-center justify-center text-white shadow-lg group-active:scale-95 transition-transform">
+            {sellItem.icon(false)}
+          </div>
+          <span className="text-[10px] font-medium text-premium-gold mt-0.5">{sellItem.label}</span>
+        </Link>
       </div>
     </nav>
   );

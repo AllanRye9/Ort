@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { api } from '@/lib/api';
 import Link from 'next/link';
 import { resolveImageUrl } from '@/lib/utils';
@@ -35,6 +35,18 @@ export default function StickyHeaderBanner({ className = '' }: Props) {
   const [banners, setBanners] = useState<Banner[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  // Banner ids whose image actually 404'd at runtime (e.g. uploaded to the
+  // backend's local-disk fallback and lost on redeploy) — filtered out below
+  // so a dead banner never renders as a broken image in this full-width strip.
+  const [failedIds, setFailedIds] = useState<Set<string>>(new Set());
+  // Memoized so the array reference is stable across re-renders that don't
+  // actually change its contents — the pixel-sampling effect below depends
+  // on it, and an unstable reference would re-trigger that effect (and its
+  // own setState) on every render, looping forever.
+  const visibleBanners = useMemo(
+    () => banners.filter((b) => !failedIds.has(b.id)),
+    [banners, failedIds]
+  );
   // Background colour sampled from first pixel of banner (fallback: slate-900)
   const [bgColor, setBgColor] = useState('#0f172a');
 
@@ -58,16 +70,16 @@ export default function StickyHeaderBanner({ className = '' }: Props) {
 
   /* Auto-rotate every 8 s when multiple banners exist */
   useEffect(() => {
-    if (banners.length <= 1) return;
+    if (visibleBanners.length <= 1) return;
     const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % banners.length);
+      setCurrentIndex((prev) => (prev + 1) % visibleBanners.length);
     }, 8000);
     return () => clearInterval(interval);
-  }, [banners.length]);
+  }, [visibleBanners.length]);
 
   /* Sample the edge pixel of the current banner to fill the outer strip */
   useEffect(() => {
-    const current = banners[currentIndex];
+    const current = visibleBanners[currentIndex % (visibleBanners.length || 1)];
     if (!current) return;
     const img = new window.Image();
     img.crossOrigin = 'anonymous';
@@ -86,12 +98,14 @@ export default function StickyHeaderBanner({ className = '' }: Props) {
     };
     img.onerror = () => setBgColor('#0f172a');
     img.src = resolveImageUrl(current.cdnUrl);
-  }, [banners, currentIndex]);
+  }, [visibleBanners, currentIndex]);
 
-  if (isLoading || banners.length === 0) return null;
+  if (isLoading || visibleBanners.length === 0) return null;
 
-  const current = banners[currentIndex];
+  const current = visibleBanners[currentIndex % visibleBanners.length];
   if (!current) return null;
+
+  const markFailed = (id: string) => setFailedIds((prev) => new Set(prev).add(id));
 
   const isGif = current.cdnUrl.toLowerCase().includes('.gif');
 
@@ -116,6 +130,7 @@ export default function StickyHeaderBanner({ className = '' }: Props) {
             width={935}
             height={45}
             style={{ width: '100%', height: '45px', objectFit: 'fill', display: 'block' }}
+            onError={() => markFailed(current.id)}
           />
         ) : (
           // eslint-disable-next-line @next/next/no-img-element
@@ -126,14 +141,15 @@ export default function StickyHeaderBanner({ className = '' }: Props) {
             height={45}
             style={{ width: '100%', height: '45px', objectFit: 'fill', display: 'block' }}
             loading="eager"
+            onError={() => markFailed(current.id)}
           />
         )}
       </div>
 
       {/* Dot indicators when multiple banners */}
-      {banners.length > 1 && (
+      {visibleBanners.length > 1 && (
         <div className="absolute bottom-1 left-1/2 -translate-x-1/2 z-10 flex gap-1">
-          {banners.map((_, idx) => (
+          {visibleBanners.map((_, idx) => (
             <button
               key={idx}
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCurrentIndex(idx); }}
