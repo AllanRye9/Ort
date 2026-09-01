@@ -46,23 +46,47 @@ export function normalizeExternalUrl(url: string): string {
 
 export function resolveImageUrl(url: string): string {
   if (!url) return '';
-  const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+  const apiBase = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/+$/, '');
   if (url.startsWith('data:') || url.startsWith('blob:')) return url;
+
+  // Re-write backend-origin absolute URLs that were saved before a deploy/domain
+  // change (for example a Railway backend URL or localhost URL). These URLs are
+  // still valid if they point at the same backend, but after a reassignment they
+  // often become stale and start returning 404s from an old service instance.
+  try {
+    const parsed = new URL(url);
+    const pathPart = `${parsed.pathname}${parsed.search}${parsed.hash}`;
+    const backendPath = pathPart.startsWith('/api/') || pathPart.startsWith('/uploads/') || pathPart.startsWith('/media/');
+    const backendHost = parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1'
+      || parsed.hostname.includes('railway.app')
+      || parsed.hostname.includes('render.com')
+      || parsed.hostname.includes('vercel.app');
+
+    if (backendPath && backendHost && apiBase) {
+      return `${apiBase}${pathPart}`;
+    }
+  } catch {
+    // Fallback to the regular relative/absolute handling below.
+  }
+
   if (url.startsWith('http://localhost:') || url.startsWith('https://localhost:')) {
     const slashIdx = url.indexOf('/', url.indexOf('://') + 3);
     if (slashIdx === -1) return url;
     const pathPart = url.substring(slashIdx);
     return apiBase ? `${apiBase}${pathPart}` : pathPart;
   }
-  // Rewrite relative API/upload paths to use the backend base URL
-  if ((url.startsWith('/api/') || url.startsWith('/uploads/')) && apiBase) {
+
+  // Rewrite relative API/upload paths to use the backend base URL.
+  if ((url.startsWith('/api/') || url.startsWith('/uploads/') || url.startsWith('/media/')) && apiBase) {
     return `${apiBase}${url}`;
   }
+
   // Rewrite any other relative path into an absolute backend URL.
   if (!url.startsWith('http://') && !url.startsWith('https://')) {
     const normalized = url.startsWith('/') ? url : `/${url}`;
     return apiBase ? `${apiBase}${normalized}` : normalized;
   }
+
   return url;
 }
 

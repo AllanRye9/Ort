@@ -16,6 +16,11 @@ interface Props {
  * item is in the cart it stays visually marked with a small green check
  * badge at the bottom-right of the button, so shoppers can see at a glance
  * which items they've already added while browsing a grid.
+ *
+ * The button reflects the listing's live availability rather than being
+ * permanently disabled after the first click: SOLD/EXPIRED/HIDDEN/REJECTED
+ * listings and listings with zero tracked stock render a disabled
+ * "unavailable" state instead of an actionable "+".
  */
 export function QuickAddButton({ listing, size = 'md' }: Props) {
   const { items, addToCart } = useCart();
@@ -23,6 +28,19 @@ export function QuickAddButton({ listing, size = 'md' }: Props) {
 
   const alreadyInCart = items.some((i) => i.listing.id === listing.id);
   const added = alreadyInCart || justAdded;
+
+  // Unavailable: not currently purchasable. Stock is only enforced when the
+  // listing tracks it (stock === undefined means the seller isn't tracking
+  // inventory for this item, so it stays available on status alone).
+  const outOfStock = typeof listing.stock === 'number' && listing.stock <= 0;
+  const unavailable = listing.status !== 'ACTIVE' || outOfStock;
+  const unavailableReason =
+    listing.status === 'SOLD' ? 'Already sold'
+    : listing.status === 'EXPIRED' ? 'Listing expired'
+    : listing.status === 'HIDDEN' || listing.status === 'REJECTED' ? 'No longer available'
+    : listing.status === 'PENDING' ? 'Pending approval'
+    : outOfStock ? 'Out of stock'
+    : 'Unavailable';
 
   // Reset the "just added" pulse once the item is confirmed in the cart state.
   useEffect(() => {
@@ -33,10 +51,11 @@ export function QuickAddButton({ listing, size = 'md' }: Props) {
     (e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
+      if (unavailable) return;
       addToCart(listing);
       setJustAdded(true);
     },
-    [addToCart, listing]
+    [addToCart, listing, unavailable]
   );
 
   const dims = size === 'sm' ? 'w-6 h-6' : 'w-7 h-7 xs:w-8 xs:h-8';
@@ -48,21 +67,30 @@ export function QuickAddButton({ listing, size = 'md' }: Props) {
       <button
         type="button"
         onClick={handleAdd}
-        aria-label={added ? 'Added to cart' : 'Add to cart'}
-        title={added ? 'Added to cart' : 'Add to cart'}
+        disabled={unavailable}
+        aria-label={unavailable ? unavailableReason : added ? 'Added to cart' : 'Add to cart'}
+        title={unavailable ? unavailableReason : added ? 'Added to cart' : 'Add to cart'}
         className={`${dims} rounded-full flex items-center justify-center shadow transition-colors ${
-          added
+          unavailable
+            ? 'bg-gray-200 text-gray-400 border border-gray-200 cursor-not-allowed'
+            : added
             ? 'bg-white text-emerald-600 border border-emerald-200'
             : 'bg-white/95 text-gray-700 border border-white/80 hover:bg-red-500 hover:text-white hover:border-red-500'
         }`}
       >
-        <svg className={iconDims} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-        </svg>
+        {unavailable ? (
+          <svg className={iconDims} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        ) : (
+          <svg className={iconDims} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+        )}
       </button>
 
       {/* Small green "already added" tick — bottom-right of the + button */}
-      {added && (
+      {!unavailable && added && (
         <span
           className={`absolute -bottom-1 -right-1 ${badgeDims} rounded-full bg-emerald-500 ring-2 ring-white flex items-center justify-center`}
           aria-hidden="true"
@@ -75,3 +103,4 @@ export function QuickAddButton({ listing, size = 'md' }: Props) {
     </div>
   );
 }
+

@@ -249,6 +249,17 @@ router.post('/login', async (req: Request, res: Response, next: NextFunction) =>
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) return next(createError('Invalid credentials', 401));
 
+    // Email verification gate: an unverified account must not receive a
+    // session, even though the password check above already succeeded.
+    // Admins are exempted — those accounts are provisioned by trusted staff
+    // (see prisma/seed.ts) rather than through public self-registration, and
+    // gating them risks locking out existing production admin accounts
+    // whose isVerified flag was never backfilled. /auth/resend-verification
+    // (unchanged) lets a regular user request a fresh link if theirs expired.
+    if (!user.isVerified && user.role !== 'ADMIN') {
+      return next(createError('Please verify your email before signing in. Check your inbox for the verification link, or request a new one.', 403));
+    }
+
     const accessToken = generateAccessToken({ userId: user.id, email: user.email, role: user.role });
     const refreshToken = generateRefreshToken({ userId: user.id, email: user.email, role: user.role });
 

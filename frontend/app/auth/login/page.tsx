@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/Toast';
 import AuthColorBlend from '@/components/ui/AuthColorBlend';
+import { api } from '@/lib/api';
 
 function LoginForm() {
   const { login, user, loading: authLoading } = useAuth();
@@ -18,6 +19,9 @@ function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resent, setResent] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -59,6 +63,8 @@ function LoginForm() {
 
     submitLockRef.current = true;
     setError('');
+    setNeedsVerification(false);
+    setResent(false);
     setLoading(true);
     try {
       const loggedInUser = await login(email, password);
@@ -71,14 +77,35 @@ function LoginForm() {
       router.push(redirect);
     } catch (err: unknown) {
       const axiosErr = err as { response?: { status?: number; data?: { message?: string } } };
+      const message = axiosErr.response?.data?.message || '';
+      if (axiosErr.response?.status === 403 && /verify your email/i.test(message)) {
+        // Backend blocks sign-in for unverified accounts (see POST
+        // /auth/login) — surface a one-click resend instead of a dead end.
+        setNeedsVerification(true);
+      }
       setError(
         axiosErr.response?.status === 429
           ? 'Too many sign-in attempts. Wait a short moment before trying again.'
-          : axiosErr.response?.data?.message || 'Login failed. Please check your credentials.'
+          : message || 'Login failed. Please check your credentials.'
       );
     } finally {
       submitLockRef.current = false;
       setLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (resending || !email) return;
+    setResending(true);
+    try {
+      await api.post('/auth/resend-verification', { email: email.trim().toLowerCase() });
+      setResent(true);
+    } catch {
+      // The endpoint always returns a generic success response to avoid
+      // account enumeration, so a network-level failure is the only case
+      // that lands here — leave the resend option available to retry.
+    } finally {
+      setResending(false);
     }
   };
 
@@ -99,7 +126,25 @@ function LoginForm() {
           {error && (
             <div className="flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 rounded-xl p-3.5 text-sm mb-5 animate-scale-in">
               <svg className="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-              {error}
+              <div className="flex-1">
+                {error}
+                {needsVerification && (
+                  <div className="mt-2">
+                    {resent ? (
+                      <p className="text-emerald-700 font-medium">Verification email sent — check your inbox.</p>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleResendVerification}
+                        disabled={resending}
+                        className="font-semibold underline underline-offset-2 hover:text-red-900 disabled:opacity-60"
+                      >
+                        {resending ? 'Sending…' : 'Resend verification email'}
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 

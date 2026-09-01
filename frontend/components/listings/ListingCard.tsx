@@ -7,8 +7,10 @@ import { Listing } from '@/lib/types';
 import { CurrencyDisplay } from '@/components/ui/CurrencyDisplay';
 import { resolveImageUrl } from '@/lib/utils';
 import { FavoriteButton } from './FavoriteButton';
+import { QuickAddButton } from './QuickAddButton';
 import { FlagIcon } from '@/components/ui/FlagIcon';
 import { useCountry } from '@/context/CountryContext';
+import { useAuth } from '@/context/AuthContext';
 
 interface Props {
   listing: Listing;
@@ -21,6 +23,19 @@ export function ListingCard({ listing, showFavorite = true, cleanImage = false }
   // currency (from CountryContext, populated via IP geolocation or manual
   // country selection) rather than always showing the seller's own currency.
   const { currency: viewerCurrency } = useCountry();
+  // Admin-only quick edit: the pen icon below links straight into the
+  // existing edit interface (/listings/create?edit=:id). The backend's
+  // PUT /listings/:id route already allows role === 'ADMIN' regardless of
+  // ownership, so this is purely a frontend entry point — no new
+  // authorization surface is introduced.
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
+  // Regular-user quick add-to-cart: shown to any signed-in non-admin buyer
+  // who isn't the listing's own seller (a seller shouldn't be able to add
+  // their own listing to their cart). QuickAddButton itself handles the
+  // in-cart / unavailable states.
+  const isOwnListing = !!user && user.id === listing.userId;
+  const showQuickAdd = !!user && !isAdmin && !isOwnListing;
   const displayCurrency = viewerCurrency;
 
   const primaryImage =
@@ -114,10 +129,30 @@ export function ListingCard({ listing, showFavorite = true, cleanImage = false }
           </div>
         )}
 
-        {/* Favorite button */}
-        {showFavorite && !cleanImage && (
-          <div className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-            <FavoriteButton listingId={listing.id} />
+        {/* Favorite button + admin quick-edit + buyer quick-add — stacked on
+            the right so none of them overlap the listing link, image, or
+            the SOLD/verified badges on the left. */}
+        {(showFavorite || isAdmin || showQuickAdd) && !cleanImage && (
+          <div className="absolute top-1.5 right-1.5 flex flex-col items-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+            {isAdmin && (
+              <Link
+                href={`/listings/create?edit=${listing.id}`}
+                onClick={(e) => e.stopPropagation()}
+                aria-label="Edit listing (admin)"
+                title="Edit listing (admin)"
+                className="w-6 h-6 xs:w-7 xs:h-7 rounded-full bg-white/95 border border-white/80 text-gray-700 shadow flex items-center justify-center hover:bg-red-500 hover:text-white hover:border-red-500 transition-colors"
+              >
+                <svg className="w-3 h-3 xs:w-3.5 xs:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+              </Link>
+            )}
+            {showFavorite && (
+              <FavoriteButton listingId={listing.id} />
+            )}
+            {showQuickAdd && (
+              <QuickAddButton listing={listing} />
+            )}
           </div>
         )}
       </div>{/* end image container */}
