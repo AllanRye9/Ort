@@ -7,6 +7,7 @@
 import { useEffect, useState } from 'react';
 import { useCountry } from '@/context/CountryContext';
 import { ListingCard } from '@/components/listings/ListingCard';
+import { MobileCardCarousel } from '@/components/ui/MobileCardCarousel';
 import type { Listing } from '@/lib/types';
 import { API_URL } from '@/lib/api';
 
@@ -29,10 +30,10 @@ export default function CountryLatestCollections({ initialListings }: Props) {
   if (listings.length === 0) return null;
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 stagger-children">
+    <MobileCardCarousel gridClassName="sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 stagger-children" ariaLabel="Latest Collections listings">
       {listings.slice(0, 6).map((listing) => (
         <ListingCard key={listing.id} listing={listing} />
       ))}
-    </div>
+    </MobileCardCarousel>
   );
 }

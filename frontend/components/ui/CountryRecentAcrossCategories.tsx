@@ -10,6 +10,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useCountry } from '@/context/CountryContext';
 import { ListingCard } from '@/components/listings/ListingCard';
+import { MobileCardCarousel } from '@/components/ui/MobileCardCarousel';
 import type { Listing } from '@/lib/types';
 import { api } from '@/lib/api';
 
@@ -79,11 +80,11 @@ export default function CountryRecentAcrossCategories({
               See more →
             </Link>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+          <MobileCardCarousel gridClassName="sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3" ariaLabel={`Latest ${cat.label} listings`}>
             {(byCategory[cat.key] || []).slice(0, 6).map((l) => (
               <ListingCard key={l.id} listing={l} />
             ))}
-          </div>
+          </MobileCardCarousel>
         </div>
       ))}
     </div>

@@ -11,6 +11,7 @@ FRONTEND_DIR="frontend"
 BACKEND_DIR="backend"
 
 PRISMA_SCHEMA="./prisma/schema.prisma"
+PRISMA_MIGRATIONS_DIR="./prisma/migrations"
 PRISMA_HOTFIX_DIR="./prisma/hotfixes"
 
 # ============================================================
@@ -173,7 +174,7 @@ if [ -f "$BACKEND_DIR/package.json" ]; then
     fi
 
     # ========================================================
-    # Database migrations + hotfixes
+    # Database schema sync + hotfixes
     # ========================================================
 
     if [ -n "${DATABASE_URL:-}" ]; then
@@ -184,94 +185,165 @@ if [ -f "$BACKEND_DIR/package.json" ]; then
       echo "========================================"
 
       # ======================================================
-      # Prisma migrations
+      # Detect migration workflow
       # ======================================================
       #
-      # Prisma automatically discovers every migration under:
+      # This repo does not currently commit any Prisma
+      # migrations (schema changes have historically been made
+      # directly in schema.prisma and synced with `prisma db
+      # push`). `prisma migrate deploy` against an empty/missing
+      # migrations directory succeeds trivially without applying
+      # any schema changes at all, which would silently leave the
+      # live database out of sync with schema.prisma.
       #
-      #   prisma/migrations/
-      #
-      # No migration filenames need to be listed here.
+      # So: use `migrate deploy` only once real, committed
+      # migrations exist under prisma/migrations. Until then,
+      # fall back to `db push`, which reconciles the live schema
+      # with schema.prisma directly. Once the first migration is
+      # committed, this automatically switches over with no
+      # script changes needed.
       # ======================================================
 
-      echo ""
-      echo "Running Prisma migrations..."
+      HAS_MIGRATIONS=false
 
-      DEPLOY_OUTPUT=$(
-        ./node_modules/.bin/prisma migrate deploy 2>&1
-      ) && DEPLOY_OK=1 || DEPLOY_OK=0
+      if [ -d "$PRISMA_MIGRATIONS_DIR" ]; then
+        if find "$PRISMA_MIGRATIONS_DIR" -mindepth 1 -maxdepth 1 -type d -name '*_*' -print -quit | grep -q .; then
+          HAS_MIGRATIONS=true
+        fi
+      fi
 
-      echo "$DEPLOY_OUTPUT"
+      if [ "$HAS_MIGRATIONS" = true ]; then
 
-      # ======================================================
-      # Failed migration recovery
-      # ======================================================
-
-      if [ "$DEPLOY_OK" = "0" ]; then
+        # ======================================================
+        # Prisma migrations
+        # ======================================================
 
         echo ""
-        echo "========================================"
-        echo "Prisma migration failure detected"
-        echo "========================================"
+        echo "Committed migrations found under $PRISMA_MIGRATIONS_DIR."
+        echo "Running Prisma migrations..."
 
-        echo "Attempting to identify failed migrations..."
+        DEPLOY_OUTPUT=$(
+          ./node_modules/.bin/prisma migrate deploy 2>&1
+        ) && DEPLOY_OK=1 || DEPLOY_OK=0
 
-        # Prisma normally reports failures in a format similar to:
-        #
-        # The `20260829094500_example` migration started at ...
-        # failed
-        #
-        # Extract the migration name between backticks.
+        echo "$DEPLOY_OUTPUT"
 
-        FAILED_MIGRATIONS=$(
-          echo "$DEPLOY_OUTPUT" |
-            sed -n 's/.*`\([^`]*\)` migration.*failed.*/\1/p' |
-            sort -u
-        )
+        # ======================================================
+        # Failed migration recovery
+        # ======================================================
 
-        if [ -n "$FAILED_MIGRATIONS" ]; then
+        if [ "$DEPLOY_OK" = "0" ]; then
 
           echo ""
-          echo "Failed migration(s) detected:"
+          echo "========================================"
+          echo "Prisma migration failure detected"
+          echo "========================================"
 
-          while IFS= read -r migration; do
-            [ -z "$migration" ] && continue
-            echo "  - $migration"
-          done <<< "$FAILED_MIGRATIONS"
+          echo "Attempting to identify failed migrations..."
 
-          echo ""
+          # Prisma normally reports failures in a format similar to:
+          #
+          # The `20260829094500_example` migration started at ...
+          # failed
+          #
+          # Extract the migration name between backticks.
 
-          # Resolve every failed migration dynamically.
-          while IFS= read -r migration; do
+          FAILED_MIGRATIONS=$(
+            echo "$DEPLOY_OUTPUT" |
+              sed -n 's/.*`\([^`]*\)` migration.*failed.*/\1/p' |
+              sort -u
+          )
 
-            [ -z "$migration" ] && continue
+          if [ -n "$FAILED_MIGRATIONS" ]; then
 
-            echo "Marking migration '$migration' as rolled back..."
+            echo ""
+            echo "Failed migration(s) detected:"
 
-            ./node_modules/.bin/prisma migrate resolve \
-              --rolled-back "$migration" || true
+            while IFS= read -r migration; do
+              [ -z "$migration" ] && continue
+              echo "  - $migration"
+            done <<< "$FAILED_MIGRATIONS"
 
-          done <<< "$FAILED_MIGRATIONS"
+            echo ""
+            echo "WARNING: the migrations below will be marked as rolled back and"
+            echo "re-applied automatically. This assumes each failed migration made"
+            echo "no partial changes to the database. If a migration could have"
+            echo "partially applied before failing, verify the schema manually"
+            echo "before letting this proceed."
+            echo ""
 
-          echo ""
-          echo "Retrying Prisma migrations..."
+            # Resolve every failed migration dynamically.
+            while IFS= read -r migration; do
 
-          ./node_modules/.bin/prisma migrate deploy
+              [ -z "$migration" ] && continue
+
+              echo "Marking migration '$migration' as rolled back..."
+
+              ./node_modules/.bin/prisma migrate resolve \
+                --rolled-back "$migration" || true
+
+            done <<< "$FAILED_MIGRATIONS"
+
+            echo ""
+            echo "Retrying Prisma migrations..."
+
+            ./node_modules/.bin/prisma migrate deploy
+
+          else
+
+            echo ""
+            echo "Prisma migrate deploy failed, but no failed migration name could be parsed." >&2
+            echo "The database deployment has been stopped." >&2
+
+            exit 1
+
+          fi
 
         else
 
           echo ""
-          echo "Prisma migrate deploy failed, but no failed migration name could be parsed." >&2
-          echo "The database deployment has been stopped." >&2
-
-          exit 1
+          echo "Prisma migrations completed successfully."
 
         fi
 
       else
 
+        # ======================================================
+        # No committed migrations: sync schema directly
+        # ======================================================
+        #
+        # --skip-generate: the client was already generated above.
+        # No --accept-data-loss: by design. Additive changes (new
+        # nullable columns, new tables, etc.) apply without
+        # prompting. Anything destructive (dropping/narrowing a
+        # column, etc.) will make this command fail loudly instead
+        # of silently discarding data — that case needs a human
+        # to look at it and either add an explicit hotfix or
+        # re-run manually with --accept-data-loss.
+        # ======================================================
+
         echo ""
-        echo "Prisma migrations completed successfully."
+        echo "No committed migrations found under $PRISMA_MIGRATIONS_DIR."
+        echo "Syncing schema directly with 'prisma db push'..."
+
+        if ! ./node_modules/.bin/prisma db push --skip-generate 2>&1 | tee /tmp/db_push_output.log; then
+
+          if grep -qi "data loss" /tmp/db_push_output.log; then
+            echo ""
+            echo "'prisma db push' requires confirming a potentially destructive" >&2
+            echo "change and cannot proceed unattended. Review the output above," >&2
+            echo "then either add a hand-written hotfix for a safe, non-destructive" >&2
+            echo "path, or re-run manually with --accept-data-loss if the change" >&2
+            echo "is intentional." >&2
+          fi
+
+          echo ""
+          echo "Database schema sync failed. Deployment stopped." >&2
+          exit 1
+
+        fi
+
+        echo "Schema sync completed successfully."
 
       fi
 
@@ -294,6 +366,10 @@ if [ -f "$BACKEND_DIR/package.json" ]; then
       #   003_ensure_site_stat_table.sql
       #
       # Existing filenames without numeric prefixes also work.
+      #
+      # Hotfixes are expected to be idempotent (CREATE TABLE IF
+      # NOT EXISTS / ADD COLUMN IF NOT EXISTS-style guards) since
+      # they run on every deploy regardless of migration path.
       # ========================================================
 
       echo ""
@@ -360,6 +436,11 @@ if [ -f "$BACKEND_DIR/package.json" ]; then
           echo "Hotfixes failed:   $HOTFIX_FAILURES"
           echo "----------------------------------------"
 
+          if [ "$HOTFIX_FAILURES" -gt 0 ]; then
+            echo ""
+            echo "WARNING: $HOTFIX_FAILURES hotfix(es) failed. Review the output above." >&2
+          fi
+
         fi
 
       else
@@ -377,7 +458,7 @@ if [ -f "$BACKEND_DIR/package.json" ]; then
 
       echo ""
       echo "No DATABASE_URL set."
-      echo "Skipping Prisma migrations and database hotfixes."
+      echo "Skipping schema sync and database hotfixes."
 
     fi
 
@@ -385,7 +466,7 @@ if [ -f "$BACKEND_DIR/package.json" ]; then
 
     echo ""
     echo "Prisma is not installed."
-    echo "Skipping Prisma client generation, migrations, and hotfixes."
+    echo "Skipping Prisma client generation, schema sync, and hotfixes."
 
   fi
 
@@ -424,7 +505,7 @@ fi
 echo ""
 echo "Committing changes..."
 
-git commit -m "$(TZ="Asia/Dubai" date +'%D-%M-%Y %H:%M:%S')"
+git commit -m "$(TZ="Asia/Dubai" date +'%Y-%m-%d %H:%M:%S')"
 
 # ============================================================
 # Push

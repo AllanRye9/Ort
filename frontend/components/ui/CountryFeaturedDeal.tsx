@@ -13,6 +13,7 @@ import { useEffect, useState } from 'react';
 import { useCountry } from '@/context/CountryContext';
 import type { Listing } from '@/lib/types';
 import FeaturedProductCard from '@/components/ui/FeaturedProductCard';
+import { MobileCardCarousel } from '@/components/ui/MobileCardCarousel';
 import { API_URL } from '@/lib/api';
 import { convertCurrency, formatCurrency } from '@/lib/utils';
 
@@ -104,9 +105,9 @@ export default function CountryFeaturedDeal({ initialDeal }: Props) {
     );
   }
 
-  // ── 6-column responsive grid ──────────────────────────────────────────────
+  // ── 6-column grid at sm+, 3-per-row swipeable carousel on mobile ─────────
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+    <MobileCardCarousel gridClassName="sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3" ariaLabel="Featured Deal listings">
       {deals.map((deal) => {
         // Global reach: convert each deal's price into the viewer's
         // detected/selected currency rather than always showing the price
@@ -144,6 +145,6 @@ export default function CountryFeaturedDeal({ initialDeal }: Props) {
           />
         );
       })}
-    </div>
+    </MobileCardCarousel>
   );
 }

@@ -5,6 +5,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { resolveImageUrl } from '@/lib/utils';
 import { Listing } from '@/lib/types';
+import { useAuth } from '@/context/AuthContext';
+import { QuickAddButton } from '@/components/listings/QuickAddButton';
 
 interface FeaturedProductCardProps {
   storeName?: string;
@@ -40,6 +42,15 @@ export default function FeaturedProductCard({
 
   const navigable = !!resolvedHref;
 
+  // Regular-user quick add-to-cart — same gating as ListingCard: shown to
+  // any signed-in non-admin buyer who isn't the listing's own seller.
+  // Admins don't get a quick-edit affordance here (unlike ListingCard)
+  // since Featured Deal placement is managed from /admin, not per-card.
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
+  const isOwnListing = !!listing && !!user && user.id === listing.userId;
+  const showQuickAdd = !!listing && !!user && !isAdmin && !isOwnListing;
+
   // Tracks whether the resolved image actually failed to load at runtime
   // (e.g. it was uploaded to the backend's local-disk fallback and then
   // wiped by a redeploy, leaving a dead URL). Falls back to the same
@@ -72,6 +83,14 @@ export default function FeaturedProductCard({
         )}
         {/* Subtle hover overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+        {/* Buyer quick-add — top-right, mirrors ListingCard's placement.
+            QuickAddButton stops propagation on click so it doesn't trigger
+            the card's own Link navigation. */}
+        {showQuickAdd && (
+          <div className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+            <QuickAddButton listing={listing as Listing} size="sm" />
+          </div>
+        )}
         {/* Handpicked badge — bottom corner, small and subtle */}
         {isHandpicked && (
           <div className="absolute bottom-1.5 right-1.5">

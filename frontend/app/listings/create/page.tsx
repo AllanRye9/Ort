@@ -374,8 +374,14 @@ function CreateListingContent() {
   }, [user]);
 
   useEffect(() => {
-    setForm((prev) => (prev.country === selectedCountry ? prev : { ...prev, country: selectedCountry, location: '' }));
-  }, [selectedCountry]);
+    // New listings can only be created for Uganda — the global country
+    // switcher (used for browsing) no longer drives the create form's
+    // country field. Editing an existing listing keeps its original
+    // country (handled in the edit-mode effect below) so listings created
+    // before this restriction remain fully editable.
+    if (editId) return;
+    setForm((prev) => (prev.country === 'UGANDA' ? prev : { ...prev, country: 'UGANDA', location: '' }));
+  }, [editId, selectedCountry]);
 
   // Pre-populate form when in edit mode
   useEffect(() => {
@@ -1047,23 +1053,38 @@ function CreateListingContent() {
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
                   <label className="mb-1 block text-xs font-medium text-gray-700">Country <span className="text-red-500">*</span></label>
-                  <select
-                    value={form.country}
-                    onChange={(e) => {
-                      const nextCountry = e.target.value as Country;
-                      setCountry(nextCountry);
-                      setForm({ ...form, country: nextCountry, location: '' });
-                    }}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-400"
-                    required
-                  >
-                    <option value="UAE">🇦🇪 UAE</option>
-                    <option value="UGANDA">🇺🇬 Uganda</option>
-                    <option value="KENYA">🇰🇪 Kenya</option>
-                    <option value="CHINA">🇨🇳 China</option>
-                  </select>
+                  {editId && form.country !== 'UGANDA' ? (
+                    // Editing a listing created before the Uganda-only restriction —
+                    // keep it fully editable so existing non-Uganda listings aren't stranded.
+                    <select
+                      value={form.country}
+                      onChange={(e) => {
+                        const nextCountry = e.target.value as Country;
+                        setCountry(nextCountry);
+                        setForm({ ...form, country: nextCountry, location: '' });
+                      }}
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-400"
+                      required
+                    >
+                      <option value="UAE">🇦🇪 UAE</option>
+                      <option value="UGANDA">🇺🇬 Uganda</option>
+                      <option value="KENYA">🇰🇪 Kenya</option>
+                      <option value="CHINA">🇨🇳 China</option>
+                    </select>
+                  ) : (
+                    <select
+                      value="UGANDA"
+                      disabled
+                      aria-readonly
+                      className="w-full cursor-not-allowed rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-sm text-gray-700 focus:outline-none"
+                    >
+                      <option value="UGANDA">🇺🇬 Uganda</option>
+                    </select>
+                  )}
                   <p className="mt-1 text-[11px] text-red-600 font-medium">
-                    Currency: <span className="font-bold">{listingCurrency}</span> — listings will only appear to buyers in this country.
+                    {editId && form.country !== 'UGANDA'
+                      ? <>Currency: <span className="font-bold">{listingCurrency}</span> — listings will only appear to buyers in this country.</>
+                      : 'New listings can currently only be posted for Uganda.'}
                   </p>
                 </div>
                 <div>

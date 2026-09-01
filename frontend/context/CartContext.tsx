@@ -1,9 +1,10 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { Listing, Currency } from '@/lib/types';
 import { convertToUSD, convertCurrency } from '@/lib/utils';
 import { useCountry } from '@/context/CountryContext';
+import { api } from '@/lib/api';
 
 export interface CartItemVariants {
   /** Selected colour option, e.g. "Black" */
@@ -40,14 +41,78 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const { currency: selectedCurrency, lastSelection } = useCountry();
   const [conversionInfo, setConversionInfo] = useState<{ from: Currency; to: Currency; at: number; auto?: boolean } | null>(null);
 
+  // Kept in sync with `items` on every render so the focus-reconciliation
+  // effect below can always read the latest cart contents without having
+  // to re-subscribe every time items changes.
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
+
+  // Checks every cart line against the listing's *current* status/stock and
+  // reconciles the cart accordingly: a listing removed by an admin (hard
+  // delete) is dropped from the cart entirely; a listing that's since been
+  // sold, deactivated/expired, or gone out of stock has its stored
+  // status/stock refreshed so the cart UI can show it as unavailable — the
+  // cart previously never re-checked a listing after the initial add, so
+  // any of those changes happening later went unnoticed indefinitely.
+  const reconcile = useCallback(async (current: CartItem[]) => {
+    const ids = current.map((i) => i.listing.id);
+    if (ids.length === 0) return;
+    try {
+      const { data } = await api.get('/listings/status', { params: { ids: ids.join(',') } });
+      const statusMap = new Map<string, { status: Listing['status']; stock: number }>(
+        (data.listings || []).map((l: { id: string; status: Listing['status']; stock: number }) => [l.id, { status: l.status, stock: l.stock }])
+      );
+      setItems((prev) => {
+        let changed = false;
+        const next: CartItem[] = [];
+        for (const item of prev) {
+          const fresh = statusMap.get(item.listing.id);
+          if (!fresh) {
+            // No longer in the database at all — the admin deleted it.
+            changed = true;
+            continue;
+          }
+          if (fresh.status !== item.listing.status || fresh.stock !== item.listing.stock) {
+            changed = true;
+            next.push({ ...item, listing: { ...item.listing, status: fresh.status, stock: fresh.stock } });
+          } else {
+            next.push(item);
+          }
+        }
+        if (!changed) return prev;
+        try { localStorage.setItem('cart', JSON.stringify(next)); } catch { /* ignore */ }
+        return next;
+      });
+    } catch {
+      // Best-effort — e.g. offline. Leave the cart exactly as it was;
+      // we'll try again next time the tab regains focus.
+    }
+  }, []);
+
   useEffect(() => {
+    let loaded: CartItem[] = [];
     try {
       const saved = localStorage.getItem('cart');
-      if (saved) setItems(JSON.parse(saved));
+      if (saved) loaded = JSON.parse(saved);
     } catch {
       // ignore malformed data
     }
+    if (loaded.length > 0) {
+      setItems(loaded);
+      reconcile(loaded);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Re-check availability whenever the tab regains focus, so a listing
+  // that was sold/deleted/deactivated in another tab (or by someone else)
+  // while this tab was in the background is caught the next time the
+  // shopper looks at it, not just on a full page reload.
+  useEffect(() => {
+    const onFocus = () => reconcile(itemsRef.current);
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [reconcile]);
 
   const persist = useCallback((next: CartItem[]) => {
     setItems(next);

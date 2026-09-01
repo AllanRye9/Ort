@@ -679,7 +679,7 @@ router.get('/kyc', async (req: Request, res: Response, next: NextFunction) => {
         where,
         select: {
           id: true, name: true, email: true, role: true, country: true,
-          kycStatus: true, kycDocumentType: true, kycDocumentUrl: true, kycSelfieUrl: true,
+          kycStatus: true, kycDocumentType: true, kycDocumentUrl: true, kycDocumentBackUrl: true, kycSelfieUrl: true,
           kycFullName: true, kycSubmittedAt: true, kycReviewedAt: true, kycRejectionReason: true,
           isKycVerified: true,
         },
@@ -1231,6 +1231,24 @@ function validateBulkItems(items: BulkListingItem[]): string | null {
       return `Row ${row}: stock must be a valid non-negative whole number`;
     }
   }
+
+  // ── Uganda-only bulk posting ──
+  // Bulk-created listings are subject to the same Uganda-only restriction
+  // as the single-listing POST /listings endpoint. Every offending row is
+  // reported together (rather than stopping at the first one) so an admin
+  // correcting a CSV/import batch can see every row that needs fixing in
+  // one pass. The batch itself still runs as a single all-or-nothing
+  // transaction (see prisma.$transaction below), so no partial batch is
+  // ever created — flagging every bad row up front is purely for a clearer
+  // error message.
+  const invalidCountryRows = items
+    .map((item, i) => ({ item, row: i + 1 }))
+    .filter(({ item }) => String(item.country).toUpperCase() !== 'UGANDA')
+    .map(({ row }) => row);
+  if (invalidCountryRows.length > 0) {
+    return `Country mismatch: Listings created through this endpoint must have Uganda as the country. Invalid row(s): ${invalidCountryRows.join(', ')}`;
+  }
+
   return null;
 }
 

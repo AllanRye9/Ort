@@ -6,6 +6,9 @@ import Image from 'next/image';
 import { Currency, Listing } from '@/lib/types';
 import { resolveImageUrl, getCurrency, convertCurrency, formatCurrency } from '@/lib/utils';
 import { useCountry } from '@/context/CountryContext';
+import { useAuth } from '@/context/AuthContext';
+import { QuickAddButton } from '@/components/listings/QuickAddButton';
+import { MobileCardCarousel } from '@/components/ui/MobileCardCarousel';
 
 interface FlashMediaItem {
   id: string;
@@ -122,6 +125,15 @@ function FlashCard({ card, displayCurrency }: { card: CardData; displayCurrency:
   const [imgFailed, setImgFailed] = useState(false);
   const showImage = !!card.imageUrl && !imgFailed;
 
+  // Buyer quick-add — same gating as ListingCard/FeaturedProductCard: only
+  // for signed-in non-admin buyers who aren't the listing's own seller,
+  // and only for real listing-backed cards (media-only placeholder cards
+  // have no listing to add to a cart).
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
+  const isOwnListing = !!card.listing && !!user && user.id === card.listing.userId;
+  const showQuickAdd = !!card.listing && !!user && !isAdmin && !isOwnListing;
+
   // Convert price to display currency if needed
   const displayPrice = card.price !== null && card.currency
     ? convertCurrency(card.price, card.currency, displayCurrency)
@@ -163,6 +175,13 @@ function FlashCard({ card, displayCurrency }: { card: CardData; displayCurrency:
           <span aria-hidden="true">🔥</span>
           <span>HOT</span>
         </div>
+        {/* Buyer quick-add — top-right, stops propagation so it doesn't
+            trigger the card's own Link navigation. */}
+        {showQuickAdd && (
+          <div className="absolute top-1.5 right-1.5">
+            <QuickAddButton listing={card.listing as Listing} size="sm" />
+          </div>
+        )}
       </div>
 
       <div className="p-2 space-y-1.5">
@@ -330,11 +349,13 @@ export default function FlashDeals({ listings, media = [] }: Props) {
         </div>
       </div>
 
-      {/* Cards grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 bg-white/5 backdrop-blur-sm p-3 sm:p-4">
-        {cards.map((card) => (
-          <FlashCard key={card.id} card={card} displayCurrency={displayCurrency} />
-        ))}
+      {/* Cards — mobile carousel (3/row, swipe + arrows), grid at sm+ */}
+      <div className="bg-white/5 backdrop-blur-sm p-3 sm:p-4">
+        <MobileCardCarousel gridClassName="sm:grid-cols-3 lg:grid-cols-6 gap-2" ariaLabel="Flash Sales listings">
+          {cards.map((card) => (
+            <FlashCard key={card.id} card={card} displayCurrency={displayCurrency} />
+          ))}
+        </MobileCardCarousel>
       </div>
     </section>
   );

@@ -8,10 +8,22 @@ const navItems = [
   {
     href: '/',
     label: 'Home',
+    // Piitrade brand mark ("P") in the site's orange brand colour, in place
+    // of a generic house icon — bold enough to stay legible at nav-bar
+    // size, with its own active/inactive treatment (filled vs. outlined)
+    // independent of the label-text colour swap used by the other items.
     icon: (active: boolean) => (
-      <svg className="w-5 h-5" fill={active ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24" strokeWidth={active ? 0 : 1.8}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-      </svg>
+      <span
+        aria-hidden="true"
+        className={`flex items-center justify-center w-5 h-5 rounded-md text-[13px] font-black leading-none transition-colors ${
+          active
+            ? 'bg-premium-gold text-white shadow-sm'
+            : 'bg-premium-gold/10 text-premium-gold border border-premium-gold/40'
+        }`}
+        style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+      >
+        P
+      </span>
     ),
   },
   {
@@ -36,7 +48,9 @@ const navItems = [
   },
   {
     href: '/profile',
-    label: 'Profile',
+    // Renamed from "Profile" to "Account" on mobile (desktop nav is
+    // unaffected — this component only renders below the md breakpoint).
+    label: 'Account',
     icon: (active: boolean) => (
       <svg className="w-5 h-5" fill={active ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24" strokeWidth={active ? 0 : 1.8}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -72,7 +86,7 @@ export function MobileBottomNav() {
 
   const isActive = (item: (typeof navItems)[number]) =>
     Boolean(item.href === '/' ? pathname === '/' : pathname && pathname.startsWith(item.href) && item.href !== '/');
-  const hrefFor = (item: (typeof navItems)[number]) => (item.label === 'Profile' && !user ? '/auth/login' : item.href);
+  const hrefFor = (item: (typeof navItems)[number]) => (item.label === 'Account' && !user ? '/auth/login' : item.href);
 
   const sellItem = navItems.find((item) => item.isSell)!;
   // Everything else splits evenly across the two halves of the bar so the

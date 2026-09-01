@@ -263,6 +263,40 @@ async function getRelevanceRankedListings(options: {
   };
 }
 
+// ─── Cart availability check ────────────────────────────────────────────────
+// GET /listings/status?ids=id1,id2,...
+//
+// Lets the cart reconcile items that were added a while ago against each
+// listing's *current* status/stock — a listing can be sold, deleted,
+// deactivated/expired, or run out of stock after it's already sitting in
+// someone's cart, and the cart has no other way to find that out. Public
+// (no auth) and read-only: returns only the fields needed to decide whether
+// a cart line is still purchasable, not full listing detail.
+// Deleted listings simply aren't in the DB anymore (hard delete — see
+// DELETE /listings/:id), so any id in the request that's missing from the
+// response means "no longer exists" as far as the caller is concerned.
+router.get('/status', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const idsParam = req.query.ids as string | undefined;
+    if (!idsParam) {
+      return res.json({ listings: [] });
+    }
+    const ids = [...new Set(idsParam.split(',').map((id) => id.trim()).filter(Boolean))].slice(0, 200);
+    if (ids.length === 0) {
+      return res.json({ listings: [] });
+    }
+
+    const listings = await prisma.listing.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, status: true, stock: true },
+    });
+
+    res.json({ listings });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // ─── Featured Deal ──────────────────────────────────────────────────────────
 
 router.get('/featured-deal', async (req: Request, res: Response, next: NextFunction) => {
@@ -598,6 +632,15 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response, next: Nex
 
     if (!title || !description || price == null || !location || !country || !categoryId || stock == null || stock === '') {
       return next(createError('Missing required fields', 400));
+    }
+
+    // ── Uganda-only listing creation ──
+    // New listings may only be created for Uganda, regardless of what the
+    // frontend sends (frontend-only restrictions can be bypassed via direct
+    // API requests). Existing listings for other countries are untouched —
+    // this only gates the creation of *new* listings.
+    if (String(country).toUpperCase() !== 'UGANDA') {
+      return next(createError('Country mismatch: Listings created through this endpoint must have Uganda as the country.', 400));
     }
 
     // Validate that the price is a positive number

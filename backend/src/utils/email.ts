@@ -65,240 +65,240 @@ async function send(to: string, subject: string, html: string): Promise<void> {
   }
 }
 
-export async function sendEmailVerificationEmail(to: string, name: string, verificationToken: string): Promise<void> {
-  const verificationUrl = `${FRONTEND_URL}/auth/verify-email?token=${encodeURIComponent(verificationToken)}`;
-  const subject = 'Verify your Piitrade account';
-  const html = `
-<!DOCTYPE html>
+// ─────────────────────────────────────────────────────────────────────────
+// Piitrade Email Design System
+// ─────────────────────────────────────────────────────────────────────────
+// A single shared header / footer / button / card system so every
+// transactional email (verification, welcome, password reset, moderation,
+// listing, subscription, likes...) shares one consistent Piitrade brand
+// identity, instead of each template carrying its own ad-hoc colour scheme
+// and a placeholder "Pi" logo mark unrelated to the site's actual branding.
+//
+// Design notes:
+//  - Built with nested <table>s throughout (never flexbox/grid), since
+//    table layout is still the model most reliably rendered across email
+//    clients, including older Outlook/Word-engine builds that ignore
+//    modern CSS layout entirely.
+//  - The logo mark is pure CSS/text (an orange rounded square with a "P"),
+//    not an <img>. That sidesteps the "images blocked by default" problem
+//    most webmail clients have — there is nothing to fall back from
+//    because nothing is an image to begin with.
+//  - Brand colour is the site's actual orange (`brand-600` / `premium-gold`
+//    equivalents used across the frontend: #FF6500 → #F55906 → #E94B00),
+//    not the blue/green/red/pink gradients the previous templates used
+//    per-category. Card tints below still vary by context (green for a
+//    success state, amber for a warning, red for a rejection reason) so
+//    the *meaning* of a callout is still visually obvious — only the
+//    brand header/footer/button are now fixed to the Piitrade identity.
+
+const BRAND = {
+  orange: '#FF6500',
+  orangeMid: '#F55906',
+  orangeDark: '#E94B00',
+  cream: '#FFF4EC',
+} as const;
+
+const FONT = "Inter,Helvetica Neue,Arial,sans-serif";
+
+/** Table-based logo lockup: orange "P" mark + "Piitrade" wordmark. Text/CSS
+ *  only — no <img>, so there's nothing that can show up as a broken image
+ *  or get stripped by an email client's image-blocking. */
+function emailLogoLockup(): string {
+  return `
+    <table cellpadding="0" cellspacing="0" border="0" role="presentation"><tr>
+      <td style="width:40px;height:40px;background:#ffffff;border-radius:10px;text-align:center;vertical-align:middle;">
+        <span style="font-family:Georgia,'Playfair Display',serif;font-weight:900;font-size:20px;color:${BRAND.orangeDark};line-height:40px;">P</span>
+      </td>
+      <td style="padding-left:10px;vertical-align:middle;">
+        <span style="font-family:${FONT};font-size:22px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;">Piitrade</span>
+      </td>
+    </tr></table>`;
+}
+
+/** Branded CTA button — solid Piitrade orange, table-based so it renders
+ *  reliably (as a coloured, clickable block) even in clients that ignore
+ *  the anchor's own padding/border-radius styling. */
+function emailButton(label: string, url: string): string {
+  return `
+    <table cellpadding="0" cellspacing="0" border="0" role="presentation" style="margin:4px 0 28px;"><tr>
+      <td style="background:${BRAND.orange};border-radius:12px;">
+        <a href="${url}" style="display:inline-block;padding:14px 32px;font-family:${FONT};font-weight:700;font-size:15px;color:#ffffff;text-decoration:none;">${label}</a>
+      </td>
+    </tr></table>`;
+}
+
+/** A rounded, tinted content card — used for status blocks, warnings,
+ *  reasons, and highlighted details ("card-based content areas"). */
+function emailCard(opts: { eyebrow?: string; body: string; tint?: 'orange' | 'green' | 'amber' | 'red' | 'neutral' }): string {
+  const tints: Record<string, { bg: string; border: string; text: string }> = {
+    orange: { bg: BRAND.cream, border: '#FFC7A3', text: BRAND.orangeDark },
+    green: { bg: '#f0fdf4', border: '#bbf7d0', text: '#15803d' },
+    amber: { bg: '#fff7ed', border: '#fed7aa', text: '#92400e' },
+    red: { bg: '#fef2f2', border: '#fecaca', text: '#b91c1c' },
+    neutral: { bg: '#f8fafc', border: '#e2e8f0', text: '#334155' },
+  };
+  const t = tints[opts.tint || 'orange'];
+  return `
+    <table cellpadding="0" cellspacing="0" border="0" role="presentation" width="100%" style="background:${t.bg};border:1.5px solid ${t.border};border-radius:16px;margin:0 0 24px;"><tr>
+      <td style="padding:20px;">
+        ${opts.eyebrow ? `<p style="font-family:${FONT};font-size:12px;font-weight:700;color:${t.text};margin:0 0 8px;text-transform:uppercase;letter-spacing:0.06em;">${opts.eyebrow}</p>` : ''}
+        <div style="font-family:${FONT};font-size:14px;color:${t.text};line-height:1.7;">${opts.body}</div>
+      </td>
+    </tr></table>`;
+}
+
+/** Full HTML document shell: branded header, a body-content slot, and a
+ *  consistent branded footer. Every template below builds its own
+ *  `bodyHtml` and passes it in here rather than assembling its own
+ *  <html>/<head>/header/footer from scratch. */
+function emailShell(opts: { preheader: string; eyebrow: string; bodyHtml: string }): string {
+  const year = new Date().getFullYear();
+  return `<!DOCTYPE html>
 <html>
-<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" /></head>
-<body style="margin:0;padding:0;font-family:Inter,Helvetica Neue,Arial,sans-serif;background:#f0f9ff;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 16px;">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="color-scheme" content="light" />
+  <title>Piitrade</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f4f5;font-family:${FONT};">
+  <!-- Preheader: this is what shows as the inbox preview snippet. It's
+       visually hidden in the rendered email itself. -->
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;">${opts.preheader}</div>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="padding:32px 16px;background:#f4f4f5;">
     <tr><td align="center">
-      <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:20px;overflow:hidden;box-shadow:0 4px 24px rgba(2,132,199,0.10);">
-        <tr><td style="background:linear-gradient(135deg,#0284c7 0%,#0369a1 50%,#1d4ed8 100%);padding:40px 40px 32px;">
-          <div style="display:inline-flex;align-items:center;gap:10px;margin-bottom:8px;">
-            <div style="width:40px;height:40px;background:rgba(197,160,89,0.2);border:2px solid rgba(197,160,89,0.4);border-radius:10px;display:inline-flex;align-items:center;justify-content:center;font-weight:900;color:#C5A059;font-size:16px;line-height:40px;text-align:center;">Pi</div>
-            <span style="font-size:24px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;">Piitrade</span>
-          </div>
-          <p style="color:rgba(255,255,255,0.9);font-size:14px;margin:0;">Account Verification</p>
+      <table width="600" cellpadding="0" cellspacing="0" border="0" role="presentation" style="max-width:600px;width:100%;background:#ffffff;border-radius:20px;overflow:hidden;">
+        <!-- Branded header -->
+        <tr><td style="background:linear-gradient(135deg,${BRAND.orange} 0%,${BRAND.orangeMid} 50%,${BRAND.orangeDark} 100%);padding:32px 40px 28px;">
+          ${emailLogoLockup()}
+          <p style="font-family:${FONT};color:rgba(255,255,255,0.9);font-size:13px;margin:12px 0 0;text-transform:uppercase;letter-spacing:0.08em;font-weight:600;">${opts.eyebrow}</p>
         </td></tr>
+        <!-- Body -->
         <tr><td style="padding:40px;">
-          <h1 style="font-size:28px;font-weight:800;color:#0284c7;margin:0 0 12px;">Confirm your email</h1>
-          <p style="font-size:16px;color:#374151;line-height:1.7;margin:0 0 24px;">
-            Hi ${name}, please confirm your email address to complete new-account verification.
+          ${opts.bodyHtml}
+        </td></tr>
+        <!-- Branded footer -->
+        <tr><td style="background:${BRAND.cream};padding:24px 40px;border-top:1px solid #FFE4D1;">
+          <p style="font-family:${FONT};font-size:13px;font-weight:700;color:${BRAND.orangeDark};margin:0 0 4px;">Piitrade Marketplace</p>
+          <p style="font-family:${FONT};font-size:12px;color:#78716c;margin:0 0 10px;line-height:1.6;">
+            The trusted online marketplace connecting buyers and sellers across UAE, Uganda, Kenya and China.
           </p>
-          <a href="${verificationUrl}" style="display:inline-block;background:linear-gradient(135deg,#0284c7,#0369a1);color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:14px 32px;border-radius:12px;margin-bottom:24px;">Verify My Email →</a>
-          <p style="font-size:13px;color:#6b7280;margin:0;word-break:break-all;">
-            Or copy this link: <a href="${verificationUrl}" style="color:#0284c7;">${verificationUrl}</a>
+          <p style="font-family:${FONT};font-size:12px;color:#78716c;margin:0;">
+            Need help? <a href="mailto:support@piitrade.com" style="color:${BRAND.orangeDark};font-weight:600;text-decoration:none;">support@piitrade.com</a>
           </p>
-          <p style="font-size:12px;color:#9ca3af;margin:16px 0 0;">This verification link expires in 24 hours.</p>
+          <p style="font-family:${FONT};font-size:11px;color:#a8a29e;margin:14px 0 0;">&copy; ${year} Piitrade Marketplace. All rights reserved.</p>
         </td></tr>
       </table>
     </td></tr>
   </table>
 </body>
 </html>`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Templates
+// ─────────────────────────────────────────────────────────────────────────
+// Every function below keeps its original signature, subject line, and
+// links/business-logic exactly as before — only the HTML presentation is
+// rewritten to use the shared design system above.
+
+export async function sendEmailVerificationEmail(to: string, name: string, verificationToken: string): Promise<void> {
+  const verificationUrl = `${FRONTEND_URL}/auth/verify-email?token=${encodeURIComponent(verificationToken)}`;
+  const subject = 'Verify your Piitrade account';
+  const bodyHtml = `
+    <h1 style="font-family:${FONT};font-size:26px;font-weight:800;color:${BRAND.orangeDark};margin:0 0 12px;">Confirm your email</h1>
+    <p style="font-family:${FONT};font-size:15px;color:#374151;line-height:1.7;margin:0 0 24px;">
+      Hi ${name}, thanks for joining Piitrade. Please confirm your email address to activate your account — you won't be able to log in until it's verified.
+    </p>
+    ${emailButton('Verify My Email →', verificationUrl)}
+    ${emailCard({ eyebrow: 'Expires soon', tint: 'amber', body: 'This verification link expires in <strong>24 hours</strong> and can only be used once. If it expires, you can request a new one from the login screen.' })}
+    <p style="font-family:${FONT};font-size:12px;color:#9ca3af;margin:0 0 4px;line-height:1.6;">
+      For your security, this link only works for the account it was sent to. If you didn't create a Piitrade account, you can safely ignore this email.
+    </p>
+    <p style="font-family:${FONT};font-size:12px;color:#9ca3af;margin:0;word-break:break-all;">
+      Button not working? Copy this link: <a href="${verificationUrl}" style="color:${BRAND.orangeDark};">${verificationUrl}</a>
+    </p>`;
+  const html = emailShell({ preheader: 'Confirm your email to activate your Piitrade account.', eyebrow: 'Account Verification', bodyHtml });
   await send(to, subject, html);
 }
 
 export async function sendWelcomeEmail(to: string, name: string): Promise<void> {
   const subject = 'Welcome to Piitrade Marketplace! 🎉';
-  const html = `
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" /></head>
-<body style="margin:0;padding:0;font-family:Inter,Helvetica Neue,Arial,sans-serif;background:#f0f9ff;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 16px;">
-    <tr><td align="center">
-      <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:20px;overflow:hidden;box-shadow:0 4px 24px rgba(2,132,199,0.10);">
-        <!-- Header -->
-        <tr><td style="background:linear-gradient(135deg,#0284c7 0%,#0369a1 50%,#1d4ed8 100%);padding:40px 40px 32px;">
-          <table width="100%"><tr>
-            <td>
-              <div style="display:inline-flex;align-items:center;gap:10px;margin-bottom:8px;">
-                <div style="width:40px;height:40px;background:rgba(197,160,89,0.2);border:2px solid rgba(197,160,89,0.4);border-radius:10px;display:inline-flex;align-items:center;justify-content:center;font-weight:900;color:#C5A059;font-size:16px;line-height:40px;text-align:center;">Pi</div>
-                <span style="font-size:24px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;">Piitrade</span>
-              </div>
-              <p style="color:rgba(255,255,255,0.9);font-size:14px;margin:0;">The Premier Online Marketplace</p>
-            </td>
-          </tr></table>
-        </td></tr>
-        <!-- Body -->
-        <tr><td style="padding:40px;">
-          <h1 style="font-size:28px;font-weight:800;color:#0284c7;margin:0 0 12px;">Welcome, ${name}! 🎉</h1>
-          <p style="font-size:16px;color:#374151;line-height:1.7;margin:0 0 24px;">
-            Your account has been successfully created on Piitrade Marketplace — the premier platform connecting buyers and sellers across UAE and Uganda.
-          </p>
-          <div style="background:#f0f9ff;border:1.5px solid #bae6fd;border-radius:16px;padding:24px;margin-bottom:28px;">
-            <p style="font-size:14px;font-weight:700;color:#0284c7;margin:0 0 12px;text-transform:uppercase;letter-spacing:0.05em;">What you can do now:</p>
-            <ul style="margin:0;padding:0 0 0 20px;color:#374151;font-size:14px;line-height:2;">
-              <li>Browse thousands of listings across UAE &amp; Uganda</li>
-              <li>Post your first listing — it's free!</li>
-              <li>Set up your seller store</li>
-              <li>Save your favourite items</li>
-            </ul>
-          </div>
-          <a href="${FRONTEND_URL}" style="display:inline-block;background:linear-gradient(135deg,#0284c7,#0369a1);color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:14px 32px;border-radius:12px;margin-bottom:28px;">Start Exploring →</a>
-          <hr style="border:none;border-top:1px solid #e0f2fe;margin:0 0 24px;" />
-          <p style="font-size:13px;color:#6b7280;margin:0;">
-            Need help? Contact us at <a href="mailto:support@piitrade.com" style="color:#0284c7;text-decoration:none;font-weight:600;">support@piitrade.com</a>
-          </p>
-        </td></tr>
-        <!-- Footer -->
-        <tr><td style="background:#f8fafc;padding:20px 40px;border-top:1px solid #e0f2fe;">
-          <p style="font-size:12px;color:#9ca3af;margin:0;text-align:center;">&copy; ${new Date().getFullYear()} Piitrade Marketplace. All rights reserved.</p>
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>`;
+  const bodyHtml = `
+    <h1 style="font-family:${FONT};font-size:26px;font-weight:800;color:${BRAND.orangeDark};margin:0 0 12px;">Welcome, ${name}! 🎉</h1>
+    <p style="font-family:${FONT};font-size:15px;color:#374151;line-height:1.7;margin:0 0 24px;">
+      Your account has been successfully created on Piitrade Marketplace — the premier platform connecting buyers and sellers across UAE, Uganda, Kenya and China.
+    </p>
+    ${emailCard({
+      eyebrow: 'What you can do now',
+      tint: 'orange',
+      body: `<ul style="margin:0;padding:0 0 0 18px;line-height:2;">
+        <li>Browse thousands of listings across every supported country</li>
+        <li>Post your first listing — it's free!</li>
+        <li>Set up your seller store</li>
+        <li>Save your favourite items</li>
+      </ul>`,
+    })}
+    ${emailButton('Start Exploring →', FRONTEND_URL)}
+    <p style="font-family:${FONT};font-size:13px;color:#6b7280;margin:0;">
+      Need help getting started? Contact us at <a href="mailto:support@piitrade.com" style="color:${BRAND.orangeDark};text-decoration:none;font-weight:600;">support@piitrade.com</a>
+    </p>`;
+  const html = emailShell({ preheader: 'Your Piitrade account is ready — here is what to do next.', eyebrow: 'Welcome to Piitrade', bodyHtml });
   await send(to, subject, html);
 }
 
 export async function sendPasswordResetEmail(to: string, name: string, resetToken: string): Promise<void> {
   const resetUrl = `${FRONTEND_URL}/auth/reset-password?token=${encodeURIComponent(resetToken)}`;
   const subject = 'Reset your Piitrade password';
-  const html = `
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" /></head>
-<body style="margin:0;padding:0;font-family:Inter,Helvetica Neue,Arial,sans-serif;background:#f0f9ff;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 16px;">
-    <tr><td align="center">
-      <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:20px;overflow:hidden;box-shadow:0 4px 24px rgba(2,132,199,0.10);">
-        <!-- Header -->
-        <tr><td style="background:linear-gradient(135deg,#0284c7 0%,#0369a1 50%,#1d4ed8 100%);padding:40px 40px 32px;">
-          <table width="100%"><tr>
-            <td>
-              <div style="display:inline-flex;align-items:center;gap:10px;margin-bottom:8px;">
-                <div style="width:40px;height:40px;background:rgba(197,160,89,0.2);border:2px solid rgba(197,160,89,0.4);border-radius:10px;display:inline-flex;align-items:center;justify-content:center;font-weight:900;color:#C5A059;font-size:16px;line-height:40px;text-align:center;">Pi</div>
-                <span style="font-size:24px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;">Piitrade</span>
-              </div>
-              <p style="color:rgba(255,255,255,0.9);font-size:14px;margin:0;">The Premier Online Marketplace</p>
-            </td>
-          </tr></table>
-        </td></tr>
-        <!-- Body -->
-        <tr><td style="padding:40px;">
-          <h1 style="font-size:26px;font-weight:800;color:#0284c7;margin:0 0 12px;">Password Reset Request</h1>
-          <p style="font-size:16px;color:#374151;line-height:1.7;margin:0 0 24px;">
-            Hi ${name}, we received a request to reset the password for your Piitrade account.
-          </p>
-          <p style="font-size:15px;color:#374151;line-height:1.7;margin:0 0 24px;">
-            Click the button below to set a new password. This link expires in <strong>1 hour</strong>.
-          </p>
-          <a href="${resetUrl}" style="display:inline-block;background:linear-gradient(135deg,#0284c7,#0369a1);color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:14px 32px;border-radius:12px;margin-bottom:28px;">Reset My Password →</a>
-          <div style="background:#fff7ed;border:1.5px solid #fed7aa;border-radius:12px;padding:16px;margin-bottom:24px;">
-            <p style="font-size:13px;color:#92400e;margin:0;line-height:1.6;">
-              ⚠️ If you didn't request this, you can safely ignore this email. Your password won't change.
-            </p>
-          </div>
-          <p style="font-size:13px;color:#6b7280;margin:0;word-break:break-all;">
-            Or copy this link: <a href="${resetUrl}" style="color:#0284c7;">${resetUrl}</a>
-          </p>
-          <hr style="border:none;border-top:1px solid #e0f2fe;margin:24px 0;" />
-          <p style="font-size:13px;color:#6b7280;margin:0;">
-            Need help? Contact us at <a href="mailto:support@piitrade.com" style="color:#0284c7;text-decoration:none;font-weight:600;">support@piitrade.com</a>
-          </p>
-        </td></tr>
-        <!-- Footer -->
-        <tr><td style="background:#f8fafc;padding:20px 40px;border-top:1px solid #e0f2fe;">
-          <p style="font-size:12px;color:#9ca3af;margin:0;text-align:center;">&copy; ${new Date().getFullYear()} Piitrade Marketplace. All rights reserved.</p>
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>`;
+  const bodyHtml = `
+    <h1 style="font-family:${FONT};font-size:26px;font-weight:800;color:${BRAND.orangeDark};margin:0 0 12px;">Password reset request</h1>
+    <p style="font-family:${FONT};font-size:15px;color:#374151;line-height:1.7;margin:0 0 16px;">
+      Hi ${name}, we received a request to reset the password for your Piitrade account.
+    </p>
+    <p style="font-family:${FONT};font-size:15px;color:#374151;line-height:1.7;margin:0 0 24px;">
+      Click the button below to set a new password. This link expires in <strong>1 hour</strong>.
+    </p>
+    ${emailButton('Reset My Password →', resetUrl)}
+    ${emailCard({ tint: 'amber', body: "⚠️ If you didn't request this, you can safely ignore this email — your password won't change." })}
+    <p style="font-family:${FONT};font-size:13px;color:#6b7280;margin:0 0 4px;word-break:break-all;">
+      Button not working? Copy this link: <a href="${resetUrl}" style="color:${BRAND.orangeDark};">${resetUrl}</a>
+    </p>`;
+  const html = emailShell({ preheader: 'Reset your Piitrade password — this link expires in 1 hour.', eyebrow: 'Password Reset', bodyHtml });
   await send(to, subject, html);
 }
 
 export async function sendImageApprovedEmail(to: string, name: string, listingTitle?: string): Promise<void> {
   const subject = 'Your image has been approved ✅';
   const listingNote = listingTitle
-    ? `<p style="font-size:14px;color:#374151;line-height:1.7;margin:0 0 16px;">
-        Your image for the listing <strong style="color:#0284c7;">${listingTitle}</strong> has been reviewed and approved by our moderation team. It is now live on the marketplace.
-       </p>`
-    : `<p style="font-size:14px;color:#374151;line-height:1.7;margin:0 0 16px;">
-        One of your uploaded images has been reviewed and approved by our moderation team. It is now live on the marketplace.
-       </p>`;
-  const html = `
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8" /></head>
-<body style="margin:0;padding:0;font-family:Inter,Helvetica Neue,Arial,sans-serif;background:#f0fdf4;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 16px;">
-    <tr><td align="center">
-      <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:20px;overflow:hidden;box-shadow:0 4px 24px rgba(22,163,74,0.10);">
-        <tr><td style="background:linear-gradient(135deg,#16a34a 0%,#15803d 60%,#166534 100%);padding:36px 40px 28px;">
-          <span style="font-size:24px;font-weight:800;color:#ffffff;">Piitrade</span>
-          <p style="color:rgba(255,255,255,0.85);font-size:14px;margin:4px 0 0;">Image Moderation Update</p>
-        </td></tr>
-        <tr><td style="padding:36px 40px;">
-          <h1 style="font-size:24px;font-weight:800;color:#16a34a;margin:0 0 12px;">Image Approved! ✅</h1>
-          <p style="font-size:16px;color:#374151;line-height:1.7;margin:0 0 12px;">Hi ${name},</p>
-          ${listingNote}
-          <a href="${FRONTEND_URL}/profile/listings" style="display:inline-block;background:linear-gradient(135deg,#16a34a,#15803d);color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:14px 32px;border-radius:12px;margin-bottom:24px;">View My Listings →</a>
-          <hr style="border:none;border-top:1px solid #dcfce7;margin:0 0 20px;" />
-          <p style="font-size:13px;color:#6b7280;margin:0;">Questions? <a href="mailto:support@piitrade.com" style="color:#16a34a;font-weight:600;">support@piitrade.com</a></p>
-        </td></tr>
-        <tr><td style="background:#f0fdf4;padding:16px 40px;border-top:1px solid #dcfce7;">
-          <p style="font-size:12px;color:#9ca3af;margin:0;text-align:center;">&copy; ${new Date().getFullYear()} Piitrade Marketplace. All rights reserved.</p>
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>`;
+    ? `Your image for the listing <strong style="color:${BRAND.orangeDark};">${listingTitle}</strong> has been reviewed and approved by our moderation team. It is now live on the marketplace.`
+    : 'One of your uploaded images has been reviewed and approved by our moderation team. It is now live on the marketplace.';
+  const bodyHtml = `
+    <h1 style="font-family:${FONT};font-size:24px;font-weight:800;color:#15803d;margin:0 0 12px;">Image approved! ✅</h1>
+    <p style="font-family:${FONT};font-size:15px;color:#374151;line-height:1.7;margin:0 0 12px;">Hi ${name},</p>
+    <p style="font-family:${FONT};font-size:14px;color:#374151;line-height:1.7;margin:0 0 20px;">${listingNote}</p>
+    ${emailButton('View My Listings →', `${FRONTEND_URL}/profile/listings`)}
+    <p style="font-family:${FONT};font-size:13px;color:#6b7280;margin:0;">Questions? <a href="mailto:support@piitrade.com" style="color:${BRAND.orangeDark};font-weight:600;">support@piitrade.com</a></p>`;
+  const html = emailShell({ preheader: 'Your uploaded image has been approved and is now live.', eyebrow: 'Image Moderation Update', bodyHtml });
   await send(to, subject, html);
 }
 
 export async function sendImageRejectedEmail(to: string, name: string, reason?: string, listingTitle?: string): Promise<void> {
   const subject = 'Image moderation update — action required';
-  const reasonNote = reason
-    ? `<div style="background:#fff7ed;border:1.5px solid #fed7aa;border-radius:12px;padding:16px;margin-bottom:20px;">
-        <p style="font-size:13px;font-weight:700;color:#92400e;margin:0 0 6px;">Reason:</p>
-        <p style="font-size:13px;color:#92400e;margin:0;">${reason}</p>
-       </div>`
-    : '';
-  const listingNote = listingTitle ? `for the listing <strong style="color:#dc2626;">${listingTitle}</strong>` : '';
-  const html = `
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8" /></head>
-<body style="margin:0;padding:0;font-family:Inter,Helvetica Neue,Arial,sans-serif;background:#fff1f2;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 16px;">
-    <tr><td align="center">
-      <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:20px;overflow:hidden;box-shadow:0 4px 24px rgba(220,38,38,0.10);">
-        <tr><td style="background:linear-gradient(135deg,#dc2626 0%,#b91c1c 60%,#991b1b 100%);padding:36px 40px 28px;">
-          <span style="font-size:24px;font-weight:800;color:#ffffff;">Piitrade</span>
-          <p style="color:rgba(255,255,255,0.85);font-size:14px;margin:4px 0 0;">Image Moderation Update</p>
-        </td></tr>
-        <tr><td style="padding:36px 40px;">
-          <h1 style="font-size:24px;font-weight:800;color:#dc2626;margin:0 0 12px;">Image Not Approved ❌</h1>
-          <p style="font-size:16px;color:#374151;line-height:1.7;margin:0 0 12px;">Hi ${name},</p>
-          <p style="font-size:14px;color:#374151;line-height:1.7;margin:0 0 16px;">
-            An image you uploaded ${listingNote} did not meet our content guidelines and has been removed.
-          </p>
-          ${reasonNote}
-          <p style="font-size:14px;color:#374151;line-height:1.7;margin:0 0 20px;">
-            You are welcome to upload a replacement image. Please review our
-            <a href="${FRONTEND_URL}/safety" style="color:#dc2626;font-weight:600;">community guidelines</a> before re-uploading.
-          </p>
-          <a href="${FRONTEND_URL}/listings/create" style="display:inline-block;background:linear-gradient(135deg,#dc2626,#b91c1c);color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:14px 32px;border-radius:12px;margin-bottom:24px;">Upload New Image →</a>
-          <hr style="border:none;border-top:1px solid #fee2e2;margin:0 0 20px;" />
-          <p style="font-size:13px;color:#6b7280;margin:0;">Questions? <a href="mailto:support@piitrade.com" style="color:#dc2626;font-weight:600;">support@piitrade.com</a></p>
-        </td></tr>
-        <tr><td style="background:#fff1f2;padding:16px 40px;border-top:1px solid #fee2e2;">
-          <p style="font-size:12px;color:#9ca3af;margin:0;text-align:center;">&copy; ${new Date().getFullYear()} Piitrade Marketplace. All rights reserved.</p>
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>`;
+  const listingNote = listingTitle ? `for the listing <strong style="color:${BRAND.orangeDark};">${listingTitle}</strong> ` : '';
+  const bodyHtml = `
+    <h1 style="font-family:${FONT};font-size:24px;font-weight:800;color:#b91c1c;margin:0 0 12px;">Image not approved ❌</h1>
+    <p style="font-family:${FONT};font-size:15px;color:#374151;line-height:1.7;margin:0 0 12px;">Hi ${name},</p>
+    <p style="font-family:${FONT};font-size:14px;color:#374151;line-height:1.7;margin:0 0 16px;">
+      An image you uploaded ${listingNote}did not meet our content guidelines and has been removed.
+    </p>
+    ${reason ? emailCard({ eyebrow: 'Reason', tint: 'red', body: reason }) : ''}
+    <p style="font-family:${FONT};font-size:14px;color:#374151;line-height:1.7;margin:0 0 20px;">
+      You're welcome to upload a replacement image. Please review our
+      <a href="${FRONTEND_URL}/safety" style="color:${BRAND.orangeDark};font-weight:600;">community guidelines</a> before re-uploading.
+    </p>
+    ${emailButton('Upload New Image →', `${FRONTEND_URL}/listings/create`)}
+    <p style="font-family:${FONT};font-size:13px;color:#6b7280;margin:0;">Questions? <a href="mailto:support@piitrade.com" style="color:${BRAND.orangeDark};font-weight:600;">support@piitrade.com</a></p>`;
+  const html = emailShell({ preheader: 'An uploaded image needs a replacement — see why inside.', eyebrow: 'Image Moderation Update', bodyHtml });
   await send(to, subject, html);
 }
 
@@ -307,91 +307,40 @@ export async function sendListingApprovedEmail(to: string, name: string, listing
   const expiryStr = expiresAt
     ? expiresAt.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
     : 'indefinitely (no expiry set)';
-  const html = `
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" /></head>
-<body style="margin:0;padding:0;font-family:Inter,Helvetica Neue,Arial,sans-serif;background:#f0f9ff;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 16px;">
-    <tr><td align="center">
-      <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:20px;overflow:hidden;box-shadow:0 4px 24px rgba(2,132,199,0.10);">
-        <tr><td style="background:linear-gradient(135deg,#0284c7 0%,#0369a1 50%,#1d4ed8 100%);padding:36px 40px 28px;">
-          <div style="display:inline-flex;align-items:center;gap:10px;margin-bottom:8px;">
-            <div style="width:40px;height:40px;background:rgba(197,160,89,0.2);border:2px solid rgba(197,160,89,0.4);border-radius:10px;display:inline-flex;align-items:center;justify-content:center;font-weight:900;color:#C5A059;font-size:16px;line-height:40px;text-align:center;">Pi</div>
-            <span style="font-size:24px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;">Piitrade</span>
-          </div>
-          <p style="color:rgba(255,255,255,0.9);font-size:14px;margin:4px 0 0;">Listing Approved</p>
-        </td></tr>
-        <tr><td style="padding:36px 40px;">
-          <h1 style="font-size:24px;font-weight:800;color:#16a34a;margin:0 0 12px;">Your listing is now live! \u2705</h1>
-          <p style="font-size:16px;color:#374151;line-height:1.7;margin:0 0 12px;">Hi ${name},</p>
-          <p style="font-size:14px;color:#374151;line-height:1.7;margin:0 0 16px;">
-            Great news! Your listing <strong style="color:#0284c7;">${listingTitle}</strong> has been reviewed and approved by our team. It is now live on the marketplace.
-          </p>
-          <div style="background:#f0f9ff;border:1.5px solid #bae6fd;border-radius:16px;padding:20px;margin-bottom:24px;">
-            <p style="font-size:13px;font-weight:700;color:#0284c7;margin:0 0 8px;text-transform:uppercase;letter-spacing:0.05em;">Listing active until</p>
-            <p style="font-size:20px;font-weight:800;color:#0284c7;margin:0;">${expiryStr}</p>
-            <p style="font-size:12px;color:#6b7280;margin:6px 0 0;">You will receive a reminder before your listing expires.</p>
-          </div>
-          <a href="${FRONTEND_URL}/profile/listings" style="display:inline-block;background:linear-gradient(135deg,#0284c7,#0369a1);color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:14px 32px;border-radius:12px;margin-bottom:24px;">View My Listings \u2192</a>
-          <hr style="border:none;border-top:1px solid #e0f2fe;margin:0 0 20px;" />
-          <p style="font-size:13px;color:#6b7280;margin:0;">Questions? <a href="mailto:support@piitrade.com" style="color:#0284c7;font-weight:600;">support@piitrade.com</a></p>
-        </td></tr>
-        <tr><td style="background:#f8fafc;padding:16px 40px;border-top:1px solid #e0f2fe;">
-          <p style="font-size:12px;color:#9ca3af;margin:0;text-align:center;">&copy; ${new Date().getFullYear()} Piitrade Marketplace. All rights reserved.</p>
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>`;
+  const bodyHtml = `
+    <h1 style="font-family:${FONT};font-size:24px;font-weight:800;color:#15803d;margin:0 0 12px;">Your listing is now live! \u2705</h1>
+    <p style="font-family:${FONT};font-size:15px;color:#374151;line-height:1.7;margin:0 0 12px;">Hi ${name},</p>
+    <p style="font-family:${FONT};font-size:14px;color:#374151;line-height:1.7;margin:0 0 16px;">
+      Great news! Your listing <strong style="color:${BRAND.orangeDark};">${listingTitle}</strong> has been reviewed and approved by our team. It is now live on the marketplace.
+    </p>
+    ${emailCard({ eyebrow: 'Listing active until', tint: 'orange', body: `<span style="font-size:20px;font-weight:800;color:${BRAND.orangeDark};">${expiryStr}</span><br/><span style="font-size:12px;color:#78716c;">You will receive a reminder before your listing expires.</span>` })}
+    ${emailButton('View My Listings \u2192', `${FRONTEND_URL}/profile/listings`)}
+    <p style="font-family:${FONT};font-size:13px;color:#6b7280;margin:0;">Questions? <a href="mailto:support@piitrade.com" style="color:${BRAND.orangeDark};font-weight:600;">support@piitrade.com</a></p>`;
+  const html = emailShell({ preheader: `Your listing "${listingTitle}" is now live on Piitrade.`, eyebrow: 'Listing Approved', bodyHtml });
   await send(to, subject, html);
 }
 
 export async function sendListingExpiredEmail(to: string, name: string, listingTitle: string): Promise<void> {
   const renewUrl = `${FRONTEND_URL}/profile/subscription`;
   const subject = 'Your listing has expired \u2014 renew to keep it active';
-  const html = `
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" /></head>
-<body style="margin:0;padding:0;font-family:Inter,Helvetica Neue,Arial,sans-serif;background:#fff7ed;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 16px;">
-    <tr><td align="center">
-      <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:20px;overflow:hidden;box-shadow:0 4px 24px rgba(245,158,11,0.10);">
-        <tr><td style="background:linear-gradient(135deg,#d97706 0%,#b45309 60%,#92400e 100%);padding:36px 40px 28px;">
-          <div style="display:inline-flex;align-items:center;gap:10px;margin-bottom:8px;">
-            <div style="width:40px;height:40px;background:rgba(255,255,255,0.2);border:2px solid rgba(255,255,255,0.4);border-radius:10px;display:inline-flex;align-items:center;justify-content:center;font-weight:900;color:#ffffff;font-size:16px;line-height:40px;text-align:center;">Pi</div>
-            <span style="font-size:24px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;">Piitrade</span>
-          </div>
-          <p style="color:rgba(255,255,255,0.9);font-size:14px;margin:4px 0 0;">Listing Expiry Notice</p>
-        </td></tr>
-        <tr><td style="padding:36px 40px;">
-          <h1 style="font-size:24px;font-weight:800;color:#d97706;margin:0 0 12px;">Your listing has expired \u23f0</h1>
-          <p style="font-size:16px;color:#374151;line-height:1.7;margin:0 0 12px;">Hi ${name},</p>
-          <p style="font-size:14px;color:#374151;line-height:1.7;margin:0 0 16px;">
-            Your listing <strong style="color:#d97706;">${listingTitle}</strong> has expired and is no longer visible to buyers on the marketplace.
-          </p>
-          <div style="background:#fff7ed;border:1.5px solid #fed7aa;border-radius:16px;padding:20px;margin-bottom:24px;">
-            <p style="font-size:13px;font-weight:700;color:#92400e;margin:0 0 8px;">What happens next?</p>
-            <ul style="margin:0;padding:0 0 0 18px;color:#92400e;font-size:13px;line-height:2;">
-              <li>Your listing is now <strong>dormant</strong> \u2014 buyers cannot view it.</li>
-              <li>Renew your subscription to reactivate your listing.</li>
-              <li>If you don't renew, your listing will remain hidden.</li>
-            </ul>
-          </div>
-          <a href="${renewUrl}" style="display:inline-block;background:linear-gradient(135deg,#d97706,#b45309);color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:14px 32px;border-radius:12px;margin-bottom:24px;">Renew My Subscription \u2192</a>
-          <hr style="border:none;border-top:1px solid #fed7aa;margin:0 0 20px;" />
-          <p style="font-size:13px;color:#6b7280;margin:0;">Questions? <a href="mailto:support@piitrade.com" style="color:#d97706;font-weight:600;">support@piitrade.com</a></p>
-        </td></tr>
-        <tr><td style="background:#fff7ed;padding:16px 40px;border-top:1px solid #fed7aa;">
-          <p style="font-size:12px;color:#9ca3af;margin:0;text-align:center;">&copy; ${new Date().getFullYear()} Piitrade Marketplace. All rights reserved.</p>
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>`;
+  const bodyHtml = `
+    <h1 style="font-family:${FONT};font-size:24px;font-weight:800;color:#92400e;margin:0 0 12px;">Your listing has expired \u23f0</h1>
+    <p style="font-family:${FONT};font-size:15px;color:#374151;line-height:1.7;margin:0 0 12px;">Hi ${name},</p>
+    <p style="font-family:${FONT};font-size:14px;color:#374151;line-height:1.7;margin:0 0 16px;">
+      Your listing <strong style="color:${BRAND.orangeDark};">${listingTitle}</strong> has expired and is no longer visible to buyers on the marketplace.
+    </p>
+    ${emailCard({
+      eyebrow: 'What happens next?',
+      tint: 'amber',
+      body: `<ul style="margin:0;padding:0 0 0 18px;line-height:2;">
+        <li>Your listing is now <strong>dormant</strong> \u2014 buyers cannot view it.</li>
+        <li>Renew your subscription to reactivate your listing.</li>
+        <li>If you don't renew, your listing will remain hidden.</li>
+      </ul>`,
+    })}
+    ${emailButton('Renew My Subscription \u2192', renewUrl)}
+    <p style="font-family:${FONT};font-size:13px;color:#6b7280;margin:0;">Questions? <a href="mailto:support@piitrade.com" style="color:${BRAND.orangeDark};font-weight:600;">support@piitrade.com</a></p>`;
+  const html = emailShell({ preheader: `"${listingTitle}" has expired — renew to bring it back.`, eyebrow: 'Listing Expiry Notice', bodyHtml });
   await send(to, subject, html);
 }
 
@@ -406,88 +355,34 @@ export async function sendListingLikedEmail(
   const subject = `Someone liked your listing: ${listingTitle} ❤️`;
   const listingUrl = `${FRONTEND_URL}/listings/${listingId}`;
   const likerProfileUrl = likerUserId ? `${FRONTEND_URL}/profile/${likerUserId}` : null;
-  const profileSection = likerProfileUrl
-    ? `<a href="${likerProfileUrl}" style="color:#0284c7;font-weight:600;text-decoration:none;">${likerName}</a>`
+  const likerDisplay = likerProfileUrl
+    ? `<a href="${likerProfileUrl}" style="color:${BRAND.orangeDark};font-weight:600;text-decoration:none;">${likerName}</a>`
     : `<strong>${likerName}</strong>`;
-  const html = `
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" /></head>
-<body style="margin:0;padding:0;font-family:Inter,Helvetica Neue,Arial,sans-serif;background:#fff1f5;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 16px;">
-    <tr><td align="center">
-      <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:20px;overflow:hidden;box-shadow:0 4px 24px rgba(219,39,119,0.10);">
-        <tr><td style="background:linear-gradient(135deg,#db2777 0%,#be185d 60%,#9d174d 100%);padding:36px 40px 28px;">
-          <div style="display:inline-flex;align-items:center;gap:10px;margin-bottom:8px;">
-            <div style="width:40px;height:40px;background:rgba(197,160,89,0.2);border:2px solid rgba(197,160,89,0.4);border-radius:10px;display:inline-flex;align-items:center;justify-content:center;font-weight:900;color:#C5A059;font-size:16px;line-height:40px;text-align:center;">Pi</div>
-            <span style="font-size:24px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;">Piitrade</span>
-          </div>
-          <p style="color:rgba(255,255,255,0.9);font-size:14px;margin:4px 0 0;">Listing Activity</p>
-        </td></tr>
-        <tr><td style="padding:36px 40px;">
-          <h1 style="font-size:24px;font-weight:800;color:#db2777;margin:0 0 12px;">Someone liked your listing! ❤️</h1>
-          <p style="font-size:16px;color:#374151;line-height:1.7;margin:0 0 12px;">Hi ${ownerName},</p>
-          <p style="font-size:14px;color:#374151;line-height:1.7;margin:0 0 16px;">
-            ${profileSection} just liked your listing <strong style="color:#db2777;">${listingTitle}</strong>. This is a great sign — your listing is getting attention!
-          </p>
-          <div style="background:#fff1f5;border:1.5px solid #fbcfe8;border-radius:16px;padding:20px;margin-bottom:24px;">
-            <p style="font-size:13px;font-weight:700;color:#9d174d;margin:0 0 6px;text-transform:uppercase;letter-spacing:0.05em;">Liked by</p>
-            <p style="font-size:16px;font-weight:800;color:#db2777;margin:0;">${likerName}</p>
-          </div>
-          <a href="${listingUrl}" style="display:inline-block;background:linear-gradient(135deg,#db2777,#be185d);color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:14px 32px;border-radius:12px;margin-bottom:24px;">View Your Listing →</a>
-          <hr style="border:none;border-top:1px solid #fbcfe8;margin:0 0 20px;" />
-          <p style="font-size:13px;color:#6b7280;margin:0;">Questions? <a href="mailto:support@piitrade.com" style="color:#db2777;font-weight:600;">support@piitrade.com</a></p>
-        </td></tr>
-        <tr><td style="background:#fff1f5;padding:16px 40px;border-top:1px solid #fbcfe8;">
-          <p style="font-size:12px;color:#9ca3af;margin:0;text-align:center;">&copy; ${new Date().getFullYear()} Piitrade Marketplace. All rights reserved.</p>
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>`;
+  const bodyHtml = `
+    <h1 style="font-family:${FONT};font-size:24px;font-weight:800;color:${BRAND.orangeDark};margin:0 0 12px;">Someone liked your listing! ❤️</h1>
+    <p style="font-family:${FONT};font-size:15px;color:#374151;line-height:1.7;margin:0 0 12px;">Hi ${ownerName},</p>
+    <p style="font-family:${FONT};font-size:14px;color:#374151;line-height:1.7;margin:0 0 16px;">
+      ${likerDisplay} just liked your listing <strong style="color:${BRAND.orangeDark};">${listingTitle}</strong>. This is a great sign — your listing is getting attention!
+    </p>
+    ${emailCard({ eyebrow: 'Liked by', tint: 'orange', body: `<span style="font-size:16px;font-weight:800;color:${BRAND.orangeDark};">${likerName}</span>` })}
+    ${emailButton('View Your Listing →', listingUrl)}
+    <p style="font-family:${FONT};font-size:13px;color:#6b7280;margin:0;">Questions? <a href="mailto:support@piitrade.com" style="color:${BRAND.orangeDark};font-weight:600;">support@piitrade.com</a></p>`;
+  const html = emailShell({ preheader: `${likerName} liked your listing "${listingTitle}".`, eyebrow: 'Listing Activity', bodyHtml });
   await send(to, subject, html);
 }
 
 export async function sendSubscriptionActivatedEmail(to: string, name: string, packageName: string, expiresAt: Date): Promise<void> {
   const expiryStr = expiresAt.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
   const subject = `Your ${packageName} subscription is now active \ud83c\udf89`;
-  const html = `
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" /></head>
-<body style="margin:0;padding:0;font-family:Inter,Helvetica Neue,Arial,sans-serif;background:#f0fdf4;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 16px;">
-    <tr><td align="center">
-      <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:20px;overflow:hidden;box-shadow:0 4px 24px rgba(22,163,74,0.10);">
-        <tr><td style="background:linear-gradient(135deg,#16a34a 0%,#15803d 60%,#166534 100%);padding:36px 40px 28px;">
-          <div style="display:inline-flex;align-items:center;gap:10px;margin-bottom:8px;">
-            <div style="width:40px;height:40px;background:rgba(255,255,255,0.2);border:2px solid rgba(255,255,255,0.4);border-radius:10px;display:inline-flex;align-items:center;justify-content:center;font-weight:900;color:#ffffff;font-size:16px;line-height:40px;text-align:center;">Pi</div>
-            <span style="font-size:24px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;">Piitrade</span>
-          </div>
-          <p style="color:rgba(255,255,255,0.9);font-size:14px;margin:4px 0 0;">Subscription Activated</p>
-        </td></tr>
-        <tr><td style="padding:36px 40px;">
-          <h1 style="font-size:24px;font-weight:800;color:#16a34a;margin:0 0 12px;">Subscription Activated! \ud83c\udf89</h1>
-          <p style="font-size:16px;color:#374151;line-height:1.7;margin:0 0 12px;">Hi ${name},</p>
-          <p style="font-size:14px;color:#374151;line-height:1.7;margin:0 0 16px;">
-            Your <strong style="color:#16a34a;">${packageName}</strong> subscription has been approved and is now active. You can now post listings on the marketplace.
-          </p>
-          <div style="background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:16px;padding:20px;margin-bottom:24px;">
-            <p style="font-size:13px;font-weight:700;color:#15803d;margin:0 0 8px;text-transform:uppercase;letter-spacing:0.05em;">Active until</p>
-            <p style="font-size:20px;font-weight:800;color:#16a34a;margin:0;">${expiryStr}</p>
-          </div>
-          <a href="${FRONTEND_URL}/listings/create" style="display:inline-block;background:linear-gradient(135deg,#16a34a,#15803d);color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:14px 32px;border-radius:12px;margin-bottom:24px;">Post a Listing \u2192</a>
-          <hr style="border:none;border-top:1px solid #dcfce7;margin:0 0 20px;" />
-          <p style="font-size:13px;color:#6b7280;margin:0;">Questions? <a href="mailto:support@piitrade.com" style="color:#16a34a;font-weight:600;">support@piitrade.com</a></p>
-        </td></tr>
-        <tr><td style="background:#f0fdf4;padding:16px 40px;border-top:1px solid #dcfce7;">
-          <p style="font-size:12px;color:#9ca3af;margin:0;text-align:center;">&copy; ${new Date().getFullYear()} Piitrade Marketplace. All rights reserved.</p>
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>`;
+  const bodyHtml = `
+    <h1 style="font-family:${FONT};font-size:24px;font-weight:800;color:#15803d;margin:0 0 12px;">Subscription activated! \ud83c\udf89</h1>
+    <p style="font-family:${FONT};font-size:15px;color:#374151;line-height:1.7;margin:0 0 12px;">Hi ${name},</p>
+    <p style="font-family:${FONT};font-size:14px;color:#374151;line-height:1.7;margin:0 0 16px;">
+      Your <strong style="color:${BRAND.orangeDark};">${packageName}</strong> subscription has been approved and is now active. You can now post listings on the marketplace.
+    </p>
+    ${emailCard({ eyebrow: 'Active until', tint: 'green', body: `<span style="font-size:20px;font-weight:800;color:#15803d;">${expiryStr}</span>` })}
+    ${emailButton('Post a Listing \u2192', `${FRONTEND_URL}/listings/create`)}
+    <p style="font-family:${FONT};font-size:13px;color:#6b7280;margin:0;">Questions? <a href="mailto:support@piitrade.com" style="color:${BRAND.orangeDark};font-weight:600;">support@piitrade.com</a></p>`;
+  const html = emailShell({ preheader: `Your ${packageName} subscription is active until ${expiryStr}.`, eyebrow: 'Subscription Activated', bodyHtml });
   await send(to, subject, html);
 }

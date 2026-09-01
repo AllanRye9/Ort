@@ -203,12 +203,33 @@ model User {
   isKycVerified         Boolean   @default(false)
   kycDocumentType       KycDocumentType?
   kycDocumentUrl        String?
+  // Back-of-document upload — only required/used for document types that
+  // have two sides (national ID, driver's licence). Passport and business
+  // licence verification use a single page/document, so this stays null
+  // for those types. See VALID_TWO_SIDED_DOCUMENT_TYPES in kyc.ts for the
+  // authoritative list of which document types require it.
+  kycDocumentBackUrl    String?
   kycSelfieUrl          String?
   kycFullName           String?
   kycSubmittedAt        DateTime?
   kycReviewedAt         DateTime?
   kycReviewedBy         String?
   kycRejectionReason    String?
+  // ─── KYC in-progress draft (resumable verification workflow) ──────────────
+  // Sensitive KYC documents must never be persisted client-side (browser
+  // storage), but the verification form still needs to survive a refresh,
+  // closed tab, dropped connection, or navigation away mid-flow. These
+  // fields hold the *in-progress, not-yet-submitted* selections/uploads
+  // server-side so the frontend can restore them on load. They're distinct
+  // from the kyc*/kycDocument* fields above, which only ever hold the most
+  // recently *submitted* verification — a draft never overwrites a real
+  // submission, and is cleared once POST /kyc/submit succeeds.
+  kycDraftDocumentType    KycDocumentType?
+  kycDraftFullName        String?
+  kycDraftDocumentUrl     String?
+  kycDraftDocumentBackUrl String?
+  kycDraftSelfieUrl       String?
+  kycDraftUpdatedAt       DateTime?
   emailVerificationToken  String?   @unique
   emailVerificationExpiry DateTime?
   refreshToken          String?

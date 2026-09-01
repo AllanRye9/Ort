@@ -181,7 +181,9 @@ const emptyItem = () => ({
   description: '',
   price: '',
   condition: 'NEW',
-  country: 'UAE' as Country,
+  // Bulk-posted listings can only be created for Uganda (see backend
+  // validateBulkItems) — default new rows to Uganda instead of UAE.
+  country: 'UGANDA' as Country,
   location: '',
   categoryId: '',
   stock: '',
@@ -465,7 +467,10 @@ function csvRowsToItems(rows: string[][], categories: Category[]): CsvImportResu
     return { imported, rowErrors };
   }
 
-  const VALID_COUNTRIES: Country[] = ['UAE', 'UGANDA', 'KENYA', 'CHINA'];
+  // Bulk-posted listings can only be created for Uganda — any other
+  // country in the import is flagged as an invalid row rather than
+  // silently coerced, so the admin sees exactly which rows to fix.
+  const VALID_COUNTRIES: Country[] = ['UGANDA'];
 
   for (let r = 1; r < rows.length; r++) {
     const cells = rows[r];
@@ -514,8 +519,12 @@ function csvRowsToItems(rows: string[][], categories: Category[]): CsvImportResu
       continue;
     }
 
-    const countryRaw = (get(idx.country) || 'UAE').toUpperCase() as Country;
-    const country = VALID_COUNTRIES.includes(countryRaw) ? countryRaw : 'UAE';
+    const countryRaw = (get(idx.country) || 'UGANDA').toUpperCase() as Country;
+    if (!VALID_COUNTRIES.includes(countryRaw)) {
+      rowErrors.push({ row: rowNum, message: `Country "${countryRaw}" is not allowed — bulk-posted listings must be Uganda.` });
+      continue;
+    }
+    const country = countryRaw;
     const conditionRaw = (get(idx.condition) || 'NEW').toUpperCase();
     const condition = conditionRaw === 'USED' ? 'USED' : 'NEW';
     const location = get(idx.location);
@@ -563,7 +572,7 @@ export default function AdminBulkPostPage() {
   // (e.g. a stock drop in one category/country) effortlessly instead of
   // re-selecting the same category, country and condition on every item.
   const [bulkCategoryId, setBulkCategoryId] = useState('');
-  const [bulkCountry, setBulkCountry] = useState<Country>('UAE');
+  const [bulkCountry] = useState<Country>('UGANDA');
   const [bulkCondition, setBulkCondition] = useState('NEW');
 
   // ── CSV import automation ──────────────────────────────────────────────
@@ -794,15 +803,10 @@ export default function AdminBulkPostPage() {
     );
   };
 
-  // Changing country resets location (locations are country-specific) and
-  // implicitly changes the currency the listing is priced in, mirroring
-  // listings/create — currency is always derived from country, never picked
-  // independently, so a listing can't end up mismatched (e.g. UGX pricing
-  // tagged as a UAE listing).
-  const updateItemCountry = (index: number, country: Country) =>
-    setItems((prev) =>
-      prev.map((item, i) => (i === index ? { ...item, country, location: '' } : item))
-    );
+  // Country is now locked to Uganda for every bulk-posted row (see the
+  // disabled selects above), so there's no longer a country-change handler
+  // here — location no longer needs resetting on a country switch that
+  // can't happen.
 
   const updateMotorDetail = (index: number, field: keyof BulkItem['motorDetails'], value: string) =>
     setItems((prev) =>
@@ -1180,13 +1184,12 @@ export default function AdminBulkPostPage() {
             <label className="block text-xs font-semibold text-gray-700 mb-1">Country</label>
             <select
               value={bulkCountry}
-              onChange={(e) => setBulkCountry(e.target.value as Country)}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
+              disabled
+              aria-readonly
+              title="Bulk-posted listings can currently only be created for Uganda."
+              className="w-full cursor-not-allowed border border-gray-200 bg-gray-100 rounded-xl px-3 py-2 text-sm text-gray-700 focus:outline-none"
             >
-              <option value="UAE">🇦🇪 UAE</option>
               <option value="UGANDA">🇺🇬 Uganda</option>
-              <option value="KENYA">🇰🇪 Kenya</option>
-              <option value="CHINA">🇨🇳 China</option>
             </select>
           </div>
           <div>
@@ -1342,18 +1345,17 @@ export default function AdminBulkPostPage() {
                   />
                 </div>
 
-                {/* Country */}
+                {/* Country — bulk-posted listings can currently only be created for Uganda */}
                 <div>
                   <label className="block text-xs font-semibold text-gray-700 mb-1">Country</label>
                   <select
                     value={item.country}
-                    onChange={(e) => updateItemCountry(index, e.target.value as Country)}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
+                    disabled
+                    aria-readonly
+                    title="Bulk-posted listings can currently only be created for Uganda."
+                    className="w-full cursor-not-allowed border border-gray-200 bg-gray-100 rounded-xl px-3 py-2 text-sm text-gray-700 focus:outline-none"
                   >
-                    <option value="UAE">🇦🇪 UAE</option>
                     <option value="UGANDA">🇺🇬 Uganda</option>
-                    <option value="KENYA">🇰🇪 Kenya</option>
-                    <option value="CHINA">🇨🇳 China</option>
                   </select>
                 </div>
 

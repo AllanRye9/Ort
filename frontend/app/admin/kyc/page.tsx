@@ -18,6 +18,9 @@ interface KycUser {
   kycStatus: StatusFilter | 'NOT_SUBMITTED';
   kycDocumentType?: DocumentType | null;
   kycDocumentUrl?: string | null;
+  // Only populated for two-sided document types (national ID, driver's
+  // licence) — see TWO_SIDED_DOCUMENT_TYPES in backend/src/routes/kyc.ts.
+  kycDocumentBackUrl?: string | null;
   kycSelfieUrl?: string | null;
   kycFullName?: string | null;
   kycSubmittedAt?: string | null;
@@ -219,8 +222,15 @@ export default function AdminKycPage() {
                     {s.kycDocumentUrl && (
                       <a href={resolveImageUrl(s.kycDocumentUrl)} target="_blank" rel="noopener noreferrer" className="block">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={resolveImageUrl(s.kycDocumentUrl)} alt="ID document" className="h-40 rounded-lg border border-gray-200 object-cover" />
-                        <p className="text-[10px] text-center text-gray-400 mt-1">Document</p>
+                        <img src={resolveImageUrl(s.kycDocumentUrl)} alt="ID document front" className="h-40 rounded-lg border border-gray-200 object-cover" />
+                        <p className="text-[10px] text-center text-gray-400 mt-1">{s.kycDocumentBackUrl ? 'Document — Front' : 'Document'}</p>
+                      </a>
+                    )}
+                    {s.kycDocumentBackUrl && (
+                      <a href={resolveImageUrl(s.kycDocumentBackUrl)} target="_blank" rel="noopener noreferrer" className="block">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={resolveImageUrl(s.kycDocumentBackUrl)} alt="ID document back" className="h-40 rounded-lg border border-gray-200 object-cover" />
+                        <p className="text-[10px] text-center text-gray-400 mt-1">Document — Back</p>
                       </a>
                     )}
                     {s.kycSelfieUrl && (

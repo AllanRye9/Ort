@@ -14,6 +14,7 @@ interface KycState {
   kycStatus: KycStatus;
   kycDocumentType?: DocumentType | null;
   kycDocumentUrl?: string | null;
+  kycDocumentBackUrl?: string | null;
   kycSelfieUrl?: string | null;
   kycFullName?: string | null;
   kycSubmittedAt?: string | null;
@@ -28,6 +29,19 @@ const DOCUMENT_LABELS: Record<DocumentType, string> = {
   BUSINESS_LICENSE: 'Business License',
 };
 
+// Document types that need both sides uploaded. Everything else (passport,
+// business licence) is a single page/document — see backend/src/routes/kyc.ts
+// TWO_SIDED_DOCUMENT_TYPES, which is the source of truth this mirrors.
+const TWO_SIDED_TYPES: DocumentType[] = ['NATIONAL_ID', 'DRIVERS_LICENSE'];
+
+// What to call the single upload field for single-sided types.
+const SINGLE_SIDE_LABEL: Record<DocumentType, string> = {
+  NATIONAL_ID: 'Photo of Document',
+  PASSPORT: "Photo of Passport (Identity/Information Page)",
+  DRIVERS_LICENSE: 'Photo of Document',
+  BUSINESS_LICENSE: 'Photo of Business License',
+};
+
 async function uploadKycImage(file: File): Promise<string> {
   const formData = new FormData();
   formData.append('image', file);
@@ -35,6 +49,35 @@ async function uploadKycImage(file: File): Promise<string> {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
   return data.url as string;
+}
+
+interface KycDraft {
+  kycDraftDocumentType?: DocumentType | null;
+  kycDraftFullName?: string | null;
+  kycDraftDocumentUrl?: string | null;
+  kycDraftDocumentBackUrl?: string | null;
+  kycDraftSelfieUrl?: string | null;
+  kycDraftUpdatedAt?: string | null;
+}
+
+// Saves the current draft server-side. Sensitive KYC documents must never
+// sit in browser storage while the user is mid-flow, so every field is
+// persisted through this endpoint instead — a refresh, closed tab, dropped
+// connection, or accidental navigation-away never loses progress. Best
+// effort: a failed draft save shouldn't block the user from continuing to
+// fill out the form, it just means resume-on-refresh won't have that field.
+async function saveDraft(patch: {
+  documentType?: DocumentType;
+  fullName?: string;
+  documentUrl?: string | null;
+  documentBackUrl?: string | null;
+  selfieUrl?: string | null;
+}): Promise<void> {
+  try {
+    await api.put('/kyc/draft', patch);
+  } catch {
+    // Best effort — see comment above.
+  }
 }
 
 export default function VerificationPage() {
@@ -48,10 +91,42 @@ export default function VerificationPage() {
   const [fullName, setFullName] = useState('');
   const [documentFile, setDocumentFile] = useState<File | null>(null);
   const [documentPreview, setDocumentPreview] = useState<string | null>(null);
+  // Back-of-document upload — only shown/required for two-sided types
+  // (national ID, driver's licence). Cleared automatically when the user
+  // switches to a single-sided type so a stale back-image from a previous
+  // selection can never be submitted alongside e.g. a passport.
+  const [documentBackFile, setDocumentBackFile] = useState<File | null>(null);
+  const [documentBackPreview, setDocumentBackPreview] = useState<string | null>(null);
   const [selfieFile, setSelfieFile] = useState<File | null>(null);
   const [selfiePreview, setSelfiePreview] = useState<string | null>(null);
+  // Server-side URLs for images that have already been uploaded (either
+  // just now, in this session, or restored from a saved draft on a
+  // previous visit). Submitting re-uses these instead of re-uploading —
+  // and restoring a draft can populate the preview/"already uploaded"
+  // state here without ever having a browser File object at all.
+  const [documentUrl, setDocumentUrl] = useState<string | null>(null);
+  const [documentBackUrl, setDocumentBackUrl] = useState<string | null>(null);
+  const [selfieUrl, setSelfieUrl] = useState<string | null>(null);
+  const [uploadingField, setUploadingField] = useState<'document' | 'documentBack' | 'selfie' | null>(null);
+  const [draftRestored, setDraftRestored] = useState(false);
   const documentInputRef = useRef<HTMLInputElement>(null);
+  const documentBackInputRef = useRef<HTMLInputElement>(null);
   const selfieInputRef = useRef<HTMLInputElement>(null);
+
+  const requiresBack = TWO_SIDED_TYPES.includes(documentType);
+
+  const handleDocumentTypeChange = (nextType: DocumentType) => {
+    setDocumentType(nextType);
+    if (!TWO_SIDED_TYPES.includes(nextType)) {
+      // Switched to a single-sided type — drop any back-side upload so it
+      // can't be silently carried over and submitted with the new type.
+      setDocumentBackFile(null);
+      setDocumentBackPreview(null);
+      setDocumentBackUrl(null);
+      if (documentBackInputRef.current) documentBackInputRef.current.value = '';
+    }
+    saveDraft({ documentType: nextType });
+  };
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -69,10 +144,46 @@ export default function VerificationPage() {
       .finally(() => setLoading(false));
   }, [user]);
 
+  // Resumable workflow: once we know verification hasn't already been
+  // submitted, restore any in-progress draft (document type, name, and
+  // already-uploaded images) saved server-side from a previous visit —
+  // covers a refresh, closed tab, dropped connection, or navigating away
+  // mid-flow. Documents themselves were never in browser storage, only on
+  // the server, so there's nothing sensitive to restore from the client.
+  useEffect(() => {
+    if (!user || !state) return;
+    if (state.kycStatus !== 'NOT_SUBMITTED' && state.kycStatus !== 'REJECTED') return;
+    api.get<KycDraft>('/kyc/draft')
+      .then(({ data }) => {
+        const hasDraft = !!(data.kycDraftDocumentType || data.kycDraftFullName || data.kycDraftDocumentUrl);
+        if (!hasDraft) return;
+        if (data.kycDraftDocumentType) setDocumentType(data.kycDraftDocumentType);
+        if (data.kycDraftFullName) setFullName(data.kycDraftFullName);
+        if (data.kycDraftDocumentUrl) {
+          setDocumentUrl(data.kycDraftDocumentUrl);
+          setDocumentPreview(data.kycDraftDocumentUrl);
+        }
+        if (data.kycDraftDocumentBackUrl) {
+          setDocumentBackUrl(data.kycDraftDocumentBackUrl);
+          setDocumentBackPreview(data.kycDraftDocumentBackUrl);
+        }
+        if (data.kycDraftSelfieUrl) {
+          setSelfieUrl(data.kycDraftSelfieUrl);
+          setSelfiePreview(data.kycDraftSelfieUrl);
+        }
+        setDraftRestored(true);
+      })
+      .catch(() => { /* no draft, or fetch failed — start with a blank form */ });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, state?.kycStatus]);
+
   const handleFileSelect = (
     files: FileList | null,
     setFile: (f: File | null) => void,
     setPreview: (p: string | null) => void,
+    field: 'document' | 'documentBack' | 'selfie',
+    setUrl: (u: string | null) => void,
+    draftKey: 'documentUrl' | 'documentBackUrl' | 'selfieUrl',
   ) => {
     if (!files || files.length === 0) return;
     const file = files[0];
@@ -87,11 +198,30 @@ export default function VerificationPage() {
     }
     setError('');
     setFile(file);
+    setUrl(null);
     const reader = new FileReader();
     reader.onload = () => {
       if (typeof reader.result === 'string') setPreview(reader.result);
     };
     reader.readAsDataURL(file);
+
+    // Upload right away (rather than waiting for final submit) and save it
+    // to the server-side draft, so the image survives a refresh/close/
+    // connection loss even before the form is ever submitted.
+    setUploadingField(field);
+    uploadKycImage(file)
+      .then((url) => {
+        setUrl(url);
+        saveDraft({ [draftKey]: url } as Parameters<typeof saveDraft>[0]);
+      })
+      .catch(() => {
+        setError('Failed to upload image. Please try again.');
+      })
+      .finally(() => setUploadingField((f) => (f === field ? null : f)));
+  };
+
+  const handleFullNameBlur = () => {
+    if (fullName.trim().length >= 2) saveDraft({ fullName: fullName.trim() });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -102,20 +232,34 @@ export default function VerificationPage() {
       setError('Please enter your full legal name as it appears on your ID.');
       return;
     }
-    if (!documentFile) {
-      setError('Please upload a clear photo of your ID document.');
+    if (!documentUrl && !documentFile) {
+      setError(requiresBack ? 'Please upload the front of your ID.' : 'Please upload a clear photo of your ID document.');
+      return;
+    }
+    if (requiresBack && !documentBackUrl && !documentBackFile) {
+      setError('Please upload the back of your ID.');
+      return;
+    }
+    if (uploadingField) {
+      setError('Please wait for the image upload to finish.');
       return;
     }
 
     setSubmitting(true);
     try {
-      const documentUrl = await uploadKycImage(documentFile);
-      const selfieUrl = selfieFile ? await uploadKycImage(selfieFile) : undefined;
+      // Prefer already-uploaded draft URLs; only upload here if a file was
+      // selected but, for some reason, hasn't finished uploading yet.
+      const finalDocumentUrl = documentUrl || (documentFile ? await uploadKycImage(documentFile) : undefined);
+      const finalDocumentBackUrl = requiresBack
+        ? (documentBackUrl || (documentBackFile ? await uploadKycImage(documentBackFile) : undefined))
+        : undefined;
+      const finalSelfieUrl = selfieUrl || (selfieFile ? await uploadKycImage(selfieFile) : undefined);
 
       const { data } = await api.post('/kyc/submit', {
         documentType,
-        documentUrl,
-        selfieUrl,
+        documentUrl: finalDocumentUrl,
+        documentBackUrl: finalDocumentBackUrl,
+        selfieUrl: finalSelfieUrl,
         fullName: fullName.trim(),
       });
 
@@ -201,6 +345,14 @@ export default function VerificationPage() {
         {/* ── NOT_SUBMITTED / REJECTED → show form ── */}
         {(status === 'NOT_SUBMITTED' || status === 'REJECTED') && (
           <>
+            {draftRestored && (
+              <div className="mb-4 flex items-center gap-2 p-3 bg-sky-50 border border-sky-200 rounded-xl text-xs text-sky-800">
+                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                We restored your in-progress verification details from your last visit.
+              </div>
+            )}
             {status === 'REJECTED' && state?.kycRejectionReason && (
               <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-xl">
                 <p className="text-sm font-semibold text-red-800 mb-0.5">Your previous submission was rejected</p>
@@ -216,7 +368,7 @@ export default function VerificationPage() {
                 </label>
                 <select
                   value={documentType}
-                  onChange={(e) => setDocumentType(e.target.value as DocumentType)}
+                  onChange={(e) => handleDocumentTypeChange(e.target.value as DocumentType)}
                   className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 focus:border-red-400 transition-shadow"
                 >
                   {(Object.keys(DOCUMENT_LABELS) as DocumentType[]).map((dt) => (
@@ -233,27 +385,75 @@ export default function VerificationPage() {
                   type="text"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
+                  onBlur={handleFullNameBlur}
                   placeholder="As it appears on your ID"
                   className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-300 focus:border-red-400 transition-shadow"
                 />
               </div>
 
+              {/* Required-documents summary — shown so the user knows up
+                  front what this document type needs, per the "display
+                  required documents / front-back requirements" UX spec. */}
+              <div className="rounded-xl bg-gray-50 border border-gray-200 px-4 py-3">
+                <p className="text-xs font-bold text-gray-700 mb-1">Required for {DOCUMENT_LABELS[documentType]}:</p>
+                <p className="text-xs text-gray-500">
+                  {requiresBack
+                    ? 'Front and back photos of the document.'
+                    : documentType === 'PASSPORT'
+                    ? "Just the identity/information page — no back-side upload needed."
+                    : 'A single clear photo of the document.'}
+                </p>
+              </div>
+
               <div>
                 <label className="block text-sm font-bold text-gray-800 mb-1.5">
-                  Photo of Document <span className="text-red-500">*</span>
+                  {requiresBack ? `${SINGLE_SIDE_LABEL[documentType]} — Front` : SINGLE_SIDE_LABEL[documentType]} <span className="text-red-500">*</span>
                 </label>
                 <input
                   ref={documentInputRef}
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
-                  onChange={(e) => handleFileSelect(e.target.files, setDocumentFile, setDocumentPreview)}
+                  onChange={(e) => handleFileSelect(e.target.files, setDocumentFile, setDocumentPreview, 'document', setDocumentUrl, 'documentUrl')}
                   className="w-full text-sm text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100 transition-colors"
                 />
                 {documentPreview && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={documentPreview} alt="Document preview" className="mt-2 max-h-48 rounded-xl border border-gray-200 object-contain" />
+                  <div className="relative mt-2 inline-block max-w-full">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={documentPreview} alt="Document preview" className="max-h-48 max-w-full rounded-xl border border-gray-200 object-contain" />
+                    {uploadingField === 'document' ? (
+                      <span className="absolute bottom-1.5 left-1.5 text-[10px] font-semibold bg-white/90 text-gray-600 px-1.5 py-0.5 rounded-full shadow-sm">Uploading…</span>
+                    ) : documentUrl ? (
+                      <span className="absolute bottom-1.5 left-1.5 text-[10px] font-semibold bg-emerald-600/90 text-white px-1.5 py-0.5 rounded-full shadow-sm">Saved</span>
+                    ) : null}
+                  </div>
                 )}
               </div>
+
+              {requiresBack && (
+                <div>
+                  <label className="block text-sm font-bold text-gray-800 mb-1.5">
+                    {SINGLE_SIDE_LABEL[documentType]} — Back <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    ref={documentBackInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={(e) => handleFileSelect(e.target.files, setDocumentBackFile, setDocumentBackPreview, 'documentBack', setDocumentBackUrl, 'documentBackUrl')}
+                    className="w-full text-sm text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100 transition-colors"
+                  />
+                  {documentBackPreview && (
+                    <div className="relative mt-2 inline-block max-w-full">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={documentBackPreview} alt="Document back preview" className="max-h-48 max-w-full rounded-xl border border-gray-200 object-contain" />
+                      {uploadingField === 'documentBack' ? (
+                        <span className="absolute bottom-1.5 left-1.5 text-[10px] font-semibold bg-white/90 text-gray-600 px-1.5 py-0.5 rounded-full shadow-sm">Uploading…</span>
+                      ) : documentBackUrl ? (
+                        <span className="absolute bottom-1.5 left-1.5 text-[10px] font-semibold bg-emerald-600/90 text-white px-1.5 py-0.5 rounded-full shadow-sm">Saved</span>
+                      ) : null}
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-bold text-gray-800 mb-1.5">
@@ -263,12 +463,19 @@ export default function VerificationPage() {
                   ref={selfieInputRef}
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
-                  onChange={(e) => handleFileSelect(e.target.files, setSelfieFile, setSelfiePreview)}
+                  onChange={(e) => handleFileSelect(e.target.files, setSelfieFile, setSelfiePreview, 'selfie', setSelfieUrl, 'selfieUrl')}
                   className="w-full text-sm text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100 transition-colors"
                 />
                 {selfiePreview && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={selfiePreview} alt="Selfie preview" className="mt-2 max-h-48 rounded-xl border border-gray-200 object-contain" />
+                  <div className="relative mt-2 inline-block max-w-full">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={selfiePreview} alt="Selfie preview" className="max-h-48 max-w-full rounded-xl border border-gray-200 object-contain" />
+                    {uploadingField === 'selfie' ? (
+                      <span className="absolute bottom-1.5 left-1.5 text-[10px] font-semibold bg-white/90 text-gray-600 px-1.5 py-0.5 rounded-full shadow-sm">Uploading…</span>
+                    ) : selfieUrl ? (
+                      <span className="absolute bottom-1.5 left-1.5 text-[10px] font-semibold bg-emerald-600/90 text-white px-1.5 py-0.5 rounded-full shadow-sm">Saved</span>
+                    ) : null}
+                  </div>
                 )}
               </div>
 
@@ -280,10 +487,10 @@ export default function VerificationPage() {
 
               <button
                 type="submit"
-                disabled={submitting}
+                disabled={submitting || !!uploadingField}
                 className="w-full py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm transition-colors disabled:opacity-50 shadow-sm interactive"
               >
-                {submitting ? 'Submitting…' : 'Submit for Verification'}
+                {submitting ? 'Submitting…' : uploadingField ? 'Uploading…' : 'Submit for Verification'}
               </button>
             </form>
 

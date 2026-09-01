@@ -34,6 +34,21 @@ export default function CartPage() {
     }
   };
 
+  const unavailableReason = (listing: { status: string; stock?: number }) => {
+    const outOfStock = typeof listing.stock === 'number' && listing.stock <= 0;
+    if (listing.status !== 'ACTIVE' && !outOfStock) {
+      return listing.status === 'SOLD' ? 'Already sold'
+        : listing.status === 'EXPIRED' ? 'Listing expired'
+        : listing.status === 'HIDDEN' || listing.status === 'REJECTED' ? 'No longer available'
+        : listing.status === 'PENDING' ? 'Pending approval'
+        : 'Unavailable';
+    }
+    if (outOfStock) return 'Out of stock';
+    return null;
+  };
+
+  const hasUnavailableItems = items.some(({ listing }) => !!unavailableReason(listing));
+
   if (items.length === 0) {
     return (
       <div className="min-h-[50vh] flex flex-col items-center justify-center px-4 py-8">
@@ -80,9 +95,10 @@ export default function CartPage() {
           {items.map(({ listing, quantity, variants }) => {
             const img = listing.productImages?.[0]?.cdnUrl ?? listing.images?.[0] ?? null;
             const itemPrice = formatCurrency(listing.price * quantity, listing.currency);
+            const unavailable = unavailableReason(listing);
 
             return (
-              <div key={listing.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex gap-4">
+              <div key={listing.id} className={`bg-white rounded-2xl border shadow-sm p-4 flex gap-4 ${unavailable ? 'border-red-200 bg-red-50/30' : 'border-gray-100'}`}>
                 <Link href={`/listings/${listing.id}`} className="relative w-24 h-24 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100">
                   {img ? (
                     <Image src={resolveImageUrl(img)} alt={listing.title} fill className="object-cover" unoptimized />
@@ -96,6 +112,11 @@ export default function CartPage() {
                     {listing.title}
                   </Link>
                   <p className="text-xs text-gray-500 mt-0.5">{listing.condition} · {listing.location}</p>
+                  {unavailable && (
+                    <span className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-semibold text-red-700 bg-red-100 border border-red-200 rounded-full px-2 py-0.5">
+                      ⚠ {unavailable} — remove to continue checkout
+                    </span>
+                  )}
 
                   {/* Variant selections — shown so the buyer can confirm before checkout */}
                   {(variants?.color || variants?.size || variants?.attributes) && (
@@ -128,7 +149,8 @@ export default function CartPage() {
                       <span className="w-8 text-center font-semibold text-gray-900">{quantity}</span>
                       <button
                         onClick={() => updateQuantity(listing.id, quantity + 1)}
-                        className="w-7 h-7 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 flex items-center justify-center text-lg font-bold transition-colors"
+                        disabled={!!unavailable}
+                        className="w-7 h-7 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 flex items-center justify-center text-lg font-bold transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
                         aria-label="Increase quantity"
                       >+</button>
                     </div>
@@ -225,9 +247,15 @@ export default function CartPage() {
             </div>
           </div>
 
+          {hasUnavailableItems && (
+            <p className="mb-3 text-xs font-medium text-red-600 bg-red-50 border border-red-100 rounded-xl px-3 py-2">
+              Remove the unavailable item(s) above before checking out.
+            </p>
+          )}
           <button
             onClick={() => router.push('/checkout')}
-            className="w-full py-3 rounded-xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold text-base transition-all shadow-md hover:shadow-lg mb-3"
+            disabled={hasUnavailableItems}
+            className="w-full py-3 rounded-xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold text-base transition-all shadow-md hover:shadow-lg mb-3 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:from-red-500 disabled:hover:to-red-600"
           >
             Proceed to Checkout →
           </button>
