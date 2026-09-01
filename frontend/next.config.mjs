@@ -1,3 +1,5 @@
+import { withIntlayer } from 'next-intlayer/server';
+
 /** @type {import('next').NextConfig} */
 
 // Warn during builds if NEXT_PUBLIC_API_URL isn't set. Railway may expose
@@ -50,4 +52,8 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+// withIntlayer() reads frontend/intlayer.config.ts, builds the content
+// dictionaries, and wires the plugin into webpack/Turbopack. It's async
+// (it prepares dictionaries before the build starts), so it's awaited here
+// at the top level — supported because this file is loaded as ESM.
+export default await withIntlayer(nextConfig);

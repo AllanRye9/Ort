@@ -4,6 +4,16 @@
     "module": "commonjs",
     "lib": ["ES2020"],
     "moduleResolution": "node",
+    // TS 5.9+ renamed this mode to "node10" and started flagging plain
+    // "node" as deprecated (TS5107), escalating to a hard error on some
+    // TS versions (the repo pins ^5.3.3, but a newer TS resolved locally —
+    // e.g. via a global install or a different lockfile — hits this).
+    // This project is CommonJS/Node (`module: "commonjs"`, run via
+    // ts-node-dev / `node dist/index.js`), so "node10" resolution is still
+    // the correct semantics here, not a bug to migrate away from; this
+    // just silences the deprecation warning as TS's own error message
+    // recommends, without changing resolution behavior.
+    "ignoreDeprecations": "6.0",
     "rootDir": "./src",
     "outDir": "./dist",
     "esModuleInterop": true,

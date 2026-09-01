@@ -40,6 +40,23 @@ const run = (command: string, args: string[]) => {
   }
 };
 
+// Like `run`, but captures stdout/stderr instead of streaming them directly,
+// so callers can inspect the output (e.g. to detect a specific Prisma error
+// code) while still echoing it to the console for visibility in logs.
+const runCapture = (command: string, args: string[]) => {
+  const result = spawnSync(command, args, {
+    cwd: projectRoot,
+    env: process.env,
+    encoding: 'utf-8',
+    shell: process.platform === 'win32',
+  });
+
+  if (result.stdout) process.stdout.write(result.stdout);
+  if (result.stderr) process.stderr.write(result.stderr);
+
+  return result;
+};
+
 const getMigrationDirCount = (): number => {
   const migrationsDir = path.join(prismaDir, 'migrations');
   if (!fs.existsSync(migrationsDir)) return 0;
@@ -49,6 +66,28 @@ const getMigrationDirCount = (): number => {
     .filter((entry) => entry.isDirectory())
     .filter((entry) => !entry.name.startsWith('.'))
     .length;
+};
+
+// Marks every committed migration as already applied, without running their
+// SQL. This is the standard Prisma "baseline" procedure for an existing
+// database whose schema already matches prisma/schema.prisma but which has
+// no _prisma_migrations history — exactly the state this app's DBs are in,
+// since earlier deployments (see the `migrationCount === 0` branch below)
+// bootstrapped the schema with `prisma db push` before any migration files
+// existed. See: https://pris.ly/d/migrate-baseline
+const baselineExistingMigrations = () => {
+  const migrationsDir = path.join(prismaDir, 'migrations');
+  const migrationNames = fs
+    .readdirSync(migrationsDir, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .filter((entry) => !entry.name.startsWith('.'))
+    .map((entry) => entry.name)
+    .sort();
+
+  for (const name of migrationNames) {
+    log(`Baselining migration as already applied: ${name}`);
+    run('npx', ['prisma', 'migrate', 'resolve', '--applied', name]);
+  }
 };
 
 const runMigrations = () => {
@@ -62,8 +101,30 @@ const runMigrations = () => {
   }
 
   log(`Running prisma migrate deploy (${migrationCount} migration(s) found)...`);
+  const result = runCapture('npx', ['prisma', 'migrate', 'deploy']);
+
+  if (result.status === 0) {
+    log('Migrations applied successfully.');
+    return;
+  }
+
+  const combinedOutput = `${result.stdout ?? ''}\n${result.stderr ?? ''}`;
+  const isUnbaselinedSchema = combinedOutput.includes('P3005');
+
+  if (!isUnbaselinedSchema) {
+    throw new Error(`npx prisma migrate deploy exited with code ${result.status ?? 'unknown'}`);
+  }
+
+  log(
+    'Detected P3005 (database schema is not empty, but has no migration history) — ' +
+      'this matches a database that was previously bootstrapped with `prisma db push`. ' +
+      'Baselining existing migrations instead of failing startup.'
+  );
+  baselineExistingMigrations();
+
+  log('Retrying prisma migrate deploy after baseline...');
   run('npx', ['prisma', 'migrate', 'deploy']);
-  log('Migrations applied successfully.');
+  log('Migrations applied successfully after baseline.');
 };
 
 const runHotfixes = () => {

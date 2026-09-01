@@ -1,4 +1,6 @@
 import type { Metadata, Viewport } from 'next';
+import { getHTMLTextDir } from 'intlayer';
+import { getLocale, IntlayerProvider } from 'next-intlayer/server';
 import '@fontsource-variable/inter';
 import '@fontsource/playfair-display/400.css';
 import '@fontsource/playfair-display/600.css';
@@ -55,10 +57,17 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // `routing.mode: "no-prefix"` in intlayer.config.ts means there's no
+  // [locale] URL segment — the locale is resolved from the cookie set by
+  // `intlayerMiddleware` (see middleware.ts), falling back to
+  // Accept-Language, then the configured default ("en").
+  const locale = await getLocale();
+
   return (
-    <html lang="en">
+    <html lang={locale} dir={getHTMLTextDir(locale)}>
       <body className="font-sans">
+        <IntlayerProvider locale={locale}>
         <SiteConfigProvider>
         <CountryProvider>
           <AuthProvider>
@@ -75,6 +84,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </AuthProvider>
         </CountryProvider>
         </SiteConfigProvider>
+        </IntlayerProvider>
       </body>
     </html>
   );

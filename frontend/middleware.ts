@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { intlayerMiddleware, multipleMiddlewares } from 'next-intlayer/middleware';
 
 const VALID = {
   AE: 'UAE',
@@ -15,7 +16,7 @@ const COUNTRY_TO_CURRENCY: Record<string, string> = {
   CHINA: 'CNY',
 };
 
-export async function middleware(req: NextRequest) {
+async function countryMiddleware(req: NextRequest) {
   // If cookie already set, do nothing
   const existing = req.cookies.get('selectedCountry');
   if (existing) return NextResponse.next();
@@ -60,6 +61,15 @@ export async function middleware(req: NextRequest) {
 
   return NextResponse.next();
 }
+
+// Chains the existing country/currency detection with Intlayer's locale
+// detection (cookie / Accept-Language, since intlayer.config.ts uses
+// `routing.mode: "no-prefix"` — no URL redirect happens). Order doesn't
+// matter here since neither middleware short-circuits the other's cookies.
+export const middleware = multipleMiddlewares([
+  intlayerMiddleware,
+  countryMiddleware,
+]);
 
 export const config = {
   matcher: ['/', '/cart', '/checkout', '/(.*)'],
