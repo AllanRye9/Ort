@@ -25,7 +25,7 @@ WORKDIR /app
 RUN apk add --no-cache openssl libc6-compat
 
 COPY --from=deps /app/node_modules ./node_modules
-COPY package.json tsconfig.json ./
+COPY package.json tsconfig.json tsconfig.node.json ./
 COPY prisma ./prisma
 COPY src ./src
 COPY scripts ./scripts
@@ -57,6 +57,8 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/tsconfig.json ./tsconfig.json
+COPY --from=builder /app/tsconfig.node.json ./tsconfig.node.json
 COPY docker-entrypoint.sh ./docker-entrypoint.sh
 
 # Writable directory for local/temp file uploads before they are shipped to
