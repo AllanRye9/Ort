@@ -46,18 +46,45 @@ async function getHomeData() {
   try {
     const apiBase = API_URL;
     const [listingRes, flashRes, featuredRes, latestCollRes, mediaRes] = await Promise.all([
-      fetch(`${apiBase}/api/listings?limit=24&sort=createdAt`, { next: { revalidate: 60 } }),
-      fetch(`${apiBase}/api/listings/flash-sales`, { next: { revalidate: 30 } }),
-      fetch(`${apiBase}/api/listings/featured-deal`, { next: { revalidate: 30 } }),
-      fetch(`${apiBase}/api/listings/latest-collections?limit=6`, { next: { revalidate: 30 } }),
-      fetch(`${apiBase}/api/site-media`, { next: { revalidate: 60 } }),
+      fetch(`${apiBase}/api/listings?limit=24&sort=createdAt`, {
+        next: { revalidate: 60 },
+        signal: AbortSignal.timeout(10000),
+      }),
+      fetch(`${apiBase}/api/listings/flash-sales`, {
+        next: { revalidate: 30 },
+        signal: AbortSignal.timeout(10000),
+      }),
+      fetch(`${apiBase}/api/listings/featured-deal`, {
+        next: { revalidate: 30 },
+        signal: AbortSignal.timeout(10000),
+      }),
+      fetch(`${apiBase}/api/listings/latest-collections?limit=6`, {
+        next: { revalidate: 30 },
+        signal: AbortSignal.timeout(10000),
+      }),
+      fetch(`${apiBase}/api/site-media`, {
+        next: { revalidate: 60 },
+        signal: AbortSignal.timeout(10000),
+      }),
     ]);
     // Fetch latest per key categories for quick-glance previews
     const [motorsRes, electronicsRes, propertyRes, fashionRes] = await Promise.all([
-      fetch(`${apiBase}/api/listings?category=motors&limit=6&sort=createdAt`, { next: { revalidate: 60 } }),
-      fetch(`${apiBase}/api/listings?category=electronics&limit=6&sort=createdAt`, { next: { revalidate: 60 } }),
-      fetch(`${apiBase}/api/listings?category=property&limit=6&sort=createdAt`, { next: { revalidate: 60 } }),
-      fetch(`${apiBase}/api/listings?category=fashion&limit=6&sort=createdAt`, { next: { revalidate: 60 } }),
+      fetch(`${apiBase}/api/listings?category=motors&limit=6&sort=createdAt`, {
+        next: { revalidate: 60 },
+        signal: AbortSignal.timeout(10000),
+      }),
+      fetch(`${apiBase}/api/listings?category=electronics&limit=6&sort=createdAt`, {
+        next: { revalidate: 60 },
+        signal: AbortSignal.timeout(10000),
+      }),
+      fetch(`${apiBase}/api/listings?category=property&limit=6&sort=createdAt`, {
+        next: { revalidate: 60 },
+        signal: AbortSignal.timeout(10000),
+      }),
+      fetch(`${apiBase}/api/listings?category=fashion&limit=6&sort=createdAt`, {
+        next: { revalidate: 60 },
+        signal: AbortSignal.timeout(10000),
+      }),
     ]);
     const listingData: { listings: Listing[] } = listingRes.ok ? await listingRes.json() : { listings: [] };
     const flashData: { listings: Listing[] } = flashRes.ok ? await flashRes.json() : { listings: [] };

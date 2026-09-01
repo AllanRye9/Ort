@@ -19,6 +19,7 @@ async function fetchListing(id: string): Promise<ListingLookup | null> {
   try {
     const response = await fetch(`${API_BASE}/api/listings/${id}`, {
       next: { revalidate: 300 },
+      signal: AbortSignal.timeout(10000), // 10s timeout to prevent build hangs
     });
 
     if (response.status === 404) return null;

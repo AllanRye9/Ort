@@ -26,7 +26,10 @@ interface BlogPost {
 async function getPosts(): Promise<{ posts: BlogPost[]; total: number }> {
   try {
     const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-    const res = await fetch(`${apiBase}/api/blog?limit=20`, { next: { revalidate: 60 } });
+    const res = await fetch(`${apiBase}/api/blog?limit=20`, {
+      next: { revalidate: 60 },
+      signal: AbortSignal.timeout(10000), // 10s timeout to prevent build hangs
+    });
     if (!res.ok) return { posts: [], total: 0 };
     return res.json();
   } catch {

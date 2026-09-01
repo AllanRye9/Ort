@@ -10,6 +10,20 @@ jobs:
   backend:
     name: Backend – Type Check & Build
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: marketplace_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d marketplace_db"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
     defaults:
       run:
         working-directory: backend
@@ -27,19 +41,29 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Run database setup
+        run: npm run db:setup
         env:
-          DATABASE_URL: postgresql://placeholder:placeholder@placeholder:5432/placeholder
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/marketplace_db?schema=public
+
+      - name: Validate hotfix processing path
+        run: npm run db:setup:hotfixes
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/marketplace_db?schema=public
 
       - name: Generate Prisma client
         run: npx prisma generate
         env:
-          DATABASE_URL: postgresql://placeholder:placeholder@placeholder:5432/placeholder
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/marketplace_db?schema=public
 
       - name: TypeScript type check
         run: npm run typecheck
 
       - name: Build
         run: npm run build
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/marketplace_db?schema=public
 
   frontend:
     name: Frontend – Type Check & Build

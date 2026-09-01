@@ -52,7 +52,10 @@ interface CVShowcaseImage {
  *  the page renders normally even if no images have been uploaded yet. */
 async function getCVServiceImages(): Promise<CVShowcaseImage[]> {
   try {
-    const res = await fetch(`${API_URL}/api/site-media?section=cv-service`, { next: { revalidate: 60 } });
+    const res = await fetch(`${API_URL}/api/site-media?section=cv-service`, {
+      next: { revalidate: 60 },
+      signal: AbortSignal.timeout(10000), // 10s timeout to prevent build hangs
+    });
     if (!res.ok) return [];
     const data = await res.json();
     const media: CVShowcaseImage[] = Array.isArray(data?.media) ? data.media : [];

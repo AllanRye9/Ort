@@ -15,7 +15,10 @@ interface SocialLinks {
 
 async function getSocialLinks(): Promise<SocialLinks> {
   try {
-    const res = await fetch(`${API_URL}/api/site-media/social-links`, { next: { revalidate: 300 } });
+    const res = await fetch(`${API_URL}/api/site-media/social-links`, {
+      next: { revalidate: 300 },
+      signal: AbortSignal.timeout(5000), // 5s timeout to prevent build hangs
+    });
     if (!res.ok) return {};
     return res.json();
   } catch {
@@ -39,7 +42,10 @@ function joinCountryLabels(countries: string[]): string {
 
 async function getEnabledCountries(): Promise<string[]> {
   try {
-    const res = await fetch(`${API_URL}/api/public/site-config`, { next: { revalidate: 60 } });
+    const res = await fetch(`${API_URL}/api/public/site-config`, {
+      next: { revalidate: 60 },
+      signal: AbortSignal.timeout(5000), // 5s timeout to prevent build hangs
+    });
     if (!res.ok) return ['UGANDA'];
     const data = await res.json();
     return Array.isArray(data.enabledCountries) && data.enabledCountries.length > 0
