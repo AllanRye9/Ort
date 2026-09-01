@@ -27,13 +27,12 @@ fi
 # Stash local changes if any
 # ============================================================
 
-stash_output=$(git stash 2>&1 || true)
-
 need_apply=false
 
-if [[ "$stash_output" != "No local changes" ]]; then
+if ! git diff --quiet || ! git diff --cached --quiet || [ -n "$(git ls-files --others --exclude-standard)" ]; then
   need_apply=true
   echo "Local changes were stashed."
+  git stash push --include-untracked -m "deploy-script-autostash" >/dev/null
 fi
 
 # ============================================================
@@ -55,13 +54,15 @@ if [ "$need_apply" = true ]; then
   echo ""
   echo "Reapplying stashed local changes..."
 
-  git stash apply
+  if git stash list | grep -q .; then
+    git stash pop --index
 
-  if [[ -n "$(git ls-files -u)" ]]; then
-    echo "Reapplying stashed changes on top of origin/main produced merge conflicts." >&2
-    echo "Resolve them manually, then re-run this script." >&2
-    echo "The stash is preserved: git stash list" >&2
-    exit 1
+    if [[ -n "$(git ls-files -u)" ]]; then
+      echo "Reapplying stashed changes on top of origin/main produced merge conflicts." >&2
+      echo "Resolve them manually, then re-run this script." >&2
+      echo "The stash is preserved: git stash list" >&2
+      exit 1
+    fi
   fi
 fi
 
