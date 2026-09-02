@@ -118,14 +118,8 @@ const runMigrations = () => {
   log(
     'Detected P3005 (database schema is not empty, but has no migration history) — ' +
       'this matches a database that was previously bootstrapped with `prisma db push`. ' +
-      'Synchronizing additive schema changes before baselining existing migrations.'
+      'Baselining existing migrations instead of failing startup.'
   );
-
-  // Repair columns added after the original bootstrap before marking the
-  // initial migration as applied; baselining first would hide those changes.
-  log('Applying non-destructive schema synchronization before baseline...');
-  run('npx', ['prisma', 'db', 'push', '--skip-generate']);
-
   baselineExistingMigrations();
 
   log('Retrying prisma migrate deploy after baseline...');
