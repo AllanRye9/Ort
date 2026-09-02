@@ -61,6 +61,15 @@ export function ListingCard({ listing, showFavorite = true, cleanImage = false }
     }
   };
 
+  // "Save X%" badge — reference mobile layout puts this front-and-centre on
+  // every discounted card; the strikethrough price alone doesn't carry the
+  // same at-a-glance signal. Only shown when there's a real discount to
+  // report (originalPrice strictly greater than the current price).
+  const discountPercent =
+    listing.originalPrice != null && listing.originalPrice > listing.price && listing.originalPrice > 0
+      ? Math.round(((listing.originalPrice - listing.price) / listing.originalPrice) * 100)
+      : null;
+
   return (
     <div className="group bg-white rounded-lg xs:rounded-xl border border-gray-100 overflow-hidden transition-all duration-300 hover:shadow-card-hover hover:-translate-y-1 hover:border-red-100">
       {/* Image container — fixed 4:3 aspect ratio */}
@@ -92,6 +101,11 @@ export function ListingCard({ listing, showFavorite = true, cleanImage = false }
         {/* Badges */}
         {!cleanImage && (
           <div className="absolute top-1.5 xs:top-2 left-1.5 xs:left-2 flex flex-col gap-1">
+            {discountPercent != null && discountPercent > 0 && (
+              <span className="inline-flex items-center rounded-md bg-lime-400 text-emerald-950 text-[9px] xs:text-[10px] font-extrabold px-1.5 py-0.5 shadow-sm w-fit">
+                Save {discountPercent}%
+              </span>
+            )}
             {/* Country badge — SVG flag via FlagIcon, not text/emoji */}
             <span className="badge text-[9px] xs:text-[10px] shadow-sm bg-white/95 text-slate-700 border border-white/80 backdrop-blur-sm flex items-center gap-0.5">
               <FlagIcon code={countryFlag} size={11} />
@@ -131,9 +145,15 @@ export function ListingCard({ listing, showFavorite = true, cleanImage = false }
 
         {/* Favorite button + admin quick-edit + buyer quick-add — stacked on
             the right so none of them overlap the listing link, image, or
-            the SOLD/verified badges on the left. */}
+            the SOLD/verified badges on the left.
+            Always visible on touch (opacity-100) since group-hover never
+            fires on mobile — a phone has no cursor to hover with, so a
+            hover-only reveal made these completely untappable on the
+            primary device this app is used on. Hover-to-reveal is kept
+            only at sm: and up, where a mouse actually exists and the
+            decluttered default state is a real benefit. */}
         {(showFavorite || isAdmin || showQuickAdd) && !cleanImage && (
-          <div className="absolute top-1.5 right-1.5 flex flex-col items-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+          <div className="absolute top-1.5 right-1.5 flex flex-col items-end gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200">
             {isAdmin && (
               <Link
                 href={`/listings/create?edit=${listing.id}`}

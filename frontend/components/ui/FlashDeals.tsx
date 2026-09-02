@@ -141,6 +141,10 @@ function FlashCard({ card, displayCurrency }: { card: CardData; displayCurrency:
   const displayOriginal = card.originalPrice !== null && card.currency
     ? convertCurrency(card.originalPrice, card.currency, displayCurrency)
     : null;
+  const discountPercent =
+    displayOriginal != null && displayPrice != null && displayOriginal > displayPrice && displayOriginal > 0
+      ? Math.round(((displayOriginal - displayPrice) / displayOriginal) * 100)
+      : null;
 
   const inner = (
     <>
@@ -167,13 +171,20 @@ function FlashCard({ card, displayCurrency }: { card: CardData; displayCurrency:
         )}
         {/* Gradient overlay at bottom */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
-        {/* Hot deal badge */}
-        <div
-          className="absolute left-1.5 top-1.5 flex items-center gap-0.5 rounded-full bg-gradient-to-r from-red-500 to-orange-500 px-1.5 py-0.5 text-[9px] font-extrabold text-white shadow-md animate-pulse"
-          aria-label="Hot deal"
-        >
-          <span aria-hidden="true">🔥</span>
-          <span>HOT</span>
+        {/* Hot deal badge + savings badge, stacked */}
+        <div className="absolute left-1.5 top-1.5 flex flex-col items-start gap-1">
+          <div
+            className="flex items-center gap-0.5 rounded-full bg-gradient-to-r from-red-500 to-orange-500 px-1.5 py-0.5 text-[9px] font-extrabold text-white shadow-md animate-pulse"
+            aria-label="Hot deal"
+          >
+            <span aria-hidden="true">🔥</span>
+            <span>HOT</span>
+          </div>
+          {discountPercent != null && discountPercent > 0 && (
+            <span className="inline-flex items-center rounded-md bg-lime-400 text-emerald-950 text-[9px] font-extrabold px-1.5 py-0.5 shadow-sm">
+              Save {discountPercent}%
+            </span>
+          )}
         </div>
         {/* Buyer quick-add — top-right, stops propagation so it doesn't
             trigger the card's own Link navigation. */}

@@ -178,26 +178,22 @@ export default function HeaderSearch({ variant, scrolled }: HeaderSearchProps) {
   return (
     <form
       onSubmit={handleSubmit}
-      className={isDesktop ? 'hidden sm:flex flex-1 min-w-0 md:max-w-xl' : 'flex flex-col gap-1.5'}
+      className={isDesktop ? 'hidden sm:flex flex-1 min-w-0 md:max-w-xl' : 'flex w-full'}
     >
-      {!isDesktop && (
-        <select
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          className={`w-full px-3 py-2 text-xs font-semibold rounded-lg border focus:outline-none ${scrolled ? 'bg-gray-50 text-gray-700 border-gray-200' : 'bg-white/10 text-white border-white/20'}`}
-          aria-label="Filter by category"
-        >
-          {TOP_LEVEL_CATEGORY_OPTIONS.map((c) => (
-            <option key={c.value} value={c.value}>{c.label}</option>
-          ))}
-        </select>
-      )}
       <div ref={wrapRef} className="relative w-full">
         <div
           className={
             isDesktop
               ? `flex w-full rounded-full overflow-hidden ring-2 transition-all shadow-search ${scrolled ? 'ring-red-200 focus-within:ring-[var(--theme-primary)]' : 'ring-white/30 focus-within:ring-white/70'}`
-              : `flex w-full rounded-full overflow-hidden ring-2 transition-all shadow-search ${scrolled ? 'ring-red-200 focus-within:ring-[var(--theme-primary)]' : 'ring-white/20 focus-within:ring-white/70'}`
+              // Mobile pill is always a solid, opaque white search bar sitting
+              // directly on the brand-colour header — matching the reference
+              // mobile layout's "Search for Flowers" pill exactly: a leading
+              // magnifying-glass icon, no visible text button, and no
+              // category dropdown cluttering the bar (category filtering
+              // lives on the /listings results page instead) — rather than
+              // a translucent white-on-white bar that loses contrast when
+              // the header hasn't scrolled yet.
+              : 'flex w-full rounded-full overflow-hidden ring-1 ring-black/5 shadow-search focus-within:ring-2 focus-within:ring-[var(--theme-primary)]/50 transition-all bg-white'
           }
         >
           {isDesktop && (
@@ -212,6 +208,20 @@ export default function HeaderSearch({ variant, scrolled }: HeaderSearchProps) {
               ))}
             </select>
           )}
+          {/* Leading magnifying-glass — doubles as the submit button so the
+              pill needs no separate trailing "Search" text, matching the
+              reference's icon-only search bar. */}
+          <button
+            type="submit"
+            aria-label="Search"
+            className={`shrink-0 flex items-center justify-center pl-3.5 pr-1.5 ${isDesktop ? 'py-3' : 'py-2.5'} ${
+              isDesktop && !scrolled ? 'text-white/70' : 'text-gray-400'
+            }`}
+          >
+            <svg className={isDesktop ? 'w-5 h-5' : 'w-4.5 h-4.5'} width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" />
+            </svg>
+          </button>
           <div className="relative flex-1 min-w-0">
             <input
               ref={inputRef}
@@ -225,29 +235,27 @@ export default function HeaderSearch({ variant, scrolled }: HeaderSearchProps) {
               aria-expanded={open}
               aria-autocomplete="list"
               autoComplete="off"
-              className={`w-full px-3 md:px-4 ${isDesktop ? 'py-3 text-sm md:text-base' : 'py-2.5 text-sm'} focus:outline-none ${scrolled ? 'bg-white text-gray-900 placeholder:text-gray-400' : 'bg-white/10 text-white placeholder:text-white/60'}`}
+              className={`w-full pl-1 pr-3 md:pr-4 ${isDesktop ? 'py-3 text-sm md:text-base' : 'py-2.5 text-sm'} focus:outline-none ${
+                isDesktop
+                  ? (scrolled ? 'bg-white text-gray-900 placeholder:text-gray-400' : 'bg-white/10 text-white placeholder:text-white/60')
+                  : 'bg-white text-gray-900 placeholder:text-gray-400'
+              }`}
             />
             {q && (
               <button
                 type="button"
                 aria-label="Clear search"
                 onClick={() => { setQ(''); setOpen(false); inputRef.current?.focus(); }}
-                className={`absolute right-2 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full flex items-center justify-center text-xs transition-colors ${scrolled ? 'text-gray-400 hover:bg-gray-100 hover:text-gray-600' : 'text-white/60 hover:bg-white/10 hover:text-white'}`}
+                className={`absolute right-2 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full flex items-center justify-center text-xs transition-colors ${
+                  isDesktop && !scrolled
+                    ? 'text-white/60 hover:bg-white/10 hover:text-white'
+                    : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'
+                }`}
               >
                 ✕
               </button>
             )}
           </div>
-          <button
-            type="submit"
-            className={
-              isDesktop
-                ? `px-4 md:px-5 py-3 text-sm md:text-base font-bold flex-shrink-0 transition-colors ${scrolled ? 'bg-gradient-to-r from-[var(--theme-primary-dark)] to-[var(--theme-primary)] text-white hover:brightness-110' : 'bg-premium-gold/90 text-white hover:bg-premium-gold'}`
-                : `px-4 py-2.5 text-sm font-bold ${scrolled ? 'bg-premium-gold text-white hover:bg-premium-gold-dark' : 'bg-premium-gold/90 text-white hover:bg-premium-gold'}`
-            }
-          >
-            Search
-          </button>
         </div>
 
         {open && suggestions.length > 0 && (

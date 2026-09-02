@@ -10,7 +10,6 @@ import { useRouter, usePathname } from 'next/navigation';
 import CategoryBar from '@/components/layout/CategoryBar';
 import HeaderSearch from '@/components/layout/HeaderSearch';
 import { CountrySelector } from '@/components/ui/CountrySelector';
-import { LocaleSwitcher } from '@/components/layout/LocaleSwitcher';
 import { api } from '@/lib/api';
 import type { Notification, NotificationType } from '@/lib/types';
 import { useSiteConfig } from '@/context/SiteConfigContext';
@@ -540,7 +539,6 @@ export default function Header() {
 
             <div className="hidden sm:flex items-center gap-1.5">
               <CountrySelector light />
-              <LocaleSwitcher light />
             </div>
 
             {user ? (
@@ -638,7 +636,12 @@ export default function Header() {
           </div>
         )}
 
-        <div className={`sm:hidden border-t px-3 py-2 ${scrolled ? 'border-red-100 bg-white' : 'border-white/10 bg-[var(--theme-primary-dark)]/40 backdrop-blur-sm'}`}>
+        {/* No extra translucent sub-bar behind the pill — the reference
+            mobile layout's search bar sits directly on the header's own
+            colour, and HeaderSearch's mobile variant is always a solid
+            opaque white pill, so a second background here just muddied
+            the contrast without adding anything. */}
+        <div className={`sm:hidden px-3 py-2 ${scrolled ? 'border-t border-red-100 bg-white' : ''}`}>
           <HeaderSearch variant="mobile" scrolled={scrolled} />
         </div>
 

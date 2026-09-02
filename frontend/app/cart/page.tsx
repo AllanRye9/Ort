@@ -68,7 +68,7 @@ export default function CartPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-4">
+    <div className="max-w-5xl mx-auto px-4 py-4 pb-28 lg:pb-4">
       {conversionInfo && (
         <div className="mb-4 p-3 rounded-xl bg-amber-50 border border-amber-100 text-amber-800 flex items-center justify-between">
           <div className="text-sm">
@@ -159,7 +159,7 @@ export default function CartPage() {
                       <span className="font-bold text-red-700 text-sm">{itemPrice}</span>
                       <button
                         onClick={() => removeFromCart(listing.id)}
-                        className="text-red-400 hover:text-red-600 transition-colors"
+                        className="text-red-400 hover:text-red-600 transition-colors p-1.5 -m-1.5"
                         aria-label="Remove item"
                       >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -266,6 +266,39 @@ export default function CartPage() {
           >
             ← Continue Shopping
           </Link>
+        </div>
+      </div>
+
+      {/* Persistent checkout bar — mirrors the reference mobile layout's
+          "Add X to place your order" bottom bar: total + a one-thumb-reach
+          checkout button that stays visible while scrolling through a long
+          cart, instead of making the buyer scroll all the way down to the
+          Order Summary card to check out. Sits above MobileBottomNav
+          (which is 64px tall, fixed bottom-0, and hidden at md: and up) on
+          phones, and flush with the viewport bottom on tablet where the
+          bottom nav is already gone. Hidden once the sidebar summary is
+          showing at lg:, since its own checkout button is already always
+          on-screen there. */}
+      <div
+        className="lg:hidden fixed inset-x-0 bottom-16 md:bottom-0 z-40 bg-white border-t border-gray-100 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] px-4 py-3"
+        style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom, 0px))' }}
+      >
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[11px] text-gray-500 leading-none mb-0.5">
+              {totalItems} {totalItems === 1 ? 'item' : 'items'}
+            </p>
+            <p className="text-lg font-bold text-red-600 leading-none truncate">
+              {formatCurrency(appliedPromo ? totalPrice * (1 - appliedPromo.discount) : totalPrice, 'USD')}
+            </p>
+          </div>
+          <button
+            onClick={() => router.push('/checkout')}
+            disabled={hasUnavailableItems}
+            className="shrink-0 py-3 px-6 rounded-xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold text-sm shadow-md transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:from-red-500 disabled:hover:to-red-600"
+          >
+            {hasUnavailableItems ? 'Remove unavailable' : 'Checkout →'}
+          </button>
         </div>
       </div>
     </div>

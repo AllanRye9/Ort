@@ -1,11 +1,11 @@
 import type { MetadataRoute } from 'next';
+import { API_URL } from '@/lib/apiUrl';
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://piitrade.com';
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 const REQUEST_TIMEOUT_MS = 5000;
 
 async function fetchSitemapData(path: string, revalidate: number): Promise<Response> {
-  return fetch(`${API_BASE}${path}`, {
+  return fetch(`${API_URL}${path}`, {
     next: { revalidate },
     signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   });

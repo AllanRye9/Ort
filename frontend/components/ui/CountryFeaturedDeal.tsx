@@ -120,6 +120,10 @@ export default function CountryFeaturedDeal({ initialDeal }: Props) {
           ? convertCurrency(deal.originalPrice, dealCurrency, viewerCurrency)
           : deal.originalPrice;
         const wasConverted = !!dealCurrency && dealCurrency !== viewerCurrency;
+        const discountPercent =
+          convertedOriginalPrice != null && convertedPrice != null && convertedOriginalPrice > convertedPrice && convertedOriginalPrice > 0
+            ? Math.round(((convertedOriginalPrice - convertedPrice) / convertedOriginalPrice) * 100)
+            : undefined;
 
         return (
           <FeaturedProductCard
@@ -135,6 +139,7 @@ export default function CountryFeaturedDeal({ initialDeal }: Props) {
             discountedPrice={
               convertedPrice != null ? formatCurrency(convertedPrice, viewerCurrency) : undefined
             }
+            discountPercent={discountPercent}
             listedPriceNote={
               wasConverted ? `Listed at ${formatCurrency(deal.price, dealCurrency)}` : undefined
             }

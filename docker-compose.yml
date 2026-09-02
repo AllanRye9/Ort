@@ -85,6 +85,10 @@ services:
       # origin the API needs to allow — not the internal service name.
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
       API_BASE_URL: ${API_BASE_URL:-http://localhost:5000}
+      # Browser-facing frontend origin — used to build links in transactional
+      # emails (verification, password reset, etc.).
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      AUTO_MIGRATE_ON_START: ${AUTO_MIGRATE_ON_START:-true}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-change-this-to-a-strong-password}
       ADMIN_SECRET: ${ADMIN_SECRET:-change-this-to-a-strong-admin-registration-secret}
       RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS:-900000}
@@ -140,6 +144,10 @@ services:
         # Must be reachable from the browser, not just from inside this
         # container — see the note at the top of this file.
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:5000}
+        # Baked in at build time like NEXT_PUBLIC_API_URL above — used
+        # server-side for metadata/sitemap/robots/OG URLs where there's no
+        # browser window.location to fall back on.
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
     container_name: lapit_frontend
     restart: unless-stopped
     depends_on:

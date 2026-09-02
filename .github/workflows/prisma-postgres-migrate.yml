@@ -10,6 +10,10 @@ permissions:
   contents: write
   pull-requests: write
 
+defaults:
+  run:
+    working-directory: backend
+
 jobs:
   # Job 1: Detect and create migrations (only in PRs)
   detect-and-create-migration:

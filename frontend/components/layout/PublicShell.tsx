@@ -6,6 +6,7 @@ import Header from '@/components/layout/Header';
 import { MobileBottomNav } from '@/components/layout/MobileBottomNav';
 import StickyHeaderBanner from '@/components/ui/StickyHeaderBanner';
 import { CountryTransitionOverlay } from '@/components/ui/CountryTransitionOverlay';
+import MobileSpecialOffersPopup from '@/components/ui/MobileSpecialOffersPopup';
 
 const CountrySelectModal = dynamic(() => import('@/components/ui/CountrySelectModal'), {
   ssr: false,
@@ -56,6 +57,12 @@ export default function PublicShell({
         {children}
       </main>
       {footer}
+      {/*
+       * Mobile-only floating deals shortcut — docked above the bottom nav
+       * on every public page, mirroring the reference layout's persistent
+       * "special offers" affordance. Renders nothing itself until tapped.
+       */}
+      <MobileSpecialOffersPopup />
       <MobileBottomNav />
     </>
   );

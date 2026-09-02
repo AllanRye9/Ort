@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from 'clsx';
 import type { Currency } from '@/lib/types';
+import { API_URL } from '@/lib/apiUrl';
 
 export function cn(...inputs: ClassValue[]) {
   return clsx(inputs);
@@ -46,7 +47,12 @@ export function normalizeExternalUrl(url: string): string {
 
 export function resolveImageUrl(url: string): string {
   if (!url) return '';
-  const apiBase = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/+$/, '');
+  // API_URL (from lib/apiUrl.ts) is the single source of truth for the
+  // backend base URL and — unlike a local `process.env.NEXT_PUBLIC_API_URL
+  // || ''` fallback — is never empty: it degrades to a same-context-aware
+  // default (the Docker service name server-side, localhost client-side)
+  // instead of silently leaving image paths relative and unresolved.
+  const apiBase = API_URL;
   if (url.startsWith('data:') || url.startsWith('blob:')) return url;
 
   // Re-write backend-origin absolute URLs that were saved before a deploy/domain

@@ -14,6 +14,8 @@ import RegionHintBanner from '@/components/ui/RegionHintBanner';
 import CountryLatestCollections from '@/components/ui/CountryLatestCollections';
 import CountryFeaturedDeal from '@/components/ui/CountryFeaturedDeal';
 import CountryRecentAcrossCategories from '@/components/ui/CountryRecentAcrossCategories';
+import FeaturedStoresRow, { type FeaturedStore } from '@/components/ui/FeaturedStoresRow';
+import BackToSchoolSection from '@/components/ui/BackToSchoolSection';
 import { resolveImageUrl } from '@/lib/utils';
 import { API_URL } from '@/lib/apiUrl';
 
@@ -46,45 +48,19 @@ async function getHomeData() {
   try {
     const apiBase = API_URL;
     const [listingRes, flashRes, featuredRes, latestCollRes, mediaRes] = await Promise.all([
-      fetch(`${apiBase}/api/listings?limit=24&sort=createdAt`, {
-        next: { revalidate: 60 },
-        signal: AbortSignal.timeout(10000),
-      }),
-      fetch(`${apiBase}/api/listings/flash-sales`, {
-        next: { revalidate: 30 },
-        signal: AbortSignal.timeout(10000),
-      }),
-      fetch(`${apiBase}/api/listings/featured-deal`, {
-        next: { revalidate: 30 },
-        signal: AbortSignal.timeout(10000),
-      }),
-      fetch(`${apiBase}/api/listings/latest-collections?limit=6`, {
-        next: { revalidate: 30 },
-        signal: AbortSignal.timeout(10000),
-      }),
-      fetch(`${apiBase}/api/site-media`, {
-        next: { revalidate: 60 },
-        signal: AbortSignal.timeout(10000),
-      }),
+      fetch(`${apiBase}/api/listings?limit=24&sort=createdAt`, { next: { revalidate: 60 } }),
+      fetch(`${apiBase}/api/listings/flash-sales`, { next: { revalidate: 30 } }),
+      fetch(`${apiBase}/api/listings/featured-deal`, { next: { revalidate: 30 } }),
+      fetch(`${apiBase}/api/listings/latest-collections?limit=6`, { next: { revalidate: 30 } }),
+      fetch(`${apiBase}/api/site-media`, { next: { revalidate: 60 } }),
     ]);
     // Fetch latest per key categories for quick-glance previews
-    const [motorsRes, electronicsRes, propertyRes, fashionRes] = await Promise.all([
-      fetch(`${apiBase}/api/listings?category=motors&limit=6&sort=createdAt`, {
-        next: { revalidate: 60 },
-        signal: AbortSignal.timeout(10000),
-      }),
-      fetch(`${apiBase}/api/listings?category=electronics&limit=6&sort=createdAt`, {
-        next: { revalidate: 60 },
-        signal: AbortSignal.timeout(10000),
-      }),
-      fetch(`${apiBase}/api/listings?category=property&limit=6&sort=createdAt`, {
-        next: { revalidate: 60 },
-        signal: AbortSignal.timeout(10000),
-      }),
-      fetch(`${apiBase}/api/listings?category=fashion&limit=6&sort=createdAt`, {
-        next: { revalidate: 60 },
-        signal: AbortSignal.timeout(10000),
-      }),
+    const [motorsRes, electronicsRes, propertyRes, fashionRes, storesRes] = await Promise.all([
+      fetch(`${apiBase}/api/listings?category=motors&limit=6&sort=createdAt`, { next: { revalidate: 60 } }),
+      fetch(`${apiBase}/api/listings?category=electronics&limit=6&sort=createdAt`, { next: { revalidate: 60 } }),
+      fetch(`${apiBase}/api/listings?category=property&limit=6&sort=createdAt`, { next: { revalidate: 60 } }),
+      fetch(`${apiBase}/api/listings?category=fashion&limit=6&sort=createdAt`, { next: { revalidate: 60 } }),
+      fetch(`${apiBase}/api/stores?limit=8`, { next: { revalidate: 120 } }),
     ]);
     const listingData: { listings: Listing[] } = listingRes.ok ? await listingRes.json() : { listings: [] };
     const flashData: { listings: Listing[] } = flashRes.ok ? await flashRes.json() : { listings: [] };
@@ -95,6 +71,7 @@ async function getHomeData() {
     const electronicsData: { listings: Listing[] } = electronicsRes.ok ? await electronicsRes.json() : { listings: [] };
     const propertyData: { listings: Listing[] } = propertyRes.ok ? await propertyRes.json() : { listings: [] };
     const fashionData: { listings: Listing[] } = fashionRes.ok ? await fashionRes.json() : { listings: [] };
+    const storesData: { stores: FeaturedStore[] } = storesRes.ok ? await storesRes.json() : { stores: [] };
 
     return {
       listings: listingData.listings || [],
@@ -106,6 +83,7 @@ async function getHomeData() {
       electronicsListings: electronicsData.listings || [],
       propertyListings: propertyData.listings || [],
       fashionListings: fashionData.listings || [],
+      featuredStores: storesData.stores || [],
     };
   } catch {
     return { 
@@ -118,6 +96,7 @@ async function getHomeData() {
       electronicsListings: [],
       propertyListings: [],
       fashionListings: [],
+      featuredStores: [] as FeaturedStore[],
     };
   }
 }
@@ -159,7 +138,8 @@ export default async function HomePage() {
     motorsListings = [], 
     electronicsListings = [], 
     propertyListings = [], 
-    fashionListings = [] 
+    fashionListings = [],
+    featuredStores = [],
   } = await getHomeData();
 
   const bannerMedia = siteMedia.filter((item) => item.section === 'banner');
@@ -232,6 +212,14 @@ export default async function HomePage() {
         <div className="py-3 space-y-5 sm:space-y-6">
           {/* ═══ 1. FLASH SALES — always first ═══ */}
           <CountryFlashDeals initialListings={flashListings} flashMedia={flashMedia} />
+
+          {/* ═══ 1a. BACK TO SCHOOL — mobile-only discounted picks strip,
+              matching the reference layout's flash-sale-adjacent placement.
+              Self-hides when there's nothing discounted to show. ═══ */}
+          <BackToSchoolSection />
+
+          {/* ═══ 1b. TRUSTED SELLERS — "Big brands near you" equivalent ═══ */}
+          <FeaturedStoresRow stores={featuredStores} />
 
           {/* ═══ 2. RECENT BY CATEGORY (Quick Glance) — second ═══ */}
           <section className="animate-fade-up">

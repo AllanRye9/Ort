@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { resolveImageUrl } from '@/lib/utils';
+import { API_URL } from '@/lib/apiUrl';
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://piitrade.com';
 
@@ -20,11 +21,7 @@ interface BlogPost {
 
 async function getPost(slug: string): Promise<BlogPost | null> {
   try {
-    const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-    const res = await fetch(`${apiBase}/api/blog/${slug}`, {
-      next: { revalidate: 60 },
-      signal: AbortSignal.timeout(10000), // 10s timeout to prevent build hangs
-    });
+    const res = await fetch(`${API_URL}/api/blog/${slug}`, { next: { revalidate: 60 } });
     if (!res.ok) return null;
     const data = await res.json();
     return data.post || null;

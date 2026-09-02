@@ -14,6 +14,11 @@ interface FeaturedProductCardProps {
   description?: string;
   originalPrice?: string;
   discountedPrice?: string;
+  /** Percentage off, pre-computed by the caller from whatever prices are
+   *  actually being displayed (post currency-conversion) — kept separate
+   *  from originalPrice/discountedPrice since those are pre-formatted
+   *  display strings, not numbers this component could compute from. */
+  discountPercent?: number;
   /** Optional note shown under the price, e.g. "Listed at AED 100" when the
    *  displayed price has been currency-converted from what the seller posted. */
   listedPriceNote?: string;
@@ -30,6 +35,7 @@ export default function FeaturedProductCard({
   description,
   originalPrice,
   discountedPrice,
+  discountPercent,
   listedPriceNote,
   imageUrl,
   href,
@@ -83,11 +89,18 @@ export default function FeaturedProductCard({
         )}
         {/* Subtle hover overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-        {/* Buyer quick-add — top-right, mirrors ListingCard's placement.
+        {discountPercent != null && discountPercent > 0 && (
+          <div className="absolute top-1.5 left-1.5">
+            <span className="inline-flex items-center rounded-md bg-lime-400 text-emerald-950 text-[9px] font-extrabold px-1.5 py-0.5 shadow-sm">
+              Save {discountPercent}%
+            </span>
+          </div>
+        )}        {/* Buyer quick-add — top-right, mirrors ListingCard's placement.
             QuickAddButton stops propagation on click so it doesn't trigger
-            the card's own Link navigation. */}
+            the card's own Link navigation. Always visible on touch — see
+            ListingCard.tsx for why this can't be hover-only. */}
         {showQuickAdd && (
-          <div className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+          <div className="absolute top-1.5 right-1.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200">
             <QuickAddButton listing={listing as Listing} size="sm" />
           </div>
         )}
