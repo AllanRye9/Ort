@@ -61,6 +61,7 @@ jobs:
           echo "❌ No Prisma schema found!"
           exit 1
         fi
+        echo "Found schema: ${{ steps.find_schema.outputs.schema_path }}"
 
     - name: Check Schema Drift
       id: check_drift
@@ -68,6 +69,12 @@ jobs:
         DATABASE_URL: postgresql://postgres:local_secure_password@localhost:5432/prisma_test_db
       run: |
         SCHEMA="${{ steps.find_schema.outputs.schema_path }}"
+        
+        # Verify DATABASE_URL is set
+        if [ -z "$DATABASE_URL" ]; then
+          echo "❌ DATABASE_URL is not set!"
+          exit 1
+        fi
         
         # Apply existing migrations
         npx prisma migrate deploy --schema="$SCHEMA"
@@ -91,6 +98,12 @@ jobs:
         SHADOW_DATABASE_URL: postgresql://postgres:local_secure_password@localhost:5432/prisma_test_db_shadow
       run: |
         SCHEMA="${{ steps.find_schema.outputs.schema_path }}"
+        
+        # Verify DATABASE_URL is set
+        if [ -z "$DATABASE_URL" ]; then
+          echo "❌ DATABASE_URL is not set!"
+          exit 1
+        fi
         
         # Create shadow DB
         psql -h localhost -U postgres -c "CREATE DATABASE prisma_test_db_shadow;" || true
@@ -148,12 +161,20 @@ jobs:
         else
           echo "schema_path=prisma/schema.prisma" >> $GITHUB_OUTPUT
         fi
+        echo "Found schema: ${{ steps.find_schema.outputs.schema_path }}"
 
     - name: Deploy Migrations to Staging
       env:
         DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
       run: |
         SCHEMA="${{ steps.find_schema.outputs.schema_path }}"
+        
+        # Verify DATABASE_URL is set
+        if [ -z "$DATABASE_URL" ]; then
+          echo "❌ STAGING_DATABASE_URL secret is not set!"
+          exit 1
+        fi
+        
         npx prisma migrate deploy --schema="$SCHEMA"
         npx prisma generate --schema="$SCHEMA"
 
@@ -162,6 +183,13 @@ jobs:
         DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
       run: |
         SCHEMA="${{ steps.find_schema.outputs.schema_path }}"
+        
+        # Verify DATABASE_URL is set
+        if [ -z "$DATABASE_URL" ]; then
+          echo "❌ STAGING_DATABASE_URL secret is not set!"
+          exit 1
+        fi
+        
         if ! npx prisma migrate diff \
           --from-migrations prisma/migrations \
           --to-schema-datamodel "$SCHEMA" \
@@ -205,6 +233,19 @@ jobs:
         else
           echo "schema_path=prisma/schema.prisma" >> $GITHUB_OUTPUT
         fi
+        echo "Found schema: ${{ steps.find_schema.outputs.schema_path }}"
+
+    - name: Check Database URL Secret
+      id: check_secret
+      run: |
+        if [ -z "${{ secrets.PRODUCTION_DATABASE_URL }}" ]; then
+          echo "❌ PRODUCTION_DATABASE_URL secret is not set!"
+          echo "secret_exists=false" >> $GITHUB_OUTPUT
+          exit 1
+        else
+          echo "✅ PRODUCTION_DATABASE_URL is set"
+          echo "secret_exists=true" >> $GITHUB_OUTPUT
+        fi
 
     - name: Validate Migration Safety
       id: validate_migration
@@ -212,6 +253,14 @@ jobs:
         DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
       run: |
         SCHEMA="${{ steps.find_schema.outputs.schema_path }}"
+        
+        # Verify DATABASE_URL is set
+        if [ -z "$DATABASE_URL" ]; then
+          echo "❌ DATABASE_URL is not set. Check PRODUCTION_DATABASE_URL secret."
+          exit 1
+        fi
+        
+        echo "✅ DATABASE_URL is configured"
         
         # Get migration status without unsupported flags
         MIGRATION_STATUS=$(npx prisma migrate status --schema="$SCHEMA" 2>&1)
@@ -229,17 +278,18 @@ jobs:
         fi
         
         # Check for destructive operations
-        echo "⚠️ Review the following migrations:"
+        echo "⚠️ Checking for destructive operations..."
         npx prisma migrate diff \
           --from-migrations prisma/migrations \
           --to-schema-datamodel "$SCHEMA" \
-          --script > migration_preview.sql
+          --script > migration_preview.sql 2>&1
         
         if grep -q "DROP TABLE\|DROP COLUMN\|ALTER TABLE.*DROP\|TRUNCATE" migration_preview.sql; then
           echo "⚠️ Destructive operations detected!"
           echo "destructive=true" >> $GITHUB_OUTPUT
         else
           echo "destructive=false" >> $GITHUB_OUTPUT
+          echo "✅ No destructive operations detected"
         fi
 
     - name: Manual Approval Required for Destructive Changes
@@ -248,34 +298,53 @@ jobs:
         echo "## 🚨 Destructive Migration Detected" >> $GITHUB_STEP_SUMMARY
         echo "This migration contains destructive operations (DROP TABLE/COLUMN, TRUNCATE)." >> $GITHUB_STEP_SUMMARY
         echo "Please review manually before proceeding." >> $GITHUB_STEP_SUMMARY
+        echo "Migration preview:" >> $GITHUB_STEP_SUMMARY
+        echo '```sql' >> $GITHUB_STEP_SUMMARY
+        cat migration_preview.sql >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
         exit 1
 
     - name: Backup Database
-      if: steps.validate_migration.outputs.has_migrations == 'true'
+      if: steps.validate_migration.outputs.has_migrations == 'true' && steps.validate_migration.outputs.destructive != 'true'
       env:
         DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
       run: |
         echo "📦 Creating backup..."
         # Add your backup logic here
         # Example: pg_dump $DATABASE_URL > backup_$(date +%Y%m%d_%H%M%S).sql
+        echo "✅ Backup completed (placeholder)"
 
     - name: Deploy Migrations to Production
-      if: steps.validate_migration.outputs.has_migrations == 'true'
+      if: steps.validate_migration.outputs.has_migrations == 'true' && steps.validate_migration.outputs.destructive != 'true'
       env:
         DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
       run: |
         SCHEMA="${{ steps.find_schema.outputs.schema_path }}"
+        
+        # Verify DATABASE_URL is set
+        if [ -z "$DATABASE_URL" ]; then
+          echo "❌ DATABASE_URL is not set!"
+          exit 1
+        fi
+        
         echo "🚀 Deploying migrations to production..."
         npx prisma migrate deploy --schema="$SCHEMA"
         npx prisma generate --schema="$SCHEMA"
         echo "✅ Migrations deployed successfully"
 
     - name: Verify Production Migration
-      if: steps.validate_migration.outputs.has_migrations == 'true'
+      if: steps.validate_migration.outputs.has_migrations == 'true' && steps.validate_migration.outputs.destructive != 'true'
       env:
         DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
       run: |
         SCHEMA="${{ steps.find_schema.outputs.schema_path }}"
+        
+        # Verify DATABASE_URL is set
+        if [ -z "$DATABASE_URL" ]; then
+          echo "❌ DATABASE_URL is not set!"
+          exit 1
+        fi
+        
         if ! npx prisma migrate diff \
           --from-migrations prisma/migrations \
           --to-schema-datamodel "$SCHEMA" \
@@ -287,8 +356,7 @@ jobs:
 
     - name: Rollback on Failure
       if: failure() && steps.validate_migration.outputs.has_migrations == 'true'
-      env:
-        DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
       run: |
         echo "⚠️ Migration failed, initiating rollback..."
+        echo "Please manually rollback the database if needed."
         # Add rollback logic here if needed
