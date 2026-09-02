@@ -109,6 +109,13 @@ const baselineExistingMigrations = () => {
 // (Prisma error P2022, see src/middleware/errorHandler.ts). With this check,
 // the same drift fails the deploy itself, with a message that tells you
 // exactly how to inspect and fix it.
+//
+// IMPORTANT: this must run AFTER runHotfixes() at every call site below.
+// prisma/hotfixes/*.sql is the mechanism that can actually repair the exact
+// drift this function detects (missing tables/columns from a migration
+// that's marked "applied"), so if verification ran first it would just
+// throw before a repair hotfix ever got a chance to run — which is exactly
+// what happened in production once a real drifted database hit this path.
 const verifySchemaMatchesDatabase = () => {
   log('Verifying live database schema matches prisma/schema.prisma...');
 
@@ -146,6 +153,7 @@ const runMigrations = () => {
     log("No committed migrations found — bootstrapping schema with 'prisma db push'.");
     run('npx', ['prisma', 'db', 'push', '--accept-data-loss', '--skip-generate']);
     log('Schema bootstrap complete.');
+    runHotfixes();
     verifySchemaMatchesDatabase();
     return;
   }
@@ -155,6 +163,7 @@ const runMigrations = () => {
 
   if (result.status === 0) {
     log('Migrations applied successfully.');
+    runHotfixes();
     verifySchemaMatchesDatabase();
     return;
   }
@@ -179,7 +188,9 @@ const runMigrations = () => {
 
   // The retry above only confirms the migration ROWS are marked applied —
   // it does not confirm the underlying columns actually exist (see the
-  // function doc comment above). Verify for real before letting the app boot.
+  // function doc comment above). Give hotfixes a chance to repair any such
+  // drift, then verify for real before letting the app boot.
+  runHotfixes();
   verifySchemaMatchesDatabase();
 };
 
@@ -226,8 +237,10 @@ try {
     process.exit(0);
   }
 
+  // runMigrations() now runs hotfixes internally, before verification, on
+  // every path (bootstrap / clean deploy / post-baseline retry) — see the
+  // comment on verifySchemaMatchesDatabase() for why the ordering matters.
   runMigrations();
-  runHotfixes();
   log('Database setup complete.');
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error);
