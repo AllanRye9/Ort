@@ -116,7 +116,7 @@ const verifySchemaMatchesDatabase = () => {
     'prisma',
     'migrate',
     'diff',
-    '--from-database-url', process.env.DATABASE_URL as string,
+    '--from-url', process.env.DATABASE_URL as string,
     '--to-schema-datamodel', 'prisma/schema.prisma',
     '--exit-code',
   ]);
@@ -130,7 +130,7 @@ const verifySchemaMatchesDatabase = () => {
     throw new Error(
       'Database schema does NOT match prisma/schema.prisma (see the diff logged above). ' +
         'The database is likely missing column(s) that a squashed or baselined migration ' +
-        'claims to have applied. To fix: run `npx prisma migrate diff --from-database-url ' +
+        'claims to have applied. To fix: run `npx prisma migrate diff --from-url ' +
         '"$DATABASE_URL" --to-schema-datamodel prisma/schema.prisma --script` to see the ' +
         'exact SQL needed, review it, apply it (e.g. via `npx prisma db push`), then redeploy.'
     );
