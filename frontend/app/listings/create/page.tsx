@@ -17,6 +17,8 @@ import {
   isDraftMeaningful,
   type ListingDraftData,
 } from '@/lib/listingDraft';
+import { classifyImageUrl, identifyImageUrl } from '@/lib/imageAi';
+import { suggestCategory, type CategoryMatch } from '@/lib/categoryMatch';
 
 const MOTOR_SLUGS = new Set([
   'motors', 'used-cars', 'new-cars', 'classic-cars', 'other-vehicles',
@@ -165,6 +167,18 @@ function getProductOptionSuggestions(categorySlug: string): Array<{ name: string
     { name: 'Size',   values: '' },
     { name: 'Material', values: '' },
   ];
+}
+
+/**
+ * Builds a listing-title-length suggestion from an AI-generated description
+ * (or, failing that, the raw classify label): takes the first sentence,
+ * then trims to the form's title maxLength (100) with an ellipsis.
+ */
+function buildSuggestedTitle(description: string, classifyLabel: string | null): string {
+  const base = (description || classifyLabel || '').trim();
+  if (!base) return '';
+  const firstSentence = (base.split(/(?<=[.!?])\s+/)[0] || base).replace(/[.!?]+$/, '').trim();
+  return firstSentence.length > 100 ? `${firstSentence.slice(0, 97).trim()}…` : firstSentence;
 }
 
 function getCategoryLabel(categories: Category[], id: string): string {
@@ -570,6 +584,76 @@ function CreateListingContent() {
     setPendingImageIds((prev) => prev.filter((_, i) => i !== index));
     if (removedUrl) setExistingImages((prev) => prev.filter((url) => url !== removedUrl));
     if (uploadedCount > 0) setUploadedCount((prev) => prev - 1);
+    // A removed photo may be the one an existing AI suggestion was based on —
+    // clear it rather than leave a suggestion pointing at a gone image.
+    if (aiSuggestion) {
+      setAiSuggestion(null);
+      setAiState('idle');
+    }
+  };
+
+  // ── AI photo auto-fill (classify + identify via the image-AI worker) ───
+  // Never writes to `form` on its own — it only ever populates `aiSuggestion`,
+  // and each field is applied to the form individually via an explicit
+  // "Use" click, so an in-progress title/description/category is never
+  // silently overwritten.
+  const [aiState, setAiState] = useState<'idle' | 'analyzing' | 'ready' | 'error'>('idle');
+  const [aiError, setAiError] = useState('');
+  const [aiSuggestion, setAiSuggestion] = useState<{
+    title: string;
+    description: string;
+    category: CategoryMatch | null;
+    classifyLabel: string | null;
+    classifyConfidence: number | null;
+  } | null>(null);
+
+  const handleAIAutoFill = async () => {
+    // Use the first fully-uploaded photo (a permanent CDN URL). A `blob:`
+    // preview is local to this browser tab and can't be fetched by the
+    // worker, so images still uploading are skipped.
+    const sourceUrl = imagePreviews.find((src) => !src.startsWith('blob:'));
+    if (!sourceUrl) {
+      setAiError('Please wait for at least one photo to finish uploading first.');
+      setAiState('error');
+      return;
+    }
+
+    setAiState('analyzing');
+    setAiError('');
+    try {
+      const [identifyResult, classifyResult] = await Promise.allSettled([
+        identifyImageUrl(sourceUrl),
+        classifyImageUrl(sourceUrl),
+      ]);
+
+      const description = identifyResult.status === 'fulfilled' ? identifyResult.value.description.trim() : '';
+      const classifyLabel =
+        classifyResult.status === 'fulfilled' ? classifyResult.value.topPrediction?.label ?? null : null;
+      const classifyConfidence =
+        classifyResult.status === 'fulfilled' ? classifyResult.value.topPrediction?.confidence ?? null : null;
+
+      if (!description && !classifyLabel) {
+        const firstError =
+          (identifyResult.status === 'rejected' && (identifyResult.reason as Error)?.message) ||
+          (classifyResult.status === 'rejected' && (classifyResult.reason as Error)?.message) ||
+          'The AI service could not analyze this photo. Please try again.';
+        throw new Error(firstError);
+      }
+
+      const category = suggestCategory(categories, [classifyLabel, description].filter(Boolean) as string[]);
+
+      setAiSuggestion({
+        title: buildSuggestedTitle(description, classifyLabel),
+        description,
+        category,
+        classifyLabel,
+        classifyConfidence,
+      });
+      setAiState('ready');
+    } catch (err) {
+      setAiError((err as Error)?.message || 'AI analysis failed. Please try again.');
+      setAiState('error');
+    }
   };
 
   const handleGetLocation = () => {
@@ -1663,6 +1747,93 @@ function CreateListingContent() {
                     </button>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {imagePreviews.some((src) => !src.startsWith('blob:')) && (
+              <div className="mb-3">
+                <button
+                  type="button"
+                  onClick={handleAIAutoFill}
+                  disabled={aiState === 'analyzing' || uploadingImages}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-xs font-semibold text-white hover:bg-violet-700 disabled:opacity-60 transition-colors"
+                >
+                  {aiState === 'analyzing' ? 'Analyzing photo…' : '✨ Auto-fill from photo (AI)'}
+                </button>
+
+                {aiState === 'error' && aiError && (
+                  <p className="mt-2 text-xs text-red-600">{aiError}</p>
+                )}
+
+                {aiState === 'ready' && aiSuggestion && (
+                  <div className="mt-3 space-y-2 rounded-lg border border-violet-200 bg-violet-50 p-3">
+                    <p className="text-[11px] font-semibold text-violet-800">
+                      AI Suggestions
+                      {aiSuggestion.classifyLabel && (
+                        <span className="font-normal text-violet-600">
+                          {' '}· detected &ldquo;{aiSuggestion.classifyLabel}&rdquo;
+                          {aiSuggestion.classifyConfidence != null && ` (${aiSuggestion.classifyConfidence.toFixed(0)}%)`}
+                        </span>
+                      )}
+                    </p>
+
+                    {aiSuggestion.title && (
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-medium uppercase tracking-wide text-violet-500">Title</p>
+                          <p className="truncate text-xs text-gray-700">{aiSuggestion.title}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setForm((prev) => ({ ...prev, title: aiSuggestion.title }))}
+                          className="shrink-0 rounded-md bg-violet-600 px-2 py-1 text-[11px] font-semibold text-white hover:bg-violet-700"
+                        >
+                          Use
+                        </button>
+                      </div>
+                    )}
+
+                    {aiSuggestion.description && (
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-medium uppercase tracking-wide text-violet-500">Description</p>
+                          <p className="line-clamp-3 text-xs text-gray-700">{aiSuggestion.description}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setForm((prev) => ({ ...prev, description: aiSuggestion.description }))}
+                          className="shrink-0 rounded-md bg-violet-600 px-2 py-1 text-[11px] font-semibold text-white hover:bg-violet-700"
+                        >
+                          Use
+                        </button>
+                      </div>
+                    )}
+
+                    {aiSuggestion.category && (
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-medium uppercase tracking-wide text-violet-500">Category</p>
+                          <p className="truncate text-xs text-gray-700">{aiSuggestion.category.label}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setForm((prev) => ({ ...prev, categoryId: aiSuggestion.category!.id }))}
+                          className="shrink-0 rounded-md bg-violet-600 px-2 py-1 text-[11px] font-semibold text-white hover:bg-violet-700"
+                        >
+                          Use
+                        </button>
+                      </div>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => { setAiSuggestion(null); setAiState('idle'); }}
+                      className="text-[11px] text-gray-500 underline"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 

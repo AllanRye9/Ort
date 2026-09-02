@@ -90,6 +90,55 @@ const baselineExistingMigrations = () => {
   }
 };
 
+// Verifies that the live database's actual schema matches
+// prisma/schema.prisma, by diffing the real database against the schema
+// file (NOT against the migration history) via `prisma migrate diff
+// --exit-code`: exit code 0 means no diff, 2 means a diff was found, and
+// anything else is a CLI/connection error.
+//
+// This is the safety net for baselineExistingMigrations(): `prisma migrate
+// resolve --applied` marks a migration as done purely by writing a row into
+// `_prisma_migrations` — it never checks that the migration's SQL actually
+// matches what's in the database. If the migration history is squashed
+// (collapsed into a single new "init" migration, as this project's history
+// currently is) *after* a database was already bootstrapped via `db push`
+// from an older version of schema.prisma, baselining will happily mark that
+// squashed migration "applied" even though a column it introduces was never
+// actually created. Without this check, that drift stays invisible until a
+// request hits the missing column and the API returns a 503 in production
+// (Prisma error P2022, see src/middleware/errorHandler.ts). With this check,
+// the same drift fails the deploy itself, with a message that tells you
+// exactly how to inspect and fix it.
+const verifySchemaMatchesDatabase = () => {
+  log('Verifying live database schema matches prisma/schema.prisma...');
+
+  const result = runCapture('npx', [
+    'prisma',
+    'migrate',
+    'diff',
+    '--from-database-url', process.env.DATABASE_URL as string,
+    '--to-schema-datamodel', 'prisma/schema.prisma',
+    '--exit-code',
+  ]);
+
+  if (result.status === 0) {
+    log('Database schema matches prisma/schema.prisma.');
+    return;
+  }
+
+  if (result.status === 2) {
+    throw new Error(
+      'Database schema does NOT match prisma/schema.prisma (see the diff logged above). ' +
+        'The database is likely missing column(s) that a squashed or baselined migration ' +
+        'claims to have applied. To fix: run `npx prisma migrate diff --from-database-url ' +
+        '"$DATABASE_URL" --to-schema-datamodel prisma/schema.prisma --script` to see the ' +
+        'exact SQL needed, review it, apply it (e.g. via `npx prisma db push`), then redeploy.'
+    );
+  }
+
+  throw new Error(`npx prisma migrate diff exited with unexpected code ${result.status ?? 'unknown'}`);
+};
+
 const runMigrations = () => {
   const migrationCount = getMigrationDirCount();
 
@@ -97,6 +146,7 @@ const runMigrations = () => {
     log("No committed migrations found — bootstrapping schema with 'prisma db push'.");
     run('npx', ['prisma', 'db', 'push', '--accept-data-loss', '--skip-generate']);
     log('Schema bootstrap complete.');
+    verifySchemaMatchesDatabase();
     return;
   }
 
@@ -105,6 +155,7 @@ const runMigrations = () => {
 
   if (result.status === 0) {
     log('Migrations applied successfully.');
+    verifySchemaMatchesDatabase();
     return;
   }
 
@@ -125,6 +176,11 @@ const runMigrations = () => {
   log('Retrying prisma migrate deploy after baseline...');
   run('npx', ['prisma', 'migrate', 'deploy']);
   log('Migrations applied successfully after baseline.');
+
+  // The retry above only confirms the migration ROWS are marked applied —
+  // it does not confirm the underlying columns actually exist (see the
+  // function doc comment above). Verify for real before letting the app boot.
+  verifySchemaMatchesDatabase();
 };
 
 const runHotfixes = () => {
