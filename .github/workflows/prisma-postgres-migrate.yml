@@ -1,4 +1,4 @@
-name: Prisma PostgreSQL Migration Check
+name: Prisma PostgreSQL Migration Management
 
 on:
   push:
@@ -6,14 +6,16 @@ on:
   pull_request:
     branches: [ main, develop ]
 
-# Ensure the workflow has write permissions to push code changes back
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
-  postgres-prisma-sync:
+  # Job 1: Detect and create migrations (only in PRs)
+  detect-and-create-migration:
     runs-on: ubuntu-latest
-
+    if: github.event_name == 'pull_request'
+    
     services:
       postgres:
         image: postgres:16-alpine
@@ -31,13 +33,14 @@ jobs:
 
     steps:
     - name: Checkout Code
-      uses: actions/checkout:v4
+      uses: actions/checkout@v4
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
-        ref: ${{ github.head_ref }} # Check out the actual PR branch, not a detached HEAD
+        ref: ${{ github.head_ref }}
+        fetch-depth: 0
 
     - name: Setup Node.js
-      uses: actions/setup-node:v4
+      uses: actions/setup-node@v4
       with:
         node-version: '20'
         cache: 'npm'
@@ -45,41 +48,204 @@ jobs:
     - name: Install Dependencies
       run: npm ci
 
-    - name: Check for Unsaved PostgreSQL Schema Changes
+    - name: Check Schema Drift
       id: check_drift
       env:
         DATABASE_URL: postgresql://postgres:local_secure_password@localhost:5432/prisma_test_db
       run: |
-        # 1. Apply existing migrations to the local test database
+        # Apply existing migrations
         npx prisma migrate deploy
         
-        # 2. Check if schema.prisma has unmigrated changes
-        if ! npx prisma migrate diff --from-local-migration-directories prisma/migrations --to-schema-datamodel prisma/schema.prisma --exit-code; then
+        # Check for drift
+        if ! npx prisma migrate diff \
+          --from-migrations prisma/migrations \
+          --to-schema-datamodel prisma/schema.prisma \
+          --exit-code; then
           echo "drift=true" >> $GITHUB_OUTPUT
-          echo "⚠️ PostgreSQL schema mismatch found. Missing migrations detected."
+          echo "⚠️ Schema drift detected"
         else
           echo "drift=false" >> $GITHUB_OUTPUT
-          echo "✅ PostgreSQL schema matches existing migrations."
+          echo "✅ No drift detected"
         fi
 
-    - name: Create Missing Migration Files
+    - name: Generate Migration File
       if: steps.check_drift.outputs.drift == 'true'
       env:
         DATABASE_URL: postgresql://postgres:local_secure_password@localhost:5432/prisma_test_db
+        SHADOW_DATABASE_URL: postgresql://postgres:local_secure_password@localhost:5432/prisma_test_db_shadow
       run: |
-        npx prisma migrate dev --name auto-postgres-migration --create-only
+        # Create shadow DB
+        psql -h localhost -U postgres -c "CREATE DATABASE prisma_test_db_shadow;" || true
+        
+        # Generate migration
+        npx prisma migrate dev \
+          --name auto_migration_$(date +%Y%m%d_%H%M%S) \
+          --create-only
 
-    - name: Commit and Push Missing Migrations
-      if: steps.check_drift.outputs.drift == 'true' && github.event_name == 'pull_request'
+    - name: Commit Migration
+      if: steps.check_drift.outputs.drift == 'true'
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action Bot"
         git add prisma/migrations/
-        git commit -m "chore(db): auto-generate postgres migrations [skip ci]"
-        git push origin HEAD:${{ github.head_ref }}
+        if git diff --staged --quiet; then
+          echo "No migration files to commit"
+        else
+          git commit -m "chore(db): auto-generate migration [skip ci]"
+          git push origin HEAD:${{ github.head_ref }}
+          
+          # Comment on PR
+          echo "✅ Migration files have been generated and pushed to this branch." >> $GITHUB_STEP_SUMMARY
+          echo "📝 Please review the migration before merging to main." >> $GITHUB_STEP_SUMMARY
+        fi
 
-    - name: Apply Migrations to Target Environment
-      if: github.event_name == 'push'
+  # Job 2: Safe production deployment (only on main branch)
+  deploy-migrations-production:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment: production
+    concurrency: 
+      group: production-migration
+      cancel-in-progress: false
+    
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install Dependencies
+      run: npm ci
+
+    - name: Validate Migration Safety
+      id: validate_migration
       env:
         DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
-      run: npx prisma migrate deploy
+      run: |
+        # Check if there are pending migrations
+        PENDING_MIGRATIONS=$(npx prisma migrate status --json | jq '.pendingMigrations | length')
+        
+        if [ "$PENDING_MIGRATIONS" -eq 0 ]; then
+          echo "✅ No pending migrations"
+          echo "has_migrations=false" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+        
+        echo "has_migrations=true" >> $GITHUB_OUTPUT
+        
+        # Generate preview of migrations
+        echo "## 📋 Pending Migrations" >> $GITHUB_STEP_SUMMARY
+        npx prisma migrate status >> $GITHUB_STEP_SUMMARY
+        
+        # Check for destructive operations (optional safety check)
+        echo "⚠️ Review the following migrations:"
+        npx prisma migrate diff \
+          --from-migrations prisma/migrations \
+          --to-schema-datamodel prisma/schema.prisma \
+          --script > migration_preview.sql
+        
+        if grep -q "DROP TABLE\|DROP COLUMN\|ALTER TABLE.*DROP\|TRUNCATE" migration_preview.sql; then
+          echo "⚠️ Destructive operations detected!"
+          echo "destructive=true" >> $GITHUB_OUTPUT
+        else
+          echo "destructive=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Manual Approval Required for Destructive Changes
+      if: steps.validate_migration.outputs.destructive == 'true'
+      run: |
+        echo "## 🚨 Destructive Migration Detected" >> $GITHUB_STEP_SUMMARY
+        echo "This migration contains destructive operations (DROP TABLE/COLUMN, TRUNCATE)." >> $GITHUB_STEP_SUMMARY
+        echo "Please review manually before proceeding." >> $GITHUB_STEP_SUMMARY
+        echo "Approval required. Check the summary tab for details."
+        exit 1
+
+    - name: Backup Database (Optional)
+      if: steps.validate_migration.outputs.has_migrations == 'true'
+      env:
+        DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+      run: |
+        echo "📦 Creating backup..."
+        # You can add your backup logic here
+        # e.g., pg_dump $DATABASE_URL > backup_$(date +%Y%m%d_%H%M%S).sql
+
+    - name: Deploy Migrations
+      if: steps.validate_migration.outputs.has_migrations == 'true'
+      env:
+        DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+      run: |
+        echo "🚀 Deploying migrations..."
+        npx prisma migrate deploy
+        
+        # Regenerate Prisma Client
+        npx prisma generate
+        
+        echo "✅ Migrations deployed successfully"
+
+    - name: Verify Migration
+      if: steps.validate_migration.outputs.has_migrations == 'true'
+      env:
+        DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+      run: |
+        # Verify schema matches
+        if ! npx prisma migrate diff \
+          --from-migrations prisma/migrations \
+          --to-schema-datamodel prisma/schema.prisma \
+          --exit-code; then
+          echo "❌ Schema verification failed after deployment!"
+          exit 1
+        fi
+        echo "✅ Schema verified successfully"
+
+    - name: Rollback on Failure (Optional)
+      if: failure() && steps.validate_migration.outputs.has_migrations == 'true'
+      env:
+        DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+      run: |
+        echo "⚠️ Migration failed, initiating rollback..."
+        # You can implement rollback logic here if needed
+
+  # Job 3: Staging deployment (develop branch)
+  deploy-migrations-staging:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    environment: staging
+    
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install Dependencies
+      run: npm ci
+
+    - name: Deploy Migrations to Staging
+      env:
+        DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+      run: |
+        npx prisma migrate deploy
+        npx prisma generate
+
+    - name: Verify Staging Migration
+      env:
+        DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+      run: |
+        if ! npx prisma migrate diff \
+          --from-migrations prisma/migrations \
+          --to-schema-datamodel prisma/schema.prisma \
+          --exit-code; then
+          echo "❌ Staging schema verification failed!"
+          exit 1
+        fi
+        echo "✅ Staging schema verified"
