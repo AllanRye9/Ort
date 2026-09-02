@@ -14,6 +14,10 @@
     "db:setup": "ts-node --transpile-only scripts/db-setup.ts",
     "db:setup:hotfixes": "ts-node --transpile-only scripts/db-setup.ts --hotfixes-only",
     "migrations": "prisma migrate dev",
+    "db:local:check": "bash scripts/prisma-local.sh check",
+    "db:local:migrate": "bash scripts/prisma-local.sh migrate",
+    "db:local:deploy": "bash scripts/prisma-local.sh deploy",
+    "db:local:reset": "bash scripts/prisma-local.sh reset",
     "prisma:seed": "ts-node prisma/seed.ts",
     "seed:brand-fields": "ts-node --transpile-only scripts/seed-brand-fields.ts",
     "typecheck": "tsc --noEmit"
