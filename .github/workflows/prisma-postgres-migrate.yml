@@ -80,7 +80,7 @@ jobs:
         
         # Check for drift
         if ! npx prisma migrate diff \
-          --from-migrations prisma/migrations \
+          --from-url "$DATABASE_URL" \
           --to-schema-datamodel "$SCHEMA" \
           --exit-code; then
           echo "drift=true" >> $GITHUB_OUTPUT
@@ -188,7 +188,7 @@ jobs:
         SCHEMA="${{ steps.find_schema.outputs.schema_path }}"
         
         if ! npx prisma migrate diff \
-          --from-migrations prisma/migrations \
+          --from-url "$DATABASE_URL" \
           --to-schema-datamodel "$SCHEMA" \
           --exit-code; then
           echo "❌ Staging schema verification failed!"
@@ -258,7 +258,7 @@ jobs:
         echo "$MIGRATION_STATUS"
         
         # Check if there are pending migrations
-        if echo "$MIGRATION_STATUS" | grep -qi "no pending migrations"; then
+        if echo "$MIGRATION_STATUS" | grep -Eqi "no pending migrations|schema is up to date"; then
           echo "✅ No pending migrations"
           echo "has_migrations=false" >> $GITHUB_OUTPUT
         else
@@ -273,9 +273,8 @@ jobs:
       run: |
         SCHEMA="${{ steps.find_schema.outputs.schema_path }}"
         
-        # Generate migration SQL preview
         npx prisma migrate diff \
-          --from-migrations prisma/migrations \
+          --from-url "$DATABASE_URL" \
           --to-schema-datamodel "$SCHEMA" \
           --script > migration_preview.sql 2>&1
         
@@ -327,7 +326,7 @@ jobs:
         SCHEMA="${{ steps.find_schema.outputs.schema_path }}"
         
         if ! npx prisma migrate diff \
-          --from-migrations prisma/migrations \
+          --from-url "$DATABASE_URL" \
           --to-schema-datamodel "$SCHEMA" \
           --exit-code; then
           echo "❌ Production schema verification failed!"
