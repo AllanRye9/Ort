@@ -1,20 +1,47 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import { resolveImageUrl } from '@/lib/utils';
 import { useCountry } from '@/context/CountryContext';
+import { useSiteConfig } from '@/context/SiteConfigContext';
 import { CurrencyDisplay } from '@/components/ui/CurrencyDisplay';
 import { QuickAddButton } from '@/components/listings/QuickAddButton';
 import type { Listing } from '@/lib/types';
 
 const MIN_DISCOUNT_PERCENT = 30;
 
+// A "revisit" auto-open is offered once this many hours have passed since
+// the popup last auto-showed itself — long enough to not nag someone
+// browsing across several pages in one sitting, short enough to greet them
+// again on a genuinely new visit.
+const REVISIT_WINDOW_HOURS = 12;
+const SEEN_IDS_KEY = 'piitrade:specialFinds:seenListingIds';
+const LAST_SHOWN_KEY = 'piitrade:specialFinds:lastShownAt';
+const VISITED_KEY = 'piitrade:specialFinds:visited';
+
 function discountPercent(listing: Listing): number {
   if (!listing.originalPrice || listing.originalPrice <= listing.price) return 0;
   return Math.round(((listing.originalPrice - listing.price) / listing.originalPrice) * 100);
+}
+
+function readLocal(key: string): string | null {
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function writeLocal(key: string, value: string) {
+  try {
+    window.localStorage.setItem(key, value);
+  } catch {
+    // localStorage unavailable (private mode, etc.) — auto-open just won't
+    // persist across visits; the manual toggle button still works fine.
+  }
 }
 
 /**
@@ -22,13 +49,26 @@ function discountPercent(listing: Listing): number {
  * round icon docked above the bottom nav; tapping it expands a sheet of
  * currently active listings discounted 30% or more. Closes back down to
  * the icon on a second tap or when a backdrop tap is registered.
+ *
+ * Auto-open (admin-gated via siteConfig.specialFindsEnabled — see
+ * /admin/settings → Feature Settings) additionally pops the sheet open by
+ * itself, once per page load, when any of these hold:
+ *   - this is the shopper's first-ever visit to the site;
+ *   - it's a fresh revisit (more than REVISIT_WINDOW_HOURS since it last
+ *     auto-showed);
+ *   - new qualifying listings have been added to the pool since the
+ *     shopper last saw it.
+ * When the admin switch is off, this component renders nothing at all —
+ * not even the collapsed docked icon.
  */
 export default function MobileSpecialOffersPopup() {
   const { country, currency: displayCurrency } = useCountry();
+  const { specialFindsEnabled } = useSiteConfig();
   const [expanded, setExpanded] = useState(false);
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(false);
   const [fetched, setFetched] = useState(false);
+  const autoOpenCheckedRef = useRef(false);
 
   const loadOffers = useCallback(() => {
     if (fetched) return;
@@ -49,13 +89,57 @@ export default function MobileSpecialOffersPopup() {
   // Refresh the offer pool whenever the shopper switches country/market.
   useEffect(() => {
     setFetched(false);
+    autoOpenCheckedRef.current = false;
   }, [country]);
+
+  // Always load the offer pool up front (not just lazily on tap) so the
+  // auto-open decision below has real data to react to.
+  useEffect(() => {
+    if (specialFindsEnabled) loadOffers();
+  }, [specialFindsEnabled, loadOffers]);
+
+  // Decide, once per fetch, whether to auto-open.
+  useEffect(() => {
+    if (!specialFindsEnabled || !fetched || autoOpenCheckedRef.current) return;
+    autoOpenCheckedRef.current = true;
+    if (listings.length === 0) return;
+
+    const currentIds = listings.map((l) => l.id).sort();
+    const isFirstVisit = readLocal(VISITED_KEY) === null;
+
+    const lastShownRaw = readLocal(LAST_SHOWN_KEY);
+    const lastShown = lastShownRaw ? Number(lastShownRaw) : 0;
+    const hoursSinceShown = lastShown ? (Date.now() - lastShown) / (1000 * 60 * 60) : Infinity;
+    const isRevisit = !isFirstVisit && hoursSinceShown >= REVISIT_WINDOW_HOURS;
+
+    const seenIdsRaw = readLocal(SEEN_IDS_KEY);
+    let seenIds: string[] = [];
+    if (seenIdsRaw) {
+      try {
+        seenIds = JSON.parse(seenIdsRaw);
+      } catch {
+        seenIds = [];
+      }
+    }
+    const hasNewListings = currentIds.some((id) => !seenIds.includes(id));
+
+    writeLocal(VISITED_KEY, '1');
+
+    if (isFirstVisit || isRevisit || hasNewListings) {
+      setExpanded(true);
+      writeLocal(LAST_SHOWN_KEY, String(Date.now()));
+      writeLocal(SEEN_IDS_KEY, JSON.stringify(currentIds));
+    }
+  }, [specialFindsEnabled, fetched, listings]);
 
   const toggle = () => {
     const next = !expanded;
     setExpanded(next);
     if (next) loadOffers();
   };
+
+  // Admin master switch: hide the popup — collapsed icon included — entirely.
+  if (!specialFindsEnabled) return null;
 
   return (
     <div className="sm:hidden">

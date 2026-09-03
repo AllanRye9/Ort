@@ -691,7 +691,8 @@ export default function ListingDetailClient() {
               <div className="p-5">
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <CurrencyDisplay amount={listing.price} currency={listing.currency} displayCurrency={displayCurrency} showOriginal={displayCurrency !== listing.currency} className="text-3xl font-extrabold text-[#C23F00] leading-none" />
-                  <FavoriteButton listingId={listing.id} />
+                  {/* Heart is a regular-user affordance only — admins manage listings, they don't shop them. */}
+                  {user?.role !== 'ADMIN' && <FavoriteButton listingId={listing.id} />}
                 </div>
                 <h1 className="text-lg font-bold text-[#111827] leading-snug mb-3">{listing.title}</h1>
 

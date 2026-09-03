@@ -227,6 +227,11 @@ app.get('/api/public/site-config', async (_req, res) => {
             create: { id: 'global' },
             update: {},
         });
+        // specialFindsEnabled lives in generalSettings (same admin-configurable
+        // JSON blob as maintenanceMode/allowRegistration — see PUT /admin/settings)
+        // rather than its own SiteConfig column, so no migration was needed.
+        const generalSettings = config.generalSettings || {};
+        const specialFindsEnabled = generalSettings.specialFindsEnabled !== false;
         const now = new Date();
         const allDeals = config.todaysDeals || [];
         // Filter: keep deals with no expiry (unlimited) or whose expiry is in the future
@@ -253,10 +258,11 @@ app.get('/api/public/site-config', async (_req, res) => {
             // defaults to Uganda-only. Never empty — falls back to ['UGANDA'] so
             // the storefront always has at least one selectable country.
             enabledCountries: config.enabledCountries?.length ? config.enabledCountries : ['UGANDA'],
+            specialFindsEnabled,
         });
     }
     catch {
-        res.json({ whatsappNumber: null, todaysDeals: [], headerTheme: null, logoUrl: null, logoPages: [], logoAltText: null, logoSize: 28, logoLinkUrl: null, logoDisplayMode: 'inline', interviewDemoVideoUrl: null, interviewDemoVideoTitle: null, promoVideoUrl: null, promoVideoTitle: null, enabledCountries: ['UGANDA'] });
+        res.json({ whatsappNumber: null, todaysDeals: [], headerTheme: null, logoUrl: null, logoPages: [], logoAltText: null, logoSize: 28, logoLinkUrl: null, logoDisplayMode: 'inline', interviewDemoVideoUrl: null, interviewDemoVideoTitle: null, promoVideoUrl: null, promoVideoTitle: null, enabledCountries: ['UGANDA'], specialFindsEnabled: true });
     }
 });
 // 404 handler for unmatched API routes – must come after all route registrations.

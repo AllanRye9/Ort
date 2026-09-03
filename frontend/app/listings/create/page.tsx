@@ -937,6 +937,8 @@ function CreateListingContent() {
   };
 
   const [showConfirm, setShowConfirm] = useState(false);
+  // Which review-modal thumbnail (if any) is zoomed into a fullscreen lightbox.
+  const [zoomedReviewImage, setZoomedReviewImage] = useState<string | null>(null);
   // Shown when the backend rejects a listing because the seller's package
   // (or store rental) has reached its maximum active-listing quota.
   const [showMaxListingsModal, setShowMaxListingsModal] = useState(false);
@@ -2301,11 +2303,51 @@ function CreateListingContent() {
                   <dt className="font-semibold text-gray-700 w-20 shrink-0">Location:</dt>
                   <dd className="text-gray-600">{form.location}, {form.country}</dd>
                 </div>
-                <div className="flex gap-2">
-                  <dt className="font-semibold text-gray-700 w-20 shrink-0">Images:</dt>
-                  <dd className="text-gray-600">{pendingImageIds.length} attached</dd>
-                </div>
               </dl>
+
+              {/* Photo preview — fitted thumbnails, click any one to zoom in
+                  for a closer look before submitting. */}
+              {imagePreviews.length > 0 ? (
+                <div className="mb-3">
+                  <p className="text-xs font-semibold text-gray-700 mb-1.5">
+                    Images ({imagePreviews.length})
+                  </p>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {imagePreviews.map((src, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => setZoomedReviewImage(src)}
+                        className="group relative aspect-square overflow-hidden rounded-lg border border-gray-200 bg-gray-50"
+                        aria-label={`Zoom into image ${i + 1}`}
+                      >
+                        <Image
+                          src={resolveImageUrl(src)}
+                          alt={`Listing photo ${i + 1}`}
+                          fill
+                          unoptimized
+                          className="object-cover transition-transform duration-200 group-hover:scale-105"
+                          sizes="120px"
+                        />
+                        <span className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/20 transition-colors">
+                          <svg className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16zM11 8v6M8 11h6" />
+                          </svg>
+                        </span>
+                        {i === 0 && (
+                          <span className="absolute top-1 left-1 bg-red-500 text-white text-[8px] font-bold px-1 py-0.5 rounded">
+                            MAIN
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="mb-3 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-700">
+                  No images attached — buyers respond far better to listings with photos.
+                </div>
+              )}
 
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-2.5 mb-3">
                 <p className="text-xs text-amber-700">
@@ -2332,6 +2374,38 @@ function CreateListingContent() {
                 </button>
               </div>
             </div>
+
+            {/* Fullscreen zoom lightbox for a review-modal thumbnail */}
+            {zoomedReviewImage && (
+              <div
+                className="fixed inset-0 z-[60] flex items-center justify-center bg-black/85 p-4"
+                onClick={() => setZoomedReviewImage(null)}
+              >
+                <button
+                  type="button"
+                  onClick={() => setZoomedReviewImage(null)}
+                  aria-label="Close zoomed image"
+                  className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+                <div
+                  className="relative w-full max-w-2xl aspect-square"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Image
+                    src={resolveImageUrl(zoomedReviewImage)}
+                    alt="Zoomed listing photo"
+                    fill
+                    unoptimized
+                    className="object-contain"
+                    sizes="90vw"
+                  />
+                </div>
+              </div>
+            )}
           </div>
         )}
 

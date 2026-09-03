@@ -17,6 +17,7 @@ interface Settings {
   itemsPerPage: number;
   maxImagesPerListing: number;
   trialDays: number; // free trial period for new ordinary users
+  specialFindsEnabled: boolean; // mobile "Special finds" popup master switch
 }
 
 interface SocialLinks {
@@ -80,6 +81,7 @@ const DEFAULT_SETTINGS: Settings = {
   itemsPerPage: 20,
   maxImagesPerListing: 10,
   trialDays: 7,
+  specialFindsEnabled: true,
 };
 
 // The site now ships with a single locked brand colour, so there is nothing
@@ -1276,6 +1278,13 @@ export default function AdminSettingsPage() {
               <p className="text-xs text-gray-400">Allow new users to create accounts</p>
             </div>
             <ToggleSwitch enabled={settings.allowRegistration} onChange={(v) => update('allowRegistration', v)} />
+          </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-700">Mobile &quot;Special Finds&quot; Popup</p>
+              <p className="text-xs text-gray-400">Auto-opens on a shopper&apos;s first visit, on a later revisit, and when new deep-discount listings appear. Off hides it entirely.</p>
+            </div>
+            <ToggleSwitch enabled={settings.specialFindsEnabled} onChange={(v) => update('specialFindsEnabled', v)} />
           </div>
         </div>
       </div>

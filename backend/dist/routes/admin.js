@@ -76,6 +76,12 @@ const defaultSettings = {
     itemsPerPage: 20,
     maxImagesPerListing: 10,
     trialDays: 7, // Free trial period for new ordinary users (admin-configurable)
+    // Master switch for the mobile "Special finds" popup (see
+    // MobileSpecialOffersPopup.tsx on the frontend). When off, the popup never
+    // renders at all — even its collapsed docked icon. When on, the popup
+    // decides for itself (client-side, via localStorage) whether to auto-open
+    // on first visit / a later revisit / when new qualifying listings appear.
+    specialFindsEnabled: true,
 };
 // ─── Stats ─────────────────────────────────────────────────────────────────────
 router.get('/stats', async (_req, res, next) => {

@@ -47,6 +47,9 @@ interface SiteConfig {
    *  scope is Uganda-only; other countries stay hidden until enabled here.
    *  Always has at least one entry. */
   enabledCountries: string[];
+  /** Master switch (admin/settings → Feature Settings) for the mobile
+   *  "Special finds" popup. When false the popup never mounts at all. */
+  specialFindsEnabled: boolean;
 }
 
 const defaultConfig: SiteConfig = {
@@ -61,6 +64,7 @@ const defaultConfig: SiteConfig = {
   logoDisplayMode: 'inline',
   promoVideoUrl: null,
   enabledCountries: ['UGANDA'],
+  specialFindsEnabled: true,
 };
 
 const SiteConfigContext = createContext<SiteConfig>(defaultConfig);

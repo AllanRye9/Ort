@@ -8,7 +8,7 @@ import { CurrencyDisplay } from '@/components/ui/CurrencyDisplay';
 import { resolveImageUrl } from '@/lib/utils';
 import { FavoriteButton } from './FavoriteButton';
 import { QuickAddButton } from './QuickAddButton';
-import { FlagIcon } from '@/components/ui/FlagIcon';
+import { AdminEditInlineButton } from './AdminEditInlineButton';
 import { useCountry } from '@/context/CountryContext';
 import { useAuth } from '@/context/AuthContext';
 
@@ -44,15 +44,6 @@ export function ListingCard({ listing, showFavorite = true, cleanImage = false }
     null;
   const [imgSrc, setImgSrc] = useState(resolveImageUrl(primaryImage) || null);
   const [imgFailed, setImgFailed] = useState(!resolveImageUrl(primaryImage));
-  const countryMap: Record<string, { label: string; flag: string }> = {
-    UAE: { label: 'UAE', flag: 'AE' },
-    UGANDA: { label: 'Uganda', flag: 'UG' },
-    KENYA: { label: 'Kenya', flag: 'KE' },
-    CHINA: { label: 'China', flag: 'CN' },
-  };
-  const countryInfo = countryMap[listing.country] ?? { label: listing.country, flag: 'UN' };
-  const countryLabel = countryInfo.label;
-  const countryFlag = countryInfo.flag;
 
   const handleImgError = () => {
     if (!imgFailed) {
@@ -98,31 +89,16 @@ export function ListingCard({ listing, showFavorite = true, cleanImage = false }
         {/* Overlay gradient on hover */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
-        {/* Badges */}
+        {/* Badges — country/flag removed from listing cards per product
+            decision (launch scope is Uganda-only, so it was pure noise).
+            KYC-verified and "New" moved down to the text area as small
+            stamp-style badges (see below); this overlay now only carries
+            the discount and general "Verified" badges. */}
         {!cleanImage && (
           <div className="absolute top-1.5 xs:top-2 left-1.5 xs:left-2 flex flex-col gap-1">
             {discountPercent != null && discountPercent > 0 && (
               <span className="inline-flex items-center rounded-md bg-lime-400 text-emerald-950 text-[9px] xs:text-[10px] font-extrabold px-1.5 py-0.5 shadow-sm w-fit">
                 Save {discountPercent}%
-              </span>
-            )}
-            {/* Country badge — SVG flag via FlagIcon, not text/emoji */}
-            <span className="badge text-[9px] xs:text-[10px] shadow-sm bg-white/95 text-slate-700 border border-white/80 backdrop-blur-sm flex items-center gap-0.5">
-              <FlagIcon code={countryFlag} size={11} />
-              {countryLabel}
-            </span>
-            {listing.condition === 'NEW' && (
-              <span className="badge badge-new text-[9px] xs:text-[10px] shadow-sm"><span aria-hidden="true">✦</span> New</span>
-            )}
-            {listing.user?.isKycVerified && (
-              <span
-                title="This seller has completed identity (KYC) verification"
-                className="badge text-[9px] xs:text-[10px] shadow-sm bg-emerald-600 text-white flex items-center gap-0.5"
-              >
-                <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-                  <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
-                </svg>
-                KYC Verified
               </span>
             )}
             {listing.user?.isVerified && (
@@ -143,73 +119,94 @@ export function ListingCard({ listing, showFavorite = true, cleanImage = false }
           </div>
         )}
 
-        {/* Favorite button + admin quick-edit + buyer quick-add — stacked on
-            the right so none of them overlap the listing link, image, or
-            the SOLD/verified badges on the left.
+        {/* Favorite (heart) — regular-user affordance only; admins get the
+            edit pen inline with the price instead (see below), so the
+            heart never appears for them here.
             Always visible on touch (opacity-100) since group-hover never
             fires on mobile — a phone has no cursor to hover with, so a
-            hover-only reveal made these completely untappable on the
+            hover-only reveal made this completely untappable on the
             primary device this app is used on. Hover-to-reveal is kept
             only at sm: and up, where a mouse actually exists and the
             decluttered default state is a real benefit. */}
-        {(showFavorite || isAdmin || showQuickAdd) && !cleanImage && (
-          <div className="absolute top-1.5 right-1.5 flex flex-col items-end gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200">
-            {isAdmin && (
-              <Link
-                href={`/listings/create?edit=${listing.id}`}
-                onClick={(e) => e.stopPropagation()}
-                aria-label="Edit listing (admin)"
-                title="Edit listing (admin)"
-                className="w-6 h-6 xs:w-7 xs:h-7 rounded-full bg-white/95 border border-white/80 text-gray-700 shadow flex items-center justify-center hover:bg-red-500 hover:text-white hover:border-red-500 transition-colors"
-              >
-                <svg className="w-3 h-3 xs:w-3.5 xs:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-              </Link>
-            )}
-            {showFavorite && (
-              <FavoriteButton listingId={listing.id} />
-            )}
-            {showQuickAdd && (
-              <QuickAddButton listing={listing} />
-            )}
+        {showFavorite && !isAdmin && !cleanImage && (
+          <div className="absolute top-1.5 right-1.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200">
+            <FavoriteButton listingId={listing.id} />
           </div>
         )}
       </div>{/* end image container */}
 
       {/* Content */}
-      <Link href={`/listings/${listing.id}`} className="block p-3 xs:p-3.5">
-        <h3 className="font-bold text-gray-900 text-xs xs:text-sm leading-tight hover:text-red-600 transition-colors truncate" title={listing.title}>
-          {listing.title}
-        </h3>
-        {listing.description && (
-          <p className="text-[9px] xs:text-[10px] text-gray-400 leading-tight mt-1 truncate">
-            {listing.description}
-          </p>
-        )}
+      <div className="p-3 xs:p-3.5">
+        <Link href={`/listings/${listing.id}`} className="block">
+          {/* "Stamp" badges — KYC-verified and New, moved down from the
+              image overlay into the text area per product decision, styled
+              like a rubber stamp (rotated, outlined, ink-on-paper) rather
+              than the flat pill badges used on the image. */}
+          {(listing.condition === 'NEW' || listing.user?.isKycVerified) && (
+            <div className="flex items-center gap-1 mb-1 flex-wrap">
+              {listing.condition === 'NEW' && (
+                <span className="inline-flex items-center gap-0.5 text-[8px] xs:text-[9px] font-extrabold uppercase tracking-wider text-emerald-600 border-[1.5px] border-emerald-500/80 rounded px-1 py-px -rotate-3 select-none">
+                  <span aria-hidden="true">✦</span> New
+                </span>
+              )}
+              {listing.user?.isKycVerified && (
+                <span
+                  title="This seller has completed identity (KYC) verification"
+                  className="inline-flex items-center gap-0.5 text-[8px] xs:text-[9px] font-extrabold uppercase tracking-wider text-red-600 border-[1.5px] border-red-500/80 rounded px-1 py-px rotate-2 select-none"
+                >
+                  <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                    <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
+                  </svg>
+                  KYC
+                </span>
+              )}
+            </div>
+          )}
 
-        <div className="flex items-baseline gap-1.5 mt-1.5 flex-wrap">
-          <CurrencyDisplay
-            amount={listing.price}
-            currency={listing.currency}
-            displayCurrency={displayCurrency}
-            className="text-red-600 font-extrabold text-sm xs:text-base leading-none"
-          />
-          {listing.originalPrice != null && listing.originalPrice > listing.price && (
+          <h3 className="font-bold text-gray-900 text-xs xs:text-sm leading-tight hover:text-red-600 transition-colors truncate" title={listing.title}>
+            {listing.title}
+          </h3>
+          {listing.description && (
+            <p className="text-[9px] xs:text-[10px] text-gray-400 leading-tight mt-1 truncate">
+              {listing.description}
+            </p>
+          )}
+        </Link>
+
+        {/* Price row — the "+" add-to-cart (regular users) / edit pen
+            (admin) sits inline at the end of this row, matching the site's
+            red brand color, rather than floating over the image. It's a
+            sibling of the price Link (not nested inside it) so its own
+            click handling never fights the card's navigation link. */}
+        <div className="flex items-center justify-between gap-1.5 mt-1.5">
+          <Link href={`/listings/${listing.id}`} className="flex items-baseline gap-1.5 flex-wrap min-w-0">
             <CurrencyDisplay
-              amount={listing.originalPrice}
+              amount={listing.price}
               currency={listing.currency}
               displayCurrency={displayCurrency}
-              className="text-gray-400 line-through text-[10px] xs:text-xs leading-none"
+              className="text-red-600 font-extrabold text-sm xs:text-base leading-none"
             />
-          )}
+            {listing.originalPrice != null && listing.originalPrice > listing.price && (
+              <CurrencyDisplay
+                amount={listing.originalPrice}
+                currency={listing.currency}
+                displayCurrency={displayCurrency}
+                className="text-gray-400 line-through text-[10px] xs:text-xs leading-none"
+              />
+            )}
+          </Link>
+          {isAdmin ? (
+            <AdminEditInlineButton listingId={listing.id} size="sm" />
+          ) : showQuickAdd ? (
+            <QuickAddButton listing={listing} size="sm" variant="inline" />
+          ) : null}
         </div>
         {displayCurrency !== listing.currency && (
-          <p className="text-[9px] xs:text-[10px] text-gray-400 mt-0.5 leading-none">
+          <Link href={`/listings/${listing.id}`} className="block text-[9px] xs:text-[10px] text-gray-400 mt-0.5 leading-none">
             Listed at {listing.currency} {listing.price.toLocaleString()}
-          </p>
+          </Link>
         )}
-      </Link>
+      </div>
 
     </div>
   );
