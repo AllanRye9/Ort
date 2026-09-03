@@ -59,14 +59,14 @@ function PriceRow({ item }: { item: CommodityItem }) {
           </span>
         )}
         {dir === 'down' && (
-          <span className="flex items-center text-red-600" aria-label="Price down">
+          <span className="flex items-center text-error" aria-label="Price down">
             <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 20 20"><path d="M10 17l-6-8h4V3h4v6h4l-6 8z" /></svg>
           </span>
         )}
         {dir === 'flat' && <span className="text-[8px] text-gray-300" aria-label="No change">–</span>}
       </div>
       {changePct && (
-        <span className={`text-[7px] font-semibold shrink-0 w-8 text-right ${dir === 'up' ? 'text-emerald-600' : dir === 'down' ? 'text-red-600' : 'text-gray-300'}`}>
+        <span className={`text-[7px] font-semibold shrink-0 w-8 text-right ${dir === 'up' ? 'text-emerald-600' : dir === 'down' ? 'text-error' : 'text-gray-300'}`}>
           {dir === 'up' ? '+' : ''}{changePct}%
         </span>
       )}
@@ -118,12 +118,12 @@ export default function CommodityPriceWidget() {
       <div className="bg-white border-b border-gray-200 px-2 py-[5px] flex items-center flex-nowrap justify-between gap-1">
         <div className="flex items-center flex-nowrap gap-1.5 min-w-0">
           <span className="shrink-0 text-sm leading-none" aria-hidden="true">🇺🇬</span>
-          <span className="text-[9px] font-black tracking-widest uppercase text-emerald-700 whitespace-nowrap">UGANDA MARKET PRICES</span>
+          <span className="text-[9px] font-black tracking-widest uppercase text-red-700 whitespace-nowrap">UGANDA MARKET PRICES</span>
           <span className="hidden xs:inline text-[7px] text-gray-500 uppercase tracking-wide whitespace-nowrap">· Market Price Watch</span>
         </div>
         <Link
           href="/market-prices"
-          className="shrink-0 flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[8px] font-black tracking-wide leading-none text-white bg-emerald-600 hover:bg-emerald-700 transition-colors"
+          className="shrink-0 flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[8px] font-black tracking-wide leading-none text-white bg-red-600 hover:bg-red-700 transition-colors"
         >
           VIEW ALL
         </Link>
@@ -133,12 +133,12 @@ export default function CommodityPriceWidget() {
       <div className="flex items-stretch divide-x divide-gray-100" style={{ minHeight: '88px' }}>
         {loading ? (
           <div className="flex-1 flex items-center justify-center py-4">
-            <div className="w-4 h-4 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+            <div className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : items.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center gap-1 py-3 text-center px-2">
             <p className="text-[9px] text-gray-400">Prices haven&apos;t been published yet.</p>
-            <Link href="/market-prices" className="text-[8px] font-semibold text-emerald-600 hover:text-emerald-700">Browse Market Prices →</Link>
+            <Link href="/market-prices" className="text-[8px] font-semibold text-red-600 hover:text-red-700">Browse Market Prices →</Link>
           </div>
         ) : (
           <>

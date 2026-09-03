@@ -159,7 +159,8 @@ function FlashCard({ card, displayCurrency }: { card: CardData; displayCurrency:
             alt={card.title}
             fill
             className="object-cover transition-transform duration-500 group-hover:scale-110"
-            sizes="(max-width: 640px) 33vw, 16vw"
+            sizes="(max-width: 640px) 31vw, (max-width: 1024px) 33vw, 16vw"
+            quality={92}
             loading="lazy"
             onError={() => setImgFailed(true)}
           />

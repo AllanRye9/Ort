@@ -78,8 +78,9 @@ export function ListingCard({ listing, showFavorite = true, cleanImage = false }
               src={imgSrc}
               alt={listing.title}
               fill
-              className="object-cover"
+              className="object-cover transition-transform duration-500 group-hover:scale-105"
               sizes="(max-width: 374px) 50vw, (max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+              quality={92}
               onError={handleImgError}
               loading="lazy"
             />

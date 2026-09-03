@@ -8,6 +8,7 @@ import CountryFlashDeals from '@/components/ui/CountryFlashDeals';
 import CountryThemedHome from '@/components/ui/CountryThemedHome';
 import QuickActions from '@/components/ui/QuickActions';
 import HomeOtherCollections from '@/components/ui/HomeOtherCollections';
+import HomeMarketPrices from '@/components/ui/HomeMarketPrices';
 import TrackPageView from '@/components/ui/TrackPageView';
 import SiteAnalytics from '@/components/ui/SiteAnalytics';
 import RegionHintBanner from '@/components/ui/RegionHintBanner';
@@ -198,7 +199,7 @@ export default async function HomePage() {
                   fill
                   className="object-cover transition-transform duration-300 group-hover:scale-105"
                   sizes="(max-width: 640px) 100vw, 50vw"
-                  quality={75}
+                  quality={92}
                   loading="lazy"
                 />
                 {item.linkUrl && (
@@ -220,6 +221,11 @@ export default async function HomePage() {
 
           {/* ═══ 1b. TRUSTED SELLERS — "Big brands near you" equivalent ═══ */}
           <FeaturedStoresRow stores={featuredStores} />
+
+          {/* ═══ 1c. UGANDA MARKET PRICES — themed card section for everyday
+              commodity prices (admin-managed). Self-hides when nothing has
+              been published yet. ═══ */}
+          <HomeMarketPrices />
 
           {/* ═══ 2. RECENT BY CATEGORY (Quick Glance) — second ═══ */}
           <section className="animate-fade-up">
@@ -276,7 +282,7 @@ export default async function HomePage() {
                         fill
                         className="object-cover transition-transform duration-300 group-hover:scale-105"
                         sizes="(max-width: 640px) 50vw, 33vw"
-                        quality={75}
+                        quality={92}
                         loading="lazy"
                       />
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/15 transition-colors duration-300 flex items-end justify-end p-2">
@@ -296,7 +302,7 @@ export default async function HomePage() {
                         fill
                         className="object-cover transition-transform duration-300 group-hover:scale-105"
                         sizes="(max-width: 640px) 50vw, 33vw"
-                        quality={75}
+                        quality={92}
                         loading="lazy"
                       />
                     </div>

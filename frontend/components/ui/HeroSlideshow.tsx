@@ -224,7 +224,7 @@ export default function HeroSlideshow({
                 className="object-cover"
                 priority={i === 0}
                 sizes="86vw"
-                quality={75}
+                quality={92}
                 onError={() => handleImageError(i)}
                 onLoadingComplete={() => handleImageLoad(i)}
               />

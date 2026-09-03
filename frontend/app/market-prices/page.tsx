@@ -73,7 +73,7 @@ function TrendBadge({ item, size = 'sm' }: { item: CommodityItem; size?: 'sm' | 
     return <span className={`inline-flex items-center gap-1 ${textSize} font-semibold text-gray-400`}>— no change</span>;
   }
   return (
-    <span className={`inline-flex items-center gap-1 ${textSize} font-bold ${dir === 'up' ? 'text-emerald-600' : 'text-red-600'}`}>
+    <span className={`inline-flex items-center gap-1 ${textSize} font-bold ${dir === 'up' ? 'text-emerald-600' : 'text-error'}`}>
       <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
         {dir === 'up' ? <path d="M10 3l6 8h-4v6H8v-6H4l6-8z" /> : <path d="M10 17l-6-8h4V3h4v6h4l-6 8z" />}
       </svg>
@@ -206,7 +206,7 @@ export default function MarketPricesPage() {
       {/* Header */}
       <div className="mb-5 flex items-start justify-between gap-4 flex-wrap">
         <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-2xl shadow-md shrink-0">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#FF6500] to-premium-navy flex items-center justify-center text-2xl shadow-md shrink-0">
             🌾
           </div>
           <div>
@@ -216,7 +216,7 @@ export default function MarketPricesPage() {
             </p>
             {updatedAt && (
               <p className="text-xs text-gray-400 mt-1 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+                <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block" />
                 Last updated {relativeTime(updatedAt)}
               </p>
             )}
@@ -226,7 +226,7 @@ export default function MarketPricesPage() {
         <button
           onClick={handleRefresh}
           disabled={refreshing}
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-600 hover:border-emerald-300 hover:text-emerald-700 transition-colors shadow-sm disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-600 hover:border-red-300 hover:text-red-700 transition-colors shadow-sm disabled:opacity-50"
         >
           <svg className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -240,7 +240,7 @@ export default function MarketPricesPage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-5">
           <StatPill icon="🌾" label="Tracked" value={summary.total} color="bg-slate-100 text-slate-600" />
           <StatPill icon="📈" label="Gainers" value={summary.gainers} color="bg-emerald-100 text-emerald-600" />
-          <StatPill icon="📉" label="Decliners" value={summary.decliners} color="bg-red-100 text-red-600" />
+          <StatPill icon="📉" label="Decliners" value={summary.decliners} color="bg-error-light text-error" />
           <StatPill icon="➖" label="Unchanged" value={summary.unchanged} color="bg-gray-100 text-gray-500" />
         </div>
       )}
@@ -261,15 +261,15 @@ export default function MarketPricesPage() {
               ))}
             </div>
           </div>
-          <div className="rounded-xl border border-red-100 bg-red-50/50 p-3.5">
-            <p className="text-[11px] font-black uppercase tracking-wider text-red-700 mb-2 flex items-center gap-1.5">📉 Top Decliners</p>
+          <div className="rounded-xl border border-error/20 bg-error-light/50 p-3.5">
+            <p className="text-[11px] font-black uppercase tracking-wider text-error-dark mb-2 flex items-center gap-1.5">📉 Top Decliners</p>
             <div className="space-y-1.5">
               {topMovers.losers.length === 0 ? (
                 <p className="text-xs text-gray-400">No decliners right now.</p>
               ) : topMovers.losers.map(({ item, pct }) => (
                 <div key={item.id} className="flex items-center justify-between text-xs">
                   <span className="font-semibold text-gray-700 truncate">{item.name}</span>
-                  <span className="font-bold text-red-600 shrink-0 ml-2">{pct.toFixed(1)}%</span>
+                  <span className="font-bold text-error shrink-0 ml-2">{pct.toFixed(1)}%</span>
                 </div>
               ))}
             </div>
@@ -289,14 +289,14 @@ export default function MarketPricesPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search commodities…"
-              className="w-full border border-gray-200 rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+              className="w-full border border-gray-200 rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
             />
           </div>
           <div className="flex flex-wrap gap-2">
             <select
               value={locationFilter}
               onChange={(e) => setLocationFilter(e.target.value)}
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400"
+              className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-400"
             >
               <option value="">All locations</option>
               {locations.map((loc) => <option key={loc} value={loc}>{loc}</option>)}
@@ -304,7 +304,7 @@ export default function MarketPricesPage() {
             <select
               value={marketTypeFilter}
               onChange={(e) => setMarketTypeFilter(e.target.value as '' | 'RETAIL' | 'WHOLESALE')}
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400"
+              className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-400"
             >
               <option value="">Retail &amp; Wholesale</option>
               <option value="RETAIL">Retail only</option>
@@ -313,7 +313,7 @@ export default function MarketPricesPage() {
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value as SortKey)}
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400"
+              className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-400"
             >
               <option value="name">Sort: Name (A–Z)</option>
               <option value="price_asc">Sort: Price (Low–High)</option>
@@ -328,7 +328,7 @@ export default function MarketPricesPage() {
                 onClick={() => setView('grid')}
                 aria-label="Grid view"
                 aria-pressed={view === 'grid'}
-                className={`p-1.5 rounded-md transition-colors ${view === 'grid' ? 'bg-white text-emerald-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                className={`p-1.5 rounded-md transition-colors ${view === 'grid' ? 'bg-white text-red-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1" strokeWidth={2}/><rect x="14" y="3" width="7" height="7" rx="1" strokeWidth={2}/><rect x="3" y="14" width="7" height="7" rx="1" strokeWidth={2}/><rect x="14" y="14" width="7" height="7" rx="1" strokeWidth={2}/></svg>
               </button>
@@ -336,7 +336,7 @@ export default function MarketPricesPage() {
                 onClick={() => setView('table')}
                 aria-label="Table view"
                 aria-pressed={view === 'table'}
-                className={`p-1.5 rounded-md transition-colors ${view === 'table' ? 'bg-white text-emerald-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                className={`p-1.5 rounded-md transition-colors ${view === 'table' ? 'bg-white text-red-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18M3 6h18M3 18h18" /></svg>
               </button>
@@ -345,7 +345,7 @@ export default function MarketPricesPage() {
             <button
               onClick={handleExport}
               disabled={filtered.length === 0}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 text-xs font-semibold text-gray-600 hover:border-emerald-300 hover:text-emerald-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 text-xs font-semibold text-gray-600 hover:border-red-300 hover:text-red-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" /></svg>
               Export CSV
@@ -356,7 +356,7 @@ export default function MarketPricesPage() {
         {hasActiveFilters && (
           <p className="text-xs text-gray-400 mt-2 px-1">
             Showing <span className="font-semibold text-gray-600">{filtered.length}</span> of {items.length} commodities
-            <button onClick={() => { setSearch(''); setLocationFilter(''); setMarketTypeFilter(''); }} className="ml-2 text-emerald-600 hover:text-emerald-700 font-semibold">
+            <button onClick={() => { setSearch(''); setLocationFilter(''); setMarketTypeFilter(''); }} className="ml-2 text-red-600 hover:text-red-700 font-semibold">
               Clear filters
             </button>
           </p>
@@ -399,7 +399,7 @@ export default function MarketPricesPage() {
                   <td className="px-4 py-2.5 font-black text-gray-900 tabular-nums whitespace-nowrap">{formatUGX(item.price)}</td>
                   <td className="px-4 py-2.5"><TrendBadge item={item} size="xs" /></td>
                   <td className="px-4 py-2.5">
-                    <span className={`text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full ${item.marketType === 'WHOLESALE' ? 'bg-violet-100 text-violet-700' : 'bg-red-100 text-red-700'}`}>
+                    <span className={`text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full ${item.marketType === 'WHOLESALE' ? 'bg-premium-navy/10 text-premium-navy' : 'bg-red-100 text-red-700'}`}>
                       {item.marketType === 'WHOLESALE' ? 'Wholesale' : 'Retail'}
                     </span>
                   </td>
@@ -412,10 +412,10 @@ export default function MarketPricesPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {filtered.map((item) => (
-            <div key={item.id} className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 hover:shadow-md hover:border-emerald-200 transition-all">
+            <div key={item.id} className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 hover:shadow-md hover:border-red-200 transition-all">
               <div className="flex items-start justify-between gap-2 mb-1.5">
                 <h3 className="font-bold text-gray-900 text-sm">{item.name}</h3>
-                <span className={`shrink-0 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full ${item.marketType === 'WHOLESALE' ? 'bg-violet-100 text-violet-700' : 'bg-red-100 text-red-700'}`}>
+                <span className={`shrink-0 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full ${item.marketType === 'WHOLESALE' ? 'bg-premium-navy/10 text-premium-navy' : 'bg-red-100 text-red-700'}`}>
                   {item.marketType === 'WHOLESALE' ? 'Wholesale' : 'Retail'}
                 </span>
               </div>
