@@ -17,8 +17,8 @@ import {
   isDraftMeaningful,
   type ListingDraftData,
 } from '@/lib/listingDraft';
-import { classifyImageUrl, identifyImageUrl } from '@/lib/imageAi';
-import { suggestCategory, type CategoryMatch } from '@/lib/categoryMatch';
+import { classifyImageUrl, identifyImageUrl, describeFromText } from '@/lib/imageAi';
+import { suggestCategory, matchesSameItem, type CategoryMatch } from '@/lib/categoryMatch';
 
 const MOTOR_SLUGS = new Set([
   'motors', 'used-cars', 'new-cars', 'classic-cars', 'other-vehicles',
@@ -169,16 +169,138 @@ function getProductOptionSuggestions(categorySlug: string): Array<{ name: string
   ];
 }
 
+// Filler openers the identify model tends to prepend ("a photo of a...",
+// "this image shows a...") that make for a bad, non-product-like listing
+// title if left in. Stripped before anything else so the classify label
+// (usually the cleanest, shortest signal — e.g. "laptop computer") can lead.
+const TITLE_FILLER_PREFIXES = [
+  /^(this is|this|here is|here's)\s+/i,
+  /^(a|an|the)\s+(photo|picture|image)\s+(of|showing)\s+/i,
+  /^(a|an|the)\s+close-?up\s+(of|shot of)\s+/i,
+  /^(image|photo|picture)\s+(of|showing)\s+/i,
+  /^it\s+(is|appears to be|looks like)\s+/i,
+  /^(showing|shows|displaying|featuring)\s+/i,
+];
+
+function toTitleCase(text: string): string {
+  const SMALL_WORDS = new Set(['a', 'an', 'the', 'of', 'in', 'on', 'for', 'and', 'or', 'with', 'to']);
+  return text
+    .split(' ')
+    .map((word, i) => {
+      if (!word) return word;
+      // Preserve things that already look intentional (model numbers, all-caps
+      // acronyms like "SSD", mixed-case brand names like "iPhone").
+      if (/[A-Z]/.test(word.slice(1)) || /\d/.test(word)) return word;
+      if (i > 0 && SMALL_WORDS.has(word.toLowerCase())) return word.toLowerCase();
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    })
+    .join(' ');
+}
+
+const TITLE_MAX_LENGTH = 70; // short, scannable — matches standard ecommerce listing titles
+
 /**
- * Builds a listing-title-length suggestion from an AI-generated description
- * (or, failing that, the raw classify label): takes the first sentence,
- * then trims to the form's title maxLength (100) with an ellipsis.
+ * Builds a short, listing-style title from the AI's outputs. Prefers the
+ * classify label (a clean noun phrase like "laptop computer, notebook
+ * computer") as the anchor since it parses far better than the identify
+ * model's full descriptive sentence, then folds in distinguishing detail
+ * from that sentence (first clause only) when there's room. Falls back to
+ * the identify description alone if no classify label came back.
  */
 function buildSuggestedTitle(description: string, classifyLabel: string | null): string {
-  const base = (description || classifyLabel || '').trim();
+  const cleanLabel = (classifyLabel || '').split(',')[0].trim(); // classify labels are often "a, b, c" synonym lists — first is best
+  let base = (cleanLabel || description || '').trim();
   if (!base) return '';
-  const firstSentence = (base.split(/(?<=[.!?])\s+/)[0] || base).replace(/[.!?]+$/, '').trim();
-  return firstSentence.length > 100 ? `${firstSentence.slice(0, 97).trim()}…` : firstSentence;
+
+  for (const re of TITLE_FILLER_PREFIXES) base = base.replace(re, '');
+  // Use only the first clause/sentence — titles shouldn't be full descriptions.
+  base = (base.split(/[.!?]|,\s+(?=and|which|it)/i)[0] || base).trim();
+  base = base.replace(/\s+/g, ' ').trim();
+  if (!base) return '';
+
+  let title = toTitleCase(base);
+
+  // If the classify label was short and generic, enrich it with the first
+  // few distinguishing words from the identify description (e.g. brand,
+  // material) as long as it still fits comfortably in a title.
+  if (cleanLabel && description && title.length < 30) {
+    let extra = description;
+    for (const re of TITLE_FILLER_PREFIXES) extra = extra.replace(re, '');
+    extra = (extra.split(/[.!?]/)[0] || '').trim();
+    const extraWords = extra.split(' ').filter(Boolean);
+    const lowerTitle = title.toLowerCase();
+    const additions: string[] = [];
+    for (const w of extraWords) {
+      const candidate = [...additions, w].join(' ');
+      if ((title + ' ' + candidate).length > TITLE_MAX_LENGTH) break;
+      if (!lowerTitle.includes(w.toLowerCase())) additions.push(w);
+      if (additions.length >= 4) break;
+    }
+    if (additions.length > 0) title = `${toTitleCase(additions.join(' '))} ${title}`;
+  }
+
+  return title.length > TITLE_MAX_LENGTH ? `${title.slice(0, TITLE_MAX_LENGTH - 1).trim()}…` : title;
+}
+
+/**
+ * Builds a standard ecommerce-listing-style description from the AI's raw
+ * outputs: a short opening line, then a "Key details" bullet list (brand,
+ * category, condition) and a closing prompt. Used as the local fallback
+ * when the `describeFromText` worker call fails or is thin, and as the
+ * shape the worker is asked to produce otherwise.
+ */
+function buildFallbackEcommerceDescription(
+  description: string,
+  classifyLabel: string | null,
+  categoryLabel: string | null,
+  condition: string
+): string {
+  const opener = description || classifyLabel || 'Item in good condition, as shown in photos.';
+  const bullets: string[] = [];
+  if (classifyLabel) bullets.push(`Type: ${toTitleCase(classifyLabel.split(',')[0].trim())}`);
+  if (categoryLabel) bullets.push(`Category: ${categoryLabel}`);
+  bullets.push(`Condition: ${condition === 'NEW' ? 'Brand New' : 'Used — Good'}`);
+  bullets.push('See photos for full visual details.');
+
+  return [
+    opener.charAt(0).toUpperCase() + opener.slice(1),
+    '',
+    'Key details:',
+    ...bullets.map((b) => `• ${b}`),
+    '',
+    'Message the seller for more details or to arrange a viewing.',
+  ].join('\n');
+}
+
+/**
+ * Asks the image-AI worker's /describe endpoint to expand the raw
+ * classify/identify output into a proper, standard ecommerce listing
+ * description (opening line + key-details bullets). Falls back to a
+ * locally-built version in the same shape if the worker call fails or
+ * returns something too short to be useful.
+ */
+async function buildEcommerceDescription(
+  description: string,
+  classifyLabel: string | null,
+  categoryLabel: string | null,
+  condition: string
+): Promise<string> {
+  const fallback = buildFallbackEcommerceDescription(description, classifyLabel, categoryLabel, condition);
+  const sourceText = [
+    classifyLabel ? `Item type: ${classifyLabel}.` : '',
+    description ? `Visual description: ${description}.` : '',
+    categoryLabel ? `Listing category: ${categoryLabel}.` : '',
+    `Condition: ${condition === 'NEW' ? 'Brand New' : 'Used'}.`,
+    'Write this as a standard ecommerce marketplace listing description: a short opening line, '
+      + 'then a "Key details" bullet list, in plain, buyer-facing language. No made-up specs.',
+  ].filter(Boolean).join(' ');
+
+  try {
+    const result = await describeFromText(sourceText, 'detailed');
+    return result.description && result.description.trim().length > 20 ? result.description.trim() : fallback;
+  } catch {
+    return fallback;
+  }
 }
 
 function getCategoryLabel(categories: Category[], id: string): string {
@@ -597,8 +719,20 @@ function CreateListingContent() {
         next.delete(removedUrl);
         return next;
       });
+      checkedImageSrcs.current.delete(removedUrl);
     }
     if (uploadedCount > 0) setUploadedCount((prev) => prev - 1);
+    // Re-key the per-photo match-status map since every index after the
+    // removed photo shifts down by one.
+    setImageMatchStatus((prev) => {
+      const next: typeof prev = {};
+      Object.entries(prev).forEach(([key, status]) => {
+        const i = Number(key);
+        if (i < index) next[i] = status;
+        else if (i > index) next[i - 1] = status;
+      });
+      return next;
+    });
     // A removed photo may be the one an existing AI suggestion was based on —
     // clear it rather than leave a suggestion pointing at a gone image.
     if (aiSuggestion) {
@@ -622,12 +756,41 @@ function CreateListingContent() {
     classifyLabel: string | null;
     classifyConfidence: number | null;
   } | null>(null);
+  // Manual vs AI-assisted entry. Manual (default) leaves every field exactly
+  // as before. AI mode auto-runs the photo analysis as soon as the first
+  // photo finishes uploading, auto-applies the result, and folds the
+  // title/description inputs away behind a confirmation banner — the
+  // seller only has to write anything by hand if they choose to edit.
+  const [aiMode, setAiMode] = useState<'manual' | 'ai'>('manual');
+  // Whether title+description were just auto-filled by AI (either the
+  // "Apply all" button in manual mode, or automatically in AI mode). Drives
+  // hiding the raw inputs behind a compact "auto-filled ✓" summary.
+  const [fieldsAutoFilled, setFieldsAutoFilled] = useState(false);
+  const [aiNotification, setAiNotification] = useState('');
+  // Per-photo (index >= 1) "does this look like the same item as photo 1"
+  // check — keyed by index into `imagePreviews`. Only populated in AI mode.
+  const [imageMatchStatus, setImageMatchStatus] = useState<Record<number, 'checking' | 'matched' | 'unmatched'>>({});
+  const checkedImageSrcs = useRef<Set<string>>(new Set());
+
+  const applyAiSuggestion = (s: NonNullable<typeof aiSuggestion>) => {
+    setForm((prev) => ({
+      ...prev,
+      ...(s.title ? { title: s.title } : {}),
+      ...(s.description ? { description: s.description } : {}),
+      ...(s.category ? { categoryId: s.category.id } : {}),
+    }));
+    setFieldsAutoFilled(true);
+    setAiNotification('✨ Title, description and category were auto-filled by AI from your first photo.');
+  };
 
   const handleAIAutoFill = async () => {
     // Use the first fully-uploaded photo (a permanent CDN URL). A `blob:`
     // preview is local to this browser tab and can't be fetched by the
-    // worker, so images still uploading are skipped.
-    const rawSourceUrl = imagePreviews.find((src) => !src.startsWith('blob:'));
+    // worker, so images still uploading are skipped. This is deliberately
+    // ONLY ever the first photo — the rest are checked for a matching item
+    // below rather than analyzed for their own title/description.
+    const firstIndex = imagePreviews.findIndex((src) => !src.startsWith('blob:'));
+    const rawSourceUrl = firstIndex >= 0 ? imagePreviews[firstIndex] : undefined;
     if (!rawSourceUrl) {
       setAiError('Please wait for at least one photo to finish uploading first.');
       setAiState('error');
@@ -662,20 +825,91 @@ function CreateListingContent() {
       }
 
       const category = suggestCategory(categories, [classifyLabel, description].filter(Boolean) as string[]);
+      const categoryLabelForDescription = category?.label ?? selectedCategoryLabel ?? null;
+      const ecommerceDescription = await buildEcommerceDescription(
+        description, classifyLabel, categoryLabelForDescription, form.condition
+      );
 
-      setAiSuggestion({
+      const suggestion = {
         title: buildSuggestedTitle(description, classifyLabel),
-        description,
+        description: ecommerceDescription,
         category,
         classifyLabel,
         classifyConfidence,
-      });
+      };
+      setAiSuggestion(suggestion);
       setAiState('ready');
+
+      if (aiMode === 'ai') {
+        applyAiSuggestion(suggestion);
+      }
+
+      // Kick off the "do the other photos match" check against this photo's
+      // hints. Fire-and-forget — results stream in per-photo below.
+      checkOtherImagesForMatch(firstIndex, [classifyLabel, description].filter(Boolean) as string[]);
     } catch (err) {
       setAiError((err as Error)?.message || 'AI analysis failed. Please try again.');
       setAiState('error');
     }
   };
+
+  /**
+   * Checks every other already-uploaded photo (skipping `baseIndex`, the
+   * one just analyzed for title/description) against the base photo's
+   * hints. Each gets its own classify+identify call and is flagged
+   * 'unmatched' when it shares no meaningful keyword with the base photo
+   * (e.g. a phone photo attached to a laptop listing) — a lightweight
+   * "does this look like the same kind of item" check per the requirement
+   * to flag non-matching photos rather than a literal word-rhyme check.
+   */
+  const checkOtherImagesForMatch = (baseIndex: number, baseHints: string[]) => {
+    imagePreviews.forEach((src, i) => {
+      if (i === baseIndex) return;
+      if (src.startsWith('blob:')) return; // still uploading — picked up by the effect below once it resolves
+      if (checkedImageSrcs.current.has(src)) return;
+      checkedImageSrcs.current.add(src);
+
+      setImageMatchStatus((prev) => ({ ...prev, [i]: 'checking' }));
+      const url = resolveImageUrl(src);
+      Promise.allSettled([identifyImageUrl(url), classifyImageUrl(url)])
+        .then(([identifyRes, classifyRes]) => {
+          const otherDescription = identifyRes.status === 'fulfilled' ? identifyRes.value.description : '';
+          const otherLabel = classifyRes.status === 'fulfilled' ? (classifyRes.value.topPrediction?.label ?? '') : '';
+          const { isMatch } = matchesSameItem(baseHints, [otherLabel, otherDescription].filter(Boolean));
+          setImageMatchStatus((prev) => ({ ...prev, [i]: isMatch ? 'matched' : 'unmatched' }));
+        })
+        .catch(() => {
+          // Analysis failed for this one photo — don't block the listing over it.
+          setImageMatchStatus((prev) => ({ ...prev, [i]: 'matched' }));
+        });
+    });
+  };
+
+  // Once a base suggestion exists, re-run the match check whenever a
+  // previously-uploading (`blob:`) photo resolves to its permanent URL, so
+  // photos added or finished uploading after the initial AI pass still get
+  // checked.
+  useEffect(() => {
+    if (!aiSuggestion) return;
+    const baseIndex = imagePreviews.findIndex((src) => !src.startsWith('blob:'));
+    if (baseIndex === -1) return;
+    const baseHints = [aiSuggestion.classifyLabel, aiSuggestion.description].filter(Boolean) as string[];
+    checkOtherImagesForMatch(baseIndex, baseHints);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [imagePreviews, aiSuggestion]);
+
+  // AI mode: automatically run the analysis as soon as the first photo has
+  // finished uploading (no manual button press required). Manual mode never
+  // triggers this — the seller must press "Auto-fill from photo".
+  useEffect(() => {
+    if (aiMode !== 'ai') return;
+    if (aiState !== 'idle') return;
+    if (uploadingImages) return;
+    const hasUploadedPhoto = imagePreviews.some((src) => !src.startsWith('blob:'));
+    if (!hasUploadedPhoto) return;
+    handleAIAutoFill();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aiMode, aiState, uploadingImages, imagePreviews]);
 
   const handleGetLocation = () => {
     if (!navigator.geolocation) {
@@ -1103,35 +1337,316 @@ function CreateListingContent() {
 
       <div className="mt-4 grid gap-4 lg:grid-cols-[1.5fr_0.65fr]">
         <form onSubmit={handlePreSubmit} className="space-y-4">
+          {/* ─── PHOTOS — first, so the AI has something to analyze before ─── */}
+          {/* the seller ever reaches the title/description/category fields.  */}
+          <section className="rounded-xl border border-white/60 bg-white/95 p-4 shadow-sm animate-slide-up">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-red-700">Photos</p>
+
+              {/* Manual vs AI-assisted toggle — AI stays fully optional. */}
+              <div className="inline-flex rounded-lg border border-gray-200 bg-gray-100 p-0.5 text-[11px] font-semibold">
+                <button
+                  type="button"
+                  onClick={() => setAiMode('manual')}
+                  aria-pressed={aiMode === 'manual'}
+                  className={`rounded-md px-2.5 py-1 transition-colors ${aiMode === 'manual' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500'}`}
+                >
+                  Manual
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAiMode('ai')}
+                  aria-pressed={aiMode === 'ai'}
+                  className={`rounded-md px-2.5 py-1 transition-colors ${aiMode === 'ai' ? 'bg-violet-600 text-white shadow-sm' : 'text-gray-500'}`}
+                >
+                  ✨ AI Auto-fill
+                </button>
+              </div>
+            </div>
+
+            {aiMode === 'ai' && (
+              <p className="mb-3 text-[11px] text-violet-700">
+                AI will read your first photo to suggest a title, description and category, then check the rest of your photos to make sure they&apos;re the same item.
+              </p>
+            )}
+
+            {uploadedCount > 0 && (
+              <div className="mb-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-2.5">
+                <p className="text-xs text-amber-700">
+                  <span className="font-semibold">{uploadedCount} image{uploadedCount !== 1 ? 's' : ''}</span> pending admin review — uploaded to secure storage, will appear on listing once approved.
+                </p>
+              </div>
+            )}
+
+            {imagePreviews.length > 0 && (
+              <div className="mb-3 flex flex-wrap gap-2">
+                {imagePreviews.map((src, i) => {
+                  const failed = failedPreviewSrcs.has(src);
+                  const isFirst = i === (imagePreviews.findIndex((s) => !s.startsWith('blob:')) === -1 ? 0 : imagePreviews.findIndex((s) => !s.startsWith('blob:')));
+                  const matchStatus = aiMode === 'ai' && !isFirst ? imageMatchStatus[i] : undefined;
+                  return (
+                    <div key={i} className="group relative h-20 w-20 overflow-hidden rounded-lg border border-gray-200">
+                      {failed ? (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-gray-100">
+                          <svg className="h-6 w-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                          <p className="px-1 text-center text-[7px] text-gray-400">Preview unavailable</p>
+                        </div>
+                      ) : (
+                        <Image
+                          src={resolveImageUrl(src)}
+                          alt={`Preview ${i + 1}`}
+                          fill
+                          className="object-cover"
+                          unoptimized
+                          onError={() => setFailedPreviewSrcs((prev) => new Set(prev).add(src))}
+                        />
+                      )}
+                      <div
+                        role="status"
+                        aria-label="Image pending approval"
+                        className="absolute bottom-0 left-0 right-0 bg-amber-500/80 text-white text-[8px] font-bold text-center py-0.5"
+                      >
+                        PENDING
+                      </div>
+                      {/* AI badges: photo 1 is the analyzed "source of truth"; the
+                          rest are flagged if they don't look like the same item. */}
+                      {aiMode === 'ai' && isFirst && aiState !== 'idle' && (
+                        <div className="absolute left-0 top-0 rounded-br-lg bg-violet-600/90 px-1 py-0.5 text-[7px] font-bold text-white">
+                          ANALYZED
+                        </div>
+                      )}
+                      {matchStatus === 'checking' && (
+                        <div className="absolute left-0 top-0 rounded-br-lg bg-gray-500/90 px-1 py-0.5 text-[7px] font-bold text-white">
+                          CHECKING…
+                        </div>
+                      )}
+                      {matchStatus === 'unmatched' && (
+                        <div className="absolute left-0 top-0 rounded-br-lg bg-red-600/90 px-1 py-0.5 text-[7px] font-bold text-white" title="This photo doesn't look like the same item as your first photo">
+                          ⚠ UNMATCHED
+                        </div>
+                      )}
+                      {matchStatus === 'matched' && (
+                        <div className="absolute left-0 top-0 rounded-br-lg bg-emerald-600/90 px-1 py-0.5 text-[7px] font-bold text-white">
+                          ✓ MATCH
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => removeImage(i)}
+                        className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white opacity-80 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
+                        aria-label="Remove image"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {Object.values(imageMatchStatus).some((s) => s === 'unmatched') && (
+              <div className="mb-3 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-2.5">
+                <p className="text-xs text-red-700">
+                  <span className="font-semibold">⚠ Unmatched photo(s) detected —</span> one or more photos don&apos;t look like the same item as your first photo. Remove them or re-check they belong to this listing before posting.
+                </p>
+              </div>
+            )}
+
+            {imagePreviews.some((src) => !src.startsWith('blob:')) && (
+              <div className="mb-3">
+                {aiMode === 'manual' && (
+                  <button
+                    type="button"
+                    onClick={handleAIAutoFill}
+                    disabled={aiState === 'analyzing' || uploadingImages}
+                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-xs font-semibold text-white hover:bg-violet-700 disabled:opacity-60 transition-colors"
+                  >
+                    {aiState === 'analyzing' ? 'Analyzing photo…' : '✨ Auto-fill from photo (AI)'}
+                  </button>
+                )}
+                {aiMode === 'ai' && aiState === 'analyzing' && (
+                  <p className="text-center text-xs font-medium text-violet-700">✨ Analyzing your first photo…</p>
+                )}
+
+                {aiState === 'error' && aiError && (
+                  <p className="mt-2 text-xs text-red-600">{aiError}</p>
+                )}
+
+                {/* Manual mode: suggestion is shown as opt-in Use/Apply buttons.
+                    AI mode: the suggestion is applied automatically (see
+                    applyAiSuggestion in handleAIAutoFill), so nothing further
+                    to show here once it's ready — the notification banner
+                    lives in the Product details section instead. */}
+                {aiMode === 'manual' && aiState === 'ready' && aiSuggestion && (
+                  <div className="mt-3 space-y-2 rounded-lg border border-violet-200 bg-violet-50 p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-[11px] font-semibold text-violet-800">
+                        AI Suggestions
+                        {aiSuggestion.classifyLabel && (
+                          <span className="font-normal text-violet-600">
+                            {' '}· detected &ldquo;{aiSuggestion.classifyLabel}&rdquo;
+                            {aiSuggestion.classifyConfidence != null && ` (${aiSuggestion.classifyConfidence.toFixed(0)}%)`}
+                          </span>
+                        )}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => applyAiSuggestion(aiSuggestion)}
+                        className="shrink-0 rounded-md border border-violet-600 px-2 py-1 text-[11px] font-semibold text-violet-700 hover:bg-violet-100"
+                      >
+                        Apply all
+                      </button>
+                    </div>
+
+                    {aiSuggestion.title && (
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-medium uppercase tracking-wide text-violet-500">Title</p>
+                          <p className="truncate text-xs text-gray-700">{aiSuggestion.title}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setForm((prev) => ({ ...prev, title: aiSuggestion.title }))}
+                          className="shrink-0 rounded-md bg-violet-600 px-2 py-1 text-[11px] font-semibold text-white hover:bg-violet-700"
+                        >
+                          Use
+                        </button>
+                      </div>
+                    )}
+
+                    {aiSuggestion.description && (
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-medium uppercase tracking-wide text-violet-500">Description</p>
+                          <p className="line-clamp-3 text-xs text-gray-700">{aiSuggestion.description}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setForm((prev) => ({ ...prev, description: aiSuggestion.description }))}
+                          className="shrink-0 rounded-md bg-violet-600 px-2 py-1 text-[11px] font-semibold text-white hover:bg-violet-700"
+                        >
+                          Use
+                        </button>
+                      </div>
+                    )}
+
+                    {aiSuggestion.category && (
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-medium uppercase tracking-wide text-violet-500">Category</p>
+                          <p className="truncate text-xs text-gray-700">{aiSuggestion.category.label}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setForm((prev) => ({ ...prev, categoryId: aiSuggestion.category!.id }))}
+                          className="shrink-0 rounded-md bg-violet-600 px-2 py-1 text-[11px] font-semibold text-white hover:bg-violet-700"
+                        >
+                          Use
+                        </button>
+                      </div>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => { setAiSuggestion(null); setAiState('idle'); }}
+                      className="text-[11px] text-gray-500 underline"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div
+              role="button"
+              tabIndex={0}
+              className="rounded-xl border-2 border-dashed border-gray-300 p-4 text-center transition-colors hover:border-red-400 cursor-pointer"
+              onClick={() => fileInputRef.current?.click()}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInputRef.current?.click(); } }}
+            >
+              {uploadingImages ? (
+                <p className="text-sm text-gray-500">Uploading to secure storage…</p>
+              ) : (
+                <>
+                  <p className="mb-1 text-2xl">📷</p>
+                  <p className="text-sm font-medium text-gray-700">Click to upload photos</p>
+                  <p className="mt-0.5 text-xs text-gray-400">JPG, PNG, GIF · up to 10 MB each</p>
+                </>
+              )}
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/gif"
+              multiple
+              className="hidden"
+              onChange={(e) => handleImageFiles(e.target.files)}
+            />
+          </section>
+
           <section className="rounded-xl border border-white/60 bg-white/95 p-4 shadow-sm animate-slide-up">
             {error && <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
 
-            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-red-700 mb-3">Product details</p>
-
-            <div className="space-y-3">
-              <div>
-                <label className="mb-1 block text-xs font-medium text-gray-700">Title *</label>
-                <input
-                  type="text"
-                  value={form.title}
-                  onChange={(e) => setForm({ ...form, title: e.target.value })}
-                  placeholder="e.g. iPhone 15 Pro Max 256GB"
-                  maxLength={100}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-400"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1 block text-xs font-medium text-gray-700">Description *</label>
-                <textarea
-                  value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  rows={4}
-                  placeholder="Describe brand, model, condition, warranty, accessories, and any details a buyer should know."
-                  className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-400"
-                />
-              </div>
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-red-700">Product details</p>
+              {fieldsAutoFilled && (
+                <button
+                  type="button"
+                  onClick={() => { setFieldsAutoFilled(false); setAiNotification(''); }}
+                  className="text-[11px] font-semibold text-violet-700 underline"
+                >
+                  Edit manually
+                </button>
+              )}
             </div>
+
+            {fieldsAutoFilled ? (
+              // Fields were just auto-filled by AI — collapse the raw inputs
+              // behind a compact, read-only summary + notification rather
+              // than showing the (now redundant) editable form underneath.
+              <div className="space-y-2">
+                <div className="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-2.5">
+                  <span className="text-emerald-600">✓</span>
+                  <p className="text-xs text-emerald-800">{aiNotification || 'Title and description were auto-filled by AI.'}</p>
+                </div>
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                  <p className="text-[10px] font-medium uppercase tracking-wide text-gray-400">Title</p>
+                  <p className="text-sm font-medium text-gray-800">{form.title}</p>
+                </div>
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                  <p className="text-[10px] font-medium uppercase tracking-wide text-gray-400">Description</p>
+                  <p className="whitespace-pre-line text-xs text-gray-700 line-clamp-6">{form.description}</p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-gray-700">Title *</label>
+                  <input
+                    type="text"
+                    value={form.title}
+                    onChange={(e) => setForm({ ...form, title: e.target.value })}
+                    placeholder="e.g. iPhone 15 Pro Max 256GB"
+                    maxLength={100}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-gray-700">Description *</label>
+                  <textarea
+                    value={form.description}
+                    onChange={(e) => setForm({ ...form, description: e.target.value })}
+                    rows={4}
+                    placeholder="Describe brand, model, condition, warranty, accessories, and any details a buyer should know."
+                    className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-400"
+                  />
+                </div>
+              </div>
+            )}
           </section>
 
           <section
@@ -1729,188 +2244,7 @@ function CreateListingContent() {
             {geoError && <p className="mt-2 text-xs text-red-600">{geoError}</p>}
           </section>
 
-          <section className="rounded-xl border border-white/60 bg-white/95 p-4 shadow-sm animate-slide-up" style={{ animationDelay: '120ms' }}>
-            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-red-700 mb-3">Photos</p>
 
-            {uploadedCount > 0 && (
-              <div className="mb-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-2.5">
-                <p className="text-xs text-amber-700">
-                  <span className="font-semibold">{uploadedCount} image{uploadedCount !== 1 ? 's' : ''}</span> pending admin review — uploaded to secure storage, will appear on listing once approved.
-                </p>
-              </div>
-            )}
-
-            {imagePreviews.length > 0 && (
-              <div className="mb-3 flex flex-wrap gap-2">
-                {imagePreviews.map((src, i) => {
-                  const failed = failedPreviewSrcs.has(src);
-                  return (
-                    <div key={i} className="group relative h-20 w-20 overflow-hidden rounded-lg border border-gray-200">
-                      {failed ? (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-gray-100">
-                          <svg className="h-6 w-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
-                          <p className="px-1 text-center text-[7px] text-gray-400">Preview unavailable</p>
-                        </div>
-                      ) : (
-                        <Image
-                          src={resolveImageUrl(src)}
-                          alt={`Preview ${i + 1}`}
-                          fill
-                          className="object-cover"
-                          unoptimized
-                          onError={() => setFailedPreviewSrcs((prev) => new Set(prev).add(src))}
-                        />
-                      )}
-                      <div
-                        role="status"
-                        aria-label="Image pending approval"
-                        className="absolute bottom-0 left-0 right-0 bg-amber-500/80 text-white text-[8px] font-bold text-center py-0.5"
-                      >
-                        PENDING
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => removeImage(i)}
-                        className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white opacity-80 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
-                        aria-label="Remove image"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {imagePreviews.some((src) => !src.startsWith('blob:')) && (
-              <div className="mb-3">
-                <button
-                  type="button"
-                  onClick={handleAIAutoFill}
-                  disabled={aiState === 'analyzing' || uploadingImages}
-                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-xs font-semibold text-white hover:bg-violet-700 disabled:opacity-60 transition-colors"
-                >
-                  {aiState === 'analyzing' ? 'Analyzing photo…' : '✨ Auto-fill from photo (AI)'}
-                </button>
-
-                {aiState === 'error' && aiError && (
-                  <p className="mt-2 text-xs text-red-600">{aiError}</p>
-                )}
-
-                {aiState === 'ready' && aiSuggestion && (
-                  <div className="mt-3 space-y-2 rounded-lg border border-violet-200 bg-violet-50 p-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="text-[11px] font-semibold text-violet-800">
-                        AI Suggestions
-                        {aiSuggestion.classifyLabel && (
-                          <span className="font-normal text-violet-600">
-                            {' '}· detected &ldquo;{aiSuggestion.classifyLabel}&rdquo;
-                            {aiSuggestion.classifyConfidence != null && ` (${aiSuggestion.classifyConfidence.toFixed(0)}%)`}
-                          </span>
-                        )}
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => setForm((prev) => ({
-                          ...prev,
-                          ...(aiSuggestion.title ? { title: aiSuggestion.title } : {}),
-                          ...(aiSuggestion.description ? { description: aiSuggestion.description } : {}),
-                          ...(aiSuggestion.category ? { categoryId: aiSuggestion.category.id } : {}),
-                        }))}
-                        className="shrink-0 rounded-md border border-violet-600 px-2 py-1 text-[11px] font-semibold text-violet-700 hover:bg-violet-100"
-                      >
-                        Apply all
-                      </button>
-                    </div>
-
-                    {aiSuggestion.title && (
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="text-[10px] font-medium uppercase tracking-wide text-violet-500">Title</p>
-                          <p className="truncate text-xs text-gray-700">{aiSuggestion.title}</p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setForm((prev) => ({ ...prev, title: aiSuggestion.title }))}
-                          className="shrink-0 rounded-md bg-violet-600 px-2 py-1 text-[11px] font-semibold text-white hover:bg-violet-700"
-                        >
-                          Use
-                        </button>
-                      </div>
-                    )}
-
-                    {aiSuggestion.description && (
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="text-[10px] font-medium uppercase tracking-wide text-violet-500">Description</p>
-                          <p className="line-clamp-3 text-xs text-gray-700">{aiSuggestion.description}</p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setForm((prev) => ({ ...prev, description: aiSuggestion.description }))}
-                          className="shrink-0 rounded-md bg-violet-600 px-2 py-1 text-[11px] font-semibold text-white hover:bg-violet-700"
-                        >
-                          Use
-                        </button>
-                      </div>
-                    )}
-
-                    {aiSuggestion.category && (
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="text-[10px] font-medium uppercase tracking-wide text-violet-500">Category</p>
-                          <p className="truncate text-xs text-gray-700">{aiSuggestion.category.label}</p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setForm((prev) => ({ ...prev, categoryId: aiSuggestion.category!.id }))}
-                          className="shrink-0 rounded-md bg-violet-600 px-2 py-1 text-[11px] font-semibold text-white hover:bg-violet-700"
-                        >
-                          Use
-                        </button>
-                      </div>
-                    )}
-
-                    <button
-                      type="button"
-                      onClick={() => { setAiSuggestion(null); setAiState('idle'); }}
-                      className="text-[11px] text-gray-500 underline"
-                    >
-                      Dismiss
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div
-              role="button"
-              tabIndex={0}
-              className="rounded-xl border-2 border-dashed border-gray-300 p-4 text-center transition-colors hover:border-red-400 cursor-pointer"
-              onClick={() => fileInputRef.current?.click()}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInputRef.current?.click(); } }}
-            >
-              {uploadingImages ? (
-                <p className="text-sm text-gray-500">Uploading to secure storage…</p>
-              ) : (
-                <>
-                  <p className="mb-1 text-2xl">📷</p>
-                  <p className="text-sm font-medium text-gray-700">Click to upload photos</p>
-                  <p className="mt-0.5 text-xs text-gray-400">JPG, PNG, GIF · up to 10 MB each</p>
-                </>
-              )}
-            </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/gif"
-              multiple
-              className="hidden"
-              onChange={(e) => handleImageFiles(e.target.files)}
-            />
-          </section>
 
           <button
             type="submit"

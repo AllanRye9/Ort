@@ -119,6 +119,25 @@ export default function HeroSlideshow({
   }, [advance, interval, slides.length]);
 
   const handleImageError = (index: number) => {
+    // The slideshow already falls back to a placeholder UI below, so this is
+    // purely diagnostic — but the default Next/browser 404 log for these
+    // gives no indication of *what* failed or *why*, which makes it easy to
+    // mistake for an app-code bug. Log a labelled message pointing at the
+    // real cause: the DB `SiteMedia` row for this hero slide still points at
+    // a file (see `image`) that no longer exists in backend storage
+    // (deleted from disk/S3, or wiped on a redeploy without a persistent
+    // volume). Fix: re-upload the image in Admin > Media, or delete the
+    // stale SiteMedia row.
+    const slide = slides[index];
+    console.error(
+      `[HeroSlideshow] Slide ${index + 1}/${slides.length} failed to load — `
+        + `origin: admin-uploaded hero image (SiteMedia, section="hero"), `
+        + `not a code bug. The backend storage file referenced by this slide `
+        + `is missing (404), likely deleted or lost on redeploy.\n`
+        + `  alt: "${slide?.alt ?? ''}"\n`
+        + `  url: ${slide?.image ?? '(unknown)'}\n`
+        + `Fix: re-upload the image in Admin > Media, or remove the stale entry.`
+    );
     setFailedImages((prev) => new Set(prev).add(index));
   };
 
