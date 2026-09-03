@@ -200,16 +200,20 @@ function toTitleCase(text: string): string {
 const TITLE_MAX_LENGTH = 70; // short, scannable — matches standard ecommerce listing titles
 
 /**
- * Builds a short, listing-style title from the AI's outputs. Prefers the
- * classify label (a clean noun phrase like "laptop computer, notebook
- * computer") as the anchor since it parses far better than the identify
- * model's full descriptive sentence, then folds in distinguishing detail
- * from that sentence (first clause only) when there's room. Falls back to
- * the identify description alone if no classify label came back.
+ * Builds a short, listing-style title from the AI's outputs.
+ *
+ * Per spec: the TITLE comes from the *identification* (the vision-language
+ * model's natural-language description of what's actually in the photo —
+ * brand, model, distinguishing detail), not the classifier. Classification
+ * is a generic taxonomy label (e.g. "laptop computer, notebook computer")
+ * and is reserved for the separate cross-photo matching check — using it
+ * as the title source would produce generic, non-product-specific titles.
+ * The classify label is only used here as a last-resort fallback when
+ * identification returned nothing at all.
  */
 function buildSuggestedTitle(description: string, classifyLabel: string | null): string {
   const cleanLabel = (classifyLabel || '').split(',')[0].trim(); // classify labels are often "a, b, c" synonym lists — first is best
-  let base = (cleanLabel || description || '').trim();
+  let base = (description || cleanLabel || '').trim();
   if (!base) return '';
 
   for (const re of TITLE_FILLER_PREFIXES) base = base.replace(re, '');
@@ -218,27 +222,7 @@ function buildSuggestedTitle(description: string, classifyLabel: string | null):
   base = base.replace(/\s+/g, ' ').trim();
   if (!base) return '';
 
-  let title = toTitleCase(base);
-
-  // If the classify label was short and generic, enrich it with the first
-  // few distinguishing words from the identify description (e.g. brand,
-  // material) as long as it still fits comfortably in a title.
-  if (cleanLabel && description && title.length < 30) {
-    let extra = description;
-    for (const re of TITLE_FILLER_PREFIXES) extra = extra.replace(re, '');
-    extra = (extra.split(/[.!?]/)[0] || '').trim();
-    const extraWords = extra.split(' ').filter(Boolean);
-    const lowerTitle = title.toLowerCase();
-    const additions: string[] = [];
-    for (const w of extraWords) {
-      const candidate = [...additions, w].join(' ');
-      if ((title + ' ' + candidate).length > TITLE_MAX_LENGTH) break;
-      if (!lowerTitle.includes(w.toLowerCase())) additions.push(w);
-      if (additions.length >= 4) break;
-    }
-    if (additions.length > 0) title = `${toTitleCase(additions.join(' '))} ${title}`;
-  }
-
+  const title = toTitleCase(base);
   return title.length > TITLE_MAX_LENGTH ? `${title.slice(0, TITLE_MAX_LENGTH - 1).trim()}…` : title;
 }
 
@@ -755,6 +739,9 @@ function CreateListingContent() {
     category: CategoryMatch | null;
     classifyLabel: string | null;
     classifyConfidence: number | null;
+    // The top classify predictions for photo 1, kept around so the "do the
+    // other photos match" check can reuse them without re-analyzing photo 1.
+    classifyHints: string[];
   } | null>(null);
   // Manual vs AI-assisted entry. Manual (default) leaves every field exactly
   // as before. AI mode auto-runs the photo analysis as soon as the first
@@ -784,7 +771,9 @@ function CreateListingContent() {
   };
 
   const handleAIAutoFill = async () => {
-    // Use the first fully-uploaded photo (a permanent CDN URL). A `blob:`
+    // Use the first fully-uploaded photo (a permanent CDN URL, whether that's
+    // an S3-backed /api/images/... URL or the local-storage fallback — either
+    // way it must already be a real, publicly-reachable URL). A `blob:`
     // preview is local to this browser tab and can't be fetched by the
     // worker, so images still uploading are skipped. This is deliberately
     // ONLY ever the first photo — the rest are checked for a matching item
@@ -799,7 +788,9 @@ function CreateListingContent() {
     // The image-AI worker is an external Cloudflare Worker with no browser
     // context — it can only fetch an absolute, publicly-reachable URL, not
     // a relative "/uploads/..." or "/api/images/..." path. resolveImageUrl
-    // turns that into the full backend URL the worker can actually reach.
+    // turns that into the full backend URL the worker can actually reach
+    // (which, for S3-backed uploads, is the /api/images proxy that streams
+    // straight from the bucket).
     const sourceUrl = resolveImageUrl(rawSourceUrl);
 
     setAiState('analyzing');
@@ -810,11 +801,23 @@ function CreateListingContent() {
         classifyImageUrl(sourceUrl),
       ]);
 
+      // IDENTIFICATION -> title. The vision-language model's natural-language
+      // description is what actually names the item (brand/model/material),
+      // so it — not the classifier — is the source for the title.
       const description = identifyResult.status === 'fulfilled' ? identifyResult.value.description.trim() : '';
+      // CLASSIFICATION -> cross-photo matching only (see classifyHints below).
       const classifyLabel =
         classifyResult.status === 'fulfilled' ? classifyResult.value.topPrediction?.label ?? null : null;
       const classifyConfidence =
         classifyResult.status === 'fulfilled' ? classifyResult.value.topPrediction?.confidence ?? null : null;
+      // Take the top few predictions (not just #1) as the matching signal —
+      // classifiers are often ambiguous between close labels (e.g. "laptop,
+      // notebook computer, portable computer"), so using only the single top
+      // label would make the same-item check too brittle.
+      const classifyHints =
+        classifyResult.status === 'fulfilled'
+          ? classifyResult.value.predictions.slice(0, 3).map((p) => p.label)
+          : [];
 
       if (!description && !classifyLabel) {
         const firstError =
@@ -836,6 +839,7 @@ function CreateListingContent() {
         category,
         classifyLabel,
         classifyConfidence,
+        classifyHints: classifyHints.length > 0 ? classifyHints : ([classifyLabel].filter(Boolean) as string[]),
       };
       setAiSuggestion(suggestion);
       setAiState('ready');
@@ -844,9 +848,9 @@ function CreateListingContent() {
         applyAiSuggestion(suggestion);
       }
 
-      // Kick off the "do the other photos match" check against this photo's
-      // hints. Fire-and-forget — results stream in per-photo below.
-      checkOtherImagesForMatch(firstIndex, [classifyLabel, description].filter(Boolean) as string[]);
+      // Kick off the "do the other photos match" check, using CLASSIFICATION
+      // only (not identification) as the signal — see checkOtherImagesForMatch.
+      checkOtherImagesForMatch(firstIndex, suggestion.classifyHints);
     } catch (err) {
       setAiError((err as Error)?.message || 'AI analysis failed. Please try again.');
       setAiState('error');
@@ -855,14 +859,18 @@ function CreateListingContent() {
 
   /**
    * Checks every other already-uploaded photo (skipping `baseIndex`, the
-   * one just analyzed for title/description) against the base photo's
-   * hints. Each gets its own classify+identify call and is flagged
-   * 'unmatched' when it shares no meaningful keyword with the base photo
-   * (e.g. a phone photo attached to a laptop listing) — a lightweight
-   * "does this look like the same kind of item" check per the requirement
-   * to flag non-matching photos rather than a literal word-rhyme check.
+   * one just analyzed for title/description) against photo 1's
+   * *classification* — not its identification/description. Classification
+   * gives a stable taxonomy label ("laptop computer", "smartphone", etc.)
+   * that's a much more reliable "is this the same kind of item" signal than
+   * comparing two free-text descriptions, which vary a lot in wording even
+   * for the same physical item. Each other photo only needs its own
+   * classify call (no identify call — its description is never used, since
+   * only photo 1 supplies the title). Flagged 'unmatched' when it shares no
+   * classification keyword with photo 1 (e.g. a phone photo attached to a
+   * laptop listing).
    */
-  const checkOtherImagesForMatch = (baseIndex: number, baseHints: string[]) => {
+  const checkOtherImagesForMatch = (baseIndex: number, baseClassifyHints: string[]) => {
     imagePreviews.forEach((src, i) => {
       if (i === baseIndex) return;
       if (src.startsWith('blob:')) return; // still uploading — picked up by the effect below once it resolves
@@ -871,15 +879,14 @@ function CreateListingContent() {
 
       setImageMatchStatus((prev) => ({ ...prev, [i]: 'checking' }));
       const url = resolveImageUrl(src);
-      Promise.allSettled([identifyImageUrl(url), classifyImageUrl(url)])
-        .then(([identifyRes, classifyRes]) => {
-          const otherDescription = identifyRes.status === 'fulfilled' ? identifyRes.value.description : '';
-          const otherLabel = classifyRes.status === 'fulfilled' ? (classifyRes.value.topPrediction?.label ?? '') : '';
-          const { isMatch } = matchesSameItem(baseHints, [otherLabel, otherDescription].filter(Boolean));
+      classifyImageUrl(url)
+        .then((result) => {
+          const otherHints = result.predictions.slice(0, 3).map((p) => p.label);
+          const { isMatch } = matchesSameItem(baseClassifyHints, otherHints);
           setImageMatchStatus((prev) => ({ ...prev, [i]: isMatch ? 'matched' : 'unmatched' }));
         })
         .catch(() => {
-          // Analysis failed for this one photo — don't block the listing over it.
+          // Classification failed for this one photo — don't block the listing over it.
           setImageMatchStatus((prev) => ({ ...prev, [i]: 'matched' }));
         });
     });
@@ -893,8 +900,7 @@ function CreateListingContent() {
     if (!aiSuggestion) return;
     const baseIndex = imagePreviews.findIndex((src) => !src.startsWith('blob:'));
     if (baseIndex === -1) return;
-    const baseHints = [aiSuggestion.classifyLabel, aiSuggestion.description].filter(Boolean) as string[];
-    checkOtherImagesForMatch(baseIndex, baseHints);
+    checkOtherImagesForMatch(baseIndex, aiSuggestion.classifyHints);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [imagePreviews, aiSuggestion]);
 
