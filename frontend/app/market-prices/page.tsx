@@ -210,9 +210,9 @@ export default function MarketPricesPage() {
             🌾
           </div>
           <div>
-            <h1 className="text-2xl font-black text-gray-900">Uganda Market Price Watch</h1>
+            <h1 className="text-2xl font-black text-gray-900 tracking-wide uppercase">Uganda Market Prices</h1>
             <p className="text-sm text-gray-500 mt-0.5 max-w-2xl">
-              Everyday commodity prices across Uganda, kept up to date by our team so buyers, traders, and businesses can check fair market value before they buy or sell.
+              Everyday commodity prices from Uganda&apos;s local markets, kept up to date by our team so buyers, traders, and businesses can check fair market value before they buy or sell.
             </p>
             {updatedAt && (
               <p className="text-xs text-gray-400 mt-1 flex items-center gap-1.5">

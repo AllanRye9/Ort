@@ -116,10 +116,12 @@ export default function CommodityPriceWidget() {
     <div className="flex-1 min-w-0 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
       {/* ── Header bar ── */}
       <div className="bg-white border-b border-gray-200 px-2 py-[5px] flex items-center flex-nowrap justify-between gap-1">
-        <div className="flex items-center flex-nowrap gap-1.5 min-w-0">
-          <span className="shrink-0 text-sm leading-none" aria-hidden="true">🇺🇬</span>
-          <span className="text-[9px] font-black tracking-widest uppercase text-red-700 whitespace-nowrap">UGANDA MARKET PRICES</span>
-          <span className="hidden xs:inline text-[7px] text-gray-500 uppercase tracking-wide whitespace-nowrap">· Market Price Watch</span>
+        <div className="flex items-start gap-1.5 min-w-0">
+          <span className="shrink-0 text-sm leading-none mt-px" aria-hidden="true">🇺🇬</span>
+          <div className="min-w-0 leading-tight">
+            <p className="text-[9px] font-black tracking-widest uppercase text-red-700 whitespace-nowrap">UGANDA MARKET PRICES</p>
+            <p className="hidden xs:block text-[7px] text-gray-500 truncate">Everyday commodity prices from Uganda&apos;s local markets.</p>
+          </div>
         </div>
         <Link
           href="/market-prices"
