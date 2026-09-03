@@ -8,7 +8,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useCountry } from '@/context/CountryContext';
 import { api } from '@/lib/api';
 import { Category, Country, SellerPackage, SellerSubscription } from '@/lib/types';
-import { getCurrency, getLocations } from '@/lib/utils';
+import { getCurrency, getLocations, resolveImageUrl } from '@/lib/utils';
 import CategoryPicker from '@/components/ui/CategoryPicker';
 import {
   saveListingDraft,
@@ -240,6 +240,13 @@ function CreateListingContent() {
   const [uploadedCount, setUploadedCount] = useState(0);
   const [editLoading, setEditLoading] = useState(isEditMode);
   const [existingImages, setExistingImages] = useState<string[]>([]);
+  // Tracks which already-uploaded photos failed to actually load (e.g. a
+  // relative /uploads/ or /api/images/ URL that 404s). Keyed by the raw
+  // (unresolved) src string rather than array index, since removeImage()
+  // shifts indices but the raw src stays a stable identity for whichever
+  // photo actually failed. Uploaded photos must always remain visible —
+  // a failed load falls back to a placeholder instead of a broken image.
+  const [failedPreviewSrcs, setFailedPreviewSrcs] = useState<Set<string>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
   // Package selection state (shown when no active subscription)
   const [selectedPkgId, setSelectedPkgId] = useState<string | null>(null);
@@ -583,6 +590,14 @@ function CreateListingContent() {
     setImagePreviews((prev) => prev.filter((_, i) => i !== index));
     setPendingImageIds((prev) => prev.filter((_, i) => i !== index));
     if (removedUrl) setExistingImages((prev) => prev.filter((url) => url !== removedUrl));
+    if (removedUrl) {
+      setFailedPreviewSrcs((prev) => {
+        if (!prev.has(removedUrl)) return prev;
+        const next = new Set(prev);
+        next.delete(removedUrl);
+        return next;
+      });
+    }
     if (uploadedCount > 0) setUploadedCount((prev) => prev - 1);
     // A removed photo may be the one an existing AI suggestion was based on —
     // clear it rather than leave a suggestion pointing at a gone image.
@@ -594,9 +609,10 @@ function CreateListingContent() {
 
   // ── AI photo auto-fill (classify + identify via the image-AI worker) ───
   // Never writes to `form` on its own — it only ever populates `aiSuggestion`,
-  // and each field is applied to the form individually via an explicit
-  // "Use" click, so an in-progress title/description/category is never
-  // silently overwritten.
+  // and the fields are applied to the form via an explicit click: either
+  // individually via each field's "Use" button, or all at once via "Apply
+  // all". Either way it's a deliberate user action, so an in-progress
+  // title/description/category is never silently overwritten.
   const [aiState, setAiState] = useState<'idle' | 'analyzing' | 'ready' | 'error'>('idle');
   const [aiError, setAiError] = useState('');
   const [aiSuggestion, setAiSuggestion] = useState<{
@@ -611,12 +627,17 @@ function CreateListingContent() {
     // Use the first fully-uploaded photo (a permanent CDN URL). A `blob:`
     // preview is local to this browser tab and can't be fetched by the
     // worker, so images still uploading are skipped.
-    const sourceUrl = imagePreviews.find((src) => !src.startsWith('blob:'));
-    if (!sourceUrl) {
+    const rawSourceUrl = imagePreviews.find((src) => !src.startsWith('blob:'));
+    if (!rawSourceUrl) {
       setAiError('Please wait for at least one photo to finish uploading first.');
       setAiState('error');
       return;
     }
+    // The image-AI worker is an external Cloudflare Worker with no browser
+    // context — it can only fetch an absolute, publicly-reachable URL, not
+    // a relative "/uploads/..." or "/api/images/..." path. resolveImageUrl
+    // turns that into the full backend URL the worker can actually reach.
+    const sourceUrl = resolveImageUrl(rawSourceUrl);
 
     setAiState('analyzing');
     setAiError('');
@@ -1721,32 +1742,45 @@ function CreateListingContent() {
 
             {imagePreviews.length > 0 && (
               <div className="mb-3 flex flex-wrap gap-2">
-                {imagePreviews.map((src, i) => (
-                  <div key={i} className="group relative h-20 w-20 overflow-hidden rounded-lg border border-gray-200">
-                    <Image
-                      src={src}
-                      alt={`Preview ${i + 1}`}
-                      fill
-                      className="object-cover"
-                      unoptimized
-                    />
-                    <div
-                      role="status"
-                      aria-label="Image pending approval"
-                      className="absolute bottom-0 left-0 right-0 bg-amber-500/80 text-white text-[8px] font-bold text-center py-0.5"
-                    >
-                      PENDING
+                {imagePreviews.map((src, i) => {
+                  const failed = failedPreviewSrcs.has(src);
+                  return (
+                    <div key={i} className="group relative h-20 w-20 overflow-hidden rounded-lg border border-gray-200">
+                      {failed ? (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-gray-100">
+                          <svg className="h-6 w-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                          <p className="px-1 text-center text-[7px] text-gray-400">Preview unavailable</p>
+                        </div>
+                      ) : (
+                        <Image
+                          src={resolveImageUrl(src)}
+                          alt={`Preview ${i + 1}`}
+                          fill
+                          className="object-cover"
+                          unoptimized
+                          onError={() => setFailedPreviewSrcs((prev) => new Set(prev).add(src))}
+                        />
+                      )}
+                      <div
+                        role="status"
+                        aria-label="Image pending approval"
+                        className="absolute bottom-0 left-0 right-0 bg-amber-500/80 text-white text-[8px] font-bold text-center py-0.5"
+                      >
+                        PENDING
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeImage(i)}
+                        className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white opacity-80 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
+                        aria-label="Remove image"
+                      >
+                        ×
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => removeImage(i)}
-                      className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white opacity-80 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
-                      aria-label="Remove image"
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
@@ -1767,15 +1801,29 @@ function CreateListingContent() {
 
                 {aiState === 'ready' && aiSuggestion && (
                   <div className="mt-3 space-y-2 rounded-lg border border-violet-200 bg-violet-50 p-3">
-                    <p className="text-[11px] font-semibold text-violet-800">
-                      AI Suggestions
-                      {aiSuggestion.classifyLabel && (
-                        <span className="font-normal text-violet-600">
-                          {' '}· detected &ldquo;{aiSuggestion.classifyLabel}&rdquo;
-                          {aiSuggestion.classifyConfidence != null && ` (${aiSuggestion.classifyConfidence.toFixed(0)}%)`}
-                        </span>
-                      )}
-                    </p>
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-[11px] font-semibold text-violet-800">
+                        AI Suggestions
+                        {aiSuggestion.classifyLabel && (
+                          <span className="font-normal text-violet-600">
+                            {' '}· detected &ldquo;{aiSuggestion.classifyLabel}&rdquo;
+                            {aiSuggestion.classifyConfidence != null && ` (${aiSuggestion.classifyConfidence.toFixed(0)}%)`}
+                          </span>
+                        )}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setForm((prev) => ({
+                          ...prev,
+                          ...(aiSuggestion.title ? { title: aiSuggestion.title } : {}),
+                          ...(aiSuggestion.description ? { description: aiSuggestion.description } : {}),
+                          ...(aiSuggestion.category ? { categoryId: aiSuggestion.category.id } : {}),
+                        }))}
+                        className="shrink-0 rounded-md border border-violet-600 px-2 py-1 text-[11px] font-semibold text-violet-700 hover:bg-violet-100"
+                      >
+                        Apply all
+                      </button>
+                    </div>
 
                     {aiSuggestion.title && (
                       <div className="flex items-start justify-between gap-2">
