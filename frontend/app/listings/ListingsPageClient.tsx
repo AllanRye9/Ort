@@ -140,8 +140,8 @@ function ListingsContent() {
 
   const PLACEMENT_LABELS: Record<string, { title: string; subtitle: string; icon: string }> = {
     FEATURED_DEAL:      { title: "Today's Deals",    subtitle: "Hand-picked deals and featured offers.", icon: '🔥' },
-    FLASH_SALE:         { title: 'Flash Sales',       subtitle: "Limited-time flash sales — grab them before they're gone!", icon: '⚡' },
-    LATEST_COLLECTIONS: { title: 'New Collections',  subtitle: 'Freshly added collections from our best stores.', icon: '✨' },
+    FLASH_SALE:         { title: 'Flash Deals',       subtitle: "Limited-time flash deals — grab them before they're gone!", icon: '⚡' },
+    LATEST_COLLECTIONS: { title: 'New Collections',  subtitle: 'Freshly added collections from our best Web Stores.', icon: '✨' },
   };
   const placementMeta = PLACEMENT_LABELS[placement];
 

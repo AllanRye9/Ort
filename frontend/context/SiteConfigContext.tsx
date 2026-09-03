@@ -30,14 +30,6 @@ interface SiteConfig {
   whatsappNumber: string | null;
   todaysDeals: Deal[];
   headerTheme: string | null;
-  logoUrl: string | null;
-  logoPages: string[];
-  logoAltText: string | null;
-  logoSize: number;
-  logoLinkUrl: string | null;
-  /** "inline" = logo next to the "PIITRADE EXCHANGE · Money Transfer Rates" text (default).
-   *  "replace" = the image replaces that text section entirely. */
-  logoDisplayMode: 'inline' | 'replace';
   /** CDN URL of the admin-uploaded "LIVE NOW / SHOP NOW" promo video shown
    *  beside the homepage hero slideshow. null = show a branded placeholder
    *  instead of a video. */
@@ -56,12 +48,6 @@ const defaultConfig: SiteConfig = {
   whatsappNumber: null,
   todaysDeals: [],
   headerTheme: null,
-  logoUrl: null,
-  logoPages: [],
-  logoAltText: null,
-  logoSize: 28,
-  logoLinkUrl: null,
-  logoDisplayMode: 'inline',
   promoVideoUrl: null,
   enabledCountries: ['UGANDA'],
   specialFindsEnabled: true,

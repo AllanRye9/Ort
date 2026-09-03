@@ -509,7 +509,7 @@ export default function AdminCategoriesPage() {
             onClick={() => { setShowAddForm(!showAddForm); setAddForm(emptyForm); }}
             className="bg-red-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
           >
-            {showAddForm ? 'Cancel' : 'Add Category'}
+            {showAddForm ? '✕ Cancel' : '➕ Add Category'}
           </button>
         </div>
       </div>
@@ -749,7 +749,7 @@ export default function AdminCategoriesPage() {
                         onClick={() => startEdit(cat)}
                         className="text-xs px-2.5 py-1 rounded font-medium bg-red-500 text-white hover:bg-red-600 transition-colors"
                       >
-                        Edit
+                        ✏️ Edit
                       </button>
                       <button
                         onClick={() => openSchemaEditor(cat)}
@@ -978,7 +978,7 @@ export default function AdminCategoriesPage() {
             <p className="text-sm text-gray-500 mt-1 mb-4">
               Move some or all of the listings currently in &ldquo;{categories.find((c) => c.id === moveCategoryId)?.name}&rdquo;
               to a different category. Only the category link changes — images, title, price, and status all stay
-              exactly the same. Any featured placement (Premium Collections, Featured Deal, Flash Sale) on a moved
+              exactly the same. Any featured placement (Premium Collections, Featured Deal, Flash Deal) on a moved
               listing is cleared, since a featured slot from the old category shouldn&apos;t carry over.
             </p>
 

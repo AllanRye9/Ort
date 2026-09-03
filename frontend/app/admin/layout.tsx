@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
+import BrandLogo from '@/components/ui/BrandLogo';
 
 const navGroups = [
   {
@@ -21,7 +22,7 @@ const navGroups = [
     items: [
       { href: '/admin/listings', label: 'Listings', icon: '📋' },
       { href: '/admin/bulk-post', label: 'Bulk Post', icon: '📝' },
-      { href: '/admin/partners', label: 'Partners & Stores', icon: '🤝' },
+      { href: '/admin/partners', label: 'Partners & Web Stores', icon: '🤝' },
       { href: '/admin/categories', label: 'Categories', icon: '🏷️' },
       { href: '/admin/blog', label: 'Blog', icon: '✍️' },
       { href: '/admin/jobs', label: 'Jobs Management', icon: '💼' },
@@ -119,14 +120,29 @@ export default function AdminLayout({
           style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}
         >
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-8 h-8 rounded-lg bg-red-500 flex items-center justify-center text-sm font-black shrink-0 shadow-lg">
-              Pi
-            </div>
-            {!collapsed && (
-              <div className="min-w-0">
-                <p className="text-sm font-bold tracking-tight text-white truncate leading-tight">Piitrade</p>
-                <p className="text-[10px] font-semibold text-red-400 tracking-widest uppercase">Admin Portal</p>
+            {collapsed ? (
+              // Collapsed rail is only 64px wide — always show the compact "Pi"
+              // mark here rather than a wide uploaded logo image, which would
+              // overflow the narrow rail.
+              <div className="w-8 h-8 rounded-lg bg-red-500 flex items-center justify-center text-sm font-black shrink-0 shadow-lg">
+                Pi
               </div>
+            ) : (
+              <BrandLogo
+                imgHeight={32}
+                alt="Piitrade Admin Portal"
+                fallback={
+                  <>
+                    <div className="w-8 h-8 rounded-lg bg-red-500 flex items-center justify-center text-sm font-black shrink-0 shadow-lg">
+                      Pi
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold tracking-tight text-white truncate leading-tight">Piitrade</p>
+                      <p className="text-[10px] font-semibold text-red-400 tracking-widest uppercase">Admin Portal</p>
+                    </div>
+                  </>
+                }
+              />
             )}
           </div>
           <div className="flex items-center gap-1 shrink-0">
@@ -270,8 +286,16 @@ export default function AdminLayout({
             </svg>
           </button>
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-md bg-red-500 flex items-center justify-center text-[10px] font-black text-white">Pi</div>
-            <span className="text-sm font-bold text-gray-800">Admin Portal</span>
+            <BrandLogo
+              imgHeight={24}
+              alt="Piitrade Admin Portal"
+              fallback={
+                <>
+                  <div className="w-6 h-6 rounded-md bg-red-500 flex items-center justify-center text-[10px] font-black text-white">Pi</div>
+                  <span className="text-sm font-bold text-gray-800">Admin Portal</span>
+                </>
+              }
+            />
           </div>
         </div>
 

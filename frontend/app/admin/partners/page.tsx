@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * /admin/partners — "Partners & Stores"
+ * /admin/partners — "Partners & Web Stores"
  *
  * Consolidated admin section combining what used to be two separate pages:
  *  - /admin/partners       (partner approval / partner-wall logo management)
@@ -160,7 +160,7 @@ function RentalsTab() {
       <div className="grid grid-cols-3 gap-4 mb-6">
         {[
           { label: 'Total Applications', value: rentals.length, color: 'text-gray-700',    bg: 'bg-gray-50',    border: 'border-gray-200' },
-          { label: 'Active Stores',      value: activeCount,    color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200' },
+          { label: 'Active Web Stores',  value: activeCount,    color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200' },
           { label: 'Awaiting Approval',  value: pendingCount,   color: 'text-amber-700',   bg: 'bg-amber-50',   border: 'border-amber-200' },
         ].map((s) => (
           <div key={s.label} className={`${s.bg} ${s.border} border rounded-xl p-4 text-center`}>
@@ -333,7 +333,7 @@ function RentalsTab() {
                   onChange={(e) => setEditMaxListings(e.target.value)}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
                 />
-                <p className="mt-1 text-[11px] text-gray-400">Default cap is 100 active listings per store.</p>
+                <p className="mt-1 text-[11px] text-gray-400">Default cap is 100 active listings per Web Store.</p>
               </div>
             </div>
 
@@ -382,7 +382,7 @@ function PartnersTab() {
       const { data } = await api.get('/admin/stores/partners');
       setStores(data.stores || []);
     } catch {
-      showToast('Failed to load stores', false);
+      showToast('Failed to load Web Stores', false);
     } finally {
       setFetching(false);
     }
@@ -446,7 +446,7 @@ function PartnersTab() {
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4 mb-6">
         {[
-          { label: 'Total Stores',       value: stores.length,   color: 'text-gray-700',    bg: 'bg-gray-50',    border: 'border-gray-200' },
+          { label: 'Total Web Stores',   value: stores.length,   color: 'text-gray-700',    bg: 'bg-gray-50',    border: 'border-gray-200' },
           { label: 'Approved Partners',  value: approvedCount,   color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200' },
           { label: 'Awaiting Decision',  value: pendingCount,    color: 'text-amber-700',   bg: 'bg-amber-50',   border: 'border-amber-200' },
         ].map((s) => (
@@ -461,7 +461,7 @@ function PartnersTab() {
       <div className="flex flex-col sm:flex-row gap-3 mb-5">
         <input
           type="text"
-          placeholder="Search by store name, owner, email…"
+          placeholder="Search by Web Store name, owner, email…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
@@ -485,13 +485,13 @@ function PartnersTab() {
         {fetching ? (
           <div className="p-10 text-center">
             <div className="w-8 h-8 border-4 border-red-400 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-            <p className="text-sm text-gray-400">Loading stores…</p>
+            <p className="text-sm text-gray-400">Loading Web Stores…</p>
           </div>
         ) : visible.length === 0 ? (
           <div className="p-10 text-center">
             <p className="text-3xl mb-3">🏪</p>
             <p className="text-sm text-gray-500 font-medium">
-              {stores.length === 0 ? 'No stores registered yet.' : 'No stores match your search / filter.'}
+              {stores.length === 0 ? 'No Web Stores registered yet.' : 'No Web Stores match your search / filter.'}
             </p>
           </div>
         ) : (
@@ -499,7 +499,7 @@ function PartnersTab() {
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Store</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Web Store</th>
                   <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider hidden md:table-cell">Owner / Contact</th>
                   <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider hidden lg:table-cell">Partner Logo</th>
                   <th className="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
@@ -638,7 +638,7 @@ function PartnersTab() {
       <div className="mt-5 bg-red-50 border border-red-200 rounded-xl p-4 flex gap-3">
         <span className="text-lg shrink-0">ℹ️</span>
         <div className="text-sm text-red-800 space-y-1">
-          <p><strong>Approval flow:</strong> Click <em>Approve</em> → the store&rsquo;s own logo (or a separate one uploaded from <code className="bg-red-100 px-1 rounded text-xs">/dashboard/partner-logo</code>) appears automatically on the Partners wall.</p>
+          <p><strong>Approval flow:</strong> Click <em>Approve</em> → the Web Store&rsquo;s own logo (or a separate one uploaded from <code className="bg-red-100 px-1 rounded text-xs">/dashboard/partner-logo</code>) appears automatically on the Partners wall.</p>
           <p><strong>Revoke:</strong> Immediately removes the logo from the public Partners wall and resets upload permission.</p>
         </div>
       </div>
@@ -677,7 +677,7 @@ function AdminPartnersAndStoresInner() {
           🤝
         </div>
         <div className="flex-1 min-w-0">
-          <h1 className="text-2xl font-black text-gray-900">Partners & Stores</h1>
+          <h1 className="text-2xl font-black text-gray-900">Partners & Web Stores</h1>
           <p className="text-sm text-gray-500 mt-0.5">
             Review store applications, approve or reject them, manage approved stores, and control the{' '}
             <Link href="/stores" target="_blank" className="text-red-600 hover:underline font-semibold">

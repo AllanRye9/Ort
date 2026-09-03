@@ -7,7 +7,7 @@ interface MobileCardCarouselProps {
   children: ReactNode[];
   /** Extra classes for the sm+ grid layout (column counts etc.), merged onto the shared container. */
   gridClassName?: string;
-  /** aria-label for the scrollable region, e.g. "Flash Sales listings". */
+  /** aria-label for the scrollable region, e.g. "Flash Deals listings". */
   ariaLabel?: string;
 }
 
@@ -16,7 +16,7 @@ interface MobileCardCarouselProps {
  * and left/right arrow navigation — that collapses back into a plain CSS
  * grid at the `sm` breakpoint and above.
  *
- * Used by the four homepage listing sections (Flash Sales, Recent Across
+ * Used by the four homepage listing sections (Flash Deals, Recent Across
  * Categories, Latest Collections, Featured Deal) per Doc 1 Cluster 5
  * (mobile categories — 3 listings per row & navigation).
  *

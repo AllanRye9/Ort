@@ -128,7 +128,7 @@ export default function CountryFeaturedDeal({ initialDeal }: Props) {
         return (
           <FeaturedProductCard
             key={deal.id}
-            storeName={deal.user?.name || 'Piitrade Store'}
+            storeName={deal.user?.name || 'Piitrade Web Store'}
             title={deal.title}
             description={deal.description}
             originalPrice={

@@ -170,7 +170,7 @@ export default function AdminDashboard() {
   // Human-readable labels for the low-item warning banner — keys must match
   // the section keys returned by GET /admin/section-counts.
   const SECTION_LABELS: Record<string, string> = {
-    FLASH_SALE: 'FLASH SALES',
+    FLASH_SALE: 'FLASH DEALS',
     LATEST_COLLECTIONS: 'Latest Collections',
     FEATURED_DEAL: '✦ FEATURED DEAL',
     TODAYS_DEALS: "Today's Deals",

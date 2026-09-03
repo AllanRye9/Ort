@@ -283,7 +283,7 @@ export default function FlashDeals({ listings, media = [] }: Props) {
     : media.slice(0, 6).map((item, index) => ({
         id: item.id,
         href: item.linkUrl || '/flash-sales',
-        title: truncateTitle(item.title || item.altText || `Flash Sale Item ${index + 1}`, 30),
+        title: truncateTitle(item.title || item.altText || `Flash Deal Item ${index + 1}`, 30),
         shortDescription: item.shortDescription || null,
         imageUrl: resolveImageUrl(item.cdnUrl) || null,
         price: toNumberOrNull(item.price),
@@ -298,7 +298,7 @@ export default function FlashDeals({ listings, media = [] }: Props) {
           <div className="flex items-center gap-2">
             <span className="text-2xl drop-shadow-lg animate-bounce" aria-hidden="true">🔥</span>
             <div>
-              <h2 className="text-base font-extrabold leading-tight tracking-wide">FLASH SALES</h2>
+              <h2 className="text-base font-extrabold leading-tight tracking-wide">FLASH DEALS</h2>
               <p className="text-[11px] text-white/80">Limited-time drops from our authorized marketplace partners.</p>
               <p className="text-[10px] text-white/70 mt-0.5">High-demand items from vetted vendors. These independent listings are admin-approved and available only until the timer hits zero.</p>
             </div>
@@ -330,24 +330,25 @@ export default function FlashDeals({ listings, media = [] }: Props) {
         <div className="relative flex items-center gap-2.5">
           <span className="text-2xl drop-shadow-lg animate-bounce" aria-hidden="true">🔥</span>
           <div>
-            <h2 className="text-base font-extrabold leading-tight tracking-wide">FLASH SALES</h2>
+            <h2 className="text-base font-extrabold leading-tight tracking-wide">FLASH DEALS</h2>
             <p className="text-[11px] text-white/80">Limited-time drops from our authorized marketplace partners.</p>
             <p className="text-[10px] text-white/70 mt-0.5">High-demand items from vetted vendors. These independent listings are admin-approved and available only until the timer hits zero.</p>
           </div>
         </div>
-        <div className="relative flex items-center gap-2 self-start sm:self-auto">
+        <div className="relative flex flex-wrap items-center gap-2 self-start sm:self-auto">
           <Link
             href="/flash-sales"
-            aria-label="View all flash sales"
-            className="text-xs font-semibold text-white/90 hover:text-white border border-white/30 hover:border-white/60 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 transition-all flex items-center gap-1"
+            aria-label="View all flash deals"
+            className="text-xs font-semibold text-white/90 hover:text-white border border-white/30 hover:border-white/60 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 transition-all flex items-center gap-1 shrink-0"
           >
-            View All Live Sales
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <span className="sm:hidden">View All</span>
+            <span className="hidden sm:inline">View All Live Deals</span>
+            <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </Link>
           <div
-            className="flex items-center gap-1.5 rounded-full border border-white/30 bg-white/15 px-3 py-1.5 text-xs font-bold backdrop-blur-sm tabular-nums shadow-inner"
+            className="flex items-center gap-1.5 rounded-full border border-white/30 bg-white/15 px-3 py-1.5 text-xs font-bold backdrop-blur-sm tabular-nums shadow-inner shrink-0"
             aria-label={`Time left: ${String(hours).padStart(2, '0')} hours, ${String(minutes).padStart(2, '0')} minutes, ${String(seconds).padStart(2, '0')} seconds`}
             aria-live="polite"
           >
@@ -362,7 +363,7 @@ export default function FlashDeals({ listings, media = [] }: Props) {
 
       {/* Cards — mobile carousel (3/row, swipe + arrows), grid at sm+ */}
       <div className="bg-white/5 backdrop-blur-sm p-3 sm:p-4">
-        <MobileCardCarousel gridClassName="sm:grid-cols-3 lg:grid-cols-6 gap-2" ariaLabel="Flash Sales listings">
+        <MobileCardCarousel gridClassName="sm:grid-cols-3 lg:grid-cols-6 gap-2" ariaLabel="Flash Deals listings">
           {cards.map((card) => (
             <FlashCard key={card.id} card={card} displayCurrency={displayCurrency} />
           ))}

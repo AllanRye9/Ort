@@ -28,7 +28,7 @@ const STAT_CARDS = [
 // Where a campaign can actually appear across the live site today.
 const PLACEMENTS = [
   { icon: '🏠', title: 'Homepage Banner', desc: 'Top-of-page placement seen by every visitor before they browse a category.' },
-  { icon: '🔥', title: 'Featured Deals & Flash Sales', desc: 'Slot your listing into the Today\u2019s Deals rail or a time-boxed Flash Sale spotlight.' },
+  { icon: '🔥', title: 'Featured Deals & Flash Deals', desc: 'Slot your listing into the Today\u2019s Deals rail or a time-boxed Flash Deal spotlight.' },
   { icon: '🔍', title: 'Search & Category Results', desc: 'Priority placement inside Listings search results and category pages (Motors, Property, Electronics, Fashion, and more).' },
   { icon: '🏪', title: 'Verified Partner Directory', desc: 'A branded storefront and logo placement on the Our Partners page, reserved for approved partners.' },
   { icon: '📋', title: 'Job Market & CV Services', desc: 'Reach jobseekers and employers browsing CV Services and the Job Market.' },

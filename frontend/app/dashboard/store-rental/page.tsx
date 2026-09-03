@@ -134,9 +134,9 @@ function StorePaymentModal({
         onClick={e => e.stopPropagation()}>
         <div className="text-center mb-5">
           <div className="w-16 h-16 bg-violet-50 rounded-full flex items-center justify-center mx-auto mb-3 text-3xl">🏪</div>
-          <h2 className="text-lg font-bold text-gray-900">Store Subscription Payment</h2>
+          <h2 className="text-lg font-bold text-gray-900">Web Store Subscription Payment</h2>
           <p className="text-2xl font-black text-violet-700 mt-1">{fee.display}</p>
-          <p className="text-xs text-gray-400 mt-0.5">≈ $100 USD · Annual store subscription</p>
+          <p className="text-xs text-gray-400 mt-0.5">≈ $100 USD · Annual Web Store subscription</p>
         </div>
 
         {error && <div className="mb-3 bg-red-50 border border-red-200 text-red-700 text-xs px-3 py-2 rounded-lg">{error}</div>}
@@ -184,7 +184,7 @@ function StorePaymentModal({
         {method === 'MOBILE' && (
           <div className="mb-4 bg-violet-50 border border-violet-100 rounded-xl p-4 text-sm text-violet-700">
             <p className="font-semibold mb-1">Mobile Money / Wallet</p>
-            <p className="text-xs text-violet-600">You will receive a payment prompt on your registered mobile number. Approve it to complete the store subscription.</p>
+            <p className="text-xs text-violet-600">You will receive a payment prompt on your registered mobile number. Approve it to complete the Web Store subscription.</p>
           </div>
         )}
 
@@ -194,7 +194,7 @@ function StorePaymentModal({
             <p>Bank: <span className="font-medium text-gray-800">Piitrade Business Account</span></p>
             <p>IBAN: <span className="font-mono font-medium text-gray-800">AE07 0331 2345 6789 0123 456</span></p>
             <p>Reference: <span className="font-mono font-bold text-violet-700">STORE-{Date.now().toString().slice(-8)}</span></p>
-            <p className="text-gray-400 mt-2">Your store will be activated within 24 hours of payment confirmation.</p>
+            <p className="text-gray-400 mt-2">Your Web Store will be activated within 24 hours of payment confirmation.</p>
           </div>
         )}
 
@@ -202,7 +202,7 @@ function StorePaymentModal({
           className="w-full py-3 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-bold text-sm transition-all disabled:opacity-60 flex items-center justify-center gap-2">
           {processing
             ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>Processing Payment…</>
-            : <>Pay {fee.display} → Activate Store</>}
+            : <>Pay {fee.display} → Activate Web Store</>}
         </button>
         <button onClick={onClose} className="w-full mt-2 text-xs text-gray-400 hover:text-gray-600 py-1.5">
           Cancel
@@ -261,7 +261,7 @@ function StoreProfileEditor({
   };
 
   const handleSave = async () => {
-    if (!name.trim()) { setError('Store name is required.'); return; }
+    if (!name.trim()) { setError('Web Store name is required.'); return; }
     setSaving(true);
     setError('');
     try {
@@ -274,7 +274,7 @@ function StoreProfileEditor({
       onSaved(data.store);
     } catch (err) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      setError(msg || 'Failed to save store profile. Please try again.');
+      setError(msg || 'Failed to save Web Store profile. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -284,8 +284,8 @@ function StoreProfileEditor({
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-6">
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">✏️ Edit Store Profile</h2>
-          <p className="text-xs text-gray-400 mt-0.5">Update your store details, logo, and description.</p>
+          <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">✏️ Edit Web Store Profile</h2>
+          <p className="text-xs text-gray-400 mt-0.5">Update your Web Store details, logo, and description.</p>
         </div>
         <button onClick={onCancel} className="text-xs text-gray-400 hover:text-gray-600 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors">
           Cancel
@@ -297,7 +297,7 @@ function StoreProfileEditor({
       <div className="space-y-4">
         {/* Logo upload */}
         <div>
-          <label className={lc}>Store Logo <span className="text-gray-400 font-normal">(recommended: square, min 200×200px)</span></label>
+          <label className={lc}>Web Store Logo <span className="text-gray-400 font-normal">(recommended: square, min 200×200px)</span></label>
           <div className="flex items-start gap-4">
             {/* Preview */}
             <div className="shrink-0 w-20 h-20 rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden relative">
@@ -334,17 +334,17 @@ function StoreProfileEditor({
 
         {/* Store Name */}
         <div>
-          <label className={lc}>Store Name <span className="text-red-400">*</span></label>
+          <label className={lc}>Web Store Name <span className="text-red-400">*</span></label>
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Pearl Traders, TechHub Uganda" className={fc} />
         </div>
 
         {/* Description */}
         <div>
-          <label className={lc}>Store Description</label>
+          <label className={lc}>Web Store Description</label>
           <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4}
-            placeholder="Tell buyers what you sell, your specialisation, and what makes your store unique. Include the types of products or services you offer."
+            placeholder="Tell buyers what you sell, your specialisation, and what makes your Web Store unique. Include the types of products or services you offer."
             className={`${fc} resize-none`} />
-          <p className="text-[11px] text-gray-400 mt-1">A good description helps buyers find and trust your store. Be specific about your products.</p>
+          <p className="text-[11px] text-gray-400 mt-1">A good description helps buyers find and trust your Web Store. Be specific about your products.</p>
         </div>
 
         {/* Banner */}
@@ -474,11 +474,11 @@ export default function StoreRentalDashboard() {
     // Require store identity info before proceeding — the store is the entry
     // point that groups this entity's listings, so it needs real content.
     if (!applyStoreName.trim()) {
-      setApplyFormError('Please enter your store name.');
+      setApplyFormError('Please enter your Web Store name.');
       return;
     }
     if (!applyStoreDescription.trim()) {
-      setApplyFormError('Please describe what your store sells or offers.');
+      setApplyFormError('Please describe what your Web Store sells or offers.');
       return;
     }
 
@@ -510,7 +510,7 @@ export default function StoreRentalDashboard() {
       });
       setRental(data.rental);
       setShowApplyForm(false);
-      setSuccess('Store application submitted! An admin will review and activate your store within 24 hours.');
+      setSuccess('Web Store application submitted! An admin will review and activate your Web Store within 24 hours.');
       fetchData();
     } catch (err) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Application failed. Please try again.';
@@ -571,7 +571,7 @@ export default function StoreRentalDashboard() {
 
       {/* Page header */}
       <div className="flex items-center justify-between mb-1">
-        <h1 className="text-2xl font-extrabold text-gray-900">Store Dashboard</h1>
+        <h1 className="text-2xl font-extrabold text-gray-900">Web Store Dashboard</h1>
         <Link href="/profile"
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-100 text-gray-700 text-xs font-semibold hover:bg-gray-200 transition-colors">
           ⚙️ Profile Settings
@@ -586,7 +586,7 @@ export default function StoreRentalDashboard() {
       {!rental && !showApplyForm && (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
           <div className="text-5xl mb-4">🏪</div>
-          <h2 className="text-lg font-bold text-gray-800 mb-2">Open Your Store on Piitrade</h2>
+          <h2 className="text-lg font-bold text-gray-800 mb-2">Open Your Web Store on Piitrade</h2>
           <p className="text-sm text-gray-500 mb-2 max-w-md mx-auto">
             Get a verified digital storefront to showcase your products and reach buyers across Uganda.
           </p>
@@ -600,7 +600,7 @@ export default function StoreRentalDashboard() {
           </div>
           <div className="grid sm:grid-cols-3 gap-3 mb-6 text-left">
             {[
-              { icon: '✅', title: 'Verified Store Page', desc: 'Your own public store page with logo, banner, and listing gallery.' },
+              { icon: '✅', title: 'Verified Web Store Page', desc: 'Your own public Web Store page with logo, banner, and listing gallery.' },
               { icon: '📍', title: 'Platform Placements', desc: 'Route listings to Featured Deal, Latest Collections, or Other Collections.' },
               { icon: '🌍', title: 'Multi-Country Reach', desc: 'Buyers across all 4 countries can discover and browse your store.' },
             ].map(item => (

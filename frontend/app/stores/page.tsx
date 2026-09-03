@@ -61,7 +61,7 @@ function strColor(s: string) {
 // ── Partner Card ──────────────────────────────────────────────────────────────
 // Every approved partner always has a store (slug) because you need a store to
 // become a partner.  Partners may also have an external website.
-// Category label:  "With Store" (always) vs extra "Website" button when site exists.
+// Category label:  "With Web Store" (always) vs extra "Website" button when site exists.
 
 function PartnerCard({ partner }: { partner: Partner }) {
   const name    = displayName(partner);
@@ -193,7 +193,7 @@ export default function StoresPage() {
             🤝 Partners &amp; Stores
           </span>
           <h1 className="text-lg md:text-xl font-extrabold text-white leading-tight">Our Partners</h1>
-          <span className="hidden sm:inline text-red-100/90 text-xs">— Verified partners and stores approved by Piitrade across Uganda.</span>
+          <span className="hidden sm:inline text-red-100/90 text-xs">— Verified partners and Web Stores approved by Piitrade across Uganda.</span>
         </div>
       </div>
 
@@ -223,7 +223,7 @@ export default function StoresPage() {
             <div className="flex gap-2 mb-5 flex-wrap">
               {[
                 { key: 'all',   label: `All Partners (${partners.length})`,          color: 'bg-gray-800 text-white',         idle: 'bg-white text-gray-600 border border-gray-200 hover:border-gray-400' },
-                { key: 'store', label: `With Store (${withStore.length})`,            color: 'bg-emerald-600 text-white',      idle: 'bg-white text-gray-600 border border-gray-200 hover:border-emerald-400' },
+                { key: 'store', label: `With Web Store (${withStore.length})`,            color: 'bg-emerald-600 text-white',      idle: 'bg-white text-gray-600 border border-gray-200 hover:border-emerald-400' },
                 { key: 'site',  label: `External Only (${withSiteOnly.length})`,      color: 'bg-sky-600 text-white',          idle: 'bg-white text-gray-600 border border-gray-200 hover:border-sky-400' },
               ].map(({ key, label, color, idle }) => (
                 <button
@@ -272,7 +272,7 @@ export default function StoresPage() {
         <div className="bg-gradient-to-r from-orange-400 via-pink-500 to-purple-600 rounded-2xl p-5 text-white">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div>
-              <h2 className="text-xl font-bold mb-1">📢 Open Your Store on Piitrade</h2>
+              <h2 className="text-xl font-bold mb-1">📢 Open Your Web Store on Piitrade</h2>
               <p className="text-white/80 text-sm">List your products, reach buyers across 4 countries, get a verified storefront.</p>
             </div>
             <Link
@@ -286,11 +286,11 @@ export default function StoresPage() {
 
         {/* How it works */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-          <h2 className="text-xl font-extrabold text-gray-900 text-center mb-6">How to Open Your Store</h2>
+          <h2 className="text-xl font-extrabold text-gray-900 text-center mb-6">How to Open Your Web Store</h2>
           <div className="grid sm:grid-cols-3 gap-5">
             {[
-              { icon: '🖊️', title: '1. Apply & Pay',    desc: 'Submit your store application with entity details and pay the activation fee.' },
-              { icon: '✅', title: '2. Admin Approval',  desc: 'Admin reviews, activates your store, and may grant partner status.' },
+              { icon: '🖊️', title: '1. Apply & Pay',    desc: 'Submit your Web Store application with entity details and pay the activation fee.' },
+              { icon: '✅', title: '2. Admin Approval',  desc: 'Admin reviews, activates your Web Store, and may grant partner status.' },
               { icon: '🚀', title: '3. List & Partner',  desc: 'Upload your logo, add products, reach buyers. Approved partners appear here.' },
             ].map((item) => (
               <div key={item.title} className="text-center">

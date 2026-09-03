@@ -24,7 +24,7 @@ const SECTIONS: { value: Section; label: string; icon: string; desc: string }[] 
   { value: 'flash', label: 'Flash Deals', icon: '⚡', desc: 'Limited-time flash deal images — links to category group or purchase page' },
   { value: 'collection', label: 'Latest Collections', icon: '🗂️', desc: 'Latest collections grid imagery' },
   { value: 'category', label: 'Category Images', icon: '🏷️', desc: 'Real images for the Featured Categories section — upload 8 images in order: Fine Timepieces, Designer Apparel, Tech Innovations, Bespoke Home, Luxury Vehicles, Fine Jewellery, Art & Collectibles, Premium Services' },
-  { value: 'brand-logo', label: 'Site Logo', icon: '🏷️', desc: 'Replaces the "Pi" icon, "Piitrade" name, and "Shop Smart. Shop Trusted." tagline in the header and footer with one unified logo image (the header/footer stays clickable to the homepage). Also replaces the tagline text in the welcome popup — upload 1 image' },
+  { value: 'brand-logo', label: 'Site Logo', icon: '🏷️', desc: 'The one site-wide logo. Replaces the "Pi" icon, "Piitrade" name, and "Shop Smart. Shop Trusted." tagline everywhere they appear — the storefront header and footer, the admin portal sidebar, the sign-in / sign-up pages, and the welcome popup tagline (each stays clickable to the homepage where applicable) — upload 1 image' },
   { value: 'cv-generator', label: 'CV Sample Images', icon: '🗎', desc: 'Example CV images displayed on the CV Generator page — at least 3 shown at a time' },
 ];
 
@@ -33,13 +33,13 @@ const SECTION_QUICK_LINKS: Record<Section, { label: string; url: string }[]> = {
   'sticky-header': [
     { label: 'Home page', url: '/' },
     { label: 'All listings', url: '/listings' },
-    { label: 'Flash Sales', url: '/flash-sales' },
+    { label: 'Flash Deals', url: '/flash-sales' },
     { label: 'Latest Collections', url: '/latest-collections' },
   ],
   hero: [
     { label: 'Home page', url: '/' },
     { label: 'All listings', url: '/listings' },
-    { label: 'Flash Sales', url: '/flash-sales' },
+    { label: 'Flash Deals', url: '/flash-sales' },
     { label: 'Electronics', url: '/electronics' },
     { label: 'Fashion', url: '/fashion' },
     { label: 'Motors', url: '/motors' },
@@ -52,7 +52,7 @@ const SECTION_QUICK_LINKS: Record<Section, { label: string; url: string }[]> = {
     { label: 'All listings', url: '/listings' },
     { label: 'Electronics', url: '/electronics' },
     { label: 'Fashion', url: '/fashion' },
-    { label: 'Flash Sales', url: '/flash-sales' },
+    { label: 'Flash Deals', url: '/flash-sales' },
     { label: 'Motors', url: '/motors' },
   ],
   featured: [
@@ -67,7 +67,7 @@ const SECTION_QUICK_LINKS: Record<Section, { label: string; url: string }[]> = {
     { label: 'Fashion (category group)', url: '/fashion' },
     { label: 'Motors (category group)', url: '/motors' },
     { label: 'Furniture (category group)', url: '/furniture' },
-    { label: 'All Flash Sales', url: '/flash-sales' },
+    { label: 'All Flash Deals', url: '/flash-sales' },
     { label: 'All listings', url: '/listings' },
     { label: '→ Paste a listing URL e.g. /listings/{id}', url: '/listings/' },
   ],

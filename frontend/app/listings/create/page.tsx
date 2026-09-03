@@ -1097,7 +1097,7 @@ function CreateListingContent() {
             <p className="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-white/90">
               🏪 Seller Access Required
             </p>
-            <h1 className="mt-4 text-3xl font-black tracking-tight sm:text-4xl">Register a Store to Post Listings</h1>
+            <h1 className="mt-4 text-3xl font-black tracking-tight sm:text-4xl">Register a Web Store to Post Listings</h1>
             <p className="mt-3 max-w-2xl text-sm text-white/85 sm:text-base">
               Posting listings requires a registered store on Piitrade. Register your store — it only takes a minute. Your account type is currently <span className="font-bold bg-white/20 px-1.5 py-0.5 rounded">{user.role}</span>.
             </p>

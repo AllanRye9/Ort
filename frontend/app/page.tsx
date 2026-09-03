@@ -210,7 +210,7 @@ export default async function HomePage() {
         )}
 
         <div className="py-3 space-y-5 sm:space-y-6">
-          {/* ═══ 1. FLASH SALES — always first ═══ */}
+          {/* ═══ 1. FLASH DEALS — always first ═══ */}
           <CountryFlashDeals initialListings={flashListings} flashMedia={flashMedia} />
 
           {/* ═══ 1a. BACK TO SCHOOL — mobile-only discounted picks strip,

@@ -32,7 +32,7 @@ const PLACEMENT_LABELS: Record<Placement, string> = {
   NONE: 'No placement',
   LATEST_COLLECTIONS: '⭐ Latest Collections',
   FEATURED_DEAL: '🔥 Featured Deal',
-  FLASH_SALE: '⚡ Flash Sale',
+  FLASH_SALE: '⚡ Flash Deal',
 };
 
 const PLACEMENT_COLORS: Record<Placement, string> = {
@@ -247,14 +247,14 @@ export default function MyListingsPage() {
           <div className="flex-1">
             <p className="text-sm font-semibold text-violet-800">🚀 Promote Your Listings</p>
             <p className="text-xs text-violet-600 mt-0.5">
-              Get a Digital Store to feature your products in <strong>Latest Collections</strong>, <strong>Featured Deal</strong>, and <strong>Flash Sales</strong> sections — seen by thousands of buyers daily.
+              Get a Web Store to feature your products in <strong>Latest Collections</strong>, <strong>Featured Deal</strong>, and <strong>Flash Deals</strong> sections — seen by thousands of buyers daily.
             </p>
           </div>
           <Link
             href="/dashboard/store-rental"
             className="shrink-0 px-4 py-2 rounded-xl bg-violet-600 text-white text-xs font-bold hover:bg-violet-700 transition-colors shadow-sm whitespace-nowrap"
           >
-            Get a Digital Store →
+            Get a Web Store →
           </Link>
         </div>
       )}

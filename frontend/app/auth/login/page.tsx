@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/ui/Toast';
 import AuthColorBlend from '@/components/ui/AuthColorBlend';
+import BrandLogo from '@/components/ui/BrandLogo';
 import { api } from '@/lib/api';
 
 function LoginForm() {
@@ -114,8 +115,16 @@ function LoginForm() {
       <div className="w-full max-w-md animate-fade-up">
         <div className="rounded-3xl border border-white/30 dark:border-white/20 bg-white/95 dark:bg-slate-900/85 shadow-2xl backdrop-blur-xl p-6 sm:p-7">
           <div className="flex items-center justify-between mb-5">
-            <Link href="/" className="w-11 h-11 bg-gradient-to-br from-fuchsia-500 via-red-500 to-rose-600 rounded-2xl flex items-center justify-center shadow-glow hover:scale-105 transition-transform" aria-label="Go to homepage">
-              <span className="text-white font-black text-lg">Pi</span>
+            <Link href="/" className="flex items-center justify-center hover:scale-105 active:scale-95 transition-transform" aria-label="Go to homepage">
+              <BrandLogo
+                imgHeight={44}
+                alt="Piitrade"
+                fallback={
+                  <div className="w-11 h-11 bg-gradient-to-br from-fuchsia-500 via-red-500 to-rose-600 rounded-2xl flex items-center justify-center shadow-glow">
+                    <span className="text-white font-black text-lg">Pi</span>
+                  </div>
+                }
+              />
             </Link>
             <span className="text-[11px] font-semibold text-red-700 dark:text-red-200 bg-red-50 dark:bg-red-500/20 border border-red-100 dark:border-red-300/20 rounded-full px-2.5 py-1">Secure sign in</span>
           </div>

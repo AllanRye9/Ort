@@ -193,13 +193,13 @@ export default function FlashSalesPage() {
         <div className="absolute -top-8 -right-8 w-48 h-48 rounded-full bg-white/10 blur-2xl pointer-events-none" />
         <div className="absolute -bottom-10 left-16 w-56 h-56 rounded-full bg-white/10 blur-3xl pointer-events-none" />
         <div className="relative max-w-7xl mx-auto px-4">
-          <Breadcrumb items={[{ label: 'Home', href: '/' }, { label: 'Flash Sales' }]} className="text-white/70 mb-4" />
+          <Breadcrumb items={[{ label: 'Home', href: '/' }, { label: 'Flash Deals' }]} className="text-white/70 mb-4" />
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center gap-3">
               <span className="text-4xl drop-shadow-lg">⚡</span>
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="text-2xl sm:text-3xl font-black leading-tight">Flash Sales</h1>
+                  <h1 className="text-2xl sm:text-3xl font-black leading-tight">Flash Deals</h1>
                   <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold text-orange-900 bg-gradient-to-r from-yellow-200 via-amber-400 to-yellow-200 animate-pulse">
                     🔥 LIMITED TIME
                   </span>
@@ -243,7 +243,7 @@ export default function FlashSalesPage() {
         {storesWithDeals.length > 0 && (
           <div className="mb-5">
             <div className="flex items-center justify-between mb-2">
-              <h2 className="text-sm font-bold text-gray-900">🏪 Shop by Store</h2>
+              <h2 className="text-sm font-bold text-gray-900">🏪 Shop by Web Store</h2>
               {selectedStore && (
                 <button onClick={() => setSelectedStore(null)}
                   className="text-xs font-semibold text-red-600 hover:text-red-700 px-2 py-1 rounded-full border border-red-200 hover:bg-red-50 transition-colors">
@@ -344,7 +344,7 @@ export default function FlashSalesPage() {
           <div className="mt-10 bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div>
               <h3 className="font-bold text-gray-900">Have a flash deal to offer?</h3>
-              <p className="text-sm text-gray-500 mt-0.5">Post a listing and mark it as a flash sale to appear here.</p>
+              <p className="text-sm text-gray-500 mt-0.5">Post a listing and mark it as a flash deal to appear here.</p>
             </div>
             <Link href="/listings/create" className="shrink-0 bg-amber-400 hover:bg-amber-300 text-black font-bold px-6 py-3 rounded-xl text-sm shadow-sm">
               + Post Flash Deal

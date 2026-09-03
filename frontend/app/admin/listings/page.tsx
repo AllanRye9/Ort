@@ -13,7 +13,7 @@ import Link from 'next/link';
 const PLACEMENT_OPTIONS = [
   { value: 'LATEST_COLLECTIONS', label: '⭐ Premium Collections' },
   { value: 'FEATURED_DEAL', label: '✦ FEATURED DEAL' },
-  { value: 'FLASH_SALE', label: '⚡ Flash Sale' },
+  { value: 'FLASH_SALE', label: '⚡ Flash Deal' },
 ];
 
 interface ApproveModal {

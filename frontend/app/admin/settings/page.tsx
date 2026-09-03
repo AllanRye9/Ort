@@ -62,7 +62,7 @@ interface SectionCountsResponse {
 // those to 6 without fabricating fake listings, so they are shown as
 // status-only with an explanatory note instead of an auto-fill button.
 const HOMEPAGE_SECTIONS: { key: string; label: string; autoFillable: boolean }[] = [
-  { key: 'FLASH_SALE', label: 'FLASH SALES', autoFillable: true },
+  { key: 'FLASH_SALE', label: 'FLASH DEALS', autoFillable: true },
   { key: 'LATEST_COLLECTIONS', label: 'Latest Collections', autoFillable: true },
   { key: 'FEATURED_DEAL', label: '✦ FEATURED DEAL', autoFillable: true },
   { key: 'TODAYS_DEALS', label: "Today's Deals", autoFillable: true },
@@ -111,13 +111,6 @@ function ToggleSwitch({ enabled, onChange }: { enabled: boolean; onChange: (v: b
 function emptyDeal(): Deal {
   return { id: crypto.randomUUID(), title: '', description: '', imageUrl: '', price: undefined, originalPrice: undefined, discount: undefined, link: '', currency: 'AED', expiresAt: null, countries: undefined };
 }
-
-// ─── Logo Page Options ────────────────────────────────────────────────────────
-// Only the Exchange widget logo placement is supported.
-// The logo appears inline with "PIITRADE EXCHANGE · Money Transfer Rates".
-const LOGO_PAGE_OPTIONS = [
-  { key: 'exchange', label: 'Exchange Widget', icon: '💱' },
-];
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
@@ -400,19 +393,6 @@ export default function AdminSettingsPage() {
   const [sectionCountsError, setSectionCountsError] = useState(false);
   const [autoFilling, setAutoFilling] = useState<string | null>(null); // `${section}:${country}` currently in-flight
 
-  // Logo state
-  const [logoUrl, setLogoUrl] = useState<string | null>(null);
-  const [logoPages, setLogoPages] = useState<string[]>(['exchange']);
-  const [logoAltText, setLogoAltText] = useState('');
-  const [logoSize, setLogoSize] = useState(28);
-  const [logoLinkUrl, setLogoLinkUrl] = useState('');
-  const [logoDisplayMode, setLogoDisplayMode] = useState<'inline' | 'replace'>('inline');
-  const [logoFile, setLogoFile] = useState<File | null>(null);
-  const [logoPreview, setLogoPreview] = useState<string | null>(null);
-  const [savingLogo, setSavingLogo] = useState(false);
-  const [deletingLogo, setDeletingLogo] = useState(false);
-  const logoInputRef = useRef<HTMLInputElement>(null);
-
   // Interview demo video state
   const [interviewVideoUrl, setInterviewVideoUrl] = useState<string | null>(null);
   const [interviewVideoTitle, setInterviewVideoTitle] = useState('');
@@ -460,13 +440,12 @@ export default function AdminSettingsPage() {
         api.get('/admin/social-links'),
         api.get('/admin/site-config'),
         api.get('/admin/site-config/deals'),
-        api.get('/admin/site-config/logo'),
         api.get('/admin/site-config/interview-video'),
         api.get('/admin/site-config/promo-video'),
         api.get('/admin/section-counts'),
       ])
         .then((results) => {
-          const [settingsResult, socialResult, configResult, dealsResult, logoResult, interviewVideoResult, promoVideoResult, sectionCountsResult] = results;
+          const [settingsResult, socialResult, configResult, dealsResult, interviewVideoResult, promoVideoResult, sectionCountsResult] = results;
 
           if (settingsResult.status === 'fulfilled') {
             setSettings((settingsResult.value.data as Settings) || DEFAULT_SETTINGS);
@@ -486,17 +465,6 @@ export default function AdminSettingsPage() {
 
           if (dealsResult.status === 'fulfilled') {
             setDeals(dealsResult.value.data?.deals || []);
-          }
-
-          if (logoResult.status === 'fulfilled') {
-            setLogoUrl(logoResult.value.data?.logoUrl || null);
-            // Exchange is the only supported placement — always ensure it's selected
-            const storedPages: string[] = logoResult.value.data?.logoPages || [];
-            setLogoPages(storedPages.includes('exchange') ? storedPages : ['exchange']);
-            setLogoAltText(logoResult.value.data?.logoAltText || '');
-            setLogoSize(logoResult.value.data?.logoSize || 28);
-            setLogoLinkUrl(logoResult.value.data?.logoLinkUrl || '');
-            setLogoDisplayMode(logoResult.value.data?.logoDisplayMode === 'replace' ? 'replace' : 'inline');
           }
 
           if (interviewVideoResult.status === 'fulfilled') {
@@ -596,7 +564,7 @@ export default function AdminSettingsPage() {
     } catch { setSectionCountsError(true); }
   }, []);
 
-  /** Auto-fill a placement-driven row (Flash Sale / Latest Collections / Featured Deal) to 6 for one country. */
+  /** Auto-fill a placement-driven row (Flash Deal / Latest Collections / Featured Deal) to 6 for one country. */
   const handleAutoFillPlacement = async (section: string, country: string) => {
     const key = `${section}:${country}`;
     setAutoFilling(key);
@@ -702,81 +670,6 @@ export default function AdminSettingsPage() {
   const updateSocial = (key: keyof SocialLinks, value: string) =>
     setSocialLinks((prev) => ({ ...prev, [key]: value }));
 
-  // ── Logo Handlers ──────────────────────────────────────────────────────────
-
-  const handleLogoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setLogoFile(file);
-    const objectUrl = URL.createObjectURL(file);
-    setLogoPreview(objectUrl);
-  };
-
-  const handleSaveLogo = async () => {
-    setSavingLogo(true);
-    try {
-      let uploadedUrl = logoUrl;
-
-      // Upload new file directly to the CDN first if a file was chosen.
-      // Uses the dedicated /site-config/logo/upload endpoint (not /media/upload)
-      // so this never creates a stray SiteMedia record — a prior version of this
-      // reused the hero-image upload path, which caused every logo upload to also
-      // silently insert an extra, untitled slide into the homepage Hero Slideshow.
-      if (logoFile) {
-        const formData = new FormData();
-        formData.append('logo', logoFile);
-        const { data: uploadData } = await api.post('/admin/site-config/logo/upload', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
-        uploadedUrl = uploadData.url || uploadedUrl;
-        setLogoFile(null);
-        if (logoPreview) { URL.revokeObjectURL(logoPreview); setLogoPreview(null); }
-      }
-
-      const { data } = await api.put('/admin/site-config/logo', {
-        logoUrl: uploadedUrl,
-        logoPages,
-        logoAltText: logoAltText.trim() || null,
-        logoSize,
-        logoLinkUrl: logoLinkUrl.trim() || null,
-        logoDisplayMode,
-      });
-      setLogoUrl(data.logoUrl);
-      setLogoPages(data.logoPages || []);
-      setLogoSize(data.logoSize || 28);
-      setLogoLinkUrl(data.logoLinkUrl || '');
-      setLogoDisplayMode(data.logoDisplayMode === 'replace' ? 'replace' : 'inline');
-      flash(
-        logoDisplayMode === 'replace'
-          ? 'Logo settings saved. The image will now replace the exchange widget text entirely.'
-          : 'Logo settings saved. The logo will now appear next to the exchange widget text.'
-      );
-    } catch {
-      flash('Failed to save logo settings.', true);
-    } finally {
-      setSavingLogo(false);
-    }
-  };
-
-  const handleDeleteLogo = async () => {
-    if (!confirm('Remove the logo? The site wordmark will be shown instead.')) return;
-    setDeletingLogo(true);
-    try {
-      await api.delete('/admin/site-config/logo');
-      setLogoUrl(null);
-      setLogoPages([]);
-      setLogoAltText('');
-      setLogoSize(28);
-      setLogoFile(null);
-      setLogoPreview(null);
-      flash('Logo removed. The default wordmark is now shown.');
-    } catch {
-      flash('Failed to remove logo.', true);
-    } finally {
-      setDeletingLogo(false);
-    }
-  };
-
   // ── Interview Demo Video Handlers ───────────────────────────────────────────
 
   const handleInterviewVideoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -878,12 +771,6 @@ export default function AdminSettingsPage() {
     } finally {
       setDeletingPromoVideo(false);
     }
-  };
-
-  const toggleLogoPage = (key: string) => {
-    setLogoPages((prev) =>
-      prev.includes(key) ? prev.filter((p) => p !== key) : [...prev, key]
-    );
   };
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -1231,7 +1118,7 @@ export default function AdminSettingsPage() {
               </tbody>
             </table>
             <p className="mt-3 text-[11px] text-gray-400 leading-relaxed">
-              <strong>FLASH SALES</strong>, <strong>Latest Collections</strong>, <strong>✦ FEATURED DEAL</strong> and{' '}
+              <strong>FLASH DEALS</strong>, <strong>Latest Collections</strong>, <strong>✦ FEATURED DEAL</strong> and{' '}
               <strong>Today&apos;s Deals</strong> can be auto-filled because they pull from real, currently-unfeatured
               active listings. <strong>Other Collections</strong> and the <strong>Recent Across Categories</strong> rows
               reflect organic marketplace inventory — they can&apos;t be auto-filled without inventing fake listings, so
@@ -1347,240 +1234,6 @@ export default function AdminSettingsPage() {
         </div>
         <button onClick={handleSaveSocial} disabled={savingSocial} className="mt-5 bg-red-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50">
           {savingSocial ? 'Saving...' : 'Save Social Links'}
-        </button>
-      </div>
-      {/* ── Logo Management ──────────────────────────────────────────────────── */}
-      <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 mb-6 border border-gray-100">
-        <div className="flex items-center gap-2 mb-1">
-          <span className="text-2xl">💱</span>
-          <h2 className="text-lg font-semibold text-gray-900">Exchange Logo</h2>
-        </div>
-        <p className="text-sm text-gray-500 mb-5">
-          Upload a logo to display inline next to the <strong>&ldquo;PIITRADE EXCHANGE · Money Transfer Rates&rdquo;</strong> text on the homepage — this is the <em>only</em> place the logo appears.
-          Use the size control below to set its display height; use a square or wide PNG/SVG with a transparent background.
-        </p>
-
-        {/* Current logo preview */}
-        <div className="mb-5">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Current Logo</p>
-          {logoUrl ? (
-            <div className="flex items-center gap-4 p-4 rounded-xl bg-gray-50 border border-gray-200">
-              <div className="relative h-14 w-40 shrink-0 bg-white rounded-lg border border-gray-200 flex items-center justify-center overflow-hidden">
-                <Image
-                  src={resolveImageUrl(logoUrl)}
-                  alt={logoAltText || 'Site logo'}
-                  fill
-                  className="object-contain p-1"
-                />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-700 truncate">{logoAltText || 'No alt text set'}</p>
-                <p className="text-xs text-gray-400 mt-0.5 truncate">{logoUrl}</p>
-                <p className="text-xs text-red-600 mt-1">
-                  Shown on: {logoPages.length > 0
-                    ? logoPages.map(k => LOGO_PAGE_OPTIONS.find(o => o.key === k)?.label || k).join(', ')
-                    : 'No pages selected'}
-                </p>
-              </div>
-              <button
-                onClick={handleDeleteLogo}
-                disabled={deletingLogo}
-                className="shrink-0 px-3 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 text-xs font-semibold transition-colors disabled:opacity-50"
-              >
-                {deletingLogo ? 'Removing…' : '🗑 Remove'}
-              </button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-3 p-4 rounded-xl bg-gray-50 border border-dashed border-gray-300 text-gray-400">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-violet-600 via-red-500 to-rose-400 text-white flex items-center justify-center font-black text-sm">Pi</div>
-              <p className="text-sm">No custom logo uploaded — default wordmark is shown.</p>
-            </div>
-          )}
-        </div>
-
-        {/* New file upload */}
-        <div className="mb-5">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Upload New Logo</p>
-          <div
-            className="flex flex-col items-center justify-center p-6 rounded-xl border-2 border-dashed border-gray-200 hover:border-red-400 bg-gray-50 hover:bg-red-50/40 cursor-pointer transition-all group"
-            onClick={() => logoInputRef.current?.click()}
-          >
-            {logoPreview ? (
-              <div className="relative h-16 w-48 bg-white rounded-lg border border-gray-200 overflow-hidden">
-                <Image src={logoPreview} alt="Logo preview" fill className="object-contain p-1" />
-              </div>
-            ) : (
-              <>
-                <div className="w-12 h-12 rounded-full bg-red-100 group-hover:bg-red-200 flex items-center justify-center text-2xl mb-2 transition-colors">📁</div>
-                <p className="text-sm font-medium text-gray-700">Click to select a logo file</p>
-                <p className="text-xs text-gray-400 mt-0.5">PNG, JPG or WebP — max 10 MB</p>
-              </>
-            )}
-            <input
-              ref={logoInputRef}
-              type="file"
-              accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml"
-              className="hidden"
-              onChange={handleLogoFileChange}
-            />
-          </div>
-          {logoPreview && (
-            <button
-              type="button"
-              onClick={() => { setLogoFile(null); if (logoPreview) URL.revokeObjectURL(logoPreview); setLogoPreview(null); if (logoInputRef.current) logoInputRef.current.value = ''; }}
-              className="mt-2 text-xs text-gray-400 hover:text-red-500 transition-colors"
-            >
-              ✕ Remove selected file
-            </button>
-          )}
-        </div>
-
-        {/* Alt text */}
-        <div className="mb-5">
-          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Logo Alt Text</label>
-          <input
-            type="text"
-            value={logoAltText}
-            onChange={(e) => setLogoAltText(e.target.value)}
-            placeholder="e.g. Piitrade Marketplace"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
-          />
-          <p className="mt-1 text-xs text-gray-400">Shown to screen readers and when the image fails to load.</p>
-        </div>
-
-        {/* Logo size */}
-        <div className="mb-6">
-          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-            Logo Size <span className="text-gray-400 normal-case font-normal">(display height)</span>
-          </label>
-          <div className="flex items-center gap-4">
-            <input
-              type="range"
-              min={16}
-              max={96}
-              step={1}
-              value={logoSize}
-              onChange={(e) => setLogoSize(Number(e.target.value))}
-              className="flex-1 accent-red-600"
-            />
-            <div className="flex items-center gap-1 shrink-0">
-              <input
-                type="number"
-                min={16}
-                max={96}
-                value={logoSize}
-                onChange={(e) => setLogoSize(Math.min(96, Math.max(16, Number(e.target.value) || 28)))}
-                className="w-16 border border-gray-300 rounded-lg px-2 py-1.5 text-sm text-center focus:outline-none focus:ring-2 focus:ring-red-500"
-              />
-              <span className="text-xs text-gray-400">px</span>
-            </div>
-          </div>
-          {logoUrl && (
-            <div className="mt-3 flex items-center gap-2 p-2 rounded-lg bg-gray-50 border border-gray-200">
-              <span className="text-[10px] text-gray-400 uppercase tracking-wide">Preview</span>
-              <div className="relative shrink-0" style={{ width: logoSize, height: logoSize }}>
-                <Image
-                  src={logoPreview || resolveImageUrl(logoUrl)}
-                  alt={logoAltText || 'Logo preview'}
-                  fill
-                  className="object-contain rounded"
-                />
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Page selector */}
-        <div className="mb-6">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Show Logo On</p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {LOGO_PAGE_OPTIONS.map(({ key, label, icon }) => {
-              const active = logoPages.includes(key);
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => toggleLogoPage(key)}
-                  className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
-                    active
-                      ? 'border-red-500 bg-red-50 text-red-700 shadow-sm'
-                      : 'border-gray-200 bg-white text-gray-600 hover:border-red-200 hover:bg-red-50/40'
-                  }`}
-                >
-                  <span className="text-base leading-none">{icon}</span>
-                  <span>{label}</span>
-                  {active && (
-                    <span className="ml-auto text-red-500 text-xs">✓</span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-          <p className="mt-2 text-xs text-gray-400">
-            The logo replaces the default wordmark only on the pages you tick above.
-          </p>
-        </div>
-
-        {/* Link URL */}
-        <div className="mb-6">
-          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Logo Link URL</label>
-          <input
-            type="url"
-            value={logoLinkUrl}
-            onChange={(e) => setLogoLinkUrl(e.target.value)}
-            placeholder="https://example.com"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
-          />
-          <p className="mt-1 text-xs text-gray-400">
-            Optional. If set, visitors are taken here when they click the logo. Leave blank for a non-clickable logo.
-          </p>
-        </div>
-
-        {/* Display mode */}
-        <div className="mb-6">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Display Mode</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => setLogoDisplayMode('inline')}
-              className={`text-left px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
-                logoDisplayMode === 'inline'
-                  ? 'border-red-500 bg-red-50 text-red-700 shadow-sm'
-                  : 'border-gray-200 bg-white text-gray-600 hover:border-red-200 hover:bg-red-50/40'
-              }`}
-            >
-              Logo + Text
-              <p className="text-xs font-normal mt-0.5 opacity-80">Logo shown next to &quot;PIITRADE EXCHANGE · Money Transfer Rates&quot;.</p>
-            </button>
-            <button
-              type="button"
-              onClick={() => setLogoDisplayMode('replace')}
-              className={`text-left px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
-                logoDisplayMode === 'replace'
-                  ? 'border-red-500 bg-red-50 text-red-700 shadow-sm'
-                  : 'border-gray-200 bg-white text-gray-600 hover:border-red-200 hover:bg-red-50/40'
-              }`}
-            >
-              Image Only
-              <p className="text-xs font-normal mt-0.5 opacity-80">Image replaces that text section entirely.</p>
-            </button>
-          </div>
-        </div>
-
-        <button
-          onClick={handleSaveLogo}
-          disabled={savingLogo || (!logoFile && !logoUrl)}
-          className="bg-red-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center gap-2"
-        >
-          {savingLogo ? (
-            <>
-              <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
-              Saving…
-            </>
-          ) : '💾 Save Logo Settings'}
         </button>
       </div>
 

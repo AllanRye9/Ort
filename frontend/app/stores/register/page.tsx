@@ -158,7 +158,7 @@ export default function StoreRegisterPage() {
         <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-6 flex items-start gap-2 text-sm text-amber-800">
           <span className="text-lg shrink-0">⚡</span>
           <span>
-            <strong>Flash Deals</strong> are exclusive to admins only. Your store plan gives posting rights to the sections you select below.
+            <strong>Flash Deals</strong> are exclusive to admins only. Your Web Store plan gives posting rights to the sections you select below.
           </span>
         </div>
 
@@ -227,7 +227,7 @@ export default function StoreRegisterPage() {
         {/* Section selection */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
           <h2 className="text-base font-semibold text-gray-900 mb-1">3. Posting Sections</h2>
-          <p className="text-xs text-gray-500 mb-4">Select the site sections where your store will have posting rights.</p>
+          <p className="text-xs text-gray-500 mb-4">Select the site sections where your Web Store will have posting rights.</p>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {SECTION_OPTIONS.map((sec) => (
               <button
