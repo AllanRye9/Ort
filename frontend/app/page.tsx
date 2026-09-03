@@ -183,6 +183,16 @@ export default async function HomePage() {
         {/* ═══ PAGE ANALYTICS — directly below slider ═══ */}
         <SiteAnalytics />
 
+        {/* ═══ UGANDA MARKET PRICES — themed card section for everyday
+            commodity prices (admin-managed), positioned directly below the
+            slideshow/stats row. This is the single instance of this section;
+            it previously also appeared further down the page as a smaller
+            duplicate widget, which has been removed. Self-hides when
+            nothing has been published yet. ═══ */}
+        <div className="mt-3">
+          <HomeMarketPrices />
+        </div>
+
         {bannerMedia.length > 0 && (
           <section className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 animate-fade-up">
             {bannerMedia.slice(0, 4).map((item) => (
@@ -221,11 +231,6 @@ export default async function HomePage() {
 
           {/* ═══ 1b. TRUSTED SELLERS — "Big brands near you" equivalent ═══ */}
           <FeaturedStoresRow stores={featuredStores} />
-
-          {/* ═══ 1c. UGANDA MARKET PRICES — themed card section for everyday
-              commodity prices (admin-managed). Self-hides when nothing has
-              been published yet. ═══ */}
-          <HomeMarketPrices />
 
           {/* ═══ 2. RECENT BY CATEGORY (Quick Glance) — second ═══ */}
           <section className="animate-fade-up">

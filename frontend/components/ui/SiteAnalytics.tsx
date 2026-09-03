@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react';
 import { api } from '@/lib/api';
 import { useCountry } from '@/context/CountryContext';
 import type { Country } from '@/lib/types';
-import CommodityPriceWidget from '@/components/ui/CommodityPriceWidget';
 
 /* ─── Types ────────────────────────────────────────────────────────────────── */
 
@@ -79,12 +78,14 @@ function StatCard({ label, value, accent }: { label: string; value: number; acce
 /**
  * SiteAnalytics
  *
- * Renders the stat-cards column (Total Visitors / Today's Visitors /
- * Countries) beside the homepage commodity-price widget. This used to also
- * render the "3RELITE EXCHANGE · Money Transfer Rates" currency-rate widget
- * in the flex-1 slot next to the stat cards — that widget has been fully
- * retired and replaced by <CommodityPriceWidget />, which occupies the same
- * slot. The stat cards themselves are unchanged from before.
+ * Renders the stat-cards row (Total Visitors / Today's Visitors /
+ * Countries) directly below the hero slideshow. This used to also render a
+ * commodity-price widget next to the stat cards, duplicating the full
+ * "UGANDA MARKET PRICES" section that appeared further down the page — that
+ * compact widget has been removed and the full <HomeMarketPrices /> section
+ * now renders once, directly below this row, instead. The stat cards
+ * themselves are unchanged from before, just widened to fill the row on
+ * their own.
  */
 export default function SiteAnalytics() {
   const [stats, setStats] = useState<Stats | null>(null);
@@ -98,30 +99,25 @@ export default function SiteAnalytics() {
   }, [country]);
 
   return (
-    <section className="mt-1 px-1 animate-fade-up" aria-label="Site statistics and Uganda market prices">
-      <div className="flex gap-1.5 items-stretch">
-
-        {/* ── Stat cards ── */}
-        <div className="flex flex-col gap-1 w-16 shrink-0">
-          {stats ? (
-            <>
-              <StatCard label="Total Visitors"   value={stats.totalVisitors}  accent="text-red-600" />
-              <StatCard label="Today's Visitors" value={stats.dailyVisitors}  accent="text-emerald-600" />
-              <StatCard label="Countries"        value={stats.totalCountries} accent="text-violet-600" />
-            </>
-          ) : (
-            ['Total Visitors', "Today's Visitors", 'Countries'].map((label) => (
-              <div key={label} className="flex flex-col items-center justify-center px-1 py-1.5 rounded-lg bg-white border border-gray-100 shadow-sm text-center flex-1">
-                <div className="h-3 w-8 bg-gray-100 rounded animate-pulse mb-px" />
-                <p className="text-[7px] font-semibold text-gray-400 uppercase tracking-wide">{label}</p>
-              </div>
-            ))
-          )}
-        </div>
-
-        {/* ── Uganda Market Price Watch — occupies the exact slot the
-             exchange-rate widget used to (see CommodityPriceWidget.tsx) ── */}
-        <CommodityPriceWidget />
+    <section className="mt-1 px-1 animate-fade-up" aria-label="Site statistics">
+      {/* ── Stat cards — full-width row now that the market-price widget
+           that used to sit beside it has moved into its own section
+           (see <HomeMarketPrices /> in app/page.tsx). ── */}
+      <div className="grid grid-cols-3 gap-1.5">
+        {stats ? (
+          <>
+            <StatCard label="Total Visitors"   value={stats.totalVisitors}  accent="text-red-600" />
+            <StatCard label="Today's Visitors" value={stats.dailyVisitors}  accent="text-emerald-600" />
+            <StatCard label="Countries"        value={stats.totalCountries} accent="text-violet-600" />
+          </>
+        ) : (
+          ['Total Visitors', "Today's Visitors", 'Countries'].map((label) => (
+            <div key={label} className="flex flex-col items-center justify-center px-1 py-1.5 rounded-lg bg-white border border-gray-100 shadow-sm text-center">
+              <div className="h-3 w-8 bg-gray-100 rounded animate-pulse mb-px" />
+              <p className="text-[7px] font-semibold text-gray-400 uppercase tracking-wide">{label}</p>
+            </div>
+          ))
+        )}
       </div>
     </section>
   );

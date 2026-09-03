@@ -10,7 +10,6 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useCountry } from '@/context/CountryContext';
 import { ListingCard } from '@/components/listings/ListingCard';
-import { MobileCardCarousel } from '@/components/ui/MobileCardCarousel';
 import type { Listing } from '@/lib/types';
 import { api } from '@/lib/api';
 
@@ -80,11 +79,17 @@ export default function CountryRecentAcrossCategories({
               See more →
             </Link>
           </div>
-          <MobileCardCarousel gridClassName="sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3" ariaLabel={`Latest ${cat.label} listings`}>
+          {/* Same card sizing/grid as "Other Collections" (OtherCollectionsGrid):
+              plain responsive grid — 2 cols on mobile, up to 6 on desktop —
+              rather than the horizontal mobile carousel used elsewhere, so
+              card dimensions line up consistently across the homepage. */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3" role="list" aria-label={`Latest ${cat.label} listings`}>
             {(byCategory[cat.key] || []).slice(0, 6).map((l) => (
-              <ListingCard key={l.id} listing={l} />
+              <div key={l.id} role="listitem">
+                <ListingCard listing={l} />
+              </div>
             ))}
-          </MobileCardCarousel>
+          </div>
         </div>
       ))}
     </div>

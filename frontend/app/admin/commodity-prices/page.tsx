@@ -3,9 +3,10 @@
 /**
  * /admin/commodity-prices
  *
- * Manages the "Uganda Market Price Watch" data shown in the homepage widget
- * (components/ui/CommodityPriceWidget.tsx, rendered from SiteAnalytics.tsx)
- * and the full /market-prices page. Three ways to update prices, all
+ * Manages the "Uganda Market Price Watch" data shown in the homepage's
+ * <HomeMarketPrices /> section (components/ui/HomeMarketPrices.tsx, rendered
+ * from app/page.tsx) and the full /market-prices page. Three ways to update
+ * prices, all
  * converging on the same backend store (see routes/commodityPrices.ts):
  *   1. Manual table — edit rows directly, "Save All" replaces the whole set.
  *   2. JSON paste — paste an array of { name, unit, price, ... } objects.
