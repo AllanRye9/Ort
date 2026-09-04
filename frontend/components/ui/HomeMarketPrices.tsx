@@ -5,8 +5,7 @@
  *
  * Full "UGANDA MARKET PRICES" homepage section, styled to match the site's
  * premium orange/red theme (same gradient-header + white-card language as
- * <FlashDeals />, <CountryLatestCollections /> etc.) rather than the compact
- * emerald ticker row that lives inside <SiteAnalytics />. Shows a handful of
+ * <FlashDeals />, <CountryLatestCollections /> etc.). Shows a handful of
  * commodities as proper cards with a trend badge and a link through to the
  * full filterable /market-prices page.
  */
@@ -14,7 +13,6 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
-import { MobileCardCarousel } from '@/components/ui/MobileCardCarousel';
 
 interface CommodityItem {
   id: string;
@@ -57,7 +55,7 @@ function PriceCard({ item }: { item: CommodityItem }) {
   return (
     <Link
       href="/market-prices"
-      className="group relative flex flex-col overflow-hidden rounded-xl bg-white shadow hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-red-100/60 p-3"
+      className="group relative shrink-0 w-[42%] xs:w-[31%] sm:w-[23%] md:w-[18%] lg:w-[15.5%] flex flex-col overflow-hidden rounded-xl bg-white shadow hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-red-100/60 p-3"
     >
       <div className="flex items-start justify-between gap-2 mb-2">
         <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-red-50 to-orange-50 flex items-center justify-center text-lg shrink-0">
@@ -106,12 +104,33 @@ function PriceCard({ item }: { item: CommodityItem }) {
 
 function SkeletonCard() {
   return (
-    <div className="rounded-xl border border-gray-100 overflow-hidden animate-pulse bg-white p-3">
+    <div className="shrink-0 w-[42%] xs:w-[31%] sm:w-[23%] md:w-[18%] lg:w-[15.5%] rounded-xl border border-gray-100 overflow-hidden animate-pulse bg-white p-3">
       <div className="w-9 h-9 rounded-lg bg-gray-100 mb-2" />
       <div className="h-2.5 bg-gray-100 rounded w-2/3 mb-1.5" />
       <div className="h-2 bg-gray-100 rounded w-1/2 mb-2" />
       <div className="h-3 bg-gray-100 rounded w-3/4" />
     </div>
+  );
+}
+
+/** End-of-row tile shown only when there are more commodities than fit in
+ *  the single-line strip — a plain arrow card linking through to the full
+ *  /market-prices page, rather than cramming extra items into the row or
+ *  wrapping onto a second line. */
+function ViewAllTile() {
+  return (
+    <Link
+      href="/market-prices"
+      aria-label="View all Uganda market prices"
+      className="group shrink-0 w-[42%] xs:w-[31%] sm:w-[23%] md:w-[18%] lg:w-[15.5%] flex flex-col items-center justify-center gap-1.5 rounded-xl bg-white/90 hover:bg-white border border-dashed border-white/70 hover:border-white transition-all duration-300 p-3 text-center"
+    >
+      <span className="w-9 h-9 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center shrink-0 group-hover:translate-x-0.5 transition-transform">
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+        </svg>
+      </span>
+      <span className="text-[10px] xs:text-[11px] font-bold text-gray-700 leading-tight">View All<br />Prices</span>
+    </Link>
   );
 }
 
@@ -134,7 +153,13 @@ export default function HomeMarketPrices() {
   // rather than show an empty shell on the homepage.
   if (!loading && items.length === 0) return null;
 
-  const cards = items.slice(0, 8);
+  // One line, max 6 cards. When there are more commodities than that, the
+  // 6th slot becomes a "View All" arrow tile linking through to the full
+  // /market-prices page instead of cramming extra items in or wrapping
+  // onto a second row.
+  const MAX_VISIBLE = 6;
+  const hasOverflow = items.length > MAX_VISIBLE;
+  const cards = items.slice(0, hasOverflow ? MAX_VISIBLE - 1 : MAX_VISIBLE);
 
   return (
     <section className="overflow-hidden rounded-2xl shadow-lg animate-fade-up" style={{ background: 'linear-gradient(135deg,#E94B00 0%,#FF6500 50%,#FF8433 100%)' }}>
@@ -161,19 +186,30 @@ export default function HomeMarketPrices() {
         </Link>
       </div>
 
-      {/* Cards — mobile carousel (3/row, swipe + arrows), grid at sm+ */}
+      {/* Cards — a single non-wrapping line, always. Scrolls horizontally
+          on narrow screens (no vertical reflow/jump as items settle), and
+          never spills onto a second row at any breakpoint. Capped at 6
+          slots total; anything beyond that is reached via the arrow tile
+          or the "View All Prices" link above, not by showing more cards. */}
       <div className="bg-white/10 backdrop-blur-sm p-3 sm:p-4">
-        {loading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
-            {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
-          </div>
-        ) : (
-          <MobileCardCarousel gridClassName="sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2" ariaLabel="Uganda market price listings">
-            {cards.map((item) => (
-              <PriceCard key={item.id} item={item} />
-            ))}
-          </MobileCardCarousel>
-        )}
+        <div className="flex gap-2 sm:gap-3 overflow-x-auto scrollbar-none snap-x snap-mandatory" role="list" aria-label="Uganda market price listings">
+          {loading ? (
+            Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
+          ) : (
+            <>
+              {cards.map((item) => (
+                <div key={item.id} role="listitem" className="snap-start">
+                  <PriceCard item={item} />
+                </div>
+              ))}
+              {hasOverflow && (
+                <div role="listitem" className="snap-start">
+                  <ViewAllTile />
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
     </section>
   );

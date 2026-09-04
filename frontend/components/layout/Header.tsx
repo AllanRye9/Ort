@@ -9,6 +9,7 @@ import { UserAvatar } from '@/components/ui/UserAvatar';
 import { useRouter, usePathname } from 'next/navigation';
 import CategoryBar from '@/components/layout/CategoryBar';
 import HeaderSearch from '@/components/layout/HeaderSearch';
+import HeaderStats from '@/components/layout/HeaderStats';
 import { CountrySelector } from '@/components/ui/CountrySelector';
 import { api } from '@/lib/api';
 import type { Notification, NotificationType } from '@/lib/types';
@@ -268,6 +269,8 @@ export default function Header() {
           </Link>
 
           <HeaderSearch variant="desktop" scrolled={scrolled} />
+
+          <HeaderStats scrolled={scrolled} />
 
           <nav className="flex items-center gap-0.5 sm:gap-1 md:gap-1.5 ml-auto flex-shrink-0">
             <Link

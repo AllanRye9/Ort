@@ -66,16 +66,17 @@ export default function FeaturedProductCard({
   const showImage = !!imageUrl && !imgFailed;
 
   const cardBody = (
-    <div className={`bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden transition-all duration-300 shine-card${navigable ? ' hover:shadow-lg hover:-translate-y-0.5' : ''}`}>
+    <div className={`bg-white rounded-lg xs:rounded-xl border border-gray-100 overflow-hidden transition-all duration-300 shine-card${navigable ? ' hover:shadow-card-hover hover:-translate-y-1 hover:border-red-100' : ''}`}>
       {/* Image — no text overlaid */}
-      <div className="aspect-[4/3] relative overflow-hidden bg-gray-50">
+      <div className="aspect-[4/3] relative overflow-hidden bg-gray-50 rounded-t-lg xs:rounded-t-xl">
         {showImage ? (
           <Image
             src={resolveImageUrl(imageUrl as string)}
             alt={title}
             fill
-            className="object-cover group-hover:scale-105 transition-transform duration-300"
-            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+            className="object-cover group-hover:scale-105 transition-transform duration-500"
+            sizes="(max-width: 374px) 50vw, (max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+            quality={92}
             loading="lazy"
             onError={() => setImgFailed(true)}
           />
@@ -88,10 +89,10 @@ export default function FeaturedProductCard({
           </div>
         )}
         {/* Subtle hover overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
         {discountPercent != null && discountPercent > 0 && (
-          <div className="absolute top-1.5 left-1.5">
-            <span className="inline-flex items-center rounded-md bg-lime-400 text-emerald-950 text-[9px] font-extrabold px-1.5 py-0.5 shadow-sm">
+          <div className="absolute top-1.5 xs:top-2 left-1.5 xs:left-2">
+            <span className="inline-flex items-center rounded-md bg-lime-400 text-emerald-950 text-[9px] xs:text-[10px] font-extrabold px-1.5 py-0.5 shadow-sm">
               Save {discountPercent}%
             </span>
           </div>
@@ -100,7 +101,7 @@ export default function FeaturedProductCard({
             the card's own Link navigation. Always visible on touch — see
             ListingCard.tsx for why this can't be hover-only. */}
         {showQuickAdd && (
-          <div className="absolute top-1.5 right-1.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200">
+          <div className="absolute top-1.5 xs:top-2 right-1.5 xs:right-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200">
             <QuickAddButton listing={listing as Listing} size="sm" />
           </div>
         )}
@@ -115,27 +116,29 @@ export default function FeaturedProductCard({
         )}
       </div>
 
-      {/* Text content — all BELOW the image, neatly arranged */}
-      <div className="p-2.5 sm:p-3">
+      {/* Text content — all BELOW the image, same padding/text scale as
+          ListingCard ("Other Collections" standard) for a consistent
+          card footprint across every listing section on the site. */}
+      <div className="p-3 xs:p-3.5">
         {storeName && (
-          <p className="text-[10px] sm:text-xs text-gray-400 font-medium mb-0.5 truncate">{storeName}</p>
+          <p className="text-[9px] xs:text-[10px] text-gray-400 font-medium mb-0.5 truncate">{storeName}</p>
         )}
-        <h3 className="text-xs sm:text-sm font-bold text-gray-900 line-clamp-2 mb-1 leading-snug">{title}</h3>
+        <h3 className="font-bold text-gray-900 text-xs xs:text-sm leading-tight truncate" title={title}>{title}</h3>
         {description && (
-          <p className="text-[10px] sm:text-xs text-gray-500 line-clamp-2 mb-1.5 leading-relaxed">{description}</p>
+          <p className="text-[9px] xs:text-[10px] text-gray-400 leading-tight mt-1 truncate">{description}</p>
         )}
         {(originalPrice || discountedPrice) && (
-          <div className="flex items-center gap-2 flex-wrap mt-1">
-            {originalPrice && (
-              <span className="text-gray-400 line-through text-[10px] sm:text-xs tabular-nums">{originalPrice}</span>
-            )}
+          <div className="flex items-baseline gap-1.5 flex-wrap mt-1.5">
             {discountedPrice && (
-              <span className="animate-price-pop text-[#F55906] font-extrabold text-sm sm:text-base tabular-nums">{discountedPrice}</span>
+              <span className="text-red-600 font-extrabold text-sm xs:text-base tabular-nums leading-none">{discountedPrice}</span>
+            )}
+            {originalPrice && (
+              <span className="text-gray-400 line-through text-[10px] xs:text-xs tabular-nums leading-none">{originalPrice}</span>
             )}
           </div>
         )}
         {listedPriceNote && (
-          <p className="text-[9px] sm:text-[10px] text-gray-400 mt-0.5 leading-none">{listedPriceNote}</p>
+          <p className="text-[9px] xs:text-[10px] text-gray-400 mt-0.5 leading-none">{listedPriceNote}</p>
         )}
       </div>
     </div>

@@ -171,20 +171,25 @@ function FlashCard({ card, displayCurrency }: { card: CardData; displayCurrency:
         )}
         {/* Overlay gradient on hover, matching ListingCard */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-        {/* Hot deal badge + savings badge, stacked */}
-        <div className="absolute top-1.5 xs:top-2 left-1.5 xs:left-2 flex flex-col gap-1">
+        {/* Hot deal badge — top-left, small pill */}
+        <div className="absolute top-1.5 xs:top-2 left-1.5 xs:left-2">
           <span
-            className="inline-flex items-center gap-0.5 rounded-md bg-red-600 text-white text-[9px] xs:text-[10px] font-extrabold px-1.5 py-0.5 shadow-sm w-fit"
+            className="inline-flex items-center gap-0.5 rounded-md bg-orange-500 text-white text-[9px] xs:text-[10px] font-extrabold px-1.5 py-0.5 shadow-sm w-fit"
             aria-label="Hot deal"
           >
             <span aria-hidden="true">🔥</span> HOT
           </span>
-          {discountPercent != null && discountPercent > 0 && (
-            <span className="inline-flex items-center rounded-md bg-lime-400 text-emerald-950 text-[9px] xs:text-[10px] font-extrabold px-1.5 py-0.5 shadow-sm w-fit">
-              Save {discountPercent}%
-            </span>
-          )}
         </div>
+        {/* Offer stripe — diagonal ribbon banner across the top corner,
+            the "strip on the price" savings callout, clipped to the image
+            so it never spills past the card's rounded edges. */}
+        {discountPercent != null && discountPercent > 0 && (
+          <div className="absolute top-0 right-0 w-20 h-20 overflow-hidden pointer-events-none" aria-hidden="true">
+            <div className="absolute top-[14px] right-[-30px] w-[120px] rotate-45 bg-gradient-to-r from-red-600 to-orange-500 text-white text-[9px] xs:text-[10px] font-black text-center py-0.5 shadow-md tracking-wide">
+              -{discountPercent}%
+            </div>
+          </div>
+        )}
         {/* Buyer quick-add — top-right, stops propagation so it doesn't
             trigger the card's own Link navigation. */}
         {showQuickAdd && (
@@ -203,9 +208,11 @@ function FlashCard({ card, displayCurrency }: { card: CardData; displayCurrency:
             {card.shortDescription}
           </p>
         )}
-        {/* Price in selected country currency */}
+        {/* Price row — the discount reads as a small colour "stripe" chip
+            sitting right beside the price, echoing the ribbon on the image
+            above, rather than a plain strikethrough alone. */}
         {displayPrice !== null && (
-          <div className="flex items-baseline gap-1.5 flex-wrap mt-1.5">
+          <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
             <span className="text-red-600 font-extrabold text-sm xs:text-base tabular-nums leading-none">
               {formatCurrency(displayPrice, displayCurrency)}
             </span>
@@ -214,21 +221,32 @@ function FlashCard({ card, displayCurrency }: { card: CardData; displayCurrency:
                 {formatCurrency(displayOriginal, displayCurrency)}
               </span>
             )}
+            {discountPercent != null && discountPercent > 0 && (
+              <span className="inline-flex items-center rounded bg-gradient-to-r from-red-600 to-orange-500 text-white text-[8px] xs:text-[9px] font-black px-1 py-px leading-tight shadow-sm">
+                -{discountPercent}%
+              </span>
+            )}
             {/* Show original currency if converted */}
             {card.currency && card.currency !== displayCurrency && card.price !== null && (
-              <span className="text-[9px] xs:text-[10px] text-gray-400 tabular-nums leading-none">
+              <span className="text-[9px] xs:text-[10px] text-gray-400 tabular-nums leading-none w-full">
                 ({formatCurrency(card.price, card.currency)})
               </span>
             )}
           </div>
         )}
+        {/* Stock indicator — decorated with an icon, live count, and a
+            continuously animated light-sweep on the bar itself so it reads
+            as a moving, "live" signal rather than a static gauge. */}
         <div className="flex items-center justify-between mt-2">
-          <span className="text-[9px] xs:text-[10px] text-gray-400 font-medium">Left</span>
+          <span className="inline-flex items-center gap-1 text-[9px] xs:text-[10px] text-gray-400 font-semibold uppercase tracking-wide">
+            <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path d="M11.983 1.907a.75.75 0 00-1.292-.657L4.5 9.75a.75.75 0 00.615 1.183h3.196l-1.8 6.907a.75.75 0 001.292.657l6.191-8.5a.75.75 0 00-.615-1.183h-3.196l1.8-6.907z" /></svg>
+            In stock
+          </span>
           <span className={`text-[9px] xs:text-[10px] font-extrabold tabular-nums ${isLow ? 'text-red-500 animate-pulse' : 'text-emerald-600'}`}>
-            {itemsLeft}
+            {itemsLeft} left
           </span>
         </div>
-        <div className="h-1 mt-1 overflow-hidden rounded-full bg-gray-100">
+        <div className="relative h-1.5 mt-1 overflow-hidden rounded-full bg-gray-100">
           <div
             className="h-full rounded-full transition-all duration-700"
             style={{
@@ -237,6 +255,12 @@ function FlashCard({ card, displayCurrency }: { card: CardData; displayCurrency:
                 ? 'linear-gradient(90deg,#ef4444,#f97316)'
                 : 'linear-gradient(90deg,#10b981,#84cc16,#eab308)',
             }}
+          />
+          {/* Moving highlight sweep — purely decorative, clipped to the bar */}
+          <div
+            className="absolute inset-y-0 left-0 w-1/3 animate-stock-shine pointer-events-none"
+            style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.7), transparent)' }}
+            aria-hidden="true"
           />
         </div>
       </div>
@@ -294,8 +318,8 @@ export default function FlashDeals({ listings, media = [] }: Props) {
 
   if (cards.length === 0) {
     return (
-      <section className="overflow-hidden rounded-2xl shadow-lg animate-fade-up" style={{ background: 'linear-gradient(135deg,#B91C1C 0%,#DC2626 45%,#F97316 100%)' }}>
-        <div className="flex flex-col gap-2 px-4 py-3 text-white sm:flex-row sm:items-center sm:justify-between">
+      <section className="overflow-hidden rounded-2xl shadow-md border border-orange-100 bg-gradient-to-br from-orange-50 via-amber-50/70 to-white animate-fade-up">
+        <div className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between border-b border-orange-100/80 bg-gradient-to-r from-orange-500 to-amber-500 text-white">
           <div className="flex items-center gap-2">
             <span className="text-2xl drop-shadow-lg animate-bounce" aria-hidden="true">🔥</span>
             <div>
@@ -305,14 +329,14 @@ export default function FlashDeals({ listings, media = [] }: Props) {
             </div>
           </div>
         </div>
-        <div className="bg-white/10 backdrop-blur-sm grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 p-3 sm:p-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 p-3 sm:p-4">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="rounded-lg xs:rounded-xl border border-white/15 overflow-hidden animate-pulse bg-white/10">
-              <div className="aspect-[4/3] bg-white/20" />
+            <div key={i} className="rounded-lg xs:rounded-xl border border-orange-100 overflow-hidden animate-pulse bg-white">
+              <div className="aspect-[4/3] bg-orange-50" />
               <div className="p-3 xs:p-3.5 space-y-1.5">
-                <div className="h-2.5 bg-white/20 rounded w-3/4" />
-                <div className="h-2 bg-white/20 rounded w-1/2" />
-                <div className="h-3 bg-white/20 rounded w-2/3" />
+                <div className="h-2.5 bg-orange-100 rounded w-3/4" />
+                <div className="h-2 bg-orange-50 rounded w-1/2" />
+                <div className="h-3 bg-orange-100 rounded w-2/3" />
               </div>
             </div>
           ))}
@@ -322,9 +346,12 @@ export default function FlashDeals({ listings, media = [] }: Props) {
   }
 
   return (
-    <section className="overflow-hidden rounded-2xl shadow-lg animate-fade-up" style={{ background: 'linear-gradient(135deg,#B91C1C 0%,#DC2626 45%,#F97316 100%)' }}>
-      {/* Header */}
-      <div className="relative flex flex-col gap-2 px-4 py-3 text-white sm:flex-row sm:items-center sm:justify-between overflow-hidden">
+    <section className="overflow-hidden rounded-2xl shadow-md border border-orange-100 bg-gradient-to-br from-orange-50 via-amber-50/70 to-white animate-fade-up">
+      {/* Header — the section's only saturated colour is here, in a
+          contained bar, rather than washing the whole card grid in a dark
+          gradient; the body below stays light so it sits comfortably next
+          to "Other Collections" and the rest of the homepage. */}
+      <div className="relative flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between overflow-hidden bg-gradient-to-r from-orange-500 to-amber-500 text-white">
         {/* Decorative blobs */}
         <div className="absolute -top-4 -right-4 w-24 h-24 rounded-full bg-white/10 blur-xl pointer-events-none" />
         <div className="absolute -bottom-6 left-10 w-32 h-32 rounded-full bg-white/10 blur-2xl pointer-events-none" />
@@ -353,8 +380,8 @@ export default function FlashDeals({ listings, media = [] }: Props) {
             aria-label={`Time left: ${String(hours).padStart(2, '0')} hours, ${String(minutes).padStart(2, '0')} minutes, ${String(seconds).padStart(2, '0')} seconds`}
             aria-live="polite"
           >
-            <span className="w-2 h-2 rounded-full bg-red-400 animate-ping absolute opacity-60" aria-hidden="true" />
-            <span className="w-2 h-2 rounded-full bg-red-400 relative" aria-hidden="true" />
+            <span className="w-2 h-2 rounded-full bg-white animate-ping absolute opacity-60" aria-hidden="true" />
+            <span className="w-2 h-2 rounded-full bg-white relative" aria-hidden="true" />
             <span aria-hidden="true">
               {String(hours).padStart(2, '0')}:{String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
             </span>
@@ -364,8 +391,9 @@ export default function FlashDeals({ listings, media = [] }: Props) {
 
       {/* Cards — mobile carousel (3/row, swipe + arrows), grid at sm+.
           Same breakpoint/gap and card sizing as "Other Collections" below,
-          just wrapped in the horizontal-scroll carousel on mobile. */}
-      <div className="bg-white/10 backdrop-blur-sm p-3 sm:p-4">
+          just wrapped in the horizontal-scroll carousel on mobile. Light
+          background so the white cards read clearly against it. */}
+      <div className="bg-orange-50/40 p-3 sm:p-4">
         <MobileCardCarousel gridClassName="sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3" ariaLabel="Flash Deals listings">
           {cards.map((card) => (
             <FlashCard key={card.id} card={card} displayCurrency={displayCurrency} />

@@ -740,6 +740,22 @@
   75% { transform: scale(1.2) rotate(-4deg); opacity: 1; }
 }
 
+/* Continuous light sweep used on the Flash Deals stock/progress bar so the
+   "items left" indicator reads as a live, moving signal rather than a
+   static coloured bar. */
+@keyframes stockShine {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(220%); }
+}
+.animate-stock-shine {
+  animation: stockShine 1.6s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-stock-shine {
+    animation: none;
+  }
+}
+
 /* Shine card — adds a sweeping light reflection on hover */
 .shine-card {
   position: relative;

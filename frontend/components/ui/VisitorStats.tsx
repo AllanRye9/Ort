@@ -9,11 +9,11 @@ import type { Country } from '@/lib/types';
  * VisitorStats
  *
  * Small "Total Visitors" / "Today's Visitors" readout that lives in the
- * site footer, so — unlike the larger animated stat cards in
- * SiteAnalytics.tsx (homepage-only, paired with the commodity price
- * widget) — it shows up on every public page via <Footer />.
+ * site footer, so — unlike the compact stat pills in the header (see
+ * <HeaderStats /> in components/layout/HeaderStats.tsx) — it shows up on
+ * every public page via <Footer /> even below the header's `lg` breakpoint.
  *
- * Pulls from the same GET /api/stats/public endpoint SiteAnalytics uses;
+ * Pulls from the same GET /api/stats/public endpoint HeaderStats uses;
  * `totalVisitors` never resets, `dailyVisitors` resets at local midnight
  * for the visitor's selected/detected country.
  */

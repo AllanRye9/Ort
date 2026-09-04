@@ -10,7 +10,6 @@ import QuickActions from '@/components/ui/QuickActions';
 import HomeOtherCollections from '@/components/ui/HomeOtherCollections';
 import HomeMarketPrices from '@/components/ui/HomeMarketPrices';
 import TrackPageView from '@/components/ui/TrackPageView';
-import SiteAnalytics from '@/components/ui/SiteAnalytics';
 import RegionHintBanner from '@/components/ui/RegionHintBanner';
 import CountryLatestCollections from '@/components/ui/CountryLatestCollections';
 import CountryFeaturedDeal from '@/components/ui/CountryFeaturedDeal';
@@ -180,15 +179,16 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {/* ═══ PAGE ANALYTICS — directly below slider ═══ */}
-        <SiteAnalytics />
-
         {/* ═══ UGANDA MARKET PRICES — themed card section for everyday
             commodity prices (admin-managed), positioned directly below the
-            slideshow/stats row. This is the single instance of this section;
-            it previously also appeared further down the page as a smaller
-            duplicate widget, which has been removed. Self-hides when
-            nothing has been published yet. ═══ */}
+            slideshow. The "Total Visitors / Today's Visitors / Countries"
+            stat row that used to sit here has moved into the global header
+            (see <HeaderStats /> in components/layout/Header.tsx), so every
+            page shows it, not just the homepage. This is the single
+            instance of the market-prices section; it previously also
+            appeared further down the page as a smaller duplicate widget,
+            which has been removed. Self-hides when nothing has been
+            published yet. ═══ */}
         <div className="mt-3">
           <HomeMarketPrices />
         </div>

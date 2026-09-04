@@ -62,6 +62,16 @@ function toCSV(items: CommodityItem[]): string {
   return [header.join(','), ...rows].join('\n');
 }
 
+const COMMODITY_ICONS: Record<string, string> = {
+  sugar: '🍬', coffee: '☕', cement: '🧱', beans: '🫘', 'maize flour': '🌽',
+  rice: '🍚', 'cooking oil': '🛢️', salt: '🧂', milk: '🥛', charcoal: '🪵',
+  electricity: '⚡', petrol: '⛽', diesel: '⛽',
+};
+
+function iconFor(name: string): string {
+  return COMMODITY_ICONS[name.trim().toLowerCase()] ?? '🛒';
+}
+
 /* ─── Small UI atoms ───────────────────────────────────────────────────────── */
 
 function TrendBadge({ item, size = 'sm' }: { item: CommodityItem; size?: 'sm' | 'xs' }) {
@@ -84,7 +94,7 @@ function TrendBadge({ item, size = 'sm' }: { item: CommodityItem; size?: 'sm' | 
 
 function StatPill({ icon, label, value, color }: { icon: string; label: string; value: string | number; color: string }) {
   return (
-    <div className="flex items-center gap-2.5 bg-white rounded-xl border border-gray-100 shadow-sm px-3.5 py-2.5 min-w-0">
+    <div className="flex items-center gap-2.5 bg-white rounded-xl border border-gray-100 shadow-sm px-3.5 py-2.5 min-w-0 transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
       <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm shrink-0 ${color}`}>{icon}</div>
       <div className="min-w-0">
         <p className="text-base font-black text-gray-900 leading-tight tabular-nums">{value}</p>
@@ -203,36 +213,46 @@ export default function MarketPricesPage() {
     <div className="max-w-6xl mx-auto px-4 py-6 sm:py-8">
       <Breadcrumb items={[{ label: 'Home', href: '/' }, { label: 'Market Prices' }]} className="mb-4" />
 
-      {/* Header */}
-      <div className="mb-5 flex items-start justify-between gap-4 flex-wrap">
-        <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#FF6500] to-premium-navy flex items-center justify-center text-2xl shadow-md shrink-0">
-            🌾
-          </div>
-          <div>
-            <h1 className="text-2xl font-black text-gray-900 tracking-wide uppercase">Uganda Market Prices</h1>
-            <p className="text-sm text-gray-500 mt-0.5 max-w-2xl">
-              Everyday commodity prices from Uganda&apos;s local markets, kept up to date by our team so buyers, traders, and businesses can check fair market value before they buy or sell.
-            </p>
-            {updatedAt && (
-              <p className="text-xs text-gray-400 mt-1 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block" />
-                Last updated {relativeTime(updatedAt)}
+      {/* Hero banner — same gradient-header language as the homepage's
+          <HomeMarketPrices /> / <FlashDeals /> sections, so this page feels
+          like a continuation of that section rather than a plain utility
+          page. */}
+      <div
+        className="relative overflow-hidden rounded-2xl shadow-lg mb-5 px-5 py-5 sm:px-7 sm:py-6 text-white animate-fade-up"
+        style={{ background: 'linear-gradient(135deg,#E94B00 0%,#FF6500 50%,#FF8433 100%)' }}
+      >
+        <div className="absolute -top-6 -right-6 w-32 h-32 rounded-full bg-white/10 blur-2xl pointer-events-none" />
+        <div className="absolute -bottom-8 left-16 w-40 h-40 rounded-full bg-white/10 blur-2xl pointer-events-none" />
+        <div className="relative flex items-start justify-between gap-4 flex-wrap">
+          <div className="flex items-start gap-3.5">
+            <div className="w-12 h-12 rounded-xl bg-white/15 border border-white/25 backdrop-blur-sm flex items-center justify-center text-2xl shadow-md shrink-0">
+              🇺🇬
+            </div>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-black tracking-wide uppercase">Uganda Market Prices</h1>
+              <p className="text-xs sm:text-sm text-white/85 mt-0.5 max-w-2xl">
+                Everyday commodity prices from Uganda&apos;s local markets, kept up to date by our team so buyers, traders, and businesses can check fair market value before they buy or sell.
               </p>
-            )}
+              {updatedAt && (
+                <p className="text-[11px] text-white/75 mt-1.5 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-white inline-block animate-pulse" />
+                  Last updated {relativeTime(updatedAt)}
+                </p>
+              )}
+            </div>
           </div>
-        </div>
 
-        <button
-          onClick={handleRefresh}
-          disabled={refreshing}
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-600 hover:border-red-300 hover:text-red-700 transition-colors shadow-sm disabled:opacity-50"
-        >
-          <svg className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-          Refresh
-        </button>
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/30 bg-white/10 hover:bg-white/20 text-xs font-semibold text-white transition-colors shadow-sm disabled:opacity-50 backdrop-blur-sm"
+          >
+            <svg className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* Market summary stats */}
@@ -412,20 +432,23 @@ export default function MarketPricesPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {filtered.map((item) => (
-            <div key={item.id} className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 hover:shadow-md hover:border-red-200 transition-all">
-              <div className="flex items-start justify-between gap-2 mb-1.5">
-                <h3 className="font-bold text-gray-900 text-sm">{item.name}</h3>
+            <div key={item.id} className="group relative flex flex-col overflow-hidden rounded-xl bg-white border border-gray-100 shadow-sm p-4 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-red-100">
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-red-50 to-orange-50 flex items-center justify-center text-lg shrink-0">
+                  <span aria-hidden="true">{iconFor(item.name)}</span>
+                </div>
                 <span className={`shrink-0 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full ${item.marketType === 'WHOLESALE' ? 'bg-premium-navy/10 text-premium-navy' : 'bg-red-100 text-red-700'}`}>
                   {item.marketType === 'WHOLESALE' ? 'Wholesale' : 'Retail'}
                 </span>
               </div>
-              <p className="text-xl font-black text-gray-900 tabular-nums">{formatUGX(item.price)}</p>
+              <h3 className="font-bold text-gray-900 text-sm leading-tight truncate" title={item.name}>{item.name}</h3>
               <p className="text-xs text-gray-400 mb-2">per {item.unit}</p>
-              <div className="flex items-center justify-between">
+              <p className="text-xl font-black text-red-600 tabular-nums leading-none">{formatUGX(item.price)}</p>
+              <div className="flex items-center justify-between mt-2.5">
                 <TrendBadge item={item} />
                 {item.location && (
-                  <span className="flex items-center gap-1 text-xs text-gray-400">
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                  <span className="flex items-center gap-1 text-xs text-gray-400 truncate max-w-[110px]">
+                    <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                     {item.location}
                   </span>
                 )}
