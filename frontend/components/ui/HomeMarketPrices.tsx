@@ -55,7 +55,8 @@ function PriceCard({ item }: { item: CommodityItem }) {
   return (
     <Link
       href="/market-prices"
-      className="group relative shrink-0 w-[42%] xs:w-[31%] sm:w-[23%] md:w-[18%] lg:w-[15.5%] flex flex-col overflow-hidden rounded-xl bg-white shadow hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-red-100/60 p-3"
+      role="listitem"
+      className="group relative shrink-0 w-[42%] xs:w-[31%] sm:w-[23%] md:w-[18%] lg:w-[15.5%] flex flex-col overflow-hidden rounded-xl bg-white shadow hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-red-100/60 p-3 snap-start"
     >
       <div className="flex items-start justify-between gap-2 mb-2">
         <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-red-50 to-orange-50 flex items-center justify-center text-lg shrink-0">
@@ -104,7 +105,7 @@ function PriceCard({ item }: { item: CommodityItem }) {
 
 function SkeletonCard() {
   return (
-    <div className="shrink-0 w-[42%] xs:w-[31%] sm:w-[23%] md:w-[18%] lg:w-[15.5%] rounded-xl border border-gray-100 overflow-hidden animate-pulse bg-white p-3">
+    <div className="shrink-0 w-[42%] xs:w-[31%] sm:w-[23%] md:w-[18%] lg:w-[15.5%] snap-start rounded-xl border border-gray-100 overflow-hidden animate-pulse bg-white p-3">
       <div className="w-9 h-9 rounded-lg bg-gray-100 mb-2" />
       <div className="h-2.5 bg-gray-100 rounded w-2/3 mb-1.5" />
       <div className="h-2 bg-gray-100 rounded w-1/2 mb-2" />
@@ -122,7 +123,8 @@ function ViewAllTile() {
     <Link
       href="/market-prices"
       aria-label="View all Uganda market prices"
-      className="group shrink-0 w-[42%] xs:w-[31%] sm:w-[23%] md:w-[18%] lg:w-[15.5%] flex flex-col items-center justify-center gap-1.5 rounded-xl bg-white/90 hover:bg-white border border-dashed border-white/70 hover:border-white transition-all duration-300 p-3 text-center"
+      role="listitem"
+      className="group shrink-0 w-[42%] xs:w-[31%] sm:w-[23%] md:w-[18%] lg:w-[15.5%] flex flex-col items-center justify-center gap-1.5 rounded-xl bg-white/90 hover:bg-white border border-dashed border-white/70 hover:border-white transition-all duration-300 p-3 text-center snap-start"
     >
       <span className="w-9 h-9 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center shrink-0 group-hover:translate-x-0.5 transition-transform">
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
@@ -198,15 +200,9 @@ export default function HomeMarketPrices() {
           ) : (
             <>
               {cards.map((item) => (
-                <div key={item.id} role="listitem" className="snap-start">
-                  <PriceCard item={item} />
-                </div>
+                <PriceCard key={item.id} item={item} />
               ))}
-              {hasOverflow && (
-                <div role="listitem" className="snap-start">
-                  <ViewAllTile />
-                </div>
-              )}
+              {hasOverflow && <ViewAllTile />}
             </>
           )}
         </div>
