@@ -72,6 +72,7 @@ const cvPayment_1 = __importDefault(require("./routes/cvPayment"));
 const jobs_1 = __importDefault(require("./routes/jobs"));
 const currencyRates_1 = __importDefault(require("./routes/currencyRates"));
 const commodityPrices_1 = __importDefault(require("./routes/commodityPrices"));
+const farmerMarketplace_1 = __importDefault(require("./routes/farmerMarketplace"));
 const kyc_1 = __importDefault(require("./routes/kyc"));
 const serviceConfig_1 = require("./utils/serviceConfig");
 const app = (0, express_1.default)();
@@ -216,6 +217,7 @@ app.use('/api/cv-payment', cvPayment_1.default);
 app.use('/api/jobs', jobs_1.default);
 app.use('/api/currency-rates', currencyRates_1.default);
 app.use('/api/commodity-prices', commodityPrices_1.default);
+app.use('/api/farmer-marketplace', farmerMarketplace_1.default);
 app.use('/api/kyc', kyc_1.default);
 // ─── Public site config (whatsapp number, today's deals, header theme) ────────
 // Publicly readable – no auth required so the frontend can load it on every page.

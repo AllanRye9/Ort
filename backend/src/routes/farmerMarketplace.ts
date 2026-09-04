@@ -1,0 +1,518 @@
+import { Router, Response, NextFunction } from 'express';
+import { Request } from 'express';
+import { randomUUID } from 'crypto';
+import { readJsonFile, writeJsonFile } from '../utils/jsonStore';
+import { authenticate, optionalAuthenticate, authorize, AuthRequest } from '../middleware/auth';
+import { createError } from '../middleware/errorHandler';
+
+const router = Router();
+const FARMER_MARKETPLACE_PATH = 'data/farmer-marketplace.json';
+
+/**
+ * "Farmer Marketplace" — a commodity marketplace layer that sits alongside
+ * the admin-curated /api/commodity-prices price board. Where commodity-prices
+ * is a reference index (what things generally cost), this is transactional:
+ * farmers post real produce for sale, buyers in different towns quote a
+ * price, and the platform computes an all-in delivered price for each quote
+ * (commodity price + transport + storage + platform fee). That's the core
+ * mechanic that starts to close the information-asymmetry gap between a
+ * farmer in, say, Iganga and buyers spread across Kampala, Jinja, Mbale, and
+ * export channels.
+ *
+ * Storage mirrors commodityPrices.ts's JSON-file-store pattern for the same
+ * reason documented there: consistency with the sibling feature, fast to
+ * ship. Same ephemeral-filesystem caveat applies — mount a persistent volume
+ * at data/ in production, or migrate to Prisma once this needs relational
+ * querying (e.g. a farmer's full order history, disputes, payouts).
+ *
+ * SCOPE NOTE — what this file deliberately does NOT implement yet:
+ *   - Escrow / in-app payment: moving money needs a licensed payment
+ *     processor (mobile money aggregator, PCI-compliant card processor) and
+ *     legal/regulatory groundwork specific to each country served. This
+ *     route only carries an `escrowStatus` placeholder field so the UI has
+ *     somewhere to show "payment held" once that integration exists — no
+ *     money actually moves here.
+ *   - Digital weighing records: real weighbridge/IoT integration is a
+ *     hardware project. `verifiedWeightKg` is a plain field an operator can
+ *     fill in by hand (e.g. after a warehouse scale reading) until a device
+ *     integration writes to it directly.
+ *   - Logistics matching: real matching against a transporter network is
+ *     its own service. `transportPartner` is a free-text field for now.
+ *   - Demand forecasting / AI price predictions: those need a real
+ *     historical dataset at volume and a proper modelling pipeline, not a
+ *     few dozen posts. `regional-prices` below gives today's honest
+ *     average-by-region signal from live data — a solid first step, but it
+ *     is not a forecast.
+ */
+
+type QualityGrade = 'A' | 'B' | 'C' | 'UNGRADED';
+type Availability = 'IMMEDIATE' | 'DATE';
+type PostStatus = 'OPEN' | 'MATCHED' | 'CLOSED';
+type EscrowStatus = 'NONE' | 'HELD' | 'RELEASED';
+
+interface PriceHistoryPoint {
+  price: number;
+  at: string;
+}
+
+interface FarmerPost {
+  id: string;
+  farmerId: string | null;
+  farmerName: string;
+  farmerPhone: string | null;
+  verifiedSeller: boolean;
+  commodity: string;
+  quantity: number;
+  unit: string;
+  location: string;
+  qualityGrade: QualityGrade;
+  availability: Availability;
+  availableFrom: string | null;
+  minPricePerUnit: number;
+  currency: string;
+  status: PostStatus;
+  warehouseAvailable: boolean;
+  storageLocation: string | null;
+  verifiedWeightKg: number | null;
+  notes: string | null;
+  priceHistory: PriceHistoryPoint[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface BuyerOffer {
+  id: string;
+  postId: string;
+  buyerId: string | null;
+  buyerName: string;
+  buyerLocation: string;
+  verifiedBuyer: boolean;
+  commodityPricePerUnit: number;
+  transportPerUnit: number;
+  storagePerUnit: number;
+  platformFeePercent: number;
+  transportPartner: string | null;
+  escrowStatus: EscrowStatus;
+  notes: string | null;
+  createdAt: string;
+}
+
+interface FarmerMarketplaceStore {
+  posts: FarmerPost[];
+  offers: BuyerOffer[];
+  updatedAt: string;
+}
+
+const DEFAULT_PLATFORM_FEE_PERCENT = 2;
+const now = () => new Date().toISOString();
+
+function seedStore(): FarmerMarketplaceStore {
+  const postId = randomUUID();
+  const createdAt = now();
+  return {
+    posts: [
+      {
+        id: postId,
+        farmerId: null,
+        farmerName: 'Nakato Farmers Group',
+        farmerPhone: null,
+        verifiedSeller: true,
+        commodity: 'Maize',
+        quantity: 5000,
+        unit: 'kg',
+        location: 'Iganga',
+        qualityGrade: 'A',
+        availability: 'IMMEDIATE',
+        availableFrom: null,
+        minPricePerUnit: 1200,
+        currency: 'UGX',
+        status: 'OPEN',
+        warehouseAvailable: true,
+        storageLocation: 'Iganga Central Store',
+        verifiedWeightKg: 5000,
+        notes: 'Dried, sorted, ready for immediate pickup.',
+        priceHistory: [{ price: 1200, at: createdAt }],
+        createdAt,
+        updatedAt: createdAt,
+      },
+    ],
+    offers: [
+      { id: randomUUID(), postId, buyerId: null, buyerName: 'Kampala Grain Traders Ltd', buyerLocation: 'Kampala', verifiedBuyer: true, commodityPricePerUnit: 1250, transportPerUnit: 120, storagePerUnit: 30, platformFeePercent: DEFAULT_PLATFORM_FEE_PERCENT, transportPartner: null, escrowStatus: 'NONE', notes: null, createdAt },
+      { id: randomUUID(), postId, buyerId: null, buyerName: 'Jinja Millers Co-op', buyerLocation: 'Jinja', verifiedBuyer: true, commodityPricePerUnit: 1230, transportPerUnit: 60, storagePerUnit: 25, platformFeePercent: DEFAULT_PLATFORM_FEE_PERCENT, transportPartner: null, escrowStatus: 'NONE', notes: null, createdAt },
+      { id: randomUUID(), postId, buyerId: null, buyerName: 'Mbale Agro Buyers', buyerLocation: 'Mbale', verifiedBuyer: false, commodityPricePerUnit: 1210, transportPerUnit: 90, storagePerUnit: 25, platformFeePercent: DEFAULT_PLATFORM_FEE_PERCENT, transportPartner: null, escrowStatus: 'NONE', notes: null, createdAt },
+      { id: randomUUID(), postId, buyerId: null, buyerName: 'Export Buyer (Kenya)', buyerLocation: 'Export', verifiedBuyer: true, commodityPricePerUnit: 1320, transportPerUnit: 180, storagePerUnit: 40, platformFeePercent: 3, transportPartner: null, escrowStatus: 'NONE', notes: 'Requires phytosanitary certificate.', createdAt },
+    ],
+    updatedAt: createdAt,
+  };
+}
+
+function loadStore(): FarmerMarketplaceStore {
+  return readJsonFile<FarmerMarketplaceStore>(FARMER_MARKETPLACE_PATH, seedStore());
+}
+
+function saveStore(store: FarmerMarketplaceStore): void {
+  writeJsonFile(FARMER_MARKETPLACE_PATH, store);
+}
+
+function round2(value: number): number {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
+function normalizeGrade(value: unknown): QualityGrade {
+  const v = String(value || '').trim().toUpperCase();
+  return v === 'A' || v === 'B' || v === 'C' ? v : 'UNGRADED';
+}
+
+function normalizeAvailability(value: unknown): Availability {
+  return String(value || '').trim().toUpperCase() === 'DATE' ? 'DATE' : 'IMMEDIATE';
+}
+
+// Delivered price = (commodity price + transport + storage) marked up by the
+// platform fee percentage. This is the single calculation the whole feature
+// hinges on — every offer surfaced to a farmer is shown with this breakdown
+// rather than a bare number, so the farmer can see exactly what each buyer's
+// quote is actually worth once it reaches them.
+function deliveredPrice(offer: BuyerOffer): { subtotal: number; feeAmount: number; deliveredPricePerUnit: number } {
+  const subtotal = round2(offer.commodityPricePerUnit + offer.transportPerUnit + offer.storagePerUnit);
+  const feeAmount = round2(subtotal * (offer.platformFeePercent / 100));
+  return { subtotal, feeAmount, deliveredPricePerUnit: round2(subtotal + feeAmount) };
+}
+
+function offerWithDelivered(offer: BuyerOffer) {
+  return { ...offer, ...deliveredPrice(offer) };
+}
+
+function postSummary(post: FarmerPost, offers: BuyerOffer[]) {
+  const postOffers = offers.filter((o) => o.postId === post.id).map(offerWithDelivered);
+  const bestOffer = postOffers.length
+    ? postOffers.reduce((best, o) => (o.deliveredPricePerUnit > best.deliveredPricePerUnit ? o : best))
+    : null;
+  return { ...post, offerCount: postOffers.length, bestDeliveredPricePerUnit: bestOffer?.deliveredPricePerUnit ?? null };
+}
+
+// ─── Public read: list posts ────────────────────────────────────────────────
+// GET /api/farmer-marketplace/posts?commodity=&location=&status=OPEN
+router.get('/posts', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const store = loadStore();
+    const { commodity, location, status } = req.query as { commodity?: string; location?: string; status?: string };
+
+    let posts = store.posts;
+    if (commodity) {
+      const c = commodity.toLowerCase();
+      posts = posts.filter((p) => p.commodity.toLowerCase().includes(c));
+    }
+    if (location) {
+      const l = location.toLowerCase();
+      posts = posts.filter((p) => p.location.toLowerCase() === l);
+    }
+    if (status && status.toUpperCase() !== 'ALL') {
+      posts = posts.filter((p) => p.status === status.toUpperCase());
+    } else if (!status) {
+      posts = posts.filter((p) => p.status !== 'CLOSED');
+    }
+    // status=ALL: no status filtering — used by the admin dashboard so
+    // closed posts remain visible there even though the public list and
+    // homepage hide them.
+
+    res.set('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
+    res.json({ posts: posts.map((p) => postSummary(p, store.offers)), updatedAt: store.updatedAt });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/farmer-marketplace/posts/:id — full detail incl. every buyer offer
+router.get('/posts/:id', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const store = loadStore();
+    const post = store.posts.find((p) => p.id === req.params.id);
+    if (!post) return next(createError('Farmer post not found', 404));
+
+    const offers = store.offers
+      .filter((o) => o.postId === post.id)
+      .map(offerWithDelivered)
+      .sort((a, b) => b.deliveredPricePerUnit - a.deliveredPricePerUnit);
+
+    res.json({ post, offers });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/farmer-marketplace/locations — distinct farmer post locations
+router.get('/locations', async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const store = loadStore();
+    const locations = [...new Set(store.posts.map((p) => p.location).filter(Boolean))].sort();
+    res.json({ locations });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/farmer-marketplace/regional-prices?commodity=Maize
+// Averages delivered price per buyer region across all open posts for a
+// commodity — the "regional price comparison" piece: a farmer (or anyone)
+// can see at a glance that, say, Export buyers are currently paying more
+// than Mbale buyers for maize, before a single offer is placed on their own
+// post.
+router.get('/regional-prices', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const store = loadStore();
+    const { commodity } = req.query as { commodity?: string };
+    if (!commodity) return next(createError('Query param "commodity" is required', 400));
+
+    const c = commodity.toLowerCase();
+    const relevantPostIds = new Set(store.posts.filter((p) => p.commodity.toLowerCase() === c).map((p) => p.id));
+    const relevantOffers = store.offers.filter((o) => relevantPostIds.has(o.postId)).map(offerWithDelivered);
+
+    const byRegion = new Map<string, { total: number; count: number }>();
+    for (const o of relevantOffers) {
+      const entry = byRegion.get(o.buyerLocation) || { total: 0, count: 0 };
+      entry.total += o.deliveredPricePerUnit;
+      entry.count += 1;
+      byRegion.set(o.buyerLocation, entry);
+    }
+
+    const regions = [...byRegion.entries()]
+      .map(([region, { total, count }]) => ({ region, averageDeliveredPricePerUnit: round2(total / count), offerCount: count }))
+      .sort((a, b) => b.averageDeliveredPricePerUnit - a.averageDeliveredPricePerUnit);
+
+    res.json({ commodity, regions });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/farmer-marketplace/price-history?commodity=Maize&location=Iganga
+// Flattens every post's minPricePerUnit history for a commodity (optionally
+// scoped to a location) into one time-ordered series.
+router.get('/price-history', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const store = loadStore();
+    const { commodity, location } = req.query as { commodity?: string; location?: string };
+    if (!commodity) return next(createError('Query param "commodity" is required', 400));
+
+    const c = commodity.toLowerCase();
+    const l = location?.toLowerCase();
+    const posts = store.posts.filter(
+      (p) => p.commodity.toLowerCase() === c && (!l || p.location.toLowerCase() === l),
+    );
+
+    const points = posts
+      .flatMap((p) => p.priceHistory.map((h) => ({ ...h, location: p.location, postId: p.id })))
+      .sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
+
+    res.json({ commodity, location: location || null, points });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ─── Create a farmer post ───────────────────────────────────────────────────
+// POST /api/farmer-marketplace/posts
+// optionalAuthenticate: a logged-in user's id/name are attached automatically;
+// a guest can still post by supplying farmerName + farmerPhone directly (the
+// same "low-friction posting" pattern used elsewhere on the site for
+// classifieds), but verifiedSeller always starts false either way.
+router.post('/posts', optionalAuthenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const body = req.body || {};
+    const commodity = String(body.commodity || '').trim();
+    const quantity = Number(body.quantity);
+    const location = String(body.location || '').trim();
+    const minPricePerUnit = Number(body.minPricePerUnit);
+    const farmerName = String(body.farmerName || '').trim();
+
+    if (!commodity || !location || !farmerName) {
+      return next(createError('"commodity", "location", and "farmerName" are required.', 400));
+    }
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      return next(createError('"quantity" must be a positive number.', 400));
+    }
+    if (!Number.isFinite(minPricePerUnit) || minPricePerUnit < 0) {
+      return next(createError('"minPricePerUnit" must be a non-negative number.', 400));
+    }
+
+    const store = loadStore();
+    const createdAt = now();
+    const post: FarmerPost = {
+      id: randomUUID(),
+      farmerId: req.user?.userId || null,
+      farmerName,
+      farmerPhone: body.farmerPhone ? String(body.farmerPhone).trim() : null,
+      verifiedSeller: false,
+      commodity,
+      quantity,
+      unit: String(body.unit || 'kg').trim() || 'kg',
+      location,
+      qualityGrade: normalizeGrade(body.qualityGrade),
+      availability: normalizeAvailability(body.availability),
+      availableFrom: body.availability === 'DATE' && body.availableFrom ? String(body.availableFrom) : null,
+      minPricePerUnit: round2(minPricePerUnit),
+      currency: String(body.currency || 'UGX').trim() || 'UGX',
+      status: 'OPEN',
+      warehouseAvailable: Boolean(body.warehouseAvailable),
+      storageLocation: body.storageLocation ? String(body.storageLocation).trim() : null,
+      verifiedWeightKg: body.verifiedWeightKg != null ? Number(body.verifiedWeightKg) : null,
+      notes: body.notes ? String(body.notes).trim() : null,
+      priceHistory: [{ price: round2(minPricePerUnit), at: createdAt }],
+      createdAt,
+      updatedAt: createdAt,
+    };
+
+    store.posts.push(post);
+    store.updatedAt = createdAt;
+    saveStore(store);
+    res.status(201).json({ post });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ─── Update a farmer post (owner or admin) ─────────────────────────────────
+// PATCH /api/farmer-marketplace/posts/:id
+// Supports updating status (OPEN/MATCHED/CLOSED) and minPricePerUnit (which
+// appends to priceHistory rather than overwriting it, so the price-history
+// endpoint above stays meaningful).
+router.patch('/posts/:id', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const store = loadStore();
+    const post = store.posts.find((p) => p.id === req.params.id);
+    if (!post) return next(createError('Farmer post not found', 404));
+
+    const isOwner = post.farmerId && post.farmerId === req.user!.userId;
+    const isAdmin = req.user!.role === 'ADMIN';
+    if (!isOwner && !isAdmin) return next(createError('You do not have permission to edit this post', 403));
+
+    const body = req.body || {};
+    if (body.status && ['OPEN', 'MATCHED', 'CLOSED'].includes(String(body.status).toUpperCase())) {
+      post.status = String(body.status).toUpperCase() as PostStatus;
+    }
+    if (body.minPricePerUnit != null) {
+      const newPrice = round2(Number(body.minPricePerUnit));
+      if (Number.isFinite(newPrice) && newPrice >= 0 && newPrice !== post.minPricePerUnit) {
+        post.minPricePerUnit = newPrice;
+        post.priceHistory.push({ price: newPrice, at: now() });
+      }
+    }
+    if (body.quantity != null && Number.isFinite(Number(body.quantity))) post.quantity = Number(body.quantity);
+    if (body.warehouseAvailable != null) post.warehouseAvailable = Boolean(body.warehouseAvailable);
+    if (body.storageLocation != null) post.storageLocation = String(body.storageLocation).trim() || null;
+    if (body.verifiedWeightKg != null) post.verifiedWeightKg = Number(body.verifiedWeightKg);
+    if (body.notes != null) post.notes = String(body.notes).trim() || null;
+
+    post.updatedAt = now();
+    store.updatedAt = post.updatedAt;
+    saveStore(store);
+    res.json({ post });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ─── Admin: verify/unverify a farmer (seller) ──────────────────────────────
+// PATCH /api/farmer-marketplace/posts/:id/verify  { verified: boolean }
+router.patch('/posts/:id/verify', authenticate, authorize('ADMIN'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const store = loadStore();
+    const post = store.posts.find((p) => p.id === req.params.id);
+    if (!post) return next(createError('Farmer post not found', 404));
+
+    post.verifiedSeller = Boolean(req.body?.verified);
+    post.updatedAt = now();
+    store.updatedAt = post.updatedAt;
+    saveStore(store);
+    res.json({ post });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ─── Submit a buyer offer on a post ─────────────────────────────────────────
+// POST /api/farmer-marketplace/posts/:id/offers
+router.post('/posts/:id/offers', optionalAuthenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const store = loadStore();
+    const post = store.posts.find((p) => p.id === req.params.id);
+    if (!post) return next(createError('Farmer post not found', 404));
+    if (post.status === 'CLOSED') return next(createError('This post is closed and no longer accepting offers.', 400));
+
+    const body = req.body || {};
+    const buyerName = String(body.buyerName || '').trim();
+    const buyerLocation = String(body.buyerLocation || '').trim();
+    const commodityPricePerUnit = Number(body.commodityPricePerUnit);
+    const transportPerUnit = Number(body.transportPerUnit ?? 0);
+    const storagePerUnit = Number(body.storagePerUnit ?? 0);
+
+    if (!buyerName || !buyerLocation) {
+      return next(createError('"buyerName" and "buyerLocation" are required.', 400));
+    }
+    if (!Number.isFinite(commodityPricePerUnit) || commodityPricePerUnit < 0) {
+      return next(createError('"commodityPricePerUnit" must be a non-negative number.', 400));
+    }
+    if (!Number.isFinite(transportPerUnit) || transportPerUnit < 0 || !Number.isFinite(storagePerUnit) || storagePerUnit < 0) {
+      return next(createError('"transportPerUnit" and "storagePerUnit" must be non-negative numbers.', 400));
+    }
+
+    const offer: BuyerOffer = {
+      id: randomUUID(),
+      postId: post.id,
+      buyerId: req.user?.userId || null,
+      buyerName,
+      buyerLocation,
+      verifiedBuyer: false,
+      commodityPricePerUnit: round2(commodityPricePerUnit),
+      transportPerUnit: round2(transportPerUnit),
+      storagePerUnit: round2(storagePerUnit),
+      platformFeePercent: Number.isFinite(Number(body.platformFeePercent)) ? Number(body.platformFeePercent) : DEFAULT_PLATFORM_FEE_PERCENT,
+      transportPartner: body.transportPartner ? String(body.transportPartner).trim() : null,
+      escrowStatus: 'NONE',
+      notes: body.notes ? String(body.notes).trim() : null,
+      createdAt: now(),
+    };
+
+    store.offers.push(offer);
+    store.updatedAt = offer.createdAt;
+    saveStore(store);
+    res.status(201).json({ offer: offerWithDelivered(offer) });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ─── Admin: verify/unverify a buyer ─────────────────────────────────────────
+// PATCH /api/farmer-marketplace/offers/:id/verify  { verified: boolean }
+router.patch('/offers/:id/verify', authenticate, authorize('ADMIN'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const store = loadStore();
+    const offer = store.offers.find((o) => o.id === req.params.id);
+    if (!offer) return next(createError('Buyer offer not found', 404));
+
+    offer.verifiedBuyer = Boolean(req.body?.verified);
+    store.updatedAt = now();
+    saveStore(store);
+    res.json({ offer: offerWithDelivered(offer) });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ─── Admin: remove a post (and its offers) ─────────────────────────────────
+router.delete('/posts/:id', authenticate, authorize('ADMIN'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const store = loadStore();
+    const posts = store.posts.filter((p) => p.id !== req.params.id);
+    if (posts.length === store.posts.length) return next(createError('Farmer post not found', 404));
+
+    const offers = store.offers.filter((o) => o.postId !== req.params.id);
+    const payload: FarmerMarketplaceStore = { posts, offers, updatedAt: now() };
+    saveStore(payload);
+    res.json(payload);
+  } catch (err) {
+    next(err);
+  }
+});
+
+export default router;
