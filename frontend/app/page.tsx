@@ -9,6 +9,7 @@ import CountryThemedHome from '@/components/ui/CountryThemedHome';
 import QuickActions from '@/components/ui/QuickActions';
 import HomeOtherCollections from '@/components/ui/HomeOtherCollections';
 import TrackPageView from '@/components/ui/TrackPageView';
+import BlogPopup from '@/components/ui/BlogPopup';
 import RegionHintBanner from '@/components/ui/RegionHintBanner';
 import CountryLatestCollections from '@/components/ui/CountryLatestCollections';
 import CountryFeaturedDeal from '@/components/ui/CountryFeaturedDeal';
@@ -150,6 +151,7 @@ export default async function HomePage() {
       <div className="animate-fade-in pb-4">
         {/* Track page views silently on each homepage load */}
         <TrackPageView />
+        <BlogPopup />
         {/* Region hint banner — shown once per session to inform about country/currency filtering */}
         <RegionHintBanner />
 
@@ -267,7 +269,7 @@ export default async function HomePage() {
               </Link>
             </div>
             {collectionMedia.length > 0 && (
-              <div className="mb-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+              <div className="mb-2 grid grid-cols-3 gap-2">
                 {collectionMedia.slice(0, 3).map((item) =>
                   item.linkUrl ? (
                     <a
@@ -275,14 +277,14 @@ export default async function HomePage() {
                       href={item.linkUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="group relative min-h-[160px] overflow-hidden rounded-xl border border-gray-100 shadow-sm block"
+                      className="group relative min-h-[100px] xs:min-h-[130px] sm:min-h-[160px] overflow-hidden rounded-xl border border-gray-100 shadow-sm block"
                     >
                       <Image
                         src={resolveImageUrl(item.cdnUrl)}
                         alt={item.altText || 'Collection spotlight'}
                         fill
                         className="object-cover transition-transform duration-300 group-hover:scale-105"
-                        sizes="(max-width: 640px) 50vw, 33vw"
+                        sizes="33vw"
                         quality={92}
                         loading="lazy"
                       />
@@ -295,14 +297,14 @@ export default async function HomePage() {
                   ) : (
                     <div
                       key={item.id}
-                      className="group relative min-h-[160px] overflow-hidden rounded-xl border border-gray-100 shadow-sm"
+                      className="group relative min-h-[100px] xs:min-h-[130px] sm:min-h-[160px] overflow-hidden rounded-xl border border-gray-100 shadow-sm"
                     >
                       <Image
                         src={resolveImageUrl(item.cdnUrl)}
                         alt={item.altText || 'Collection spotlight'}
                         fill
                         className="object-cover transition-transform duration-300 group-hover:scale-105"
-                        sizes="(max-width: 640px) 50vw, 33vw"
+                        sizes="33vw"
                         quality={92}
                         loading="lazy"
                       />

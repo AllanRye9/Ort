@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useLocale } from 'next-intlayer';
 
 // Display names shown in the dropdown — intentionally in each language's
@@ -17,7 +18,20 @@ const LOCALE_LABELS: Record<string, { autonym: string; english: string }> = {
 };
 
 export function LocaleSwitcher({ light = false }: { light?: boolean }) {
-  const { locale, setLocale, availableLocales } = useLocale({ onChange: 'push' });
+  const router = useRouter();
+  // Routing is configured as `no-prefix` (see intlayer.config.ts) — every
+  // locale resolves to the exact same URL, so the `push`/`replace` options
+  // here would navigate to a URL identical to the current one. Next.js
+  // treats that as a no-op and never re-requests the server-rendered
+  // payload, so server components (which read the locale from a cookie)
+  // never actually re-render in the new language. `onChange: 'none'` skips
+  // that dead navigation, and `router.refresh()` in `onLocaleChange`
+  // re-fetches the current route's server-rendered content with the
+  // newly-set locale cookie instead.
+  const { locale, setLocale, availableLocales } = useLocale({
+    onChange: 'none',
+    onLocaleChange: () => router.refresh(),
+  });
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 

@@ -1610,6 +1610,56 @@ router.put('/site-config/deals', async (req, res, next) => {
         next(err);
     }
 });
+const DEFAULT_BLOG_POPUP = {
+    enabled: false,
+    intervalSeconds: 60,
+    postId: null,
+};
+const MIN_BLOG_POPUP_INTERVAL_SECONDS = 10;
+router.get('/site-config/blog-popup', async (_req, res, next) => {
+    try {
+        const config = await getSiteConfig();
+        const stored = config.blogPopup || {};
+        res.json({ ...DEFAULT_BLOG_POPUP, ...stored });
+    }
+    catch (err) {
+        next(err);
+    }
+});
+router.put('/site-config/blog-popup', async (req, res, next) => {
+    try {
+        const { enabled, intervalSeconds, postId } = req.body;
+        if (enabled !== undefined && typeof enabled !== 'boolean') {
+            return next((0, errorHandler_1.createError)('enabled must be a boolean', 400));
+        }
+        if (intervalSeconds !== undefined) {
+            if (typeof intervalSeconds !== 'number' || !Number.isFinite(intervalSeconds) || intervalSeconds < MIN_BLOG_POPUP_INTERVAL_SECONDS) {
+                return next((0, errorHandler_1.createError)(`intervalSeconds must be a number of at least ${MIN_BLOG_POPUP_INTERVAL_SECONDS}`, 400));
+            }
+        }
+        if (postId !== undefined && postId !== null) {
+            const post = await prisma_1.prisma.blogPost.findUnique({ where: { id: postId } });
+            if (!post)
+                return next((0, errorHandler_1.createError)('No blog post found with that id', 400));
+        }
+        const config = await getSiteConfig();
+        const current = { ...DEFAULT_BLOG_POPUP, ...(config.blogPopup || {}) };
+        const merged = {
+            enabled: enabled !== undefined ? enabled : current.enabled,
+            intervalSeconds: intervalSeconds !== undefined ? intervalSeconds : current.intervalSeconds,
+            postId: postId !== undefined ? postId : current.postId,
+        };
+        const updated = await prisma_1.prisma.siteConfig.upsert({
+            where: { id: SITE_CONFIG_ID },
+            create: { id: SITE_CONFIG_ID, blogPopup: merged },
+            update: { blogPopup: merged },
+        });
+        res.json({ ...DEFAULT_BLOG_POPUP, ...updated.blogPopup });
+    }
+    catch (err) {
+        next(err);
+    }
+});
 // ─── Homepage Row Fill Status (< 6 items detection + auto-fill) ────────────────
 // Powers the "Homepage Row Fill Status" panel in /admin/settings and the
 // low-item warning banner on the admin dashboard. Six homepage rows are

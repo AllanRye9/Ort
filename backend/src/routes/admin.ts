@@ -1846,6 +1846,73 @@ router.put('/site-config/deals', async (req: Request, res: Response, next: NextF
   }
 });
 
+// ─── Homepage Blog Popup (admin-configurable interval) ─────────────────────────
+// Stored as a JSON blob on the singleton SiteConfig row: { enabled,
+// intervalSeconds, postId }. `postId` pins a specific post; leaving it unset
+// falls back to the most recently published post at render time (see
+// GET /api/blog/popup, which does the resolution for the public site).
+
+interface BlogPopupConfig {
+  enabled: boolean;
+  intervalSeconds: number;
+  postId: string | null;
+}
+
+const DEFAULT_BLOG_POPUP: BlogPopupConfig = {
+  enabled: false,
+  intervalSeconds: 60,
+  postId: null,
+};
+
+const MIN_BLOG_POPUP_INTERVAL_SECONDS = 10;
+
+router.get('/site-config/blog-popup', async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const config = await getSiteConfig();
+    const stored = (config.blogPopup as Partial<BlogPopupConfig>) || {};
+    res.json({ ...DEFAULT_BLOG_POPUP, ...stored });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.put('/site-config/blog-popup', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { enabled, intervalSeconds, postId } = req.body as Partial<BlogPopupConfig>;
+
+    if (enabled !== undefined && typeof enabled !== 'boolean') {
+      return next(createError('enabled must be a boolean', 400));
+    }
+    if (intervalSeconds !== undefined) {
+      if (typeof intervalSeconds !== 'number' || !Number.isFinite(intervalSeconds) || intervalSeconds < MIN_BLOG_POPUP_INTERVAL_SECONDS) {
+        return next(createError(`intervalSeconds must be a number of at least ${MIN_BLOG_POPUP_INTERVAL_SECONDS}`, 400));
+      }
+    }
+    if (postId !== undefined && postId !== null) {
+      const post = await prisma.blogPost.findUnique({ where: { id: postId } });
+      if (!post) return next(createError('No blog post found with that id', 400));
+    }
+
+    const config = await getSiteConfig();
+    const current = { ...DEFAULT_BLOG_POPUP, ...((config.blogPopup as Partial<BlogPopupConfig>) || {}) };
+    const merged: BlogPopupConfig = {
+      enabled: enabled !== undefined ? enabled : current.enabled,
+      intervalSeconds: intervalSeconds !== undefined ? intervalSeconds : current.intervalSeconds,
+      postId: postId !== undefined ? postId : current.postId,
+    };
+
+    const updated = await prisma.siteConfig.upsert({
+      where: { id: SITE_CONFIG_ID },
+      create: { id: SITE_CONFIG_ID, blogPopup: merged as unknown as Prisma.InputJsonValue },
+      update: { blogPopup: merged as unknown as Prisma.InputJsonValue },
+    });
+    res.json({ ...DEFAULT_BLOG_POPUP, ...(updated.blogPopup as Partial<BlogPopupConfig>) });
+  } catch (err) {
+    next(err);
+  }
+});
+
+
 // ─── Homepage Row Fill Status (< 6 items detection + auto-fill) ────────────────
 // Powers the "Homepage Row Fill Status" panel in /admin/settings and the
 // low-item warning banner on the admin dashboard. Six homepage rows are

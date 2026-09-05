@@ -6,6 +6,54 @@ const auth_1 = require("../middleware/auth");
 const errorHandler_1 = require("../middleware/errorHandler");
 const router = (0, express_1.Router)();
 // ─── Public routes ─────────────────────────────────────────────────────────────
+// GET /api/blog/popup — resolved homepage popup config for the public site.
+// Reads SiteConfig.blogPopup ({ enabled, intervalSeconds, postId }) and
+// resolves it down to a single ready-to-render post:
+//   - feature off, or no published posts exist at all → { enabled: false }
+//   - a pinned postId that is still PUBLISHED → that post
+//   - otherwise → the most recently published post
+// Mounted before the `/:slug` route below so "popup" is never swallowed as
+// a slug lookup.
+router.get('/popup', async (_req, res, next) => {
+    try {
+        const config = await prisma_1.prisma.siteConfig.findUnique({ where: { id: 'global' } });
+        const stored = config?.blogPopup || {};
+        const intervalSeconds = typeof stored.intervalSeconds === 'number' && stored.intervalSeconds > 0 ? stored.intervalSeconds : 60;
+        if (!stored.enabled) {
+            res.json({ enabled: false });
+            return;
+        }
+        const postSelect = {
+            id: true,
+            title: true,
+            slug: true,
+            excerpt: true,
+            featuredImage: true,
+            publishedAt: true,
+        };
+        let post = stored.postId
+            ? await prisma_1.prisma.blogPost.findFirst({ where: { id: stored.postId, status: 'PUBLISHED' }, select: postSelect })
+            : null;
+        if (!post) {
+            post = await prisma_1.prisma.blogPost.findFirst({
+                where: { status: 'PUBLISHED' },
+                select: postSelect,
+                orderBy: { publishedAt: 'desc' },
+            });
+        }
+        if (!post) {
+            // Admin has the popup switched on but there's nothing publishable to
+            // show — fail closed rather than surface an empty popup.
+            res.json({ enabled: false });
+            return;
+        }
+        res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=120');
+        res.json({ enabled: true, intervalSeconds, post });
+    }
+    catch (err) {
+        next(err);
+    }
+});
 // GET /api/blog — list published posts (paginated)
 router.get('/', async (req, res, next) => {
     try {
