@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { resolveImageUrl } from '@/lib/utils';
+import BlogPopupSettings from '@/components/admin/BlogPopupSettings';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1175,6 +1176,8 @@ export default function AdminSettingsPage() {
           </div>
         </div>
       </div>
+
+      <BlogPopupSettings />
 
       {/* ── Content Settings ─────────────────────────────────────────────────── */}
       <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 mb-6">
