@@ -36,6 +36,7 @@ import currencyRatesRoutes from './routes/currencyRates';
 import commodityPricesRoutes from './routes/commodityPrices';
 import farmerMarketplaceRoutes from './routes/farmerMarketplace';
 import kycRoutes from './routes/kyc';
+import messageRoutes from './routes/messages';
 import { getServiceReadiness } from './utils/serviceConfig';
 
 const app = express();
@@ -195,6 +196,7 @@ app.use('/api/currency-rates', currencyRatesRoutes);
 app.use('/api/commodity-prices', commodityPricesRoutes);
 app.use('/api/farmer-marketplace', farmerMarketplaceRoutes);
 app.use('/api/kyc', kycRoutes);
+app.use('/api/messages', messageRoutes);
 
 // ─── Public site config (whatsapp number, today's deals, header theme) ────────
 // Publicly readable – no auth required so the frontend can load it on every page.

@@ -2,12 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useIntlayer } from 'next-intlayer';
 import { useAuth } from '@/context/AuthContext';
 
 const navItems = [
   {
     href: '/',
-    label: 'Home',
+    key: 'home' as const,
     // Piitrade brand mark ("P") in the site's orange brand colour, in place
     // of a generic house icon — bold enough to stay legible at nav-bar
     // size, with its own active/inactive treatment (filled vs. outlined)
@@ -28,7 +29,7 @@ const navItems = [
   },
   {
     href: '/listings',
-    label: 'Browse',
+    key: 'browse' as const,
     icon: (active: boolean) => (
       <svg className="w-5 h-5" fill={active ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24" strokeWidth={active ? 0 : 1.8}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
@@ -37,7 +38,7 @@ const navItems = [
   },
   {
     href: '/listings/create',
-    label: 'Sell',
+    key: 'sell' as const,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     icon: (_active: boolean) => (
       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
@@ -50,7 +51,7 @@ const navItems = [
     href: '/profile',
     // Renamed from "Profile" to "Account" on mobile (desktop nav is
     // unaffected — this component only renders below the md breakpoint).
-    label: 'Account',
+    key: 'account' as const,
     icon: (active: boolean) => (
       <svg className="w-5 h-5" fill={active ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24" strokeWidth={active ? 0 : 1.8}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -59,7 +60,7 @@ const navItems = [
   },
 ];
 
-function renderNavLink(item: (typeof navItems)[number], isActive: boolean, href: string) {
+function renderNavLink(item: (typeof navItems)[number], isActive: boolean, href: string, label: string) {
   return (
     <Link
       key={item.href}
@@ -67,13 +68,13 @@ function renderNavLink(item: (typeof navItems)[number], isActive: boolean, href:
       className={`flex flex-col items-center justify-center py-2 flex-1 gap-0.5 interactive transition-colors ${
         isActive ? 'text-premium-gold' : 'text-gray-400 hover:text-gray-600'
       }`}
-      aria-label={item.label}
+      aria-label={label}
       aria-current={isActive ? 'page' : undefined}
     >
       <div className={`relative p-1 rounded-xl transition-all ${isActive ? 'bg-premium-gold/10' : ''}`}>
         {item.icon(Boolean(isActive))}
       </div>
-      <span className={`text-[10px] font-medium ${isActive ? 'font-semibold' : ''}`}>{item.label}</span>
+      <span className={`text-[10px] font-medium ${isActive ? 'font-semibold' : ''}`}>{label}</span>
     </Link>
   );
 }
@@ -81,12 +82,14 @@ function renderNavLink(item: (typeof navItems)[number], isActive: boolean, href:
 export function MobileBottomNav() {
   const pathname = usePathname();
   const { user } = useAuth();
+  const labels = useIntlayer('mobileBottomNav');
+  const labelFor = (item: (typeof navItems)[number]): string => String(labels[item.key]);
 
   if (pathname && pathname.startsWith('/admin')) return null;
 
   const isActive = (item: (typeof navItems)[number]) =>
     Boolean(item.href === '/' ? pathname === '/' : pathname && pathname.startsWith(item.href) && item.href !== '/');
-  const hrefFor = (item: (typeof navItems)[number]) => (item.label === 'Account' && !user ? '/auth/login' : item.href);
+  const hrefFor = (item: (typeof navItems)[number]) => (item.key === 'account' && !user ? '/auth/login' : item.href);
 
   const sellItem = navItems.find((item) => item.isSell)!;
   // Everything else splits evenly across the two halves of the bar so the
@@ -106,7 +109,7 @@ export function MobileBottomNav() {
       <div className="relative bg-white border-t border-gray-100 shadow-[0_-4px_24px_0_rgb(0,0,0,0.08)]">
         <div className="flex items-stretch px-1">
           <div className="flex flex-1 items-stretch justify-evenly">
-            {leftItems.map((item) => renderNavLink(item, isActive(item), hrefFor(item)))}
+            {leftItems.map((item) => renderNavLink(item, isActive(item), hrefFor(item), labelFor(item)))}
           </div>
 
           {/* Spacer matching the floating Sell button's footprint, so the
@@ -114,7 +117,7 @@ export function MobileBottomNav() {
           <div className="w-16 shrink-0" aria-hidden="true" />
 
           <div className="flex flex-1 items-stretch justify-evenly">
-            {rightItems.map((item) => renderNavLink(item, isActive(item), hrefFor(item)))}
+            {rightItems.map((item) => renderNavLink(item, isActive(item), hrefFor(item), labelFor(item)))}
           </div>
         </div>
 
@@ -123,12 +126,12 @@ export function MobileBottomNav() {
         <Link
           href={hrefFor(sellItem)}
           className="absolute left-1/2 -translate-x-1/2 -top-5 flex flex-col items-center justify-center interactive group"
-          aria-label={sellItem.label}
+          aria-label={labelFor(sellItem)}
         >
           <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-premium-gold to-premium-gold-dark flex items-center justify-center text-white shadow-lg group-active:scale-95 transition-transform">
             {sellItem.icon(false)}
           </div>
-          <span className="text-[10px] font-medium text-premium-gold mt-0.5">{sellItem.label}</span>
+          <span className="text-[10px] font-medium text-premium-gold mt-0.5">{labelFor(sellItem)}</span>
         </Link>
       </div>
     </nav>

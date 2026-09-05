@@ -48,12 +48,12 @@ export default function FeaturedStoresRow({ stores }: { stores: FeaturedStore[] 
 
   return (
     <section aria-label="Trusted sellers" className="animate-fade-up">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-3">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="w-1 h-6 bg-premium-gold rounded-full inline-block shrink-0" />
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <span className="w-1 h-6 bg-premium-gold rounded-full inline-block" />
           <h2 className="text-lg xs:text-xl font-extrabold text-premium-navy">Trusted Sellers Near You</h2>
         </div>
-        <Link href="/stores" className="self-start sm:self-auto shrink-0 text-xs font-semibold text-premium-gold hover:text-premium-gold-dark flex items-center gap-1 interactive">
+        <Link href="/stores" className="text-xs font-semibold text-premium-gold hover:text-premium-gold-dark flex items-center gap-1 interactive">
           All Web Stores
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
         </Link>

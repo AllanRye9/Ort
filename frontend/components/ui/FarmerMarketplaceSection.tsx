@@ -30,7 +30,6 @@ type PostStatus = 'OPEN' | 'MATCHED' | 'CLOSED';
 
 interface FarmerPost {
   id: string;
-  farmerId: string | null;
   farmerName: string;
   farmerPhone: string | null;
   verifiedSeller: boolean;
@@ -54,7 +53,6 @@ interface FarmerPost {
 
 interface BuyerOffer {
   id: string;
-  buyerId: string | null;
   buyerName: string;
   buyerLocation: string;
   verifiedBuyer: boolean;
@@ -80,8 +78,6 @@ interface PriceHistoryPoint {
   location: string;
 }
 
-type Trend = 'RISING' | 'FALLING' | 'STABLE' | 'UNKNOWN';
-
 /* ─── Helpers ────────────────────────────────────────────────────────────── */
 
 function money(value: number, currency = 'UGX'): string {
@@ -89,22 +85,6 @@ function money(value: number, currency = 'UGX'): string {
 }
 
 const GRADE_LABEL: Record<QualityGrade, string> = { A: 'Grade A', B: 'Grade B', C: 'Grade C', UNGRADED: 'Ungraded' };
-
-// A directional read of price-history data that's already happened — never
-// framed as a prediction. See the SCOPE NOTE in
-// backend/src/routes/farmerMarketplace.ts for why this stops short of
-// "AI price predictions."
-function TrendBadge({ trend, changePercent }: { trend: Trend; changePercent: number | null }) {
-  if (trend === 'UNKNOWN') return null;
-  const style = trend === 'RISING' ? 'bg-emerald-100 text-emerald-700' : trend === 'FALLING' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600';
-  const arrow = trend === 'RISING' ? '↑' : trend === 'FALLING' ? '↓' : '→';
-  const label = trend === 'RISING' ? 'Rising' : trend === 'FALLING' ? 'Falling' : 'Stable';
-  return (
-    <span className={`text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full ${style}`}>
-      {arrow} {label}{changePercent != null && Math.abs(changePercent) >= 1 ? ` ${Math.abs(changePercent)}%` : ''}
-    </span>
-  );
-}
 
 const emptyPostForm = {
   farmerName: '', farmerPhone: '', commodity: '', quantity: '', unit: 'kg', location: '',
@@ -145,7 +125,6 @@ export default function FarmerMarketplaceSection() {
   const [regionalCommodity, setRegionalCommodity] = useState('');
   const [regionalPrices, setRegionalPrices] = useState<RegionalPrice[]>([]);
   const [historyPoints, setHistoryPoints] = useState<PriceHistoryPoint[]>([]);
-  const [historyTrend, setHistoryTrend] = useState<{ trend: Trend; changePercent: number | null }>({ trend: 'UNKNOWN', changePercent: null });
 
   const loadPosts = () => {
     setLoading(true);
@@ -180,16 +159,13 @@ export default function FarmerMarketplaceSection() {
   const closeDetail = () => { setSelectedId(null); setSelectedPost(null); setOffers([]); };
 
   useEffect(() => {
-    if (!regionalCommodity) { setRegionalPrices([]); setHistoryPoints([]); setHistoryTrend({ trend: 'UNKNOWN', changePercent: null }); return; }
+    if (!regionalCommodity) { setRegionalPrices([]); setHistoryPoints([]); return; }
     api.get('/farmer-marketplace/regional-prices', { params: { commodity: regionalCommodity } })
       .then(({ data }) => setRegionalPrices(data?.regions || []))
       .catch(() => setRegionalPrices([]));
     api.get('/farmer-marketplace/price-history', { params: { commodity: regionalCommodity } })
-      .then(({ data }) => {
-        setHistoryPoints(data?.points || []);
-        setHistoryTrend({ trend: data?.trend || 'UNKNOWN', changePercent: data?.changePercent ?? null });
-      })
-      .catch(() => { setHistoryPoints([]); setHistoryTrend({ trend: 'UNKNOWN', changePercent: null }); });
+      .then(({ data }) => setHistoryPoints(data?.points || []))
+      .catch(() => setHistoryPoints([]));
   }, [regionalCommodity]);
 
   const submitPost = async (e: React.FormEvent) => {
@@ -352,7 +328,7 @@ export default function FarmerMarketplaceSection() {
               className="text-left group relative flex flex-col overflow-hidden rounded-xl bg-white border border-gray-100 shadow-sm p-4 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-green-100"
             >
               <div className="flex items-start justify-between gap-2 mb-1.5">
-                <h3 className="font-bold text-gray-900 text-sm min-w-0 truncate" title={post.commodity}>{post.commodity}</h3>
+                <h3 className="font-bold text-gray-900 text-sm">{post.commodity}</h3>
                 {post.verifiedSeller && (
                   <span className="shrink-0 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Verified</span>
                 )}
@@ -388,14 +364,14 @@ export default function FarmerMarketplaceSection() {
             ) : (
               <div className="p-5">
                 <div className="flex items-start justify-between gap-3 mb-1">
-                  <div className="min-w-0">
-                    <h3 className="text-lg font-black text-gray-900 flex flex-wrap items-center gap-2">
-                      <span className="truncate">{selectedPost.commodity}</span>
-                      {selectedPost.verifiedSeller && <span className="shrink-0 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Verified seller</span>}
+                  <div>
+                    <h3 className="text-lg font-black text-gray-900 flex items-center gap-2">
+                      {selectedPost.commodity}
+                      {selectedPost.verifiedSeller && <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Verified seller</span>}
                     </h3>
                     <p className="text-xs text-gray-500">{selectedPost.farmerName} · {selectedPost.quantity.toLocaleString()} {selectedPost.unit} · {selectedPost.location}</p>
                   </div>
-                  <button onClick={closeDetail} className="shrink-0 text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
+                  <button onClick={closeDetail} className="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
                 </div>
 
                 {selectedPost.notes && <p className="text-xs text-gray-500 mt-2 bg-gray-50 rounded-lg p-2.5">{selectedPost.notes}</p>}
@@ -407,15 +383,9 @@ export default function FarmerMarketplaceSection() {
                 </div>
 
                 {isAdmin && (
-                  selectedPost.farmerId ? (
-                    <a href="/admin/kyc" className="mt-2 inline-block text-[11px] font-semibold text-premium-navy hover:underline">
-                      This seller has an account — review identity verification in KYC →
-                    </a>
-                  ) : (
-                    <button onClick={() => verifyPost(selectedPost.id, !selectedPost.verifiedSeller)} className="mt-2 text-[11px] font-semibold text-premium-navy hover:underline">
-                      {selectedPost.verifiedSeller ? 'Remove seller verification' : 'Mark seller as verified'}
-                    </button>
-                  )
+                  <button onClick={() => verifyPost(selectedPost.id, !selectedPost.verifiedSeller)} className="mt-2 text-[11px] font-semibold text-premium-navy hover:underline">
+                    {selectedPost.verifiedSeller ? 'Remove seller verification' : 'Mark seller as verified'}
+                  </button>
                 )}
 
                 <p className="text-[11px] font-black uppercase tracking-wider text-gray-400 mt-4 mb-2">Buyer offers · delivered price</p>
@@ -425,28 +395,22 @@ export default function FarmerMarketplaceSection() {
                   <div className="space-y-2">
                     {offers.map((offer) => (
                       <div key={offer.id} className="rounded-lg border border-gray-100 p-3">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <p className="text-sm font-bold text-gray-800 flex flex-wrap items-center gap-1.5 min-w-0">
-                            <span className="truncate">{offer.buyerName}</span>
-                            <span className="text-xs font-normal text-gray-400 whitespace-nowrap">· {offer.buyerLocation}</span>
-                            {offer.verifiedBuyer && <span className="shrink-0 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Verified</span>}
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-sm font-bold text-gray-800 flex items-center gap-1.5">
+                            {offer.buyerName}
+                            <span className="text-xs font-normal text-gray-400">· {offer.buyerLocation}</span>
+                            {offer.verifiedBuyer && <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Verified</span>}
                           </p>
-                          <p className="shrink-0 text-base font-black text-green-700 tabular-nums">{money(offer.deliveredPricePerUnit, selectedPost.currency)}</p>
+                          <p className="text-base font-black text-green-700 tabular-nums">{money(offer.deliveredPricePerUnit, selectedPost.currency)}</p>
                         </div>
                         <p className="text-[11px] text-gray-400 mt-1">
                           {money(offer.commodityPricePerUnit, selectedPost.currency)} commodity + {money(offer.transportPerUnit, selectedPost.currency)} transport + {money(offer.storagePerUnit, selectedPost.currency)} storage + {offer.platformFeePercent}% platform fee = delivered price
                         </p>
                         {offer.notes && <p className="text-[11px] text-gray-500 mt-1">{offer.notes}</p>}
                         {isAdmin && (
-                          offer.buyerId ? (
-                            <a href="/admin/kyc" className="mt-1.5 inline-block text-[11px] font-semibold text-premium-navy hover:underline">
-                              Registered buyer — review in KYC →
-                            </a>
-                          ) : (
-                            <button onClick={() => verifyOffer(offer.id, !offer.verifiedBuyer)} className="mt-1.5 text-[11px] font-semibold text-premium-navy hover:underline">
-                              {offer.verifiedBuyer ? 'Remove buyer verification' : 'Mark buyer as verified'}
-                            </button>
-                          )
+                          <button onClick={() => verifyOffer(offer.id, !offer.verifiedBuyer)} className="mt-1.5 text-[11px] font-semibold text-premium-navy hover:underline">
+                            {offer.verifiedBuyer ? 'Remove buyer verification' : 'Mark buyer as verified'}
+                          </button>
                         )}
                       </div>
                     ))}
@@ -506,9 +470,7 @@ export default function FarmerMarketplaceSection() {
               )}
             </div>
             <div>
-              <p className="text-[11px] font-black uppercase tracking-wider text-gray-400 mb-2 flex items-center gap-1.5">
-                Farmer minimum-price history <TrendBadge trend={historyTrend.trend} changePercent={historyTrend.changePercent} />
-              </p>
+              <p className="text-[11px] font-black uppercase tracking-wider text-gray-400 mb-2">Farmer minimum-price history</p>
               {historyPoints.length === 0 ? (
                 <p className="text-xs text-gray-400">No price changes recorded yet.</p>
               ) : (

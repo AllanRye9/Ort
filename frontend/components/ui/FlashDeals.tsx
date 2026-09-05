@@ -190,10 +190,11 @@ function FlashCard({ card, displayCurrency }: { card: CardData; displayCurrency:
             </div>
           </div>
         )}
-        {/* Buyer quick-add — top-right, stops propagation so it doesn't
+        {/* Buyer quick-add — bottom-right (matches the reference mobile
+            grocery-app layout), stops propagation so it doesn't
             trigger the card's own Link navigation. */}
         {showQuickAdd && (
-          <div className="absolute top-1.5 xs:top-2 right-1.5 xs:right-2">
+          <div className="absolute bottom-1.5 xs:bottom-2 right-1.5 xs:right-2">
             <QuickAddButton listing={card.listing as Listing} size="sm" />
           </div>
         )}

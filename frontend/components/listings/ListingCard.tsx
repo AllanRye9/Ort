@@ -134,6 +134,17 @@ export function ListingCard({ listing, showFavorite = true, cleanImage = false }
             <FavoriteButton listingId={listing.id} />
           </div>
         )}
+
+        {/* Buyer quick-add — bottom-right corner of the image, matching the
+            reference mobile grocery-app layout (Talabat-style): a floating
+            circle on the photo itself rather than a control competing for
+            space in the text/price area below. QuickAddButton stops
+            propagation on click so it doesn't trigger the card's Link. */}
+        {showQuickAdd && !cleanImage && (
+          <div className="absolute bottom-1.5 xs:bottom-2 right-1.5 xs:right-2">
+            <QuickAddButton listing={listing} size="sm" />
+          </div>
+        )}
       </div>{/* end image container */}
 
       {/* Content */}
@@ -186,11 +197,10 @@ export function ListingCard({ listing, showFavorite = true, cleanImage = false }
           )}
         </Link>
 
-        {/* Price row — the "+" add-to-cart (regular users) / edit pen
-            (admin) sits inline at the end of this row, matching the site's
-            red brand color, rather than floating over the image. It's a
-            sibling of the price Link (not nested inside it) so its own
-            click handling never fights the card's navigation link. */}
+        {/* Price row — the edit pen (admin only) sits inline at the end of
+            this row; the regular-user quick-add now lives on the image
+            itself (bottom-right corner, see above) rather than here, to
+            match the reference mobile layout. */}
         <div className="flex items-center justify-between gap-1.5 mt-1.5">
           <Link href={`/listings/${listing.id}`} className="flex items-baseline gap-1.5 flex-wrap min-w-0">
             <CurrencyDisplay
@@ -208,11 +218,7 @@ export function ListingCard({ listing, showFavorite = true, cleanImage = false }
               />
             )}
           </Link>
-          {isAdmin ? (
-            <AdminEditInlineButton listingId={listing.id} size="sm" />
-          ) : showQuickAdd ? (
-            <QuickAddButton listing={listing} size="sm" variant="inline" />
-          ) : null}
+          {isAdmin && <AdminEditInlineButton listingId={listing.id} size="sm" />}
         </div>
         {displayCurrency !== listing.currency && (
           <Link href={`/listings/${listing.id}`} className="block text-[9px] xs:text-[10px] text-gray-400 mt-0.5 leading-none">

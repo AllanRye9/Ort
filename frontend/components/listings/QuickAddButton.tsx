@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
 import { useCart } from '@/context/CartContext';
 import { useToast } from '@/components/ui/Toast';
 import type { Listing } from '@/lib/types';
@@ -32,10 +32,10 @@ interface Props {
 export function QuickAddButton({ listing, size = 'md', variant = 'overlay' }: Props) {
   const { items, addToCart } = useCart();
   const { success } = useToast();
-  const [justAdded, setJustAdded] = useState(false);
 
-  const alreadyInCart = items.some((i) => i.listing.id === listing.id);
-  const added = alreadyInCart || justAdded;
+  const cartItem = items.find((i) => i.listing.id === listing.id);
+  const quantity = cartItem?.quantity ?? 0;
+  const alreadyInCart = quantity > 0;
 
   // Unavailable: not currently purchasable. Stock is only enforced when the
   // listing tracks it (stock === undefined means the seller isn't tracking
@@ -50,18 +50,12 @@ export function QuickAddButton({ listing, size = 'md', variant = 'overlay' }: Pr
     : outOfStock ? 'Out of stock'
     : 'Unavailable';
 
-  // Reset the "just added" pulse once the item is confirmed in the cart state.
-  useEffect(() => {
-    if (alreadyInCart) setJustAdded(false);
-  }, [alreadyInCart]);
-
   const handleAdd = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
       if (unavailable) return;
       addToCart(listing);
-      setJustAdded(true);
       if (variant === 'inline') success(`Added "${listing.title}" to cart`);
     },
     [addToCart, listing, unavailable, variant, success]
@@ -69,13 +63,13 @@ export function QuickAddButton({ listing, size = 'md', variant = 'overlay' }: Pr
 
   // 'inline' next to the price: once it's in the cart there's nothing more
   // for this control to do here (the cart drawer/page is the place to
-  // remove it), so it hides itself entirely rather than sitting there as a
-  // stale checkmark — the toast already confirmed the add.
-  if (variant === 'inline' && added && !unavailable) return null;
+  // adjust quantity), so it hides itself entirely rather than sitting there
+  // as a stale checkmark — the toast already confirmed the add.
+  if (variant === 'inline' && alreadyInCart && !unavailable) return null;
 
   const dims = size === 'sm' ? 'w-6 h-6' : 'w-7 h-7 xs:w-8 xs:h-8';
   const iconDims = size === 'sm' ? 'w-3 h-3' : 'w-3.5 h-3.5 xs:w-4 xs:h-4';
-  const badgeDims = size === 'sm' ? 'w-2.5 h-2.5' : 'w-3 h-3';
+  const qtyTextDims = size === 'sm' ? 'text-[11px]' : 'text-xs';
 
   if (variant === 'inline') {
     const inlineDims = size === 'sm' ? 'w-6 h-6' : 'w-7 h-7';
@@ -106,45 +100,40 @@ export function QuickAddButton({ listing, size = 'md', variant = 'overlay' }: Pr
     );
   }
 
+  // 'overlay' (grid-card corner button): mirrors the reference mobile
+  // grocery-app pattern — an empty white "+" circle before anything's in
+  // the cart, and once it is, a solid brand-colored circle showing the
+  // live quantity instead of a separate static checkmark badge. Tapping it
+  // again keeps incrementing (addToCart already merges into the existing
+  // cart line), so it doubles as a lightweight stepper without needing the
+  // full −/qty/+ control that only really fits on the cart page itself.
   return (
-    <div className="relative inline-flex">
-      <button
-        type="button"
-        onClick={handleAdd}
-        disabled={unavailable}
-        aria-label={unavailable ? unavailableReason : added ? 'Added to cart' : 'Add to cart'}
-        title={unavailable ? unavailableReason : added ? 'Added to cart' : 'Add to cart'}
-        className={`${dims} rounded-full flex items-center justify-center shadow transition-colors ${
-          unavailable
-            ? 'bg-gray-200 text-gray-400 border border-gray-200 cursor-not-allowed'
-            : added
-            ? 'bg-white text-emerald-600 border border-emerald-200'
-            : 'bg-white/95 text-gray-700 border border-white/80 hover:bg-red-500 hover:text-white hover:border-red-500'
-        }`}
-      >
-        {unavailable ? (
-          <svg className={iconDims} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        ) : (
-          <svg className={iconDims} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
-        )}
-      </button>
-
-      {/* Small green "already added" tick — bottom-right of the + button */}
-      {!unavailable && added && (
-        <span
-          className={`absolute -bottom-1 -right-1 ${badgeDims} rounded-full bg-emerald-500 ring-2 ring-white flex items-center justify-center`}
-          aria-hidden="true"
-        >
-          <svg className="w-full h-full p-[2px] text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-          </svg>
-        </span>
+    <button
+      type="button"
+      onClick={handleAdd}
+      disabled={unavailable}
+      aria-label={unavailable ? unavailableReason : alreadyInCart ? `${quantity} in cart, tap to add another` : 'Add to cart'}
+      title={unavailable ? unavailableReason : alreadyInCart ? `${quantity} in cart` : 'Add to cart'}
+      className={`${dims} rounded-full flex items-center justify-center shadow-md transition-transform active:scale-90 ${
+        unavailable
+          ? 'bg-gray-200 text-gray-400 border border-gray-200 cursor-not-allowed'
+          : alreadyInCart
+          ? 'bg-red-600 text-white'
+          : 'bg-white text-red-600 border border-white hover:bg-red-500 hover:text-white'
+      }`}
+    >
+      {unavailable ? (
+        <svg className={iconDims} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      ) : alreadyInCart ? (
+        <span className={`${qtyTextDims} font-extrabold leading-none tabular-nums`}>{quantity}</span>
+      ) : (
+        <svg className={iconDims} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+        </svg>
       )}
-    </div>
+    </button>
   );
 }
 

@@ -96,12 +96,13 @@ export default function FeaturedProductCard({
               Save {discountPercent}%
             </span>
           </div>
-        )}        {/* Buyer quick-add — top-right, mirrors ListingCard's placement.
-            QuickAddButton stops propagation on click so it doesn't trigger
-            the card's own Link navigation. Always visible on touch — see
-            ListingCard.tsx for why this can't be hover-only. */}
+        )}        {/* Buyer quick-add — bottom-right, matches the reference
+            mobile grocery-app layout. QuickAddButton stops propagation on
+            click so it doesn't trigger the card's own Link navigation.
+            Always visible on touch — see ListingCard.tsx for why this
+            can't be hover-only. */}
         {showQuickAdd && (
-          <div className="absolute top-1.5 xs:top-2 right-1.5 xs:right-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200">
+          <div className="absolute bottom-1.5 xs:bottom-2 right-1.5 xs:right-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200">
             <QuickAddButton listing={listing as Listing} size="sm" />
           </div>
         )}

@@ -125,7 +125,7 @@ export default function BackToSchoolSection() {
                         </div>
                       </div>
                     </Link>
-                    <div className="absolute top-1.5 right-1.5">
+                    <div className="absolute bottom-1.5 right-1.5">
                       <QuickAddButton listing={listing} size="sm" />
                     </div>
                   </div>

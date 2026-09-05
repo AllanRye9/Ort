@@ -11,6 +11,7 @@ import CategoryBar from '@/components/layout/CategoryBar';
 import HeaderSearch from '@/components/layout/HeaderSearch';
 import HeaderStats from '@/components/layout/HeaderStats';
 import { CountrySelector } from '@/components/ui/CountrySelector';
+import { LocaleSwitcher } from '@/components/ui/LocaleSwitcher';
 import { api } from '@/lib/api';
 import type { Notification, NotificationType } from '@/lib/types';
 import { useSiteConfig } from '@/context/SiteConfigContext';
@@ -542,6 +543,7 @@ export default function Header() {
 
             <div className="hidden sm:flex items-center gap-1.5">
               <CountrySelector light />
+              <LocaleSwitcher light />
             </div>
 
             {user ? (

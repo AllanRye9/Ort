@@ -818,6 +818,13 @@ input, select, textarea {
   padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
 }
 
+/* Extra clearance for the floating "View cart" bar (MobileFloatingCartBar),
+   which docks above the bottom nav — stacked on top of .has-bottom-nav's
+   padding, mobile-only, reset at the same sm breakpoint below. */
+.has-cart-bar {
+  padding-bottom: calc(64px + 56px + env(safe-area-inset-bottom, 0px));
+}
+
 /* xs: 375px and up */
 @media (min-width: 375px) {
   body {
@@ -832,6 +839,10 @@ input, select, textarea {
   }
 
   .has-bottom-nav {
+    padding-bottom: 0;
+  }
+
+  .has-cart-bar {
     padding-bottom: 0;
   }
 }

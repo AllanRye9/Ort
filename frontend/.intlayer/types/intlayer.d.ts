@@ -1,9 +1,11 @@
 import "intlayer";
 import _1sv9598mb9v from './locale-switcher.ts';
+import _ah39du02q5 from './mobileBottomNav.ts';
 
 declare module 'intlayer' {
   interface __DictionaryRegistry {
     "locale-switcher": typeof _1sv9598mb9v;
+    "mobileBottomNav": typeof _ah39du02q5;
   }
 
   interface __DeclaredLocalesRegistry {

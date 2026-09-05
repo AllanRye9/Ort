@@ -165,8 +165,8 @@ function BrandsPageContent({
       <div className="max-w-7xl mx-auto px-4 py-6">
         {/* All listings in this subcategory */}
         <section className="mb-10">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-4">
-            <div className="min-w-0">
+          <div className="flex items-center justify-between mb-4">
+            <div>
               <h2 className="text-xl font-extrabold text-gray-900">All {meta.label}</h2>
               <p className="text-sm text-gray-500 mt-0.5">
                 {total > 0
@@ -176,7 +176,7 @@ function BrandsPageContent({
             </div>
             <Link
               href={`/listings?category=${encodeURIComponent(subcategorySlug)}&sort=recommended`}
-              className="self-start sm:self-auto text-sm font-semibold text-red-600 hover:text-red-700 flex items-center gap-1 transition-colors shrink-0"
+              className="text-sm font-semibold text-red-600 hover:text-red-700 flex items-center gap-1 transition-colors shrink-0"
             >
               View All
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -217,14 +217,14 @@ function BrandsPageContent({
             below is filtered the same way individually. */}
         {visibleBrands.length > 0 && (
           <>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-5">
-              <div className="min-w-0">
+            <div className="flex items-center justify-between mb-5">
+              <div>
                 <h2 className="text-xl font-extrabold text-gray-900">Shop by Brand</h2>
                 <p className="text-sm text-gray-500 mt-0.5">Select a brand to see its {meta.label.toLowerCase()} listings</p>
               </div>
               <Link
                 href={`/listings?category=${encodeURIComponent(subcategorySlug)}&sort=recommended`}
-                className="self-start sm:self-auto shrink-0 text-sm font-semibold text-red-600 hover:text-red-700 flex items-center gap-1 transition-colors"
+                className="text-sm font-semibold text-red-600 hover:text-red-700 flex items-center gap-1 transition-colors"
               >
                 View All {meta.label}
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

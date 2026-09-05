@@ -7,6 +7,8 @@ import { MobileBottomNav } from '@/components/layout/MobileBottomNav';
 import StickyHeaderBanner from '@/components/ui/StickyHeaderBanner';
 import { CountryTransitionOverlay } from '@/components/ui/CountryTransitionOverlay';
 import MobileSpecialOffersPopup from '@/components/ui/MobileSpecialOffersPopup';
+import MobileFloatingCartBar from '@/components/ui/MobileFloatingCartBar';
+import { useCart } from '@/context/CartContext';
 
 const CountrySelectModal = dynamic(() => import('@/components/ui/CountrySelectModal'), {
   ssr: false,
@@ -25,6 +27,12 @@ export default function PublicShell({
 }) {
   const pathname = usePathname();
   const isAdmin = pathname?.startsWith('/admin');
+  const { totalItems } = useCart();
+  // The floating cart bar (see MobileFloatingCartBar) docks just above the
+  // bottom nav and hides itself on /cart & /checkout — mirror that same
+  // condition here so <main>'s extra bottom clearance only applies where
+  // the bar itself would actually be showing.
+  const cartBarShowing = totalItems > 0 && pathname !== '/cart' && !pathname?.startsWith('/checkout');
 
   if (isAdmin) {
     return <>{children}</>;
@@ -53,7 +61,9 @@ export default function PublicShell({
       <CountrySelectModal />
       <SessionExpiredModal />
       <CountryTransitionOverlay />
-      <main className="flex-1 pt-0 pb-4 has-bottom-nav md:pb-4 px-[1%] md:px-[7%]">
+      <main
+        className={`flex-1 pt-0 pb-4 md:pb-4 px-[1%] md:px-[7%] ${cartBarShowing ? 'has-cart-bar' : 'has-bottom-nav'}`}
+      >
         {children}
       </main>
       {footer}
@@ -63,6 +73,7 @@ export default function PublicShell({
        * "special offers" affordance. Renders nothing itself until tapped.
        */}
       <MobileSpecialOffersPopup />
+      <MobileFloatingCartBar />
       <MobileBottomNav />
     </>
   );

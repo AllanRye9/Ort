@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import BrandLogo from '@/components/ui/BrandLogo';
 import VisitorStats from '@/components/ui/VisitorStats';
+import { LocaleSwitcher } from '@/components/ui/LocaleSwitcher';
 import { API_URL } from '@/lib/apiUrl';
 
 interface SocialLinks {
@@ -108,7 +109,7 @@ export default async function Footer() {
               </p>
               {/* Get Social */}
               <h4 className="text-white font-bold mb-2 text-sm uppercase tracking-wide">Get Social</h4>
-              <div className="flex gap-2">
+              <div className="flex gap-2 mb-4">
                 {desktopSocials.map((s) => (
                   <a
                     key={s.label}
@@ -122,6 +123,7 @@ export default async function Footer() {
                   </a>
                 ))}
               </div>
+              <LocaleSwitcher />
             </div>
 
             {/* Company */}
@@ -159,6 +161,9 @@ export default async function Footer() {
             Piitrade
           </span>
         </Link>
+        <div className="flex justify-center mb-4">
+          <LocaleSwitcher />
+        </div>
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2.5 text-xs mb-4">
           <Link href="/about" className="text-gray-300 hover:text-premium-gold transition-colors">About</Link>
           <Link href="/blog" className="text-gray-300 hover:text-premium-gold transition-colors">Blog</Link>

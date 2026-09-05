@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { api } from '@/lib/api';
 import { resolveImageUrl } from '@/lib/utils';
 import { useCountry } from '@/context/CountryContext';
+import { useCart } from '@/context/CartContext';
 import { useSiteConfig } from '@/context/SiteConfigContext';
 import { CurrencyDisplay } from '@/components/ui/CurrencyDisplay';
 import { QuickAddButton } from '@/components/listings/QuickAddButton';
@@ -63,6 +64,7 @@ function writeLocal(key: string, value: string) {
  */
 export default function MobileSpecialOffersPopup() {
   const { country, currency: displayCurrency } = useCountry();
+  const { totalItems } = useCart();
   const { specialFindsEnabled } = useSiteConfig();
   const [expanded, setExpanded] = useState(false);
   const [listings, setListings] = useState<Listing[]>([]);
@@ -159,7 +161,15 @@ export default function MobileSpecialOffersPopup() {
         aria-expanded={expanded}
         aria-label={expanded ? 'Hide special offers' : `Show special offers of ${MIN_DISCOUNT_PERCENT}% off and up`}
         className="fixed z-50 bottom-20 right-4 w-12 h-12 rounded-full bg-red-600 text-white shadow-lg flex items-center justify-center border-2 border-white active:scale-95 transition-transform"
-        style={{ bottom: expanded ? undefined : 'calc(5rem + env(safe-area-inset-bottom, 0px))' }}
+        style={{
+          // Clears the persistent "View cart" bar (see MobileFloatingCartBar)
+          // when it's showing, so the two floating controls never overlap.
+          bottom: expanded
+            ? undefined
+            : totalItems > 0
+            ? 'calc(9rem + env(safe-area-inset-bottom, 0px))'
+            : 'calc(5rem + env(safe-area-inset-bottom, 0px))',
+        }}
       >
         {expanded ? (
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
@@ -254,7 +264,7 @@ export default function MobileSpecialOffersPopup() {
                         </span>
                       </div>
                     </Link>
-                    <div className="absolute top-0.5 right-0">
+                    <div className="absolute bottom-0.5 right-0">
                       <QuickAddButton listing={listing} size="sm" />
                     </div>
                   </div>

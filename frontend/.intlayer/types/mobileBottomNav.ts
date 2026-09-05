@@ -1,0 +1,48 @@
+/* eslint-disable */
+export default {
+  "key": "mobileBottomNav",
+  "content": {
+    "nodeType": "translation",
+    "translation": {
+      "en": {
+        "home": "Home",
+        "browse": "Browse",
+        "sell": "Sell",
+        "account": "Account"
+      },
+      "ach": {
+        "home": "Paco",
+        "browse": "Nong",
+        "sell": "Cato",
+        "account": "Akaunti"
+      },
+      "lg": {
+        "home": "Awaka",
+        "browse": "Noonya",
+        "sell": "Tunda",
+        "account": "Akawunti"
+      },
+      "nyn": {
+        "home": "Aha",
+        "browse": "Shaba",
+        "sell": "Gurisa",
+        "account": "Akaunti"
+      },
+      "lam": {
+        "home": "Ot",
+        "browse": "Yeny",
+        "sell": "Cato",
+        "account": "Akaunti"
+      },
+      "teo": {
+        "home": "Ekek",
+        "browse": "Aginakin",
+        "sell": "Ajok",
+        "account": "Akaunti"
+      }
+    }
+  },
+  "location": "local",
+  "localId": "mobileBottomNav::local::components/layout/MobileBottomNav.content.ts",
+  "filePath": "components/layout/MobileBottomNav.content.ts"
+} as const;
