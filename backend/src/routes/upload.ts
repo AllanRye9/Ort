@@ -7,6 +7,7 @@ import { authenticate, AuthRequest } from '../middleware/auth';
 import { createError } from '../middleware/errorHandler';
 import { prisma } from '../utils/prisma';
 import { uploadToCDN, deleteFromCDN, isS3Configured, streamFromS3 } from '../utils/cdn';
+import { optimizeImageInPlace } from '../utils/imageOptimize';
 import { logger } from '../utils/logger';
 
 const router = Router();
@@ -78,6 +79,7 @@ router.post(
         const tempFilePath = path.join(tempUploadsDir, f.filename);
         let cdnUrl: string;
         try {
+          await optimizeImageInPlace(tempFilePath);
           cdnUrl = await uploadToCDN(tempFilePath, f.filename, folder);
         } finally {
           try {
@@ -105,6 +107,82 @@ router.post(
       const urls = results.map((r) => r.url);
 
       res.json({ imageIds, urls });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+// ─── Wholesale/Bulk Commodity Marketplace: short video upload ─────────────
+// Powers the optional showcase clip on the merged /market-prices wholesale
+// posting form (see backend/src/routes/farmerMarketplace.ts). Duration
+// (< 60 seconds) is enforced client-side by reading the video element's
+// metadata before this endpoint is ever called — there is no ffprobe/media
+// tooling in this stack to re-verify duration server-side, so the file-size
+// cap below is a practical proxy limit, not a true duration check. Mirrors
+// the existing admin promo-video multer setup in routes/admin.ts (same
+// allowed mime types), scoped to its own router/storage so it can never
+// affect the image-only upload above.
+const videoStorage = multer.diskStorage({
+  destination: (_req: Request, _file: Express.Multer.File, cb: (err: Error | null, dest: string) => void) => {
+    cb(null, tempUploadsDir);
+  },
+  filename: (_req: Request, file: Express.Multer.File, cb: (err: Error | null, name: string) => void) => {
+    const ext = path.extname(file.originalname).toLowerCase() || '.mp4';
+    cb(null, `wm-video-${uuidv4()}${ext}`);
+  },
+});
+
+const ALLOWED_VIDEO_MIME_TYPES = ['video/mp4', 'video/webm', 'video/quicktime'];
+// A well-compressed 60-second clip at reasonable quality comfortably fits
+// well under this; it is a generous ceiling, not an endorsement of longer
+// videos slipping through — the client blocks anything over 60s before it
+// ever reaches this endpoint.
+const MAX_VIDEO_FILE_SIZE = 40 * 1024 * 1024; // 40 MB
+
+const videoUploadMw = multer({
+  storage: videoStorage,
+  limits: { fileSize: MAX_VIDEO_FILE_SIZE },
+  fileFilter: (_req: Request, file: Express.Multer.File, cb: FileFilterCallback) => {
+    if (!ALLOWED_VIDEO_MIME_TYPES.includes(file.mimetype)) {
+      cb(new Error('Only MP4, WEBM, and MOV video files are allowed'));
+      return;
+    }
+    cb(null, true);
+  },
+});
+
+router.post(
+  '/video',
+  authenticate,
+  (req: Request, res: Response, next: NextFunction) => {
+    videoUploadMw.single('video')(req, res, (err: unknown) => {
+      if (err instanceof multer.MulterError) {
+        return next(createError(err.message, 400));
+      } else if (err) {
+        return next(createError((err as Error).message || 'Upload failed', 400));
+      }
+      next();
+    });
+  },
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const file = req.file as Express.Multer.File | undefined;
+      if (!file) return next(createError('No video file uploaded', 400));
+
+      const tempFilePath = path.join(tempUploadsDir, file.filename);
+      let cdnUrl: string;
+      try {
+        cdnUrl = await uploadToCDN(tempFilePath, file.filename, 'wholesale-videos');
+      } finally {
+        try {
+          fs.unlinkSync(tempFilePath);
+        } catch (cleanupErr) {
+          logger.warn(`Failed to remove temp video upload "${file.filename}": ${String(cleanupErr)}`);
+        }
+      }
+
+      res.json({ url: cdnUrl });
     } catch (err) {
       next(err);
     }
@@ -158,6 +236,9 @@ router.post(
       const tempFilePath = path.join(tempUploadsDir, file.filename);
       let cdnUrl: string;
       try {
+        // Avatars are displayed small everywhere (nav, cards, profile
+        // header) — cap them tighter than listing photos.
+        await optimizeImageInPlace(tempFilePath, { maxDimension: 800, quality: 85 });
         cdnUrl = await uploadToCDN(tempFilePath, file.filename);
       } finally {
         // Always clean up the temp file

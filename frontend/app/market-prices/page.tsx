@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '@/lib/api';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
+import FarmerMarketplaceSection from '@/components/ui/FarmerMarketplaceSection';
 
 /* ─── Types ────────────────────────────────────────────────────────────────── */
 
@@ -229,9 +230,10 @@ export default function MarketPricesPage() {
               🇺🇬
             </div>
             <div>
-              <h1 className="text-xl sm:text-2xl font-black tracking-wide uppercase">Uganda Market Prices</h1>
+              <h1 className="text-xl sm:text-2xl font-black tracking-wide uppercase">Uganda Market Prices &amp; Wholesale Marketplace</h1>
               <p className="text-xs sm:text-sm text-white/85 mt-0.5 max-w-2xl">
-                Everyday commodity prices from Uganda&apos;s local markets, kept up to date by our team so buyers, traders, and businesses can check fair market value before they buy or sell.
+                Everyday commodity prices from Uganda&apos;s local markets, kept up to date by our team so buyers, traders, and businesses can check fair market value before they buy or sell — plus a bulk
+                commodity marketplace below where sellers post real produce/commodity lots and buyers from different regions quote a delivered price. All figures are in UGX.
               </p>
               {updatedAt && (
                 <p className="text-[11px] text-white/75 mt-1.5 flex items-center gap-1.5">
@@ -461,6 +463,15 @@ export default function MarketPricesPage() {
       <p className="text-xs text-gray-400 mt-8 text-center">
         Prices are indicative retail/wholesale figures for common Uganda markets and are updated periodically by our team — treat them as a guide, not a live trading feed.
       </p>
+
+      {/* Merged section — the wholesale/bulk commodity marketplace lives
+          only here, at /market-prices. It is deliberately not surfaced
+          anywhere else on the site (e.g. no homepage teaser), since it
+          targets wholesalers, manufacturers, and brokers rather than the
+          everyday consumers/retailers every other section is built for. */}
+      <div className="mt-10 pt-8 border-t border-gray-200">
+        <FarmerMarketplaceSection />
+      </div>
     </div>
   );
 }

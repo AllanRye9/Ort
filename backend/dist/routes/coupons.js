@@ -62,6 +62,7 @@ router.post('/', auth_1.authenticate, async (req, res, next) => {
             return next((0, errorHandler_1.createError)('type must be PERCENTAGE or FIXED', 400));
         if (typeof value !== 'number' || value <= 0)
             return next((0, errorHandler_1.createError)('value must be a positive number', 400));
+        const couponType = type === 'FIXED' ? 'FIXED_AMOUNT' : 'PERCENTAGE';
         const normalizedCode = code.trim().toUpperCase();
         const existing = await prisma_1.prisma.coupon.findUnique({ where: { code: normalizedCode } });
         if (existing)
@@ -69,7 +70,7 @@ router.post('/', auth_1.authenticate, async (req, res, next) => {
         const coupon = await prisma_1.prisma.coupon.create({
             data: {
                 code: normalizedCode,
-                type: type,
+                type: couponType,
                 value,
                 minOrderAmount: minOrderAmount ?? null,
                 maxUses: maxUses ?? null,

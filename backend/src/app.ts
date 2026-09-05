@@ -34,6 +34,7 @@ import cvPaymentRoutes from './routes/cvPayment';
 import jobRoutes from './routes/jobs';
 import currencyRatesRoutes from './routes/currencyRates';
 import commodityPricesRoutes from './routes/commodityPrices';
+import farmerMarketplaceRoutes from './routes/farmerMarketplace';
 import kycRoutes from './routes/kyc';
 import messageRoutes from './routes/messages';
 import { getServiceReadiness } from './utils/serviceConfig';
@@ -193,6 +194,7 @@ app.use('/api/cv-payment', cvPaymentRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/currency-rates', currencyRatesRoutes);
 app.use('/api/commodity-prices', commodityPricesRoutes);
+app.use('/api/farmer-marketplace', farmerMarketplaceRoutes);
 app.use('/api/kyc', kycRoutes);
 app.use('/api/messages', messageRoutes);
 

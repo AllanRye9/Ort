@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { UserAvatar } from '@/components/ui/UserAvatar';
-import AvatarCropper from '@/components/ui/AvatarCropper';
+import dynamic from 'next/dynamic';
 import ThemeSwitcher from '@/components/ui/ThemeSwitcher';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -12,6 +12,11 @@ import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { resolveImageUrl } from '@/lib/utils';
 import { useDocumentFileUrl } from '@/hooks/useDocumentFileUrl';
 import { downloadUserDocument } from '@/lib/documents';
+
+// react-easy-crop (and its canvas-cropping code) is only needed once the
+// user opens the avatar cropper modal, so load it on demand instead of
+// bundling it into every /profile page load.
+const AvatarCropper = dynamic(() => import('@/components/ui/AvatarCropper'), { ssr: false });
 
 interface ListingSummary {
   id: string;

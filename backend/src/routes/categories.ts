@@ -171,6 +171,11 @@ router.get('/', async (_req: Request, res: Response, next: NextFunction) => {
       seeded = true;
     }
 
+    // Category tree changes rarely (admin action only) but is fetched on
+    // essentially every page load (nav mega-menu), so it's the single
+    // highest-value endpoint on the site to cache — same convention used
+    // for /site-config and the pricing feeds.
+    res.set('Cache-Control', 'public, max-age=120, stale-while-revalidate=300');
     res.json(categories);
   } catch (err) {
     next(err);

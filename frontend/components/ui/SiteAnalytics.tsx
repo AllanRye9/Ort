@@ -83,7 +83,9 @@ function StatCard({ label, value, accent }: { label: string; value: number; acce
  * commodity-price widget next to the stat cards, duplicating the full
  * "UGANDA MARKET PRICES" section that appeared further down the page — that
  * compact widget has been removed and the full <HomeMarketPrices /> section
- * now renders once, directly below this row, instead. The stat cards
+ * used to render once, directly below this row. That section (and the sibling
+ * <HomeFarmerMarketplace />) has since been removed from the homepage entirely —
+ * both now live merged together at /market-prices instead. The stat cards
  * themselves are unchanged from before, just widened to fill the row on
  * their own.
  */
@@ -100,9 +102,9 @@ export default function SiteAnalytics() {
 
   return (
     <section className="mt-1 px-1 animate-fade-up" aria-label="Site statistics">
-      {/* ── Stat cards — full-width row now that the market-price widget
-           that used to sit beside it has moved into its own section
-           (see <HomeMarketPrices /> in app/page.tsx). ── */}
+      {/* ── Stat cards — full-width row; the market-price widget that used
+           to sit beside it, and later the full section below this row, have
+           since moved to /market-prices (see FarmerMarketplaceSection.tsx). ── */}
       <div className="grid grid-cols-3 gap-1.5">
         {stats ? (
           <>

@@ -31,7 +31,13 @@ function ListingsContent() {
   const [loading, setLoading] = useState(true);
   const [filterOpen, setFilterOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
-  const [density, setDensity] = useState<'comfortable' | 'compact'>('comfortable');
+  // Default changed from 'comfortable' to 'compact' so preview images on
+  // this page render roughly half the size of before (compact packs more
+  // columns per row — see ListingGrid.tsx). Scoped to this page only: the
+  // shared ListingCard/ListingGrid components and their 'comfortable'
+  // default are unchanged, so every other page that renders listings is
+  // unaffected. The toggle above still lets a visitor switch back.
+  const [density, setDensity] = useState<'comfortable' | 'compact'>('compact');
   const sortMenuRef = useRef<HTMLDivElement>(null);
 
   const currentPage = parseInt(params ? params.get('page') || '1' : '1');

@@ -126,7 +126,7 @@ router.post('/', auth_1.authenticate, async (req, res, next) => {
                 salary: salary?.trim() || null,
                 deadline: deadline?.trim() || null,
                 imageUrl: imageUrl?.trim() || null,
-                country: COUNTRIES.includes(country) ? country : 'UAE',
+                country: COUNTRIES.includes(country) ? country : 'UGANDA',
                 status: posterRole === 'ADMIN' ? 'ACTIVE' : 'DRAFT',
                 postedById: req.user.userId,
             },

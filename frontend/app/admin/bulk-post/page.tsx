@@ -253,11 +253,11 @@ const CSV_COLUMNS = [
 const CSV_TEMPLATE = [
   CSV_COLUMNS.join(','),
   [
-    'iPhone 15 Pro Max 256GB', '"Brand new, sealed box, 1 year warranty"', '4200', 'NEW', 'UAE', 'Dubai',
+    'iPhone 15 Pro Max 256GB', '"Brand new, sealed box, 1 year warranty"', '4200', 'NEW', 'UGANDA', 'Kampala',
     'Smartphones', '25', 'apple,iphone,5g', '"Color:Black|White|Titanium;Storage:256GB|512GB"', 'iphone-front.jpg|iphone-back.jpg',
   ].join(','),
   [
-    'Toyota Camry 2019', '"Well maintained, single owner, full service history"', '65000', 'USED', 'UAE', 'Abu Dhabi',
+    'Toyota Camry 2019', '"Well maintained, single owner, full service history"', '65000', 'USED', 'UGANDA', 'Entebbe',
     'Used Cars', '1', 'toyota,sedan', '', 'camry-1.jpg|camry-2.jpg|camry-3.jpg',
   ].join(','),
 ].join('\n');

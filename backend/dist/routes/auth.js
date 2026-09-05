@@ -453,7 +453,7 @@ router.post('/admin-register', async (req, res, next) => {
             password: hashedPassword,
             name,
             role: 'ADMIN',
-            country: country || 'UAE',
+            country: country || 'UGANDA',
             isVerified: true,
         };
         if (includePersonalId) {

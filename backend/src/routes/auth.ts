@@ -492,7 +492,7 @@ router.post('/admin-register', async (req: Request, res: Response, next: NextFun
       password: hashedPassword,
       name,
       role: 'ADMIN',
-      country: country || 'UAE',
+      country: country || 'UGANDA',
       isVerified: true,
     };
 

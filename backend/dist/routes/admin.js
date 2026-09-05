@@ -1271,7 +1271,7 @@ router.post('/listings/bulk-media', (req, res, next) => {
             const files = filesByIndex.get(idx) || [];
             if (files.length === 0)
                 return [];
-            const country = (item.country || 'UAE').toUpperCase().replace(/[^A-Z0-9_]/g, '');
+            const country = (item.country || 'UGANDA').toUpperCase().replace(/[^A-Z0-9_]/g, '');
             const catSlug = item.categorySlug || categorySlugMap.get(item.categoryId) || 'general';
             const folder = `${country}/${catSlug}`;
             const urls = [];

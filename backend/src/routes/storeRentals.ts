@@ -293,7 +293,7 @@ router.patch('/admin/:id', authenticate, authorize('ADMIN'), async (req: Request
             scope: 'LISTING',
             isFree: false,
             price: 0,
-            currency: 'AED',
+            currency: 'UGX',
             durationDays: 3650, // 10 years — effectively permanent
             maxListings: null,   // null = unlimited
             isActive: true,

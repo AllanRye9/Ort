@@ -576,6 +576,12 @@ model Order {
   items            OrderItem[]
   payment          Payment?
   returns          Return[]
+
+  // Order history/tracking screens always filter by one party plus status
+  // (e.g. "my orders", seller order-tracking queue) and sort by recency —
+  // these compound indexes cover both without a full table scan.
+  @@index([buyerId, status, createdAt(sort: Desc)])
+  @@index([sellerId, status, createdAt(sort: Desc)])
 }
 
 model OrderItem {
@@ -590,6 +596,9 @@ model OrderItem {
   currency    Currency @default(UGX)
   imageUrl    String?
   variantSummary String?  // e.g. "Color: Red, Size: M" — captured at purchase time
+
+  @@index([listingId])
+  @@index([orderId])
 }
 
 model Payment {
@@ -636,6 +645,10 @@ model Notification {
   data      Json?
   read      Boolean          @default(false)
   createdAt DateTime         @default(now())
+
+  // Notification bell/inbox always queries "this user's notifications,
+  // newest first" (and often filters unread-only) — covers both.
+  @@index([userId, read, createdAt(sort: Desc)])
 }
 
 model Withdrawal {
@@ -651,6 +664,8 @@ model Withdrawal {
   processedAt DateTime?
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
+
+  @@index([userId, createdAt(sort: Desc)])
 }
 
 model Message {
@@ -665,6 +680,13 @@ model Message {
   receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
   listingId  String?
   listing    Listing? @relation(fields: [listingId], references: [id])
+
+  // The inbox/conversation queries (see routes/messages.ts) always filter
+  // by one side of the conversation ordered by recency, or by the unread
+  // count for a given receiver.
+  @@index([senderId, createdAt(sort: Desc)])
+  @@index([receiverId, createdAt(sort: Desc)])
+  @@index([receiverId, read])
 }
 
 model Favorite {
@@ -677,6 +699,7 @@ model Favorite {
   listing   Listing  @relation(fields: [listingId], references: [id])
 
   @@unique([userId, listingId])
+  @@index([listingId])
 }
 
 model Report {
@@ -748,6 +771,7 @@ model ProductReview {
   helpfulVotes     HelpfulVote[]
 
   @@unique([userId, listingId])
+  @@index([listingId, status])
 }
 
 model HelpfulVote {
@@ -949,6 +973,9 @@ model StoreRental {
   placements      Json?
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
+
+  @@index([userId, status])
+  @@index([status, endDate])
 }
 
 // ─── CV Service Requests ──────────────────────────────────────────────────────

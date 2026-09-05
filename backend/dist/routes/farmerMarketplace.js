@@ -7,6 +7,31 @@ const auth_1 = require("../middleware/auth");
 const errorHandler_1 = require("../middleware/errorHandler");
 const router = (0, express_1.Router)();
 const FARMER_MARKETPLACE_PATH = 'data/farmer-marketplace.json';
+const WHOLESALE_CURRENCY = 'UGX';
+function contactLinksFor(post) {
+    if (post.moderationStatus !== 'APPROVED' || post.status === 'CLOSED')
+        return null;
+    const digits = (post.farmerPhone || '').replace(/[^0-9]/g, '');
+    if (!digits)
+        return null;
+    const message = encodeURIComponent(`Hi, I'm interested in your ${post.commodity} listing on the wholesale marketplace.`);
+    return {
+        whatsappUrl: post.isWhatsapp ? `https://wa.me/${digits}?text=${message}` : null,
+        callUrl: `tel:${digits}`,
+    };
+}
+function canSeeRawPhone(post, viewerId, isAdmin) {
+    return isAdmin || (!!viewerId && !!post.farmerId && viewerId === post.farmerId);
+}
+/** Redacts farmerPhone → contact for anyone other than the post's owner or
+ *  an admin. Always call this before sending a post (or a list of posts)
+ *  back on a route that isn't already admin-only. */
+function toPublicPost(post, viewerId, isAdmin) {
+    if (canSeeRawPhone(post, viewerId, isAdmin))
+        return post;
+    const { farmerPhone: _farmerPhone, ...rest } = post;
+    return { ...rest, contact: contactLinksFor(post) };
+}
 const DEFAULT_PLATFORM_FEE_PERCENT = 2;
 const now = () => new Date().toISOString();
 function seedStore() {
@@ -19,6 +44,7 @@ function seedStore() {
                 farmerId: null,
                 farmerName: 'Nakato Farmers Group',
                 farmerPhone: null,
+                isWhatsapp: false,
                 verifiedSeller: true,
                 commodity: 'Maize',
                 quantity: 5000,
@@ -30,6 +56,10 @@ function seedStore() {
                 minPricePerUnit: 1200,
                 currency: 'UGX',
                 status: 'OPEN',
+                moderationStatus: 'APPROVED',
+                rejectionReason: null,
+                images: [],
+                videoUrl: null,
                 warehouseAvailable: true,
                 storageLocation: 'Iganga Central Store',
                 verifiedWeightKg: 5000,
@@ -49,7 +79,28 @@ function seedStore() {
     };
 }
 function loadStore() {
-    return (0, jsonStore_1.readJsonFile)(FARMER_MARKETPLACE_PATH, seedStore());
+    const store = (0, jsonStore_1.readJsonFile)(FARMER_MARKETPLACE_PATH, seedStore());
+    // Backward-compat backfill: posts written before this feature added
+    // images/video/moderation/WhatsApp support won't have those fields on
+    // disk. Default them so pre-existing listings stay visible (moderationStatus
+    // 'APPROVED', since they were already public before moderation existed)
+    // instead of silently disappearing the first time this route runs after
+    // deploying the change. New posts always set these fields explicitly.
+    for (const post of store.posts) {
+        if (post.images === undefined)
+            post.images = [];
+        if (post.videoUrl === undefined)
+            post.videoUrl = null;
+        if (post.isWhatsapp === undefined)
+            post.isWhatsapp = false;
+        if (post.moderationStatus === undefined)
+            post.moderationStatus = 'APPROVED';
+        if (post.rejectionReason === undefined)
+            post.rejectionReason = null;
+        if (post.currency !== WHOLESALE_CURRENCY)
+            post.currency = WHOLESALE_CURRENCY;
+    }
+    return store;
 }
 function saveStore(store) {
     (0, jsonStore_1.writeJsonFile)(FARMER_MARKETPLACE_PATH, store);
@@ -77,19 +128,24 @@ function deliveredPrice(offer) {
 function offerWithDelivered(offer) {
     return { ...offer, ...deliveredPrice(offer) };
 }
-function postSummary(post, offers) {
+function postSummary(post, offers, viewerId, isAdmin = false) {
     const postOffers = offers.filter((o) => o.postId === post.id).map(offerWithDelivered);
     const bestOffer = postOffers.length
         ? postOffers.reduce((best, o) => (o.deliveredPricePerUnit > best.deliveredPricePerUnit ? o : best))
         : null;
-    return { ...post, offerCount: postOffers.length, bestDeliveredPricePerUnit: bestOffer?.deliveredPricePerUnit ?? null };
+    const publicPost = toPublicPost(post, viewerId, isAdmin);
+    return { ...publicPost, offerCount: postOffers.length, bestDeliveredPricePerUnit: bestOffer?.deliveredPricePerUnit ?? null };
 }
 // ─── Public read: list posts ────────────────────────────────────────────────
-// GET /api/farmer-marketplace/posts?commodity=&location=&status=OPEN
-router.get('/posts', async (req, res, next) => {
+// GET /api/farmer-marketplace/posts?commodity=&location=&status=OPEN&moderation=PENDING
+// optionalAuthenticate so an admin can pass moderation=ALL/PENDING/REJECTED
+// to see everything (their own dashboard), while every other caller is
+// force-limited to APPROVED posts regardless of what they pass.
+router.get('/posts', auth_1.optionalAuthenticate, async (req, res, next) => {
     try {
         const store = loadStore();
-        const { commodity, location, status } = req.query;
+        const { commodity, location, status, moderation } = req.query;
+        const isAdmin = req.user?.role === 'ADMIN';
         let posts = store.posts;
         if (commodity) {
             const c = commodity.toLowerCase();
@@ -108,25 +164,55 @@ router.get('/posts', async (req, res, next) => {
         // status=ALL: no status filtering — used by the admin dashboard so
         // closed posts remain visible there even though the public list and
         // homepage hide them.
-        res.set('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
-        res.json({ posts: posts.map((p) => postSummary(p, store.offers)), updatedAt: store.updatedAt });
+        if (isAdmin && moderation && moderation.toUpperCase() !== 'ALL') {
+            posts = posts.filter((p) => p.moderationStatus === moderation.toUpperCase());
+        }
+        else if (!isAdmin) {
+            // Never negotiable for non-admins: a pending/rejected post is
+            // invisible outside the owner's own "My Listings" view (see the
+            // owner-scoped /posts/mine endpoint below) and the admin dashboard.
+            posts = posts.filter((p) => p.moderationStatus === 'APPROVED');
+        }
+        res.set('Cache-Control', 'private, max-age=0');
+        res.json({
+            posts: posts.map((p) => postSummary(p, store.offers, req.user?.userId, isAdmin)),
+            updatedAt: store.updatedAt,
+        });
+    }
+    catch (err) {
+        next(err);
+    }
+});
+// GET /api/farmer-marketplace/posts/mine — the caller's own posts, at every
+// moderation status, so a farmer/broker can see "pending review" and
+// "rejected" listings that the public list endpoint above hides from them.
+router.get('/posts/mine', auth_1.authenticate, async (req, res, next) => {
+    try {
+        const store = loadStore();
+        const posts = store.posts.filter((p) => p.farmerId === req.user.userId);
+        res.json({ posts: posts.map((p) => postSummary(p, store.offers, req.user.userId, false)) });
     }
     catch (err) {
         next(err);
     }
 });
 // GET /api/farmer-marketplace/posts/:id — full detail incl. every buyer offer
-router.get('/posts/:id', async (req, res, next) => {
+router.get('/posts/:id', auth_1.optionalAuthenticate, async (req, res, next) => {
     try {
         const store = loadStore();
         const post = store.posts.find((p) => p.id === req.params.id);
         if (!post)
             return next((0, errorHandler_1.createError)('Farmer post not found', 404));
+        const isAdmin = req.user?.role === 'ADMIN';
+        const isOwner = !!req.user && !!post.farmerId && post.farmerId === req.user.userId;
+        if (post.moderationStatus !== 'APPROVED' && !isAdmin && !isOwner) {
+            return next((0, errorHandler_1.createError)('Farmer post not found', 404));
+        }
         const offers = store.offers
             .filter((o) => o.postId === post.id)
             .map(offerWithDelivered)
             .sort((a, b) => b.deliveredPricePerUnit - a.deliveredPricePerUnit);
-        res.json({ post, offers });
+        res.json({ post: toPublicPost(post, req.user?.userId, isAdmin), offers });
     }
     catch (err) {
         next(err);
@@ -195,13 +281,15 @@ router.get('/price-history', async (req, res, next) => {
         next(err);
     }
 });
-// ─── Create a farmer post ───────────────────────────────────────────────────
+// ─── Create a wholesale/bulk commodity post ────────────────────────────────
 // POST /api/farmer-marketplace/posts
-// optionalAuthenticate: a logged-in user's id/name are attached automatically;
-// a guest can still post by supplying farmerName + farmerPhone directly (the
-// same "low-friction posting" pattern used elsewhere on the site for
-// classifieds), but verifiedSeller always starts false either way.
-router.post('/posts', auth_1.optionalAuthenticate, async (req, res, next) => {
+// authenticate (required): posting media and going through admin moderation
+// means every post needs an accountable owner, so this no longer accepts
+// anonymous/guest submissions the way the earlier reference-price-only
+// version did. verifiedSeller always starts false; moderationStatus starts
+// PENDING for everyone except admins, who are auto-approved (same bypass
+// pattern as ProductImage uploads in upload.ts).
+router.post('/posts', auth_1.authenticate, async (req, res, next) => {
     try {
         const body = req.body || {};
         const commodity = String(body.commodity || '').trim();
@@ -209,8 +297,17 @@ router.post('/posts', auth_1.optionalAuthenticate, async (req, res, next) => {
         const location = String(body.location || '').trim();
         const minPricePerUnit = Number(body.minPricePerUnit);
         const farmerName = String(body.farmerName || '').trim();
+        const farmerPhone = String(body.farmerPhone || '').trim();
+        const images = Array.isArray(body.images) ? body.images.map((u) => String(u).trim()).filter(Boolean) : [];
+        const videoUrl = body.videoUrl ? String(body.videoUrl).trim() : null;
         if (!commodity || !location || !farmerName) {
             return next((0, errorHandler_1.createError)('"commodity", "location", and "farmerName" are required.', 400));
+        }
+        if (!farmerPhone) {
+            return next((0, errorHandler_1.createError)('"farmerPhone" is required so buyers have a way to contact you.', 400));
+        }
+        if (images.length === 0) {
+            return next((0, errorHandler_1.createError)('At least one image is required. Upload photos of the produce/commodity before posting.', 400));
         }
         if (!Number.isFinite(quantity) || quantity <= 0) {
             return next((0, errorHandler_1.createError)('"quantity" must be a positive number.', 400));
@@ -218,13 +315,15 @@ router.post('/posts', auth_1.optionalAuthenticate, async (req, res, next) => {
         if (!Number.isFinite(minPricePerUnit) || minPricePerUnit < 0) {
             return next((0, errorHandler_1.createError)('"minPricePerUnit" must be a non-negative number.', 400));
         }
+        const isAdmin = req.user.role === 'ADMIN';
         const store = loadStore();
         const createdAt = now();
         const post = {
             id: (0, crypto_1.randomUUID)(),
-            farmerId: req.user?.userId || null,
+            farmerId: req.user.userId,
             farmerName,
-            farmerPhone: body.farmerPhone ? String(body.farmerPhone).trim() : null,
+            farmerPhone,
+            isWhatsapp: Boolean(body.isWhatsapp),
             verifiedSeller: false,
             commodity,
             quantity,
@@ -234,8 +333,14 @@ router.post('/posts', auth_1.optionalAuthenticate, async (req, res, next) => {
             availability: normalizeAvailability(body.availability),
             availableFrom: body.availability === 'DATE' && body.availableFrom ? String(body.availableFrom) : null,
             minPricePerUnit: round2(minPricePerUnit),
-            currency: String(body.currency || 'UGX').trim() || 'UGX',
+            // Uganda-only section — currency is always UGX, never taken from the
+            // request body (see the file-level WHOLESALE note).
+            currency: WHOLESALE_CURRENCY,
             status: 'OPEN',
+            moderationStatus: isAdmin ? 'APPROVED' : 'PENDING',
+            rejectionReason: null,
+            images,
+            videoUrl,
             warehouseAvailable: Boolean(body.warehouseAvailable),
             storageLocation: body.storageLocation ? String(body.storageLocation).trim() : null,
             verifiedWeightKg: body.verifiedWeightKg != null ? Number(body.verifiedWeightKg) : null,
@@ -253,11 +358,20 @@ router.post('/posts', auth_1.optionalAuthenticate, async (req, res, next) => {
         next(err);
     }
 });
-// ─── Update a farmer post (owner or admin) ─────────────────────────────────
+// ─── Update a wholesale/bulk commodity post (owner or admin) ───────────────
 // PATCH /api/farmer-marketplace/posts/:id
-// Supports updating status (OPEN/MATCHED/CLOSED) and minPricePerUnit (which
+// Supports updating status (OPEN/MATCHED/CLOSED), minPricePerUnit (which
 // appends to priceHistory rather than overwriting it, so the price-history
-// endpoint above stays meaningful).
+// endpoint above stays meaningful), and now the full listing content
+// (images, video, commodity, location, contact number/WhatsApp flag).
+// A non-admin owner's edit to any content field sends the post back to
+// PENDING for re-review — otherwise moderation could be bypassed entirely
+// by approving once and editing freely afterwards. Admin edits never force
+// a re-review; use PATCH /posts/:id/moderate to change moderation status.
+const CONTENT_FIELDS = [
+    'commodity', 'location', 'unit', 'qualityGrade', 'availability', 'availableFrom',
+    'images', 'videoUrl', 'farmerPhone', 'isWhatsapp', 'farmerName',
+];
 router.patch('/posts/:id', auth_1.authenticate, async (req, res, next) => {
     try {
         const store = loadStore();
@@ -269,6 +383,7 @@ router.patch('/posts/:id', auth_1.authenticate, async (req, res, next) => {
         if (!isOwner && !isAdmin)
             return next((0, errorHandler_1.createError)('You do not have permission to edit this post', 403));
         const body = req.body || {};
+        let contentChanged = false;
         if (body.status && ['OPEN', 'MATCHED', 'CLOSED'].includes(String(body.status).toUpperCase())) {
             post.status = String(body.status).toUpperCase();
         }
@@ -277,6 +392,7 @@ router.patch('/posts/:id', auth_1.authenticate, async (req, res, next) => {
             if (Number.isFinite(newPrice) && newPrice >= 0 && newPrice !== post.minPricePerUnit) {
                 post.minPricePerUnit = newPrice;
                 post.priceHistory.push({ price: newPrice, at: now() });
+                contentChanged = true;
             }
         }
         if (body.quantity != null && Number.isFinite(Number(body.quantity)))
@@ -289,6 +405,74 @@ router.patch('/posts/:id', auth_1.authenticate, async (req, res, next) => {
             post.verifiedWeightKg = Number(body.verifiedWeightKg);
         if (body.notes != null)
             post.notes = String(body.notes).trim() || null;
+        if (body.images != null) {
+            const images = Array.isArray(body.images) ? body.images.map((u) => String(u).trim()).filter(Boolean) : [];
+            if (images.length === 0)
+                return next((0, errorHandler_1.createError)('At least one image is required.', 400));
+            post.images = images;
+            contentChanged = true;
+        }
+        if (body.videoUrl !== undefined) {
+            post.videoUrl = body.videoUrl ? String(body.videoUrl).trim() : null;
+            contentChanged = true;
+        }
+        if (body.commodity != null && String(body.commodity).trim()) {
+            post.commodity = String(body.commodity).trim();
+            contentChanged = true;
+        }
+        if (body.location != null && String(body.location).trim()) {
+            post.location = String(body.location).trim();
+            contentChanged = true;
+        }
+        if (body.unit != null && String(body.unit).trim()) {
+            post.unit = String(body.unit).trim();
+            contentChanged = true;
+        }
+        if (body.qualityGrade != null) {
+            post.qualityGrade = normalizeGrade(body.qualityGrade);
+            contentChanged = true;
+        }
+        if (body.availability != null) {
+            post.availability = normalizeAvailability(body.availability);
+            post.availableFrom = post.availability === 'DATE' && body.availableFrom ? String(body.availableFrom) : null;
+            contentChanged = true;
+        }
+        if (body.farmerPhone != null && String(body.farmerPhone).trim()) {
+            post.farmerPhone = String(body.farmerPhone).trim();
+            contentChanged = true;
+        }
+        if (body.isWhatsapp != null) {
+            post.isWhatsapp = Boolean(body.isWhatsapp);
+            contentChanged = true;
+        }
+        if (body.farmerName != null && String(body.farmerName).trim()) {
+            post.farmerName = String(body.farmerName).trim();
+            contentChanged = true;
+        }
+        if (contentChanged && !isAdmin) {
+            post.moderationStatus = 'PENDING';
+            post.rejectionReason = null;
+        }
+        post.updatedAt = now();
+        store.updatedAt = post.updatedAt;
+        saveStore(store);
+        res.json({ post: toPublicPost(post, req.user.userId, isAdmin) });
+    }
+    catch (err) {
+        next(err);
+    }
+});
+// ─── Admin: approve or reject a pending/rejected post ──────────────────────
+// PATCH /api/farmer-marketplace/posts/:id/moderate  { approved: boolean, reason?: string }
+router.patch('/posts/:id/moderate', auth_1.authenticate, (0, auth_1.authorize)('ADMIN'), async (req, res, next) => {
+    try {
+        const store = loadStore();
+        const post = store.posts.find((p) => p.id === req.params.id);
+        if (!post)
+            return next((0, errorHandler_1.createError)('Farmer post not found', 404));
+        const approved = Boolean(req.body?.approved);
+        post.moderationStatus = approved ? 'APPROVED' : 'REJECTED';
+        post.rejectionReason = approved ? null : (req.body?.reason ? String(req.body.reason).trim() : null);
         post.updatedAt = now();
         store.updatedAt = post.updatedAt;
         saveStore(store);
