@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import FarmerMarketplaceSection from '@/components/ui/FarmerMarketplaceSection';
@@ -107,7 +108,11 @@ function StatPill({ icon, label, value, color }: { icon: string; label: string; 
 
 /* ─── Main page ────────────────────────────────────────────────────────────── */
 
-export default function MarketPricesPage() {
+type Tab = 'prices' | 'farmer-marketplace';
+
+function MarketPricesContent() {
+  const searchParams = useSearchParams();
+  const [tab, setTab] = useState<Tab>(searchParams.get('tab') === 'farmer-marketplace' ? 'farmer-marketplace' : 'prices');
   const [items, setItems] = useState<CommodityItem[]>([]);
   const [locations, setLocations] = useState<string[]>([]);
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
@@ -230,10 +235,9 @@ export default function MarketPricesPage() {
               🇺🇬
             </div>
             <div>
-              <h1 className="text-xl sm:text-2xl font-black tracking-wide uppercase">Uganda Market Prices &amp; Wholesale Marketplace</h1>
+              <h1 className="text-xl sm:text-2xl font-black tracking-wide uppercase">Uganda Market Prices</h1>
               <p className="text-xs sm:text-sm text-white/85 mt-0.5 max-w-2xl">
-                Everyday commodity prices from Uganda&apos;s local markets, kept up to date by our team so buyers, traders, and businesses can check fair market value before they buy or sell — plus a bulk
-                commodity marketplace below where sellers post real produce/commodity lots and buyers from different regions quote a delivered price. All figures are in UGX.
+                Everyday commodity prices from Uganda&apos;s local markets, kept up to date by our team so buyers, traders, and businesses can check fair market value before they buy or sell.
               </p>
               {updatedAt && (
                 <p className="text-[11px] text-white/75 mt-1.5 flex items-center gap-1.5">
@@ -257,8 +261,28 @@ export default function MarketPricesPage() {
         </div>
       </div>
 
+      {/* Tabs — "Uganda Market Prices" (admin-curated reference prices) vs
+          "Farmer Marketplace" (farmer posts + buyer offers + delivered
+          price calculator). Two different data sources, same page. */}
+      <div className="flex flex-wrap gap-2 mb-5 border-b border-gray-200">
+        <button
+          onClick={() => setTab('prices')}
+          className={`px-4 py-2.5 text-sm font-bold border-b-2 -mb-px transition-colors ${tab === 'prices' ? 'border-red-500 text-red-600' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
+        >
+          Uganda Market Prices
+        </button>
+        <button
+          onClick={() => setTab('farmer-marketplace')}
+          className={`px-4 py-2.5 text-sm font-bold border-b-2 -mb-px transition-colors ${tab === 'farmer-marketplace' ? 'border-green-600 text-green-700' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
+        >
+          🚜 Farmer Marketplace
+        </button>
+      </div>
+
+      {tab === 'farmer-marketplace' && <FarmerMarketplaceSection />}
+
       {/* Market summary stats */}
-      {!loading && items.length > 0 && (
+      {tab === 'prices' && !loading && items.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-5">
           <StatPill icon="🌾" label="Tracked" value={summary.total} color="bg-slate-100 text-slate-600" />
           <StatPill icon="📈" label="Gainers" value={summary.gainers} color="bg-emerald-100 text-emerald-600" />
@@ -268,7 +292,7 @@ export default function MarketPricesPage() {
       )}
 
       {/* Top movers strip — advanced at-a-glance market signal */}
-      {!loading && (topMovers.gainers.length > 0 || topMovers.losers.length > 0) && (
+      {tab === 'prices' && !loading && (topMovers.gainers.length > 0 || topMovers.losers.length > 0) && (
         <div className="grid sm:grid-cols-2 gap-3 mb-6">
           <div className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-3.5">
             <p className="text-[11px] font-black uppercase tracking-wider text-emerald-700 mb-2 flex items-center gap-1.5">📈 Top Gainers</p>
@@ -299,6 +323,8 @@ export default function MarketPricesPage() {
         </div>
       )}
 
+      {tab === 'prices' && (
+      <>
       {/* Toolbar — search, filters, sort, view + export */}
       <div className="sticky top-16 z-10 bg-gray-50/90 backdrop-blur-sm py-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:bg-transparent sm:backdrop-blur-none sm:static mb-4">
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-2.5 flex flex-col lg:flex-row gap-2.5">
@@ -463,15 +489,16 @@ export default function MarketPricesPage() {
       <p className="text-xs text-gray-400 mt-8 text-center">
         Prices are indicative retail/wholesale figures for common Uganda markets and are updated periodically by our team — treat them as a guide, not a live trading feed.
       </p>
-
-      {/* Merged section — the wholesale/bulk commodity marketplace lives
-          only here, at /market-prices. It is deliberately not surfaced
-          anywhere else on the site (e.g. no homepage teaser), since it
-          targets wholesalers, manufacturers, and brokers rather than the
-          everyday consumers/retailers every other section is built for. */}
-      <div className="mt-10 pt-8 border-t border-gray-200">
-        <FarmerMarketplaceSection />
-      </div>
+      </>
+      )}
     </div>
+  );
+}
+
+export default function MarketPricesPage() {
+  return (
+    <Suspense fallback={<div className="max-w-6xl mx-auto px-4 py-10 text-center text-gray-400 text-sm">Loading market prices…</div>}>
+      <MarketPricesContent />
+    </Suspense>
   );
 }

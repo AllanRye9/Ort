@@ -60,6 +60,18 @@ router.get('/*', async (req: Request, res: Response, next: NextFunction) => {
     const contentTypeMap: Record<string, string> = {
       '.jpg': 'image/jpeg',
       '.jpeg': 'image/jpeg',
+      // .jfif/.jpe/.pjpeg/.pjp are all still plain JPEG bytes under a
+      // different file extension — browsers commonly save/attach photos
+      // with these (e.g. Windows "Save picture as" defaults to .jfif for
+      // images copied from the web, and the browser still reports the
+      // upload's mimetype as image/jpeg). Without these, any such upload
+      // is accepted by the upload route (mimetype check passes) but this
+      // serving route 400s on it, which breaks both the photo preview and
+      // the AI auto-fill worker (which fetches this exact URL server-side).
+      '.jfif': 'image/jpeg',
+      '.jpe': 'image/jpeg',
+      '.pjpeg': 'image/jpeg',
+      '.pjp': 'image/jpeg',
       '.png': 'image/png',
       '.gif': 'image/gif',
       '.webp': 'image/webp',

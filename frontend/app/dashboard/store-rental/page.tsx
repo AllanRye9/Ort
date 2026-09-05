@@ -236,16 +236,20 @@ function StoreProfileEditor({
     const objectUrl = URL.createObjectURL(file);
     setLogoPreview(objectUrl);
 
-    // Upload to server
+    // Upload to server. There's no dedicated store-logo endpoint, so this
+    // reuses POST /upload/avatar — like avatars, a store logo needs no
+    // admin-moderation record (unlike listing photos via POST /upload) and
+    // benefits from the same tighter resize/quality tuned for small,
+    // frequently-displayed images. Response shape is `{ urls: [cdnUrl] }`.
     setUploadingLogo(true);
     setError('');
     try {
       const formData = new FormData();
       formData.append('image', file);
-      const { data } = await api.post('/upload/image', formData, {
+      const { data } = await api.post('/upload/avatar', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      const uploadedUrl = data.url || data.cdnUrl || data.imageUrl || '';
+      const uploadedUrl = data.urls?.[0] || data.url || data.cdnUrl || '';
       if (uploadedUrl) {
         setLogo(uploadedUrl);
         setLogoPreview(resolveImageUrl(uploadedUrl));
