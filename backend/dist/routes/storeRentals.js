@@ -5,10 +5,11 @@ const prisma_1 = require("../utils/prisma");
 const auth_1 = require("../middleware/auth");
 const errorHandler_1 = require("../middleware/errorHandler");
 const router = (0, express_1.Router)();
+// Uganda-launch defaults — fees quoted in UGX (the site's default currency).
 const STORE_PLANS = {
-    FREE_TRIAL: { fee: 0, currency: 'AED', durationDays: 3 },
-    MONTHLY: { fee: 60, currency: 'AED', durationDays: 30 },
-    ANNUAL: { fee: 300, currency: 'AED', durationDays: 365 },
+    FREE_TRIAL: { fee: 0, currency: 'UGX', durationDays: 3 },
+    MONTHLY: { fee: 60000, currency: 'UGX', durationDays: 30 },
+    ANNUAL: { fee: 300000, currency: 'UGX', durationDays: 365 },
 };
 // ─── Public / listing routes ───────────────────────────────────────────────────
 // GET /api/store-rentals — list active rentals (public directory)

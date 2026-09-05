@@ -416,9 +416,9 @@ export default function StoreRentalDashboard() {
   });
 
   const STORE_PLANS = [
-    { id: 'FREE_TRIAL' as const, label: 'Free Trial', feeLabel: '0 AED', durationLabel: '3 days full access', highlight: false },
-    { id: 'MONTHLY'   as const, label: 'Monthly Plan', feeLabel: '60 AED', durationLabel: '1 month access', highlight: true },
-    { id: 'ANNUAL'    as const, label: 'Annual Plan', feeLabel: '300 AED', durationLabel: '1 year access', highlight: false },
+    { id: 'FREE_TRIAL' as const, label: 'Free Trial', feeLabel: '0 UGX', durationLabel: '3 days full access', highlight: false },
+    { id: 'MONTHLY'   as const, label: 'Monthly Plan', feeLabel: '60,000 UGX', durationLabel: '1 month access', highlight: true },
+    { id: 'ANNUAL'    as const, label: 'Annual Plan', feeLabel: '300,000 UGX', durationLabel: '1 year access', highlight: false },
   ];
 
   useEffect(() => {
@@ -833,6 +833,10 @@ export default function StoreRentalDashboard() {
                   className="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors">
                   Manage Listings
                 </Link>
+                <Link href="/dashboard/store-rental/tools"
+                  className="px-4 py-2 bg-gray-900 text-white text-sm font-semibold rounded-lg hover:bg-gray-800 transition-colors">
+                  🛠️ Advanced Tools
+                </Link>
                 <button onClick={() => setEditingProfile(true)}
                   className="px-4 py-2 border border-red-200 text-red-700 text-sm font-medium rounded-lg hover:bg-red-50 transition-colors">
                   ✏️ Edit Store Profile
@@ -932,6 +936,7 @@ export default function StoreRentalDashboard() {
                 <h2 className="text-base font-bold text-gray-900 mb-3">Quick Actions</h2>
                 <div className="grid sm:grid-cols-3 gap-3">
                   {[
+                    { href: '/dashboard/store-rental/tools', icon: '🛠️', label: 'Advanced Tools', desc: 'Inventory, orders, analytics, customers & promotions', color: 'gray' },
                     { href: '/listings/create', icon: '➕', label: 'Post New Listing', desc: 'Add a product or service to your store', color: 'red' },
                     { href: '/profile/listings', icon: '📋', label: 'Manage Listings', desc: 'Edit, update status, set placement', color: 'rose' },
                     { href: '/profile', icon: '👤', label: 'Edit Profile', desc: 'Update contact info, bio, and social links', color: 'gray' },

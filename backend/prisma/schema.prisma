@@ -185,7 +185,7 @@ model User {
   name                  String
   phone                 String?   @unique
   avatar                String?
-  country               Country   @default(UAE)
+  country               Country   @default(UGANDA)
   isVerified            Boolean   @default(false)
   isBanned              Boolean   @default(false)
   // ─── KYC (Know Your Customer) identity verification ───────────────────────
@@ -277,6 +277,7 @@ model User {
   cvDownloadTokens CvDownloadToken[]
   searchLogs       SearchLog[]
   listingClickLogs ListingClickLog[]
+  sellerCoupons    Coupon[]            @relation("SellerCoupons")
 
   @@index([kycStatus, kycSubmittedAt])
   @@index([isKycVerified])
@@ -344,12 +345,12 @@ model Listing {
   title       String
   description String
   price       Float
-  currency    Currency      @default(AED)
+  currency    Currency      @default(UGX)
   condition   Condition     @default(USED)
   status      ListingStatus @default(ACTIVE)
   images      String[]
   location    String
-  country     Country       @default(UAE)
+  country     Country       @default(UGANDA)
   views       Int           @default(0)
   // Inventory
   stock       Int           @default(1)
@@ -529,15 +530,24 @@ model Coupon {
   expiresAt       DateTime?
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
+  // Web Store promotion scoping — null means a platform-wide coupon managed
+  // from /admin/coupons. When set, this coupon was created by a store owner
+  // from their Web Store dashboard's Promotions tool and only applies to
+  // that seller's listings (enforced in POST /orders / coupons/validate).
+  sellerId        String?
+  seller          User?      @relation("SellerCoupons", fields: [sellerId], references: [id], onDelete: Cascade)
+  description     String?
 
   orders          Order[]
+
+  @@index([sellerId])
 }
 
 model Order {
   id               String      @id @default(uuid())
   orderNumber      String      @unique
   status           OrderStatus @default(PENDING)
-  currency         Currency    @default(AED)
+  currency         Currency    @default(UGX)
   subtotal         Float
   shippingCost     Float       @default(0)
   discount         Float       @default(0)
@@ -577,7 +587,7 @@ model OrderItem {
   title       String
   price       Float
   quantity    Int     @default(1)
-  currency    Currency @default(AED)
+  currency    Currency @default(UGX)
   imageUrl    String?
   variantSummary String?  // e.g. "Color: Red, Size: M" — captured at purchase time
 }
@@ -589,7 +599,7 @@ model Payment {
   method        PaymentMethod @default(CARD)
   status        PaymentStatus @default(PENDING)
   amount        Float
-  currency      Currency      @default(AED)
+  currency      Currency      @default(UGX)
   // Gateway reference (Stripe charge id, Flutterwave tx ref, etc.)
   gatewayRef    String?
   gatewayData   Json?
@@ -633,7 +643,7 @@ model Withdrawal {
   userId      String
   user        User             @relation(fields: [userId], references: [id])
   amount      Float
-  currency    Currency         @default(AED)
+  currency    Currency         @default(UGX)
   method      PaymentMethod    @default(BANK_TRANSFER)
   accountInfo Json
   status      WithdrawalStatus @default(PENDING)
@@ -760,7 +770,7 @@ model SellerPackage {
   scope         PackageScope         @default(LISTING)
   isFree        Boolean              @default(false)
   price         Float                @default(0)
-  currency      Currency             @default(AED)
+  currency      Currency             @default(UGX)
   durationDays  Int
   maxListings   Int?
   isActive      Boolean              @default(true)
@@ -931,7 +941,7 @@ model StoreRental {
   user            User             @relation("StoreRentalUser", fields: [userId], references: [id], onDelete: Cascade)
   entityType      RentalEntityType @default(USER)
   fee             Float            @default(0)
-  currency        Currency         @default(AED)
+  currency        Currency         @default(UGX)
   startDate       DateTime         @default(now())
   endDate         DateTime
   maxListings     Int              @default(100)
@@ -977,7 +987,7 @@ model JobPost {
   salary        String?
   deadline      String?
   imageUrl      String?
-  country       String    @default("UAE")
+  country       String    @default("UGANDA")
   status        JobStatus @default(ACTIVE)
   postedById    String
   createdAt     DateTime  @default(now())

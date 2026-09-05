@@ -49,7 +49,7 @@ router.get('/active-package', optionalAuthenticate, async (req: AuthRequest, res
 // charge, so the request is rejected.
 router.post('/initiate', optionalAuthenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { country = 'UAE', deviceId, holder } = req.body as {
+    const { country = 'UGANDA', deviceId, holder } = req.body as {
       country?: string;
       deviceId?: string;
       holder?: { name?: string; title?: string; email?: string; phone?: string };
@@ -117,7 +117,7 @@ router.post('/initiate', optionalAuthenticate, async (req: AuthRequest, res: Res
 // /validate and download, with no payment modal shown.
 router.post('/free-download', optionalAuthenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const { country = 'UAE', deviceId, holder } = req.body as {
+    const { country = 'UGANDA', deviceId, holder } = req.body as {
       country?: string;
       deviceId?: string;
       holder?: { name?: string; title?: string; email?: string; phone?: string };

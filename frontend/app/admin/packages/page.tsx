@@ -12,7 +12,7 @@ const emptyForm = {
   scope: 'LISTING' as PackageScope,
   isFree: false,
   price: '',
-  currency: 'AED',
+  currency: 'UGX',
   durationDays: '',
   maxListings: '',
   isActive: true,

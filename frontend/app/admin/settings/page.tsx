@@ -77,7 +77,7 @@ const DEFAULT_SETTINGS: Settings = {
   siteName: 'Piitrade',
   maintenanceMode: false,
   allowRegistration: true,
-  defaultCountry: 'UAE',
+  defaultCountry: 'UGANDA',
   itemsPerPage: 20,
   maxImagesPerListing: 10,
   trialDays: 7,
@@ -109,7 +109,7 @@ function ToggleSwitch({ enabled, onChange }: { enabled: boolean; onChange: (v: b
 // ─── Empty Deal Template ───────────────────────────────────────────────────────
 
 function emptyDeal(): Deal {
-  return { id: crypto.randomUUID(), title: '', description: '', imageUrl: '', price: undefined, originalPrice: undefined, discount: undefined, link: '', currency: 'AED', expiresAt: null, countries: undefined };
+  return { id: crypto.randomUUID(), title: '', description: '', imageUrl: '', price: undefined, originalPrice: undefined, discount: undefined, link: '', currency: 'UGX', expiresAt: null, countries: undefined };
 }
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
@@ -623,7 +623,7 @@ export default function AdminSettingsPage() {
           description: listing.category?.name ? `${listing.category.name} · ${listing.condition || ''}`.trim().replace(/·\s*$/, '') : '',
           imageUrl: thumb ? resolveImageUrl(thumb) : '',
           price: listing.price,
-          currency: listing.currency || 'AED',
+          currency: listing.currency || 'UGX',
           expiresAt: null,
           countries: listing.country ? [listing.country] : undefined,
         } as Deal;
@@ -654,7 +654,7 @@ export default function AdminSettingsPage() {
         originalPrice: undefined,
         discount: undefined,
         link: `/listings/${listing.id}`,
-        currency: listing.currency || 'AED',
+        currency: listing.currency || 'UGX',
         expiresAt: null, // unlimited by default
         // Default visibility to the listing's own country (it's real inventory
         // from that market) — the admin can still expand this to more
@@ -941,7 +941,7 @@ export default function AdminSettingsPage() {
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Currency</label>
-                  <select value={deal.currency || 'AED'} onChange={(e) => updateDeal(deal.id, 'currency', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
+                  <select value={deal.currency || 'UGX'} onChange={(e) => updateDeal(deal.id, 'currency', e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
                     {['AED','USD','UGX','KES','CNY'].map((c) => <option key={c}>{c}</option>)}
                   </select>
                 </div>

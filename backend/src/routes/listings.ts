@@ -575,7 +575,12 @@ router.get('/', optionalAuthenticate, async (req: AuthRequest, res: Response, ne
               parent:   { select: { id: true, name: true, slug: true } },
             },
           },
-          user: { select: { id: true, name: true, avatar: true, isKycVerified: true } },
+          user: {
+            select: {
+              id: true, name: true, avatar: true, isKycVerified: true,
+              store: { select: { name: true, logo: true, slug: true } },
+            },
+          },
           productImages: {
             where: { cdnUrl: { not: null }, status: { not: 'REJECTED' } },
             select: { id: true, cdnUrl: true, uploadedAt: true },
@@ -786,7 +791,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response, next: Nex
       data: {
         title, description,
         price: parsedPrice,
-        currency: currency || 'AED',
+        currency: currency || 'UGX',
         condition: condition || 'USED',
         status: isAdmin ? 'ACTIVE' : 'PENDING',
         images: initialImages,
@@ -876,7 +881,7 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response, next: N
 
     const {
       title, description, price, condition, images, imageIds, location,
-      status, expiresAt, motorDetails, currency, country, categoryId, stock,
+      status, expiresAt, motorDetails, currency, country, categoryId, stock, sku,
       propertyDetails, jobDetails, productOptions, customFieldValues, latitude, longitude,
     } = req.body;
 
@@ -926,6 +931,7 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response, next: N
         ...(price       != null       && { price: parseFloat(price) }),
         ...(condition   !== undefined && { condition }),
         ...(parsedStock !== undefined && { stock: parsedStock }),
+        ...(sku         !== undefined && { sku: (sku ?? '').toString().trim() || null }),
         ...(location    !== undefined && { location }),
         ...(status      !== undefined && { status }),
         ...(expiresAt   !== undefined && { expiresAt: expiresAt ? new Date(expiresAt) : null }),

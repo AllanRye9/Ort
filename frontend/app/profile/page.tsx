@@ -130,7 +130,7 @@ export default function ProfilePage() {
   const [form, setForm] = useState({
     name: '',
     phone: '',
-    country: 'UAE' as import('@/lib/types').Country,
+    country: 'UGANDA' as import('@/lib/types').Country,
     cvThemeColor: '',
     companyName: '',
     registrationNumber: '',

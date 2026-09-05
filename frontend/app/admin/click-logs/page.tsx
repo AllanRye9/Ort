@@ -33,7 +33,7 @@ interface MostClickedItem {
 
 function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleString('en-US', {
-    month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit',
+    year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit',
   });
 }
 
@@ -83,16 +83,22 @@ export default function AdminClickLogsPage() {
   const [error, setError] = useState('');
 
   const [search, setSearch] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [sortBy, setSortBy] = useState<'createdAt' | 'listingTitle'>('createdAt');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [page, setPage] = useState(1);
   const limit = 25;
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
-  const fetchLogs = useCallback(async (query: string, pageNum: number) => {
+  const fetchLogs = useCallback(async (query: string, pageNum: number, from: string, to: string, sBy: string, sDir: string) => {
     try {
       setFetching(true);
       setError('');
-      const params: Record<string, string | number> = { page: pageNum, limit };
+      const params: Record<string, string | number> = { page: pageNum, limit, sortBy: sBy, sortDir: sDir };
       if (query) params.search = query;
+      if (from) params.dateFrom = from;
+      if (to) params.dateTo = to;
       const { data } = await api.get('/admin/click-logs', { params });
       setLogs(data.logs);
       setTotal(data.pagination.total);
@@ -118,11 +124,11 @@ export default function AdminClickLogsPage() {
   useEffect(() => {
     if (user?.role !== 'ADMIN') return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => fetchLogs(search, page), 300);
+    debounceRef.current = setTimeout(() => fetchLogs(search, page, dateFrom, dateTo, sortBy, sortDir), 300);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [search, page, user, fetchLogs]);
+  }, [search, page, dateFrom, dateTo, sortBy, sortDir, user, fetchLogs]);
 
-  useEffect(() => { setPage(1); }, [search]);
+  useEffect(() => { setPage(1); }, [search, dateFrom, dateTo, sortBy, sortDir]);
 
   const totalPages = Math.max(1, Math.ceil(total / limit));
 
@@ -163,7 +169,7 @@ export default function AdminClickLogsPage() {
         </div>
       </div>
 
-      <div className="mb-4">
+      <div className="mb-4 flex flex-col sm:flex-row flex-wrap gap-2 items-start sm:items-center">
         <input
           type="text"
           value={search}
@@ -171,6 +177,28 @@ export default function AdminClickLogsPage() {
           placeholder="Search by item title, email, phone, IP, or country…"
           className="w-full sm:max-w-md border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
         />
+        <div className="flex items-center gap-1.5 text-xs text-gray-500">
+          <label>From</label>
+          <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
+            className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400" />
+          <label>To</label>
+          <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
+            className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400" />
+        </div>
+        <select value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+          className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400">
+          <option value="createdAt">Sort: Time</option>
+          <option value="listingTitle">Sort: Item title</option>
+        </select>
+        <button type="button" onClick={() => setSortDir((d) => d === 'asc' ? 'desc' : 'asc')}
+          className="px-2.5 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50"
+          title="Toggle sort direction">
+          {sortDir === 'asc' ? '↑ Asc' : '↓ Desc'}
+        </button>
+        {(dateFrom || dateTo) && (
+          <button type="button" onClick={() => { setDateFrom(''); setDateTo(''); }}
+            className="text-xs text-red-600 hover:underline">Clear dates</button>
+        )}
       </div>
 
       {error && <p className="text-sm text-red-600 mb-3">{error}</p>}

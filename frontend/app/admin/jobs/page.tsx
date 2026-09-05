@@ -50,7 +50,7 @@ const EMPTY_FORM = {
   salary: '',
   deadline: '',
   imageUrl: '',
-  country: 'UAE',
+  country: 'UGANDA',
 };
 
 export default function AdminJobsPage() {

@@ -1,10 +1,8 @@
 'use client';
 
-import { Suspense, useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
 import { api } from '@/lib/api';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
-import FarmerMarketplaceSection from '@/components/ui/FarmerMarketplaceSection';
 
 /* ─── Types ────────────────────────────────────────────────────────────────── */
 
@@ -108,11 +106,7 @@ function StatPill({ icon, label, value, color }: { icon: string; label: string; 
 
 /* ─── Main page ────────────────────────────────────────────────────────────── */
 
-type Tab = 'prices' | 'farmer-marketplace';
-
-function MarketPricesContent() {
-  const searchParams = useSearchParams();
-  const [tab, setTab] = useState<Tab>(searchParams.get('tab') === 'farmer-marketplace' ? 'farmer-marketplace' : 'prices');
+export default function MarketPricesPage() {
   const [items, setItems] = useState<CommodityItem[]>([]);
   const [locations, setLocations] = useState<string[]>([]);
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
@@ -261,28 +255,8 @@ function MarketPricesContent() {
         </div>
       </div>
 
-      {/* Tabs — "Uganda Market Prices" (admin-curated reference prices) vs
-          "Farmer Marketplace" (farmer posts + buyer offers + delivered
-          price calculator). Two different data sources, same page. */}
-      <div className="flex gap-2 mb-5 border-b border-gray-200">
-        <button
-          onClick={() => setTab('prices')}
-          className={`px-4 py-2.5 text-sm font-bold border-b-2 -mb-px transition-colors ${tab === 'prices' ? 'border-red-500 text-red-600' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
-        >
-          Uganda Market Prices
-        </button>
-        <button
-          onClick={() => setTab('farmer-marketplace')}
-          className={`px-4 py-2.5 text-sm font-bold border-b-2 -mb-px transition-colors ${tab === 'farmer-marketplace' ? 'border-green-600 text-green-700' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
-        >
-          🚜 Farmer Marketplace
-        </button>
-      </div>
-
-      {tab === 'farmer-marketplace' && <FarmerMarketplaceSection />}
-
       {/* Market summary stats */}
-      {tab === 'prices' && !loading && items.length > 0 && (
+      {!loading && items.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-5">
           <StatPill icon="🌾" label="Tracked" value={summary.total} color="bg-slate-100 text-slate-600" />
           <StatPill icon="📈" label="Gainers" value={summary.gainers} color="bg-emerald-100 text-emerald-600" />
@@ -292,7 +266,7 @@ function MarketPricesContent() {
       )}
 
       {/* Top movers strip — advanced at-a-glance market signal */}
-      {tab === 'prices' && !loading && (topMovers.gainers.length > 0 || topMovers.losers.length > 0) && (
+      {!loading && (topMovers.gainers.length > 0 || topMovers.losers.length > 0) && (
         <div className="grid sm:grid-cols-2 gap-3 mb-6">
           <div className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-3.5">
             <p className="text-[11px] font-black uppercase tracking-wider text-emerald-700 mb-2 flex items-center gap-1.5">📈 Top Gainers</p>
@@ -323,8 +297,6 @@ function MarketPricesContent() {
         </div>
       )}
 
-      {tab === 'prices' && (
-      <>
       {/* Toolbar — search, filters, sort, view + export */}
       <div className="sticky top-16 z-10 bg-gray-50/90 backdrop-blur-sm py-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:bg-transparent sm:backdrop-blur-none sm:static mb-4">
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-2.5 flex flex-col lg:flex-row gap-2.5">
@@ -489,16 +461,6 @@ function MarketPricesContent() {
       <p className="text-xs text-gray-400 mt-8 text-center">
         Prices are indicative retail/wholesale figures for common Uganda markets and are updated periodically by our team — treat them as a guide, not a live trading feed.
       </p>
-      </>
-      )}
     </div>
-  );
-}
-
-export default function MarketPricesPage() {
-  return (
-    <Suspense fallback={<div className="max-w-6xl mx-auto px-4 py-10 text-center text-gray-400 text-sm">Loading market prices…</div>}>
-      <MarketPricesContent />
-    </Suspense>
   );
 }

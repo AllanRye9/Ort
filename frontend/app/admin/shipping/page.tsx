@@ -8,7 +8,7 @@ export default function AdminShippingPage() {
   const [rates, setRates] = useState<ShippingRate[]>([]);
   const [loading, setLoading] = useState(true);
   const [editId, setEditId] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: '', description: '', country: 'UAE', minDays: '', maxDays: '', priceAed: '', priceUgx: '', priceKes: '', priceCny: '', isActive: true });
+  const [form, setForm] = useState({ name: '', description: '', country: 'UGANDA', minDays: '', maxDays: '', priceAed: '', priceUgx: '', priceKes: '', priceCny: '', isActive: true });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -30,7 +30,7 @@ export default function AdminShippingPage() {
       } else {
         await api.post('/admin/shipping-rates', payload);
       }
-      setForm({ name: '', description: '', country: 'UAE', minDays: '', maxDays: '', priceAed: '', priceUgx: '', priceKes: '', priceCny: '', isActive: true });
+      setForm({ name: '', description: '', country: 'UGANDA', minDays: '', maxDays: '', priceAed: '', priceUgx: '', priceKes: '', priceCny: '', isActive: true });
       setEditId(null);
       fetchRates();
     } catch (e: unknown) {
@@ -171,7 +171,7 @@ export default function AdminShippingPage() {
             </div>
             <div className="flex gap-2">
               {editId && (
-                <button type="button" onClick={() => { setEditId(null); setForm({ name: '', description: '', country: 'UAE', minDays: '', maxDays: '', priceAed: '', priceUgx: '', priceKes: '', priceCny: '', isActive: true }); }}
+                <button type="button" onClick={() => { setEditId(null); setForm({ name: '', description: '', country: 'UGANDA', minDays: '', maxDays: '', priceAed: '', priceUgx: '', priceKes: '', priceCny: '', isActive: true }); }}
                   className="flex-1 py-2 rounded-xl border border-gray-200 text-gray-700 text-sm font-semibold">
                   Cancel
                 </button>

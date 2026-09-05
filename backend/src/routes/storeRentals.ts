@@ -5,10 +5,11 @@ import { createError } from '../middleware/errorHandler';
 
 const router = Router();
 
+// Uganda-launch defaults — fees quoted in UGX (the site's default currency).
 const STORE_PLANS = {
-  FREE_TRIAL: { fee: 0, currency: 'AED', durationDays: 3 },
-  MONTHLY: { fee: 60, currency: 'AED', durationDays: 30 },
-  ANNUAL: { fee: 300, currency: 'AED', durationDays: 365 },
+  FREE_TRIAL: { fee: 0,      currency: 'UGX', durationDays: 3 },
+  MONTHLY:    { fee: 60000,  currency: 'UGX', durationDays: 30 },
+  ANNUAL:     { fee: 300000, currency: 'UGX', durationDays: 365 },
 } as const;
 
 // ─── Public / listing routes ───────────────────────────────────────────────────
@@ -138,7 +139,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response, next: Nex
         userId: req.user!.userId,
         entityType: et as 'USER' | 'AGENT' | 'COMPANY' | 'ORGANIZATION',
         fee: planDef.fee,
-        currency: planDef.currency as 'AED',
+        currency: planDef.currency as 'UGX',
         startDate: now,
         endDate: end,
         placements: {

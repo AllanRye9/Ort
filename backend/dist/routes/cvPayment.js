@@ -51,7 +51,7 @@ router.get('/active-package', auth_1.optionalAuthenticate, async (req, res, next
 // charge, so the request is rejected.
 router.post('/initiate', auth_1.optionalAuthenticate, async (req, res, next) => {
     try {
-        const { country = 'UAE', deviceId, holder } = req.body;
+        const { country = 'UGANDA', deviceId, holder } = req.body;
         const userId = req.user?.userId ?? null;
         const pkg = await (0, cvPackage_1.getActiveCvPackage)();
         if (!pkg) {
@@ -106,7 +106,7 @@ router.post('/initiate', auth_1.optionalAuthenticate, async (req, res, next) => 
 // /validate and download, with no payment modal shown.
 router.post('/free-download', auth_1.optionalAuthenticate, async (req, res, next) => {
     try {
-        const { country = 'UAE', deviceId, holder } = req.body;
+        const { country = 'UGANDA', deviceId, holder } = req.body;
         const userId = req.user?.userId ?? null;
         const pkg = await (0, cvPackage_1.getActiveCvPackage)();
         if (!pkg || !pkg.isFree) {

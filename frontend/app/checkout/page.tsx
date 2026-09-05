@@ -35,7 +35,7 @@ export default function CheckoutPage() {
     phone: user?.phone ?? '',
     address: '',
     city: '',
-    country: 'UAE',
+    country: 'UGANDA',
     notes: '',
   });
 

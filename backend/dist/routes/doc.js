@@ -34,10 +34,10 @@ function parseDocumentText(text) {
         title: '',
         description: '',
         price: null,
-        currency: 'AED',
+        currency: 'UGX',
         condition: 'USED',
         location: '',
-        country: 'UAE',
+        country: 'UGANDA',
     };
     const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
     const unmatched = [];

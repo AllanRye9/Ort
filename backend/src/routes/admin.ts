@@ -79,7 +79,7 @@ const defaultSettings: Record<string, unknown> = {
   siteName: 'Piitrade',
   maintenanceMode: false,
   allowRegistration: true,
-  defaultCountry: 'UAE',
+  defaultCountry: 'UGANDA',
   itemsPerPage: 20,
   maxImagesPerListing: 10,
   trialDays: 7, // Free trial period for new ordinary users (admin-configurable)
@@ -272,28 +272,47 @@ router.get('/visitor-logs', async (req: Request, res: Response, next: NextFuncti
 // what's recorded (search context / item title+image are always recorded;
 // user and location details only when available).
 
+// Sortable columns exposed for /admin/search-logs' advanced querying —
+// mirrors the pattern already used by /admin/visitor-logs.
+const SEARCH_LOG_SORT_COLUMNS = ['createdAt', 'resultCount', 'query'] as const;
+type SearchLogSortColumn = typeof SEARCH_LOG_SORT_COLUMNS[number];
+
 router.get('/search-logs', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const page = Math.max(1, parseInt((req.query.page as string) || '1'));
     const limit = Math.min(100, parseInt((req.query.limit as string) || '25'));
     const search = ((req.query.search as string) || '').trim();
+    const dateFrom = ((req.query.dateFrom as string) || '').trim();
+    const dateTo = ((req.query.dateTo as string) || '').trim();
 
-    const where: Prisma.SearchLogWhereInput = search
-      ? {
-          OR: [
-            { query: { contains: search, mode: 'insensitive' } },
-            { userEmail: { contains: search, mode: 'insensitive' } },
-            { userPhone: { contains: search, mode: 'insensitive' } },
-            { ip: { contains: search, mode: 'insensitive' } },
-            { ipCountry: { contains: search, mode: 'insensitive' } },
-          ],
-        }
-      : {};
+    const requestedSortBy = (req.query.sortBy as string) || 'createdAt';
+    const sortBy: SearchLogSortColumn = (SEARCH_LOG_SORT_COLUMNS as readonly string[]).includes(requestedSortBy)
+      ? (requestedSortBy as SearchLogSortColumn)
+      : 'createdAt';
+    const sortDir: 'asc' | 'desc' = req.query.sortDir === 'asc' ? 'asc' : 'desc';
+
+    const where: Prisma.SearchLogWhereInput = {
+      ...(search ? {
+        OR: [
+          { query: { contains: search, mode: 'insensitive' } },
+          { userEmail: { contains: search, mode: 'insensitive' } },
+          { userPhone: { contains: search, mode: 'insensitive' } },
+          { ip: { contains: search, mode: 'insensitive' } },
+          { ipCountry: { contains: search, mode: 'insensitive' } },
+        ],
+      } : {}),
+      ...((dateFrom || dateTo) ? {
+        createdAt: {
+          ...(dateFrom ? { gte: new Date(dateFrom) } : {}),
+          ...(dateTo ? { lte: new Date(`${dateTo}T23:59:59.999Z`) } : {}),
+        },
+      } : {}),
+    };
 
     const [logs, total] = await Promise.all([
       prisma.searchLog.findMany({
         where,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { [sortBy]: sortDir },
         skip: (page - 1) * limit,
         take: limit,
       }),
@@ -306,28 +325,45 @@ router.get('/search-logs', async (req: Request, res: Response, next: NextFunctio
   }
 });
 
+const CLICK_LOG_SORT_COLUMNS = ['createdAt', 'listingTitle'] as const;
+type ClickLogSortColumn = typeof CLICK_LOG_SORT_COLUMNS[number];
+
 router.get('/click-logs', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const page = Math.max(1, parseInt((req.query.page as string) || '1'));
     const limit = Math.min(100, parseInt((req.query.limit as string) || '25'));
     const search = ((req.query.search as string) || '').trim();
+    const dateFrom = ((req.query.dateFrom as string) || '').trim();
+    const dateTo = ((req.query.dateTo as string) || '').trim();
 
-    const where: Prisma.ListingClickLogWhereInput = search
-      ? {
-          OR: [
-            { listingTitle: { contains: search, mode: 'insensitive' } },
-            { userEmail: { contains: search, mode: 'insensitive' } },
-            { userPhone: { contains: search, mode: 'insensitive' } },
-            { ip: { contains: search, mode: 'insensitive' } },
-            { ipCountry: { contains: search, mode: 'insensitive' } },
-          ],
-        }
-      : {};
+    const requestedSortBy = (req.query.sortBy as string) || 'createdAt';
+    const sortBy: ClickLogSortColumn = (CLICK_LOG_SORT_COLUMNS as readonly string[]).includes(requestedSortBy)
+      ? (requestedSortBy as ClickLogSortColumn)
+      : 'createdAt';
+    const sortDir: 'asc' | 'desc' = req.query.sortDir === 'asc' ? 'asc' : 'desc';
+
+    const where: Prisma.ListingClickLogWhereInput = {
+      ...(search ? {
+        OR: [
+          { listingTitle: { contains: search, mode: 'insensitive' } },
+          { userEmail: { contains: search, mode: 'insensitive' } },
+          { userPhone: { contains: search, mode: 'insensitive' } },
+          { ip: { contains: search, mode: 'insensitive' } },
+          { ipCountry: { contains: search, mode: 'insensitive' } },
+        ],
+      } : {}),
+      ...((dateFrom || dateTo) ? {
+        createdAt: {
+          ...(dateFrom ? { gte: new Date(dateFrom) } : {}),
+          ...(dateTo ? { lte: new Date(`${dateTo}T23:59:59.999Z`) } : {}),
+        },
+      } : {}),
+    };
 
     const [logs, total] = await Promise.all([
       prisma.listingClickLog.findMany({
         where,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { [sortBy]: sortDir },
         skip: (page - 1) * limit,
         take: limit,
       }),
@@ -861,6 +897,9 @@ router.delete('/users/:id', async (req: AuthRequest, res: Response, next: NextFu
 
 // ─── Listings ──────────────────────────────────────────────────────────────────
 
+const LISTING_SORT_COLUMNS = ['createdAt', 'price', 'title', 'views'] as const;
+type ListingSortColumn = typeof LISTING_SORT_COLUMNS[number];
+
 router.get('/listings', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const page = Math.max(1, parseInt(req.query.page as string || '1'));
@@ -868,6 +907,14 @@ router.get('/listings', async (req: Request, res: Response, next: NextFunction) 
     const search = (req.query.search as string || '').trim();
     const status = (req.query.status as string || '').trim();
     const categoryId = (req.query.categoryId as string || '').trim();
+    const country = (req.query.country as string || '').trim();
+    const dateFrom = (req.query.dateFrom as string || '').trim();
+    const dateTo = (req.query.dateTo as string || '').trim();
+    const requestedSortBy = (req.query.sortBy as string || '').trim();
+    const sortBy: ListingSortColumn | '' = (LISTING_SORT_COLUMNS as readonly string[]).includes(requestedSortBy)
+      ? (requestedSortBy as ListingSortColumn)
+      : '';
+    const sortDir: 'asc' | 'desc' = req.query.sortDir === 'asc' ? 'asc' : 'desc';
 
     const where: Record<string, unknown> = {};
 
@@ -886,6 +933,17 @@ router.get('/listings', async (req: Request, res: Response, next: NextFunction) 
       where.categoryId = categoryId;
     }
 
+    if (country) {
+      where.country = country;
+    }
+
+    if (dateFrom || dateTo) {
+      where.createdAt = {
+        ...(dateFrom ? { gte: new Date(dateFrom) } : {}),
+        ...(dateTo ? { lte: new Date(`${dateTo}T23:59:59.999Z`) } : {}),
+      };
+    }
+
     const [listings, total] = await Promise.all([
       prisma.listing.findMany({
         where,
@@ -901,13 +959,16 @@ router.get('/listings', async (req: Request, res: Response, next: NextFunction) 
         },
         skip: (page - 1) * limit,
         take: limit,
-        // KYC-verified sellers' listings surface first within the queue so
-        // their submissions get reviewed faster (see feature: "priority
-        // access" for verified sellers), then fall back to submission order.
-        orderBy: [
-          { user: { isKycVerified: 'desc' } },
-          { createdAt: status === 'PENDING' ? 'asc' : 'desc' },
-        ],
+        // When the admin picks an explicit sort column, honor it outright.
+        // Otherwise fall back to the default queue ordering: KYC-verified
+        // sellers' listings surface first so their submissions get reviewed
+        // faster, then by submission order.
+        orderBy: sortBy
+          ? [{ [sortBy]: sortDir }]
+          : [
+              { user: { isKycVerified: 'desc' } },
+              { createdAt: status === 'PENDING' ? 'asc' : 'desc' },
+            ],
       }),
       prisma.listing.count({ where }),
     ]);
@@ -2759,7 +2820,7 @@ router.post('/packages', async (req: Request, res: Response, next: NextFunction)
         scope,
         isFree: Boolean(isFree),
         price: isFree ? 0 : parseFloat(price) || 0,
-        currency: currency ?? 'AED',
+        currency: currency ?? 'UGX',
         durationDays: parseInt(durationDays),
         maxListings: maxListings ? parseInt(maxListings) : null,
         isActive: willBeActive,

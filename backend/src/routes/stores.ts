@@ -189,6 +189,59 @@ router.put('/me/partner-logo', authenticate, async (req: AuthRequest, res: Respo
   }
 });
 
+// GET /api/stores/me/analytics — aggregate dashboard numbers for the Web
+// Store "Analytics dashboard" advanced tool: listing views, active listing
+// count, order/revenue totals, and a top-listings-by-views leaderboard.
+router.get('/me/analytics', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user!.userId;
+
+    const [listingAgg, listingCount, topListings, orders, deliveredOrders] = await Promise.all([
+      prisma.listing.aggregate({ where: { userId }, _sum: { views: true } }),
+      prisma.listing.count({ where: { userId, status: 'ACTIVE' } }),
+      prisma.listing.findMany({
+        where: { userId },
+        select: { id: true, title: true, views: true, price: true, currency: true, stock: true, images: true },
+        orderBy: { views: 'desc' },
+        take: 5,
+      }),
+      prisma.order.findMany({
+        where: { sellerId: userId },
+        select: { id: true, status: true, total: true, currency: true, createdAt: true },
+      }),
+      prisma.order.aggregate({
+        where: { sellerId: userId, status: 'DELIVERED' },
+        _sum: { total: true },
+      }),
+    ]);
+
+    const ordersByStatus: Record<string, number> = {};
+    for (const o of orders) ordersByStatus[o.status] = (ordersByStatus[o.status] ?? 0) + 1;
+
+    // Last-30-day daily order counts for a lightweight sparkline
+    const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const recentOrders = orders.filter((o) => o.createdAt >= since);
+    const dailyOrders: Record<string, number> = {};
+    for (const o of recentOrders) {
+      const key = o.createdAt.toISOString().slice(0, 10);
+      dailyOrders[key] = (dailyOrders[key] ?? 0) + 1;
+    }
+
+    res.json({
+      totalViews:       listingAgg._sum.views ?? 0,
+      activeListings:   listingCount,
+      totalOrders:      orders.length,
+      ordersByStatus,
+      revenue:          deliveredOrders._sum.total ?? 0,
+      currency:         orders[0]?.currency ?? 'UGX',
+      topListings,
+      dailyOrders,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // DELETE /api/stores/me/partner-logo
 router.delete('/me/partner-logo', authenticate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {

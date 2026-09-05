@@ -52,7 +52,6 @@ const navGroups = [
       { href: '/admin/shipping', label: 'Shipping Rates', icon: '🚚' },
       { href: '/admin/currency-rates', label: 'Exchange Rates', icon: '💱' },
       { href: '/admin/commodity-prices', label: 'Market Prices', icon: '🌾' },
-      { href: '/admin/farmer-marketplace', label: 'Farmer Marketplace', icon: '🚜' },
     ],
   },
   {

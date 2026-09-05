@@ -44,7 +44,7 @@ router.post('/', async (req, res, next) => {
                 data: {
                     userId: req.user.userId,
                     amount: parsedAmount,
-                    currency: currency || 'AED',
+                    currency: currency || 'UGX',
                     method: method || 'BANK_TRANSFER',
                     accountInfo,
                 },

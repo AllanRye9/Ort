@@ -72,7 +72,7 @@ const defaultSettings = {
     siteName: 'Piitrade',
     maintenanceMode: false,
     allowRegistration: true,
-    defaultCountry: 'UAE',
+    defaultCountry: 'UGANDA',
     itemsPerPage: 20,
     maxImagesPerListing: 10,
     trialDays: 7, // Free trial period for new ordinary users (admin-configurable)
@@ -238,13 +238,23 @@ router.get('/visitor-logs', async (req, res, next) => {
 // (search) and GET /listings/:id (item click) — see that file for exactly
 // what's recorded (search context / item title+image are always recorded;
 // user and location details only when available).
+// Sortable columns exposed for /admin/search-logs' advanced querying —
+// mirrors the pattern already used by /admin/visitor-logs.
+const SEARCH_LOG_SORT_COLUMNS = ['createdAt', 'resultCount', 'query'];
 router.get('/search-logs', async (req, res, next) => {
     try {
         const page = Math.max(1, parseInt(req.query.page || '1'));
         const limit = Math.min(100, parseInt(req.query.limit || '25'));
         const search = (req.query.search || '').trim();
-        const where = search
-            ? {
+        const dateFrom = (req.query.dateFrom || '').trim();
+        const dateTo = (req.query.dateTo || '').trim();
+        const requestedSortBy = req.query.sortBy || 'createdAt';
+        const sortBy = SEARCH_LOG_SORT_COLUMNS.includes(requestedSortBy)
+            ? requestedSortBy
+            : 'createdAt';
+        const sortDir = req.query.sortDir === 'asc' ? 'asc' : 'desc';
+        const where = {
+            ...(search ? {
                 OR: [
                     { query: { contains: search, mode: 'insensitive' } },
                     { userEmail: { contains: search, mode: 'insensitive' } },
@@ -252,12 +262,18 @@ router.get('/search-logs', async (req, res, next) => {
                     { ip: { contains: search, mode: 'insensitive' } },
                     { ipCountry: { contains: search, mode: 'insensitive' } },
                 ],
-            }
-            : {};
+            } : {}),
+            ...((dateFrom || dateTo) ? {
+                createdAt: {
+                    ...(dateFrom ? { gte: new Date(dateFrom) } : {}),
+                    ...(dateTo ? { lte: new Date(`${dateTo}T23:59:59.999Z`) } : {}),
+                },
+            } : {}),
+        };
         const [logs, total] = await Promise.all([
             prisma_1.prisma.searchLog.findMany({
                 where,
-                orderBy: { createdAt: 'desc' },
+                orderBy: { [sortBy]: sortDir },
                 skip: (page - 1) * limit,
                 take: limit,
             }),
@@ -269,13 +285,21 @@ router.get('/search-logs', async (req, res, next) => {
         next(err);
     }
 });
+const CLICK_LOG_SORT_COLUMNS = ['createdAt', 'listingTitle'];
 router.get('/click-logs', async (req, res, next) => {
     try {
         const page = Math.max(1, parseInt(req.query.page || '1'));
         const limit = Math.min(100, parseInt(req.query.limit || '25'));
         const search = (req.query.search || '').trim();
-        const where = search
-            ? {
+        const dateFrom = (req.query.dateFrom || '').trim();
+        const dateTo = (req.query.dateTo || '').trim();
+        const requestedSortBy = req.query.sortBy || 'createdAt';
+        const sortBy = CLICK_LOG_SORT_COLUMNS.includes(requestedSortBy)
+            ? requestedSortBy
+            : 'createdAt';
+        const sortDir = req.query.sortDir === 'asc' ? 'asc' : 'desc';
+        const where = {
+            ...(search ? {
                 OR: [
                     { listingTitle: { contains: search, mode: 'insensitive' } },
                     { userEmail: { contains: search, mode: 'insensitive' } },
@@ -283,12 +307,18 @@ router.get('/click-logs', async (req, res, next) => {
                     { ip: { contains: search, mode: 'insensitive' } },
                     { ipCountry: { contains: search, mode: 'insensitive' } },
                 ],
-            }
-            : {};
+            } : {}),
+            ...((dateFrom || dateTo) ? {
+                createdAt: {
+                    ...(dateFrom ? { gte: new Date(dateFrom) } : {}),
+                    ...(dateTo ? { lte: new Date(`${dateTo}T23:59:59.999Z`) } : {}),
+                },
+            } : {}),
+        };
         const [logs, total] = await Promise.all([
             prisma_1.prisma.listingClickLog.findMany({
                 where,
-                orderBy: { createdAt: 'desc' },
+                orderBy: { [sortBy]: sortDir },
                 skip: (page - 1) * limit,
                 take: limit,
             }),
@@ -748,6 +778,7 @@ router.delete('/users/:id', async (req, res, next) => {
     }
 });
 // ─── Listings ──────────────────────────────────────────────────────────────────
+const LISTING_SORT_COLUMNS = ['createdAt', 'price', 'title', 'views'];
 router.get('/listings', async (req, res, next) => {
     try {
         const page = Math.max(1, parseInt(req.query.page || '1'));
@@ -755,6 +786,14 @@ router.get('/listings', async (req, res, next) => {
         const search = (req.query.search || '').trim();
         const status = (req.query.status || '').trim();
         const categoryId = (req.query.categoryId || '').trim();
+        const country = (req.query.country || '').trim();
+        const dateFrom = (req.query.dateFrom || '').trim();
+        const dateTo = (req.query.dateTo || '').trim();
+        const requestedSortBy = (req.query.sortBy || '').trim();
+        const sortBy = LISTING_SORT_COLUMNS.includes(requestedSortBy)
+            ? requestedSortBy
+            : '';
+        const sortDir = req.query.sortDir === 'asc' ? 'asc' : 'desc';
         const where = {};
         if (search) {
             where.OR = [
@@ -767,6 +806,15 @@ router.get('/listings', async (req, res, next) => {
         }
         if (categoryId) {
             where.categoryId = categoryId;
+        }
+        if (country) {
+            where.country = country;
+        }
+        if (dateFrom || dateTo) {
+            where.createdAt = {
+                ...(dateFrom ? { gte: new Date(dateFrom) } : {}),
+                ...(dateTo ? { lte: new Date(`${dateTo}T23:59:59.999Z`) } : {}),
+            };
         }
         const [listings, total] = await Promise.all([
             prisma_1.prisma.listing.findMany({
@@ -783,13 +831,16 @@ router.get('/listings', async (req, res, next) => {
                 },
                 skip: (page - 1) * limit,
                 take: limit,
-                // KYC-verified sellers' listings surface first within the queue so
-                // their submissions get reviewed faster (see feature: "priority
-                // access" for verified sellers), then fall back to submission order.
-                orderBy: [
-                    { user: { isKycVerified: 'desc' } },
-                    { createdAt: status === 'PENDING' ? 'asc' : 'desc' },
-                ],
+                // When the admin picks an explicit sort column, honor it outright.
+                // Otherwise fall back to the default queue ordering: KYC-verified
+                // sellers' listings surface first so their submissions get reviewed
+                // faster, then by submission order.
+                orderBy: sortBy
+                    ? [{ [sortBy]: sortDir }]
+                    : [
+                        { user: { isKycVerified: 'desc' } },
+                        { createdAt: status === 'PENDING' ? 'asc' : 'desc' },
+                    ],
             }),
             prisma_1.prisma.listing.count({ where }),
         ]);
@@ -2494,7 +2545,7 @@ router.post('/packages', async (req, res, next) => {
                 scope,
                 isFree: Boolean(isFree),
                 price: isFree ? 0 : parseFloat(price) || 0,
-                currency: currency ?? 'AED',
+                currency: currency ?? 'UGX',
                 durationDays: parseInt(durationDays),
                 maxListings: maxListings ? parseInt(maxListings) : null,
                 isActive: willBeActive,

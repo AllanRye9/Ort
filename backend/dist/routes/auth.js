@@ -181,7 +181,7 @@ router.post('/register', registerValidation, async (req, res, next) => {
                                 description: 'Automatically created free trial for new users',
                                 isFree: true,
                                 price: 0,
-                                currency: 'AED',
+                                currency: 'UGX',
                                 durationDays: trialDays,
                                 maxListings: null, // unlimited during trial
                                 isActive: true,

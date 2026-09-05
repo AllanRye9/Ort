@@ -17,7 +17,7 @@ export default function AdminRegisterPage() {
     confirmPassword: '',
     name: '',
     adminSecret: '',
-    country: 'UAE' as Country,
+    country: 'UGANDA' as Country,
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);

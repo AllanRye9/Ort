@@ -25,7 +25,7 @@ function RegisterForm() {
   const [step, setStep] = useState<1 | 2>(1);
   const [selectedRole, setSelectedRole] = useState<Role>('BUYER');
   const [form, setForm] = useState({
-    email: '', password: '', name: '', phone: '', country: 'UAE' as Country,
+    email: '', password: '', name: '', phone: '', country: 'UGANDA' as Country,
     companyName: '', registrationNumber: '', agentLicense: '', agentType: '', website: '', businessDescription: '',
   });
   const [showPassword, setShowPassword] = useState(false);

@@ -9,7 +9,6 @@ import CountryThemedHome from '@/components/ui/CountryThemedHome';
 import QuickActions from '@/components/ui/QuickActions';
 import HomeOtherCollections from '@/components/ui/HomeOtherCollections';
 import HomeMarketPrices from '@/components/ui/HomeMarketPrices';
-import HomeFarmerMarketplace from '@/components/ui/HomeFarmerMarketplace';
 import TrackPageView from '@/components/ui/TrackPageView';
 import RegionHintBanner from '@/components/ui/RegionHintBanner';
 import CountryLatestCollections from '@/components/ui/CountryLatestCollections';
@@ -192,16 +191,6 @@ export default async function HomePage() {
             published yet. ═══ */}
         <div className="mt-3">
           <HomeMarketPrices />
-        </div>
-
-        {/* ═══ FARMER MARKETPLACE — commodity marketplace layer: farmer
-            produce posts with buyer offers and a calculated delivered
-            price (commodity + transport + storage + platform fee). Sits
-            directly below Uganda Market Prices, in the same
-            below-the-slideshow slot. Self-hides when nothing has been
-            posted yet. ═══ */}
-        <div className="mt-3">
-          <HomeFarmerMarketplace />
         </div>
 
         {bannerMedia.length > 0 && (

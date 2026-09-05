@@ -848,10 +848,19 @@ export default function ListingDetailClient() {
                   href={listing.user?.store?.slug
                     ? `/stores/${listing.user.store.slug}`
                     : `/listings?userId=${listing.userId}`}
-                  className="mt-4 flex items-center gap-1.5 text-xs font-semibold text-[#F55906] hover:text-[#E94B00] transition-colors"
+                  className="mt-4 flex items-center gap-2 text-xs font-semibold text-[#F55906] hover:text-[#E94B00] transition-colors"
                 >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0l-4-4m4 4l-4 4" /></svg>
-                  {listing.user?.store?.slug ? 'Visit Seller Web Store' : 'View all listings by this seller'}
+                  {listing.user?.store?.slug && (
+                    <span className="relative w-6 h-6 rounded-full overflow-hidden bg-[#F9FAFB] border border-[#F3F4F6] shrink-0">
+                      {listing.user.store.logo ? (
+                        <Image src={resolveImageUrl(listing.user.store.logo)} alt={listing.user.store.name || 'Store logo'} fill className="object-cover" sizes="24px" />
+                      ) : (
+                        <span className="absolute inset-0 flex items-center justify-center text-[10px] text-[#9CA3AF]">🏬</span>
+                      )}
+                    </span>
+                  )}
+                  <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0l-4-4m4 4l-4 4" /></svg>
+                  {listing.user?.store?.slug ? `Visit ${listing.user.store.name || 'Seller Web Store'}` : 'View all listings by this seller'}
                 </Link>
               </div>
             </SectionCard>

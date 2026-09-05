@@ -192,7 +192,7 @@ router.post('/register', registerValidation, async (req: Request, res: Response,
                 description: 'Automatically created free trial for new users',
                 isFree: true,
                 price: 0,
-                currency: 'AED',
+                currency: 'UGX',
                 durationDays: trialDays,
                 maxListings: null, // unlimited during trial
                 isActive: true,

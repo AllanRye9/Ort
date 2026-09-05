@@ -493,7 +493,12 @@ router.get('/', auth_1.optionalAuthenticate, async (req, res, next) => {
                             parent: { select: { id: true, name: true, slug: true } },
                         },
                     },
-                    user: { select: { id: true, name: true, avatar: true, isKycVerified: true } },
+                    user: {
+                        select: {
+                            id: true, name: true, avatar: true, isKycVerified: true,
+                            store: { select: { name: true, logo: true, slug: true } },
+                        },
+                    },
                     productImages: {
                         where: { cdnUrl: { not: null }, status: { not: 'REJECTED' } },
                         select: { id: true, cdnUrl: true, uploadedAt: true },
@@ -671,7 +676,7 @@ router.post('/', auth_1.authenticate, async (req, res, next) => {
             data: {
                 title, description,
                 price: parsedPrice,
-                currency: currency || 'AED',
+                currency: currency || 'UGX',
                 condition: condition || 'USED',
                 status: isAdmin ? 'ACTIVE' : 'PENDING',
                 images: initialImages,
@@ -753,7 +758,7 @@ router.put('/:id', auth_1.authenticate, async (req, res, next) => {
         if (listing.userId !== req.user.userId && req.user.role !== 'ADMIN') {
             return next((0, errorHandler_1.createError)('Forbidden', 403));
         }
-        const { title, description, price, condition, images, imageIds, location, status, expiresAt, motorDetails, currency, country, categoryId, stock, propertyDetails, jobDetails, productOptions, customFieldValues, latitude, longitude, } = req.body;
+        const { title, description, price, condition, images, imageIds, location, status, expiresAt, motorDetails, currency, country, categoryId, stock, sku, propertyDetails, jobDetails, productOptions, customFieldValues, latitude, longitude, } = req.body;
         // Stock is a mandatory field on every listing — if it's included in the
         // update payload (e.g. the edit form always sends it), it must be a
         // valid non-negative whole number. Omitting the key entirely leaves the
@@ -795,6 +800,7 @@ router.put('/:id', auth_1.authenticate, async (req, res, next) => {
                 ...(price != null && { price: parseFloat(price) }),
                 ...(condition !== undefined && { condition }),
                 ...(parsedStock !== undefined && { stock: parsedStock }),
+                ...(sku !== undefined && { sku: (sku ?? '').toString().trim() || null }),
                 ...(location !== undefined && { location }),
                 ...(status !== undefined && { status }),
                 ...(expiresAt !== undefined && { expiresAt: expiresAt ? new Date(expiresAt) : null }),

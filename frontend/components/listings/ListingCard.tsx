@@ -172,6 +172,18 @@ export function ListingCard({ listing, showFavorite = true, cleanImage = false }
               {listing.description}
             </p>
           )}
+          {listing.user?.store?.name && (
+            <div className="flex items-center gap-1 mt-1" title={listing.user.store.name}>
+              <span className="relative w-3.5 h-3.5 rounded-full overflow-hidden bg-gray-100 shrink-0">
+                {listing.user.store.logo ? (
+                  <Image src={resolveImageUrl(listing.user.store.logo)} alt={listing.user.store.name} fill className="object-cover" sizes="14px" />
+                ) : (
+                  <span className="absolute inset-0 flex items-center justify-center text-[7px]">🏬</span>
+                )}
+              </span>
+              <span className="text-[8px] xs:text-[9px] text-gray-400 truncate">{listing.user.store.name}</span>
+            </div>
+          )}
         </Link>
 
         {/* Price row — the "+" add-to-cart (regular users) / edit pen

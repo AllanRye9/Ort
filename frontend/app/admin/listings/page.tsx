@@ -34,6 +34,12 @@ export default function AdminListingsPage() {
   const [fetching, setFetching] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [sortBy, setSortBy] = useState<'' | 'createdAt' | 'price' | 'title' | 'views'>('');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const [approveModal, setApproveModal] = useState<ApproveModal | null>(null);
   const [approving, setApproving] = useState(false);
@@ -45,13 +51,19 @@ export default function AdminListingsPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
 
-  const fetchListings = useCallback(async (query: string, status: string) => {
+  const fetchListings = useCallback(async (
+    query: string, status: string, categoryId: string, from: string, to: string, sBy: string, sDir: string,
+  ) => {
     try {
       setFetching(true);
       setActionError('');
-      const params: Record<string, string> = {};
+      const params: Record<string, string> = { sortDir: sDir };
       if (query) params.search = query;
       if (status) params.status = status;
+      if (categoryId) params.categoryId = categoryId;
+      if (from) params.dateFrom = from;
+      if (to) params.dateTo = to;
+      if (sBy) params.sortBy = sBy;
       const { data } = await api.get('/admin/listings', { params });
       setListings(data.listings);
       setTotal(data.pagination.total);
@@ -69,10 +81,25 @@ export default function AdminListingsPage() {
 
   useEffect(() => {
     if (user?.role !== 'ADMIN') return;
+    api.get('/categories').then(({ data }) => {
+      const flat: { id: string; name: string }[] = [];
+      const walk = (cats: { id: string; name: string; children?: unknown[] }[]) => {
+        cats.forEach((c) => { flat.push({ id: c.id, name: c.name }); if (Array.isArray(c.children)) walk(c.children as typeof cats); });
+      };
+      walk(data.categories ?? data ?? []);
+      setCategories(flat);
+    }).catch(() => {});
+  }, [user]);
+
+  useEffect(() => {
+    if (user?.role !== 'ADMIN') return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => fetchListings(search, statusFilter), 300);
+    debounceRef.current = setTimeout(
+      () => fetchListings(search, statusFilter, categoryFilter, dateFrom, dateTo, sortBy, sortDir),
+      300,
+    );
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [search, statusFilter, user, fetchListings]);
+  }, [search, statusFilter, categoryFilter, dateFrom, dateTo, sortBy, sortDir, user, fetchListings]);
 
   const updateStatus = async (listingId: string, status: string) => {
     setActionLoadingId(listingId);
@@ -95,7 +122,7 @@ export default function AdminListingsPage() {
     setActionError('');
     try {
       await api.delete(`/admin/listings/${listingId}`);
-      await fetchListings(search, statusFilter);
+      await fetchListings(search, statusFilter, categoryFilter, dateFrom, dateTo, sortBy, sortDir);
       setActionMessage('Listing deleted successfully.');
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
@@ -138,7 +165,7 @@ export default function AdminListingsPage() {
           : l
       ));
       setApproveModal(null);
-      await fetchListings(search, statusFilter);
+      await fetchListings(search, statusFilter, categoryFilter, dateFrom, dateTo, sortBy, sortDir);
       setActionMessage('Listing approved successfully.');
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
@@ -154,7 +181,7 @@ export default function AdminListingsPage() {
     setActionError('');
     try {
       await api.put(`/admin/listings/${listingId}/reject`);
-      await fetchListings(search, statusFilter);
+      await fetchListings(search, statusFilter, categoryFilter, dateFrom, dateTo, sortBy, sortDir);
       setActionMessage('Listing rejected.');
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
@@ -213,7 +240,7 @@ export default function AdminListingsPage() {
     try {
       await api.post('/admin/listings/bulk-action', { ids, action });
       setSelectedIds(new Set());
-      await fetchListings(search, statusFilter);
+      await fetchListings(search, statusFilter, categoryFilter, dateFrom, dateTo, sortBy, sortDir);
       setActionMessage(`Bulk action "${action}" completed.`);
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
@@ -300,6 +327,38 @@ export default function AdminListingsPage() {
             <option value="EXPIRED">Expired</option>
             <option value="REJECTED">Rejected</option>
           </select>
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
+          >
+            <option value="">All Categories</option>
+            {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+          <div className="flex items-center gap-1.5 text-xs text-gray-500">
+            <label>From</label>
+            <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
+              className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500" />
+            <label>To</label>
+            <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
+              className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500" />
+          </div>
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
+          >
+            <option value="">Default order</option>
+            <option value="createdAt">Sort: Date posted</option>
+            <option value="price">Sort: Price</option>
+            <option value="title">Sort: Title</option>
+            <option value="views">Sort: Views</option>
+          </select>
+          <button type="button" onClick={() => setSortDir((d) => d === 'asc' ? 'desc' : 'asc')}
+            className="px-2.5 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50"
+            title="Toggle sort direction">
+            {sortDir === 'asc' ? '↑ Asc' : '↓ Desc'}
+          </button>
           <div className="sm:ml-auto flex gap-2">
             <button
               onClick={handleExportCSV}
@@ -325,6 +384,7 @@ export default function AdminListingsPage() {
                     title="Select all"
                   />
                 </th>
+                <th className="text-left px-3 py-3 font-medium text-gray-600">Image</th>
                 <th className="text-left px-3 sm:px-4 py-3 font-medium text-gray-600">Title</th>
                 <th className="text-left px-3 sm:px-4 py-3 font-medium text-gray-600">Seller</th>
                 <th className="text-left px-3 sm:px-4 py-3 font-medium text-gray-600">Price</th>
@@ -348,6 +408,18 @@ export default function AdminListingsPage() {
                       onChange={() => toggleSelect(l.id)}
                       className="rounded border-gray-300 text-red-600 focus:ring-red-500"
                     />
+                  </td>
+                  <td className="px-3 py-3">
+                    <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-gray-100 border border-gray-200 shrink-0">
+                      {(() => {
+                        const src = l.productImages?.[0]?.cdnUrl || l.images?.[0];
+                        return src ? (
+                          <Image src={resolveImageUrl(src)} alt={l.title} fill className="object-cover" sizes="40px" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-300 text-[9px]">No img</div>
+                        );
+                      })()}
+                    </div>
                   </td>
                   <td className="px-3 sm:px-4 py-3 max-w-[160px]">
                     <Link
@@ -437,7 +509,7 @@ export default function AdminListingsPage() {
               ))}
               {listings.length === 0 && (
                 <tr>
-                  <td colSpan={10} className="px-6 py-12 text-center text-gray-400">
+                  <td colSpan={11} className="px-6 py-12 text-center text-gray-400">
                     No listings found.
                   </td>
                 </tr>

@@ -86,9 +86,17 @@ echo "========================================"
 
 pushd "$FRONTEND_DIR" > /dev/null
 
-rm -rf node_modules package-lock.json
-
-npm install
+if [ ! -x node_modules/.bin/next ] \
+  || [ ! -f node_modules/.package-lock.json ] \
+  || [ package-lock.json -nt node_modules/.package-lock.json ]; then
+  if [ -f package-lock.json ]; then
+    npm ci --no-audit --no-fund
+  else
+    npm install --no-audit --no-fund
+  fi
+else
+  echo "Reusing existing frontend node_modules."
+fi
 
 npm run build
 
@@ -109,9 +117,17 @@ if [ -f "$BACKEND_DIR/package.json" ]; then
 
   pushd "$BACKEND_DIR" > /dev/null
 
-  rm -rf node_modules package-lock.json
-
-  npm install
+  if [ ! -x node_modules/.bin/tsc ] \
+    || [ ! -f node_modules/.package-lock.json ] \
+    || [ package-lock.json -nt node_modules/.package-lock.json ]; then
+    if [ -f package-lock.json ]; then
+      npm ci --no-audit --no-fund
+    else
+      npm install --no-audit --no-fund
+    fi
+  else
+    echo "Reusing existing backend node_modules."
+  fi
 
   # ==========================================================
   # Prisma
