@@ -1,13 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import { useCountry } from '@/context/CountryContext';
-import { CurrencyDisplay } from '@/components/ui/CurrencyDisplay';
-import { QuickAddButton } from '@/components/listings/QuickAddButton';
-import { resolveImageUrl } from '@/lib/utils';
+import { ListingCard } from '@/components/listings/ListingCard';
+import { MobileCardCarousel } from '@/components/ui/MobileCardCarousel';
 import type { Listing } from '@/lib/types';
 
 // Categories that plausibly cover "back to school" shopping — school-age
@@ -22,7 +20,7 @@ function discountPercent(listing: Listing): number {
 }
 
 export default function BackToSchoolSection() {
-  const { country, currency: displayCurrency } = useCountry();
+  const { country } = useCountry();
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -77,61 +75,24 @@ export default function BackToSchoolSection() {
           </span>
         </Link>
 
-        {/* Horizontally-scrolling deal cards, peeking the next card like the reference layout */}
+        {/* Three cards per row on mobile (matches the reference layout),
+            collapsing into the standard responsive grid at sm+ — same
+            MobileCardCarousel + ListingCard pairing used by Flash Deals,
+            so this section looks and behaves like the rest of the site
+            rather than its own one-off peeking scroller. */}
         <div className="px-3 pb-3 -mt-0.5">
           {loading ? (
-            <div className="flex gap-2.5 overflow-hidden">
+            <div className="grid grid-cols-3 gap-2.5">
               {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="w-[46%] shrink-0 animate-pulse rounded-xl bg-white/70 aspect-[4/5]" />
+                <div key={i} className="animate-pulse rounded-xl bg-white/70 aspect-[3/4]" />
               ))}
             </div>
           ) : (
-            <div className="flex gap-2.5 overflow-x-auto snap-x snap-mandatory scrollbar-none">
-              {listings.map((listing) => {
-                const img = listing.productImages?.find((i) => i.cdnUrl)?.cdnUrl ?? listing.images?.[0] ?? null;
-                const pct = discountPercent(listing);
-                return (
-                  <div
-                    key={listing.id}
-                    className="relative w-[46%] shrink-0 snap-start rounded-xl bg-white border border-gray-100 overflow-hidden"
-                  >
-                    <Link href={`/listings/${listing.id}`} className="block">
-                      <div className="relative aspect-square bg-gray-50">
-                        {resolveImageUrl(img) ? (
-                          <Image src={resolveImageUrl(img)!} alt={listing.title} fill className="object-cover" sizes="46vw" />
-                        ) : (
-                          <div className="absolute inset-0 flex items-center justify-center text-gray-300 text-xs">No image</div>
-                        )}
-                        {/* "Save X%" highlighter chip, bottom-left over the image like the reference */}
-                        <span className="absolute left-1.5 bottom-1.5 bg-lime-300 text-gray-900 text-[9px] font-extrabold px-1.5 py-0.5 rounded leading-none">
-                          Save {pct}%
-                        </span>
-                      </div>
-                      <div className="p-2">
-                        <p className="text-[11px] font-semibold text-gray-800 leading-tight truncate">{listing.title}</p>
-                        <div className="flex items-baseline gap-1 mt-1 flex-wrap">
-                          <CurrencyDisplay
-                            amount={listing.price}
-                            currency={listing.currency}
-                            displayCurrency={displayCurrency}
-                            className="text-gray-900 font-extrabold text-xs leading-none"
-                          />
-                          <CurrencyDisplay
-                            amount={listing.originalPrice!}
-                            currency={listing.currency}
-                            displayCurrency={displayCurrency}
-                            className="text-gray-400 line-through text-[9px] leading-none"
-                          />
-                        </div>
-                      </div>
-                    </Link>
-                    <div className="absolute bottom-1.5 right-1.5">
-                      <QuickAddButton listing={listing} size="sm" />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <MobileCardCarousel gridClassName="sm:grid-cols-3 md:grid-cols-4 gap-2.5" ariaLabel="Back to school flash sale listings">
+              {listings.map((listing) => (
+                <ListingCard key={listing.id} listing={listing} />
+              ))}
+            </MobileCardCarousel>
           )}
         </div>
       </div>
